@@ -1,0 +1,5 @@
+useDynLib("RSiena")
+export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
+siena01Gui, siena07, sienaCompositionChange,
+sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
+sienaGroupCreate,  sienaNet, sienaNodeSet, simstats0c, varCovar, varDyadCovar)

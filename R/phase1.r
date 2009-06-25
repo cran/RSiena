@@ -1,0 +1,432 @@
+##/******************************************************************************
+## * SIENA: Simulation Investigation for Empirical Network Analysis
+## *
+## * Web: http://stat.gamma.rug.nl/siena.html
+## *
+## * File: phase1.r
+## *
+## * Description: This module contains the functions phase1.1, doPhase1it,
+## * and phase1.2. phase1.1 does the first 10 iterations and checks that
+## * finite differencing is going OK. If not, alters epsilon and forces a
+## * restart. Phase 1.2 does the rest of the iterations and then calculates
+## * the derivative estimate. doPhase1it does one iteration, is called by
+## * phase1.1 and phase1.2.
+## *****************************************************************************/
+##args: x model object (readonly), z control object
+##
+phase1.1<- function(z,x,...)
+{
+    ## initialise phase 1
+    z$SomeFixed<- FALSE
+    z$Phase <-  1
+    z<-AnnouncePhase(z,x)
+    z$sf <- matrix(0, nrow = z$n1, ncol = z$pp)
+    f <- FRANstore() ## the derivatives are model dependent!
+    z$sf2 <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
+    z$ssc <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
+    z$sdf <- array(0, dim=c(z$n1, z$pp, z$pp))
+    z$npos <- rep(0, z$pp)
+    z$writefreq <- 10
+    z$DerivativeProblem <- FALSE
+    z$Deriv <- !z$FinDiff.method ## can do both in phase 3 but not here!
+    for (nit in 1 : 10)
+    {
+        z$nit <- nit
+        if (nit == 2)
+        {
+            time1 <- proc.time()['elapsed']
+            if (x$checktime)
+            {
+                z$ctime <- time1
+            }
+        }
+        if (nit==6)
+        {
+            time1<- proc.time()['elapsed']-time1
+            if (time1>1e-5)
+            {
+                z$writefreq <- round(20.0/time1)
+            }
+            else
+            {
+                z$writefreq <- 5
+            }
+            if (is.batch())
+            {
+                z$writefreq <- 10*z$writefreq
+            }
+            z$writefreq<-roundfreq(z$writefreq)
+        }
+        #########################################
+        ### do iteration
+        #########################################
+        z<-doPhase1it(z,x,...)
+        #########################################
+        ###
+        #########################################
+        if (!z$OK || UserRestartFlag() || UserInterruptFlag())
+            return(z)
+    }
+    if (z$FinDiff.method)
+    {
+        npos <- z$npos
+        if (any(npos[!z$fixed] < 5))
+        {
+            j<- (1 : z$pp)[!z$fixed & npos < 5]
+            for (i in 1 : length(j))
+            {
+                Report(c('After 10 iterations, only', npos[j[i]],
+                         'differences in coordinate', j[i], '.\n'), cf)
+                Report(c('with epsilon = ',z$epsilon[j[i]], '.\n'), cf)
+            }
+            use<- !z$fixed & npos <= 2
+            z$epsilon[use]<- ifelse(z$posj[use],
+                                  3.0 * z$epsilon[use],
+                                  10.0 * z$epsilon[use])
+            use<- !z$fixed & npos > 2 & npos < 5
+            z$epsilon[use]<- ifelse(z$posj[use],
+                                  2.0 * z$epsilon[use],
+                                  sqrt(10.0) * z$epsilon[use])
+            use<- !z$fixed & npos < 5
+            z$epsilon[use] <- pmin(100.0 * z$scale[use], z$epsilon[use])
+            z$epsilon[use] <- pmax(0.1 * z$scale[use], z$epsilon[use])
+            Report(c('New epsilon =', z$epsilon[use],'.\n'),cf,fill=80)
+            if (z$repeatsForEpsilon <= 4)
+            {
+                Report('Change value of epsilon and restart Phase 1.\n',cf)
+                z$epsilonProblem<- TRUE
+                return(z)
+            }
+           if (any(npos[!z$fixed]<=1))
+            {
+                j0s <- which(!z$fixed & npos <= 1)
+                for (j0 in j0s)
+                {
+                    Report (c('Difficulties with parameter', j0, '.\n'),
+                            outf)
+                    Report(c('After 10 iterations, only', npos[j0],
+                             'differences in this coordinate.\n'), outf)
+                    Report('This parameter is fixed and not estimated.\n',
+                           outf)
+                    Report(c('Fix parameter',j0,',in phase 1.\n'), cf)
+                }
+                z$newFixed[j0s]<- TRUE
+                z$fixed[j0s] <- TRUE
+                z$SomeFixed <- TRUE
+            }
+            if (all(z$fixed))
+            {
+                z$AllNowFixed <- TRUE
+            }
+        }
+    }
+
+    z
+}
+
+doPhase1it<- function(z, x, ...)
+{
+    z$n <- z$n + 1
+    DisplayIteration(z)
+   ##  seed0<- .Random.seed ##store seed for use in finitedifferences
+    ## now stored on z as an array by period and reused in finite differences
+    zz <- x$FRAN(z, x, INIT=FALSE, ...)
+    fra <- colSums(zz$fra)
+    if (!zz$OK)
+    {
+        z$OK <- zz$OK
+        return(z)
+    }
+    if (!is.null(zz[['sc']]))
+    {
+        z$ssc[z$nit, , ] <- zz$sc
+    }
+    fra <- fra -z$targets
+    z$sf[z$nit, ] <- fra
+    z$sf2[z$nit, , ] <- zz$fra
+    if (z$FinDiff.method)
+    {
+        z <- FiniteDifferences(z, x, fra + z$targets, ...)
+        z$sdf[z$nit, , ] <- z$sdf0
+    }
+    else if (x$maxlike)
+    {
+        z$sdf[z$nit, , ] <- zz$dff
+    }
+    CheckBreaks()
+    if (UserInterruptFlag() || UserRestartFlag())
+    {
+        return(z)
+    }
+    val <- getProgressBar(z$pb)
+    if (z$FinDiff.method)
+    {
+        val <- val + z$pp + 1
+
+    }
+    else
+    {
+        val <- val + 1
+    }
+    z$pb <- setProgressBar(z$pb, val)
+    progress <- val / z$pb$pbmax * 100
+    if (z$nit <= 5 || z$nit %% z$writefreq == 0 || z$nit %%5 == 0 ||
+        x$maxlike || x$FinDiff.method)
+    {
+      #  Report(c('Phase', z$Phase, 'Iteration ', z$nit, '\n'))
+        if (is.batch())
+            Report(c('Phase ', z$Phase, ' Iteration ', z$nit, ' Progress: ',
+                     round(progress), '%\n'), sep='')
+        else
+        {
+            DisplayTheta(z)
+            DisplayDeviations(z, fra)
+        }
+    }
+    #browser()
+    z
+}
+phase1.2<- function(z, x, ...)
+{
+    ##finish phase 1 iterations and do end-of-phase processing
+    if (z$n1 > 10)
+    {
+        for (nit in 11 : z$n1)
+        {
+            z$nit <- nit
+            z <- doPhase1it(z, x, ...)
+            if (!z$OK || UserInterruptFlag() || UserRestartFlag())
+            {
+                return(z)
+            }
+        }
+    }
+    z$timePhase1 <- (proc.time()['elapsed'] - z$ctime) / (z$nit - 1)
+    if (x$checktime)
+    {
+        Report(c('Time per iteration in phase 1  =',
+                 format(z$timePhase1, digits = 4, nsmall = 4),'\n'), lf)
+    }
+    z$mnfra <- colMeans(z$sf)
+    Report('Average deviations NR generated statistics and targets\n', cf)
+    Report('after phase 1:\n', cf)
+    PrtOutMat(format(as.matrix(z$mnfra), width = 15, nsmall = 6), cf)
+    z <- CalculateDerivative(z, x)
+  ##browser()
+    if (!z$OK || z$DerivativeProblem) ##longer phase 1 or use finite differences
+    {
+        return(z)
+    }
+    z$SomeFixed <-z$SomeFixed | z$cdSomeFixed
+    if (z$SomeFixed)
+    {
+        Report('(Values for fixed parameters are meaningless.)\n', cf)
+        z$dfra[outer(z$fixed, z$fixed, '|')] <- 0
+        diag(z$dfra)[z$fixed] <- 1.0
+        z$mnfra[z$fixed] <- 0.0
+        z$sf[ , z$fixed] <- 0
+    }
+    if (any(diag(z$dfra) < 1e-8))
+    {
+        sml <- (1 : z$pp)[diag(z$dfra) < 1e-8]
+        diag(z$dfra)[sml] <- 1e-3
+        Report(c('Diagonal elements(s)', sml,
+                 'of derivative matrix amended in phase 1.'), cf, fill=80)
+    }
+    if (inherits(try(dinv <- solve(z$dfra)), "try-error"))
+    {
+        Report('Error message for inversion of dfra: \n', cf)
+        diag(z$dfra) <- diag(z$dfra) + 1
+        Report('Intervention 1.4.1: ridge added after phase 1.\n', cf)
+        if (inherits(try(dinv <- solve(z$dfra)), "try-error"))
+        {
+            Report(c('Warning. After phase 1, derivative matrix non-invertible',
+                     'even with a ridge.\n'), cf)
+            fchange <- 0
+        }
+        else
+        {
+            fchange <- as.vector(dinv %*% z$mnfra)
+            z$dinv <- dinv
+        }
+    }
+    else
+    {
+        fchange <- as.vector(dinv %*% z$mnfra)
+        z$dinv <- dinv
+    }
+    Report('dfra :\n', cf)
+    ##  browser()
+    PrtOutMat(z$dfra, cf)
+    Report('inverse of dfra :\n', cf)
+    PrtOutMat(dinv, cf)
+    Report('Full Quasi-Newton-Raphson step after phase 1:\n', cf)
+    Report(c(paste(1:z$pp, '. ', format(-fchange, width = 12, digits = 6,
+                                        nsmall = 6), sep = '', collapse = '\n'),
+             '\n'), cf)
+    Report(c('This step is multiplied by the factor ',
+             format(0.5 * x$firstg, digits = 5, nsmall = 5, width = 8), '.\n'),
+           cf, sep='')
+    fchange <- 0.5 * x$firstg * fchange
+    fchange[z$fixed] <- 0.0
+    ##check if jump is too large
+    maxrat<- max(abs(fchange / z$scale))
+    if (maxrat > 10.0)
+    {
+        fchange <- 10 * fchange / maxrat;
+        Report(c('Intervention 1.4.2: jump after phase 1 decreased by factor',
+                 maxrat, '.\n'), cf)
+    }
+    ##check positivity
+    if (z$anyposj)
+    {
+        neg <- z$posj & fchange >= z$theta
+        if (any(neg))
+        {
+            fchange[neg] <- 0.5 * z$theta[neg]
+            Report(c('Intervention 1.4.3: positivity restriction after phase 1',
+                     'coordinate(s)', (1 : z$pp)[neg], '.'), cf, fill=80)
+            Report('\n', cf)
+        }
+    }
+    ## make step
+    if (x$nsub >= 1)
+    {
+        z$theta[!z$fixed] <- z$theta[!z$fixed] - fchange[!z$fixed]
+    }
+    Report(c('Phase 1 achieved after ', z$nit, ' iterations.\n'), cf)
+    WriteOutTheta(z)
+    z$nitPhase1 <- z$nit
+    ##browser()
+    z
+}
+
+CalculateDerivative <- function(z, x)
+{
+    f <- FRANstore()
+    if (z$FinDiff.method || x$maxlike)
+    {
+        dfra <- t(apply(z$sdf, c(2, 3), mean))
+    }
+    else
+    {
+        ##note that warnings is never set as this piece of code is not executed
+        ##if force_fin_diff_phase_1 is true so warning is zero on entry
+        ##browser()
+        dfra<- matrix(0, nrow = z$pp, ncol = z$pp)
+       # browser()
+        for (i in 1 : (f$observations-1))
+        {
+            tmp <- sapply(1 : z$n1,function(j, y, s)
+                              outer(y[j, ], s[j, ]),
+                          y = matrix(z$sf2[, i, ], ncol=z$pp),
+                          s = matrix(z$ssc[, i, ], ncol=z$pp))
+            tmp <- array(tmp, dim = c(z$pp, z$pp, z$n1))
+            dfra <- dfra + apply(tmp, c(1, 2), sum)
+        }
+        dfra <- dfra / z$n1
+        tmp <- matrix(sapply(1 : (f$observations - 1), function(i)
+                                   outer(colMeans(z$sf2)[i,],
+                  colMeans(z$ssc)[i,])), ncol=f$observations-1)
+        dfra <- dfra - matrix(rowSums(tmp), nrow = z$pp)
+        z$jacobianwarn1 <- rep(FALSE, z$pp)
+        if (any(diag(dfra) <= 0))
+        {
+            for (i in 1 : z$pp)
+            {
+                if (dfra[i, i] < 0)
+                {
+                    ##browser()
+                    z$jacobianwarn1[i] <- TRUE
+                    Report(c('Warning: diagonal value', i,
+                             'is non-positive.\n\n'), cf)
+                }
+            }
+            if (z$n1 < 200)
+            {
+                z$n1 <- z$n1 * 2
+                Report(c('New phase 1 of increased length because of',
+                         'unreliable derivative matrix\n'), cf)
+                Report(c('New phase 1 of increased length because of',
+                         'unreliable derivative matrix\n'), lf)
+                z$DerivativeProblem <- TRUE
+                z$LongerPhase1 <-  TRUE
+            }
+            else
+            {
+                z$FinDiff.method <- TRUE
+                Report(c('New phase 1 with finite differences because of',
+                         'unreliable derivative matrix\n'), cf)
+                Report(c('New phase 1 with finite differences because of',
+                         'unreliable derivative matrix\n'), lf)
+               z$DerivativeProblem <- TRUE
+            }
+            return(z)
+        }
+    }
+    dfra[outer(z$fixed,z$fixed,'|')] <- 0
+    diag(dfra)[z$fixed] <- 1.0
+    Report('Diagonal values of derivative matrix :\n', cf)
+    Report(format(diag(dfra), digits = 4, nsmall = 4, width = 8), cf, fill=80)
+    someFixed <- FALSE
+    if (any(diag(dfra) <= 0 & !z$fixed))
+    {
+        neg<- which(diag(dfra) <= 0 & !z$fixed)
+        z$fixed[neg] <- TRUE
+        z$newFixed[neg] <- TRUE
+        someFixed <- TRUE
+        Report(c('*** nonpositive diagonal value(s):', neg,
+                  ' is/are fixed.\n'), cf)
+            Report(c('Estimation problem with parameter(s)', neg,
+                     'this/these parameter(s) is/are fixed.\n'), outf)
+    }
+    z$dfra <- dfra
+    z$cdSomeFixed <- someFixed
+    z
+}
+
+FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
+{
+    fras <- array(0, dim = c(int, z$pp, z$pp))
+  # browser()
+    for (i in 1 : z$pp)
+    {
+        zdummy <- z[c('theta', 'Deriv')]
+        if (!z$fixed[i])
+        {
+            zdummy$theta[i] <- z$theta[i] + z$epsilon[i]
+        }
+        ##  assign('.Random.seed',randomseed,pos=1)
+        if (!z$Phase == 3 || int == 1)
+        {
+            zz <- x$FRAN(zdummy, list(x$cconditional), INIT=FALSE,
+                         fromFiniteDiff=TRUE, ...)
+            if (!zz$OK)
+            {
+                z$OK <- zz$OK
+                return(z)
+            }
+        }
+        else
+        {
+            zz <- clusterCall(cl, x$FRAN, zdummy, list(x$cconditional),
+                              INIT=FALSE, fromFiniteDiff=TRUE, ...)
+        }
+        if (!z$Phase == 3 || int == 1)
+        {
+            fras[1, i, ] <- colSums(zz$fra) - fra
+        }
+        else
+        {
+            for (j in 1 : int)
+                fras[j, i, ] <- colSums(zz[[j]]$fra) - fra
+        }
+    }
+                                        # browser()
+    if (z$Phase == 1 && z$nit <= 10)
+        z$npos <- z$npos + ifelse(abs(diag(fras[1, , ])) > 1e-6, 1, 0)
+    sdf <- fras / rep(z$epsilon, z$pp)
+    z$sdf0 <- sdf
+                                        # browser()
+    z
+}

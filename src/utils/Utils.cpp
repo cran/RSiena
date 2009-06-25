@@ -1,0 +1,36 @@
+/******************************************************************************
+ * SIENA: Simulation Investigation for Empirical Network Analysis
+ * 
+ * Web: http://www.stats.ox.ac.uk/~snijders/siena/
+ * 
+ * File: Utils.cpp
+ * 
+ * Description: Defines some utilities for general use.
+ *****************************************************************************/
+
+#include "Utils.h"
+#include <sstream>
+
+namespace siena
+{
+
+/**
+ * Returns a string representing the given integer.
+ */
+std::string toString(int i)
+{
+	std::stringstream out;
+	out << i;
+	return out.str();
+}
+
+
+/**
+ * Creates an exception signaling about the use of an invalid iterator.
+ */
+InvalidIteratorException::InvalidIteratorException() :
+	std::logic_error("An attempt to use an invalid iterator")
+{
+}
+
+}

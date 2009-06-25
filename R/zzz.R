@@ -1,0 +1,37 @@
+#/******************************************************************************
+# * SIENA: Simulation Investigation for Empirical Network Analysis
+# *
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# *
+# * File: zzz.r
+# *
+# * Description: This module contains the code for package attachment and
+# * detachment.
+# *****************************************************************************/
+#dllpath <- ''
+imagepath <- ''
+##csvpath <- ''
+## or .onAttach?
+.onLoad <- function(libname,pkgname){
+#   dllpath <<- if (nzchar(.Platform$r_arch))
+##       file.path(libname, pkgname, "libs", .Platform$r_arch,
+#                 paste('RSiena', .Platform$dynlib.ext, sep=''))
+#   else
+#       file.path(libname,pkgname, "libs",
+ #                paste('RSiena', .Platform$dynlib.ext, sep=''))
+#  #  data('sysdata',package='RSiena')
+   imagepath <<- file.path(libname, pkgname, paste('ilcampo.gif'))
+ ##  csvpath<<- file.path(libname,pkgname)
+ #   library.dynam("RSiena",package=pkgname)
+ #  cat (libname,pkgname,'\n')
+}
+
+## not used yet.
+.onUnload <- function(libpath) {
+    library.dynam.unload("RSiena", libpath)
+}
+
+#.Last.lib <- function(libpath)
+#{
+#    cat(libpath,'\n')
+#}

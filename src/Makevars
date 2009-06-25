@@ -1,0 +1,9 @@
+SOURCES=$(wildcard data/*.cpp utils/*.cpp model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp)
+OBJECTS = siena07.o $(foreach i,$(SOURCES),$(basename $i).o)
+PKG_CPPFLAGS=-I.
+# PKG_CXXFLAGS=-fno-omit-frame-pointer
+
+all: clean $(SHLIB)
+
+clean:
+	@rm -f $(OBJECTS)

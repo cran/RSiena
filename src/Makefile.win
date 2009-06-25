@@ -1,0 +1,54 @@
+#-*- Makefile -*-
+#
+
+#RHOME = d:/R/R-2.9.0/
+#RHOME = c:/progra~1/R/R-2.9.0/
+#RHOME = c:/R/R-2.9.0/
+.PHONY: all libs execs
+
+SOURCES=$(wildcard data/*.cpp utils/*.cpp utils/random.h model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp model/adapters/*.cpp)
+EXTRAS=$(foreach i,$(SOURCES),$(basename $i).o)
+
+PKG_LIBS=-L. -lSn
+PKG_CPPFLAGS=-I.
+
+SHLIB = RSiena.dll
+
+
+all: libs $(SHLIB) execs
+libs: libSn.a
+
+libSn.a: $(EXTRAS)
+	 $(AR) cr libSn.a $(EXTRAS)
+
+RSiena.dll: siena07.o
+
+siena.exe:
+	@(cd win32; make all)
+
+execs:
+	@(cd win32; make install)
+
+
+clean:
+	@rm -f RSiena.dll libSn.a $(EXTRAS) siena07.o
+	@(cd win32; make clean)
+
+CPPFLAGS = $(PKG_CPPFLAGS) -I$(R_HOME)/include
+CFLAGS = -O2 -Wall -pedantic
+CXXFLAGS = -O2 -Wall -pedantic
+DLLLIBS = $(PKG_LIBS) -L$(R_HOME)/bin -lR
+
+.cpp.o:
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+ECHO = echo
+NM = nm
+DLL = g++
+SED = sed
+
+%.dll:
+	@$(ECHO) EXPORTS > $*.def
+	@$(NM) $^ | $(SED) -n 's/^.* [BCDRT] _/ /p' >> $*.def
+	$(DLL) -shared $(DLLFLAGS) $($*-DLLFLAGS) -o $@ $*.def $^ $(DLLLIBS)
+	@$(RM) $*.def
