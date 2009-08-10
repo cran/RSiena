@@ -26,42 +26,15 @@
 #include "model/Model.h"
 #include "model/EffectInfo.h"
 #include "model/EpochSimulation.h"
+#include "model/SimulationActorSet.h"
 #include "model/effects/AllEffects.h"
 #include "model/effects/EffectFactory.h"
+#include "model/effects/StructuralRateEffect.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/EffectValueTable.h"
 
 namespace siena
 {
-
-// ----------------------------------------------------------------------------
-// Section: Helpers
-// ----------------------------------------------------------------------------
-
-/**
- * An iterator type definition for convenient use in several places.
- */
-typedef std::map<const NetworkVariable *,
-	EffectValueTable *>::const_iterator Iterator;
-
-
-/**
- * An identity function simply returning its argument.
- */
-inline double identity(int x)
-{
-	return x;
-}
-
-
-/**
- * Returns the inverse of (<i>x</i> + 1).
- */
-inline double invertor(int x)
-{
-	return 1.0 / (x + 1);
-}
-
 
 // ----------------------------------------------------------------------------
 // Section: Construction area
@@ -78,7 +51,7 @@ DependentVariable::DependentVariable(string name,
 	int observationCount,
 	EpochSimulation * pSimulation) : NamedObject(name)
 {
-	this->lpActorSet = pActorSet;
+	this->lpActorSet = pSimulation->pSimulationActorSet(pActorSet);
 	this->lpSimulation = pSimulation;
 	this->ltotalRate = 0;
 	this->lrate = new double[this->n()];
@@ -126,7 +99,8 @@ void DependentVariable::initializeRateFunction()
 
 				if (pConstantCovariate)
 				{
-					if (this->lpActorSet != pConstantCovariate->pActorSet())
+					if (this->lpActorSet->pOriginalActorSet() !=
+						pConstantCovariate->pActorSet())
 					{
 						throw domain_error("Mismatch of actor sets");
 					}
@@ -137,7 +111,8 @@ void DependentVariable::initializeRateFunction()
 				}
 				else if (pChangingCovariate)
 				{
-					if (this->lpActorSet != pChangingCovariate->pActorSet())
+					if (this->lpActorSet->pOriginalActorSet() !=
+						pChangingCovariate->pActorSet())
 					{
 						throw domain_error("Mismatch of actor sets");
 					}
@@ -192,22 +167,60 @@ void DependentVariable::initializeRateFunction()
 
 			if (effectName == "outRate")
 			{
-				this->outDegreeRateParameter(pVariable, parameter);
+				if (this->lpActorSet != pVariable->pSenders())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+					new StructuralRateEffect(pVariable,
+						OUT_DEGREE_RATE,
+						parameter));
 				this->loutDegreeScores[pVariable] = 0;
 			}
 			else if (effectName == "inRate")
 			{
-				this->inDegreeRateParameter(pVariable, parameter);
+				if (this->lpActorSet != pVariable->pReceivers())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+					new StructuralRateEffect(pVariable,
+						IN_DEGREE_RATE,
+						parameter));
 				this->linDegreeScores[pVariable] = 0;
 			}
 			else if (effectName == "recipRate")
 			{
-				this->reciprocalDegreeRateParameter(pVariable, parameter);
+				if (!pVariable->oneModeNetwork())
+				{
+					throw std::invalid_argument(
+						"One-mode network variable expected");
+				}
+
+				if (this->lpActorSet != pVariable->pSenders())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+					new StructuralRateEffect(pVariable,
+						RECIPROCAL_DEGREE_RATE,
+						parameter));
 				this->lreciprocalDegreeScores[pVariable] = 0;
 			}
 			else if (effectName == "outRateInv")
 			{
-				this->inverseOutDegreeRateParameter(pVariable, parameter);
+				if (this->lpActorSet != pVariable->pSenders())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+					new StructuralRateEffect(pVariable,
+						INVERSE_OUT_DEGREE_RATE,
+						parameter));
 				this->linverseOutDegreeScores[pVariable] = 0;
 			}
 			else
@@ -268,12 +281,8 @@ DependentVariable::~DependentVariable()
 	delete[] this->lrate;
 	delete[] this->lcovariateRates;
 
-	// Delete the structural rate effect tables.
-
-	clearMap(this->loutDegreeRateEffects, false, true);
-	clearMap(this->linDegreeRateEffects, false, true);
-	clearMap(this->lreciprocalDegreeRateEffects, false, true);
-	clearMap(this->linverseOutDegreeRateEffects, false, true);
+	// Delete the structural rate effects.
+	deallocateVector(this->lstructuralRateEffects);
 
 	// Nullify the fields
 
@@ -288,15 +297,6 @@ DependentVariable::~DependentVariable()
 // ----------------------------------------------------------------------------
 // Section: Accessors
 // ----------------------------------------------------------------------------
-
-/**
- * Returns the set of actors underlying this dependent variable.
- */
-const ActorSet * DependentVariable::pActorSet() const
-{
-	return this->lpActorSet;
-}
-
 
 /**
  * Returns the number of actors for this variable.
@@ -383,8 +383,9 @@ void DependentVariable::initialize(int period)
 void DependentVariable::calculateRates()
 {
 	this->ltotalRate = 0;
+	int n = this->n();
 
-	for (int i = 0; i < this->n(); i++)
+	for (int i = 0; i < n; i++)
 	{
 		// If an actor cannot make a change with respect to this variable,
 		// then its rate is 0.
@@ -408,7 +409,7 @@ void DependentVariable::calculateRates()
  */
 bool DependentVariable::canMakeChange(int actor) const
 {
-	return this->lpSimulation->active(this->pActorSet(), actor);
+	return this->lpActorSet->active(actor);
 }
 
 
@@ -532,170 +533,17 @@ void DependentVariable::updateCovariateRates()
 
 
 /**
- * Stores the parameter value for the structural rate effect depending on
- * the out-degrees in the given one-mode network variable.
- */
-void DependentVariable::outDegreeRateParameter(
-	const NetworkVariable * pVariable,
-	double value)
-{
-	if (this->lpActorSet != pVariable->pSenders())
-	{
-		throw std::invalid_argument("Mismatch of actor sets");
-	}
-
-	EffectValueTable * pTable = this->loutDegreeRateEffects[pVariable];
-
-	if (!pTable)
-	{
-		pTable = new EffectValueTable(pVariable->m(), identity);
-		this->loutDegreeRateEffects[pVariable] = pTable;
-	}
-
-	pTable->parameter(value);
-}
-
-
-/**
- * Stores the parameter value for the structural rate effect depending on
- * the in-degrees in the given one-mode network variable.
- */
-void DependentVariable::inDegreeRateParameter(
-	const NetworkVariable * pVariable,
-	double value)
-{
-	if (this->lpActorSet != pVariable->pReceivers())
-	{
-		throw std::invalid_argument("Mismatch of actor sets");
-	}
-
-	EffectValueTable * pTable = this->linDegreeRateEffects[pVariable];
-
-	if (!pTable)
-	{
-		pTable = new EffectValueTable(pVariable->n(), identity);
-		this->linDegreeRateEffects[pVariable] = pTable;
-	}
-
-	pTable->parameter(value);
-}
-
-
-/**
- * Stores the parameter value for the structural rate effect depending on
- * the reciprocal degrees in the given one-mode network variable.
- */
-void DependentVariable::reciprocalDegreeRateParameter(
-	const NetworkVariable * pVariable,
-	double value)
-{
-	if (!pVariable->oneModeNetwork())
-	{
-		throw std::invalid_argument("One-mode network variable expected");
-	}
-
-	if (this->lpActorSet != pVariable->pSenders())
-	{
-		throw std::invalid_argument("Mismatch of actor sets");
-	}
-
-	EffectValueTable * pTable = this->lreciprocalDegreeRateEffects[pVariable];
-
-	if (!pTable)
-	{
-		pTable = new EffectValueTable(pVariable->n(), identity);
-		this->lreciprocalDegreeRateEffects[pVariable] = pTable;
-	}
-
-	pTable->parameter(value);
-}
-
-
-/**
- * Stores the parameter value for the structural rate effect depending on
- * the inverse out-degrees in the given one-mode network variable.
- */
-void DependentVariable::inverseOutDegreeRateParameter(
-	const NetworkVariable * pVariable,
-	double value)
-{
-	if (this->lpActorSet != pVariable->pSenders())
-	{
-		throw std::invalid_argument("Mismatch of actor sets");
-	}
-
-	EffectValueTable * pTable = this->linverseOutDegreeRateEffects[pVariable];
-
-	if (!pTable)
-	{
-		pTable = new EffectValueTable(pVariable->m(), invertor);
-		this->linverseOutDegreeRateEffects[pVariable] = pTable;
-	}
-
-	pTable->parameter(value);
-}
-
-
-/**
  * Returns the component of the rate function of actor <i>i</i> depending
  * on structural effects.
  */
 double DependentVariable::structuralRate(int i) const
 {
 	double rate = 1;
+	int effectCount = this->lstructuralRateEffects.size();
 
-	// Calculate the rate for outdegree effects.
-
-	for (Iterator iter = this->loutDegreeRateEffects.begin();
-		iter != this->loutDegreeRateEffects.end();
-		iter++)
+	for (int effectIndex = 0; effectIndex < effectCount; effectIndex++)
 	{
-		// The network variable
-		const NetworkVariable * pVariable = iter->first;
-
-		// The current state of the network variable
-		Network * pNetwork = pVariable->pNetwork();
-
-		// The table of precalculated contributions for each outdegree
-		EffectValueTable * pTable = iter->second;
-
-		// Update the rate
-		rate *= pTable->value(pNetwork->outDegree(i));
-	}
-
-	// Other structural rate effects are treated similarly.
-
-	for (Iterator iter = this->linDegreeRateEffects.begin();
-		iter != this->linDegreeRateEffects.end();
-		iter++)
-	{
-		const NetworkVariable * pVariable = iter->first;
-		Network * pNetwork = pVariable->pNetwork();
-		EffectValueTable * pTable = iter->second;
-
-		rate *= pTable->value(pNetwork->inDegree(i));
-	}
-
-	for (Iterator iter = this->lreciprocalDegreeRateEffects.begin();
-		iter != this->lreciprocalDegreeRateEffects.end();
-		iter++)
-	{
-		const NetworkVariable * pVariable = iter->first;
-		OneModeNetwork * pNetwork = (OneModeNetwork *) pVariable->pNetwork();
-		EffectValueTable * pTable = iter->second;
-
-		rate *= pTable->value(pNetwork->reciprocalDegree(i));
-	}
-
-	for (Iterator iter = this->linverseOutDegreeRateEffects.begin();
-		iter != this->linverseOutDegreeRateEffects.end();
-		iter++)
-	{
-		const NetworkVariable * pVariable = iter->first;
-		Network * pNetwork = pVariable->pNetwork();
-		EffectValueTable * pTable = iter->second;
-
-		rate *= pTable->value(pNetwork->outDegree(i));
+		rate *= this->lstructuralRateEffects[effectIndex]->value(i);
 	}
 
 	return rate;

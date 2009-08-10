@@ -23,6 +23,8 @@ sienaDataCreate<- function(..., nodeSets=NULL)
             TRUE
     }
     narg <- nargs()
+    ## find a set of names for the objects: either the names given in the
+    ## argument list or the names of the objects in the argument list
     dots <- as.list(substitute(list(...)))[-1] ##first entry is the word 'list'
     if (length(dots) == 0)
         stop('need some networks')
@@ -56,7 +58,7 @@ sienaDataCreate<- function(..., nodeSets=NULL)
                sienaNet = {
                    if (attr(dots[[i]],'sparse'))
                    {
-                       require(Matrix)
+                     ##  require(Matrix)
                        netdims <- c(dim(dots[[i]][[1]]), length(dots[[i]]))
                    }
                    else
@@ -421,6 +423,9 @@ sienaDataCreate<- function(..., nodeSets=NULL)
                     x2[x2 %in% c(10, 11)] <- NA
                     mymat1@x <- x1
                     mymat2@x <- x2
+                    ## remove diagonals
+                    diag(mymat1) <- NA
+                    diag(mymat2) <- NA
                     mydiff <- mymat2 - mymat1
                     attr(depvars[[i]], 'distance')[j] <- sum(mydiff != 0,
                                                              na.rm = TRUE)
@@ -431,11 +436,14 @@ sienaDataCreate<- function(..., nodeSets=NULL)
                 }
                 else
                 {
-                    mymat1 <- myarray[,,j, drop=FALSE]
-                    mymat2 <- myarray[,,j + 1,drop=FALSE]
+                    mymat1 <- myarray[, , j]
+                    mymat2 <- myarray[, , j + 1]
                     ##remove structural values
                     mymat1[mymat1 %in% c(10,11)] <- NA
                     mymat2[mymat2 %in% c(10,11)] <- NA
+                    ## remove diagonals
+                    diag(mymat1) <- NA
+                    diag(mymat2) <- NA
                     mydiff <- mymat2 - mymat1
                     attr(depvars[[i]], 'distance')[j] <- sum(mydiff != 0,
                                                              na.rm = TRUE)
@@ -461,7 +469,7 @@ sienaDataCreate<- function(..., nodeSets=NULL)
                     {
                         mymat <- myarray[, , j]
                     }
-                    if (!isSymmetric(mymat))
+                    if (suppressMessages(!isSymmetric(mymat)))
                     {
                         attr(depvars[[i]], 'symmetric') <- FALSE
                     }
@@ -491,12 +499,12 @@ sienaDataCreate<- function(..., nodeSets=NULL)
                 ### need to exclude the structurals here
                 if (sparse)
                 {
-                    vals <- lapply(depvars[[i]], function(x)
+                   vals <- lapply(depvars[[i]], function(x)
                                    c(x@x[!(is.na(x@x) |
                                            x@x %in% c(10, 11))] , 0))
                     attr(depvars[[i]], "range") <-
                         do.call(range, vals)
-                }
+               }
                 else
                 {
                     tmp <- depvars[[i]]
@@ -1212,14 +1220,14 @@ calcBalmeanGroup <- function(data)
                         tmp <- depvar[[k]]
                         diag(tmp)  <-  NA ## just in case
                         x1 <- tmp@x
-                        struct <- !is.na(x1) | x1 %in% c(10, 11)
+                        struct <- !is.na(x1) & x1 %in% c(10, 11)
                         x1[struct] <- x1[struct] - 10
                         tmp@x <- x1
+                        tmp1 <- colSums(is.na(tmp))
                         tempra <- tempra +
                             sum(2 * colSums(tmp, na.rm=TRUE) *
-                                colSums(1 - tmp, na.rm=TRUE),
+                                (dims[1] - tmp1 - colSums(tmp, na.rm=TRUE)),
                                 na.rm=TRUE)
-                        tmp1 <- colSums(is.na(tmp))
                         tmp2 <- colSums(!is.na(tmp))
                         temprb <- temprb + sum(tmp2 * (tmp2 - 1))
                     }
@@ -1256,14 +1264,14 @@ calcBalmean <- function(depvar)
             tmp <- depvar[[k]]
             diag(tmp)  <-  NA ## just in case
             x1 <- tmp@x
-            struct <- !is.na(x1) | x1 %in% c(10, 11)
+            struct <- !is.na(x1) & x1 %in% c(10, 11)
             x1[struct] <- x1[struct] - 10
             tmp@x <- x1
+            tmp1 <- colSums(is.na(tmp))
             tempra <- tempra +
                 sum(2 * colSums(tmp, na.rm=TRUE) *
-                    colSums(1 - tmp, na.rm=TRUE),
+                    (dims[1] - tmp1 - colSums(tmp, na.rm=TRUE)),
                     na.rm=TRUE)
-            tmp1 <- colSums(is.na(tmp))
             tmp2 <- colSums(!is.na(tmp))
             temprb <- temprb + sum(tmp2 * (tmp2 - 1))
      }
@@ -1281,7 +1289,6 @@ calcBalmean <- function(depvar)
                 sum(2 * colSums(tmp, na.rm=TRUE) *
                     colSums(1 - tmp, na.rm=TRUE),
                     na.rm=TRUE)
-            tmp1 <- colSums(is.na(tmp)) ## counts missings in column
             tmp2 <- colSums(!is.na(tmp)) ## counts non-missings in column
             temprb <- temprb + sum(tmp2 * (tmp2 - 1))
         }

@@ -33,11 +33,13 @@ class BehaviorVariable;
 class EffectValueTable;
 class EpochSimulation;
 class ActorSet;
+class SimulationActorSet;
 class LongitudinalData;
 class BehaviorLongitudinalData;
 class NetworkLongitudinalData;
 class Network;
 class EffectInfo;
+class StructuralRateEffect;
 
 
 // ----------------------------------------------------------------------------
@@ -63,7 +65,7 @@ public:
 	void initializeEvaluationFunction();
 	void initializeEndowmentFunction();
 
-	const ActorSet * pActorSet() const;
+	inline const SimulationActorSet * pActorSet() const;
 	int n() const;
 	virtual int m() const = 0;
 	virtual LongitudinalData * pData() const = 0;
@@ -76,9 +78,12 @@ public:
 	virtual bool canMakeChange(int actor) const;
 	virtual void makeChange(int actor) = 0;
 
-	virtual void actOnJoiner(const ActorSet * pActorSet, int actor) = 0;
-	virtual void actOnLeaver(const ActorSet * pActorSet, int actor) = 0;
-	virtual void setLeaverBack(const ActorSet * pActorSet, int actor) = 0;
+	virtual void actOnJoiner(const SimulationActorSet * pActorSet,
+		int actor) = 0;
+	virtual void actOnLeaver(const SimulationActorSet * pActorSet,
+		int actor) = 0;
+	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
+		int actor) = 0;
 
 	void calculateRates();
 	double totalRate() const;
@@ -113,22 +118,11 @@ private:
 	void updateCovariateRates();
 	inline double basicRate() const;
 
-	void outDegreeRateParameter(const NetworkVariable * pVariable,
-		double value);
-	void inDegreeRateParameter(const NetworkVariable * pVariable,
-		double value);
-	void reciprocalDegreeRateParameter(
-		const NetworkVariable * pVariable,
-		double value);
-	void inverseOutDegreeRateParameter(
-		const NetworkVariable * pVariable,
-		double value);
-
 	// A simulation of the actor-based model, which owns this variable
 	EpochSimulation * lpSimulation;
 
 	// The underlying set of actors
-	const ActorSet * lpActorSet;
+	const SimulationActorSet * lpActorSet;
 
 	// The current period (in [0, observations - 2])
 	int lperiod;
@@ -154,29 +148,11 @@ private:
 	// Parameters for rate effects depending on behavior variables
 	map<const BehaviorVariable *, double> lbehaviorVariableParameters;
 
-	// Tables for effective calculation of rate effects depending on the
-	// outdegrees in certain networks.
+	// The structural rate effects. Currently, there are four types of
+	// structural rate effects, namely, the out-degree, in-degree,
+	// reciprocal degree, and inverse out-degree effects.
 
-	map<const NetworkVariable *, EffectValueTable *>
-		loutDegreeRateEffects;
-
-	// Tables for effective calculation of rate effects depending on the
-	// indegrees in certain networks.
-
-	map<const NetworkVariable *, EffectValueTable *>
-		linDegreeRateEffects;
-
-	// Tables for effective calculation of rate effects depending on the
-	// reciprocal degrees in certain one-mode networks.
-
-	map<const NetworkVariable *, EffectValueTable *>
-		lreciprocalDegreeRateEffects;
-
-	// Tables for effective calculation of rate effects depending on the
-	// inverse outdegrees in certain networks.
-
-	map<const NetworkVariable *, EffectValueTable *>
-		linverseOutDegreeRateEffects;
+	vector<StructuralRateEffect *> lstructuralRateEffects;
 
 	// The evaluation function for this variable
 	Function * lpEvaluationFunction;
@@ -230,6 +206,15 @@ private:
 EpochSimulation * DependentVariable::pSimulation() const
 {
 	return this->lpSimulation;
+}
+
+
+/**
+ * Returns the set of actors underlying this dependent variable.
+ */
+const SimulationActorSet * DependentVariable::pActorSet() const
+{
+	return this->lpActorSet;
 }
 
 

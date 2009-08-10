@@ -1,16 +1,17 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ConstantDyadicCovariate.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * ConstantDyadicCovariate class.
  *****************************************************************************/
 
 #include "ConstantDyadicCovariate.h"
 #include "data/ActorSet.h"
+#include "data/DyadicCovariateValueIterator.h"
 
 namespace siena
 {
@@ -26,8 +27,10 @@ ConstantDyadicCovariate::ConstantDyadicCovariate(std::string name,
 	const ActorSet * pSecondActorSet) :
 		DyadicCovariate(name, pFirstActorSet, pSecondActorSet)
 {
-	this->lpValues = new map<int, double>[pFirstActorSet->n()];
-	this->lpMissings = new set<int>[pFirstActorSet->n()];
+	this->lpRowValues = new map<int, double>[pFirstActorSet->n()];
+	this->lpRowMissings = new set<int>[pFirstActorSet->n()];
+	this->lpColumnValues = new map<int, double>[pSecondActorSet->n()];
+	this->lpColumnMissings = new set<int>[pSecondActorSet->n()];
 }
 
 
@@ -36,10 +39,14 @@ ConstantDyadicCovariate::ConstantDyadicCovariate(std::string name,
  */
 ConstantDyadicCovariate::~ConstantDyadicCovariate()
 {
-	delete[] this->lpValues;
-	delete[] this->lpMissings;
-	this->lpValues = 0;
-	this->lpMissings = 0;
+	delete[] this->lpRowValues;
+	delete[] this->lpRowMissings;
+	delete[] this->lpColumnValues;
+	delete[] this->lpColumnMissings;
+	this->lpRowValues = 0;
+	this->lpRowMissings = 0;
+	this->lpColumnValues = 0;
+	this->lpColumnMissings = 0;
 }
 
 
@@ -53,11 +60,13 @@ void ConstantDyadicCovariate::value(int i, int j, double value)
 {
 	if (value)
 	{
-		this->lpValues[i][j] = value;
+		this->lpRowValues[i][j] = value;
+		this->lpColumnValues[j][i] = value;
 	}
 	else
 	{
-		this->lpValues[i].erase(j);
+		this->lpRowValues[i].erase(j);
+		this->lpColumnValues[j].erase(i);
 	}
 }
 
@@ -67,14 +76,14 @@ void ConstantDyadicCovariate::value(int i, int j, double value)
  */
 double ConstantDyadicCovariate::value(int i, int j) const
 {
-	map<int, double>::const_iterator iter = this->lpValues[i].find(j);
+	map<int, double>::const_iterator iter = this->lpRowValues[i].find(j);
 	double value = 0;
-	
-	if (iter != this->lpValues[i].end())
+
+	if (iter != this->lpRowValues[i].end())
 	{
 		value = iter->second;
 	}
-	
+
 	return value;
 }
 
@@ -89,11 +98,13 @@ void ConstantDyadicCovariate::missing(int i, int j, bool flag)
 {
 	if (flag)
 	{
-		this->lpMissings[i].insert(j);
+		this->lpRowMissings[i].insert(j);
+		this->lpColumnMissings[j].insert(i);
 	}
 	else
 	{
-		this->lpMissings[i].erase(j);
+		this->lpRowMissings[i].erase(j);
+		this->lpColumnMissings[j].erase(i);
 	}
 }
 
@@ -103,7 +114,29 @@ void ConstantDyadicCovariate::missing(int i, int j, bool flag)
  */
 bool ConstantDyadicCovariate::missing(int i, int j) const
 {
-	return this->lpMissings[i].find(j) != this->lpMissings[i].end();
+	return this->lpRowMissings[i].find(j) != this->lpRowMissings[i].end();
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given row.
+ */
+DyadicCovariateValueIterator ConstantDyadicCovariate::rowValues(int i)
+	const
+{
+	return DyadicCovariateValueIterator(this->lpRowValues[i],
+		this->lpRowMissings[i]);
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given column.
+ */
+DyadicCovariateValueIterator ConstantDyadicCovariate::columnValues(int j)
+	const
+{
+	return DyadicCovariateValueIterator(this->lpColumnValues[j],
+		this->lpColumnMissings[j]);
 }
 
 }

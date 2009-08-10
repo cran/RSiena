@@ -166,7 +166,7 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
     }
     else
     {
-        require(Matrix)
+      #  require(Matrix)
         if (!is.list(netarray))
             stop('netarray must be an array or a list of sparse matrices')
         if (!all(sapply(netarray, function(x) is(x,'dgTMatrix'))))
@@ -228,15 +228,16 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
              if (!all(sapply(netarray, function(x)
                             {
                                 tmp <- x@x
-                                all(is.na(tmp) | tmp == 1 )
+                                all(is.na(tmp) | tmp == 1 | tmp == 10 |
+                                    tmp == 11 )
                             }
                                 )))
-                 stop('entries in networks must be 0 or 1')
+                 stop('entries in networks must be 0, 1, 10 or 11')
          }
         else
         {
-            if (!all(netarray %in% c(0,1) | is.na(netarray)))
-                stop('entries in networks must be 0 or 1')
+            if (!all(netarray %in% c(0, 1, 10, 11) | is.na(netarray)))
+                stop('entries in networks must be 0, 1, 10 or 11')
         }
 
     obj <- netarray

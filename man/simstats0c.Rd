@@ -7,7 +7,7 @@
 \usage{
 simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
     data=NULL, effects=NULL, fromFiniteDiff=FALSE,
-    profileData=FALSE, prevAns=NULL)
+    profileData=FALSE, prevAns=NULL, returnDeps=FALSE)
 }
 \arguments{
   \item{z}{control object, passed in automatically in Siena07}
@@ -24,13 +24,21 @@ simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
 	with \command{sienaProfile.exe}}
   \item{prevAns}{An object of class "sienaFit", from which scaling
 	information (derivative matrix and standard deviation of the
-	deviations) will be extracted. Phase 1 will then be omitted.}
+	deviations) will be extracted along with the latest version of the
+	parameters which will be used as the initial values, unless the
+	model requests the use of standard initial values. Phase 1 will then
+	be omitted.}
+  \item{returnDeps}{Boolean. Whether to return the simulated networks in
+	Phase 3. Currently only returns the first network.}
 }
 \details{
   This should be used for the element FRAN of the model object.
   The arguments with no defaults must be passed in on the call to siena07.
 }
-\value{Returns a list containing:
+\value{Depends on the call. If \code{INIT} or \code{initC} or
+  \code{TERM}
+  are true, returns \code{z}, the control object. Otherwise,
+  returns a list containing:
   \item{fra}{Simulated statistics}
   \item{sc}{Scores with which to calculate the derivative (not phase 2
     or if using finite differences or maximum likelihood)}
@@ -38,6 +46,8 @@ simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
   \item{ntim}{For conditional processing, time taken}
   \item{feasible}{currently set to TRUE}
   \item{OK}{could be set to FALSE if serious error has occurred}
+  \item{nets}{A list of simulated networks, as a list of edgelists for
+	each period. Only if \code{returnDeps} is TRUE.}
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }

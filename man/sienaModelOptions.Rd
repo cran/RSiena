@@ -9,8 +9,28 @@
   Called from the \code{Apply} function in \code{\link{siena01Gui}}. An
   internal function of \code{\link{siena01Gui}}.
 
-  Various parameters can be set on the upper part of the screen.
-
+  Various parameters can be set on the upper part of the screen:
+  \describe{
+	\item{Estimation Method}{0 for Unconditional fitting, 1 for
+	  Conditional. If there are multiple dependent variables, a list will be
+	  displayed from which to choose.}
+	\item{Standard starting value}{If checked, the estimation will ignore
+	  the initial values of the parameters in the effects object, and use
+	  the default ones.}
+	\item{Specify random seed}{If you wish your run to be repeatable, check
+	  this box and then choose any integer as the seed.}
+	\item{Number of processors}{If checked, a box will appear for you to
+	  select the number of processors to be used. All processes will run on
+	  the same machine.}
+	\item{Initial value of gain parameter}{A parameter to control the
+	  Robbins-Monro algorithm. Will be multiplied by the number of
+	  processors before use.}
+	\item{Number of phase 2 subphases}{Default 4. To omit phase 2, set this
+	  to 0.}
+	\item{Derivative method}{0 for finite differences, 1 for score
+	  function. Default 1.}
+	\item{Number of phase 3 iterations}{Default 1000.}
+  }
   If you wish to restrict the degree of the simulations, enter the value
   in the table on the bottom left.
 

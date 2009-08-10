@@ -14,14 +14,34 @@
 ## *****************************************************************************/
 ##args: x model object (readonly), z control object
 ##
-phase1.1<- function(z,x,...)
+phase1.1 <- function(z, x, ...)
 {
     ## initialise phase 1
-    z$SomeFixed<- FALSE
+    z$SomeFixed <- FALSE
     z$Phase <-  1
-    z<-AnnouncePhase(z,x)
+    f <- FRANstore()
+    int <- z$int
+    z <- AnnouncePhase(z, x)
+    z$phase1Its <- 0
+    ## fix up iteration numbers if using multiple processors
+    if (10 %% int == 0)
+    {
+        firstNit <- 10
+    }
+    else
+    {
+        firstNit <- 10 + int - 10 %% int
+    }
+    if ((z$n1 - firstNit) %% int == 0)
+    {
+        endNit <- z$n1
+    }
+    else
+    {
+        endNit <- z$n1  + int - (z$n1 - firstNit) %% int
+    }
+    z$n1 <- endNit
     z$sf <- matrix(0, nrow = z$n1, ncol = z$pp)
-    f <- FRANstore() ## the derivatives are model dependent!
     z$sf2 <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
     z$ssc <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
     z$sdf <- array(0, dim=c(z$n1, z$pp, z$pp))
@@ -29,44 +49,56 @@ phase1.1<- function(z,x,...)
     z$writefreq <- 10
     z$DerivativeProblem <- FALSE
     z$Deriv <- !z$FinDiff.method ## can do both in phase 3 but not here!
-    for (nit in 1 : 10)
+    zsmall <- NULL
+    zsmall$theta <- z$theta
+    zsmall$Deriv <- z$Deriv
+    zsmall$Phase <- z$Phase
+    zsmall$nit <- z$nit
+    xsmall<- NULL
+    xsmall$cconditional <- x$cconditional
+    zsmall$condvar <- z$condvar
+    nits <- seq(1, firstNit, int)
+    nits6 <- min(nits[nits >= 6 ])
+    for (nit in nits)
     {
-        z$nit <- nit
-        if (nit == 2)
-        {
-            time1 <- proc.time()['elapsed']
-            if (x$checktime)
-            {
-                z$ctime <- time1
-            }
-        }
-        if (nit==6)
-        {
-            time1<- proc.time()['elapsed']-time1
-            if (time1>1e-5)
-            {
-                z$writefreq <- round(20.0/time1)
-            }
-            else
-            {
-                z$writefreq <- 5
-            }
-            if (is.batch())
-            {
-                z$writefreq <- 10*z$writefreq
-            }
-            z$writefreq<-roundfreq(z$writefreq)
-        }
-        #########################################
-        ### do iteration
-        #########################################
-        z<-doPhase1it(z,x,...)
-        #########################################
-        ###
-        #########################################
-        if (!z$OK || UserRestartFlag() || UserInterruptFlag())
-            return(z)
-    }
+         z$nit <- nit
+         if (nit == nits[2])
+         {
+             time1 <- proc.time()['elapsed']
+             if (x$checktime)
+             {
+                 z$ctime <- time1
+             }
+         }
+         if (nit == nits6)
+         {
+             time1 <- proc.time()['elapsed']-time1
+             if (time1 > 1e-5)
+             {
+                 z$writefreq <- round(20.0/time1)
+             }
+             else
+             {
+                 z$writefreq <- 5
+             }
+             if (is.batch())
+             {
+                 z$writefreq <- 10 * z$writefreq
+             }
+             z$writefreq <- roundfreq(z$writefreq)
+         }
+         ## #######################################
+         ## # do iteration
+         ## #######################################
+         z <- doPhase1it(z, x, cl=z$cl, int=z$int, zsmall=zsmall,
+                         xsmall=xsmall, ...)
+         ## #######################################
+         ## #
+         ## #######################################
+         if (!z$OK || UserRestartFlag() || UserInterruptFlag())
+             return(z)
+     }
+
     if (z$FinDiff.method)
     {
         npos <- z$npos
@@ -75,42 +107,43 @@ phase1.1<- function(z,x,...)
             j<- (1 : z$pp)[!z$fixed & npos < 5]
             for (i in 1 : length(j))
             {
-                Report(c('After 10 iterations, only', npos[j[i]],
-                         'differences in coordinate', j[i], '.\n'), cf)
-                Report(c('with epsilon = ',z$epsilon[j[i]], '.\n'), cf)
+                Report(c("After ", z$n, " iterations, only ", npos[j[i]],
+                         " differences in coordinate ", j[i], ".\n"), sep="",
+                       cf)
+                Report(c("with epsilon = ", z$epsilon[j[i]], ".\n"), sep="", cf)
             }
-            use<- !z$fixed & npos <= 2
-            z$epsilon[use]<- ifelse(z$posj[use],
-                                  3.0 * z$epsilon[use],
-                                  10.0 * z$epsilon[use])
-            use<- !z$fixed & npos > 2 & npos < 5
-            z$epsilon[use]<- ifelse(z$posj[use],
+            use <- !z$fixed & npos <= 2
+            z$epsilon[use] <- ifelse(z$posj[use],
+                                    3.0 * z$epsilon[use],
+                                    10.0 * z$epsilon[use])
+            use <- !z$fixed & npos > 2 & npos < 5
+            z$epsilon[use] <- ifelse(z$posj[use],
                                   2.0 * z$epsilon[use],
                                   sqrt(10.0) * z$epsilon[use])
-            use<- !z$fixed & npos < 5
+            use <- !z$fixed & npos < 5
             z$epsilon[use] <- pmin(100.0 * z$scale[use], z$epsilon[use])
             z$epsilon[use] <- pmax(0.1 * z$scale[use], z$epsilon[use])
-            Report(c('New epsilon =', z$epsilon[use],'.\n'),cf,fill=80)
+            Report(c("New epsilon =", paste(" ", z$epsilon[use], collapse=""),                     ".\n"), sep="", cf, fill=80)
             if (z$repeatsForEpsilon <= 4)
             {
-                Report('Change value of epsilon and restart Phase 1.\n',cf)
-                z$epsilonProblem<- TRUE
+                Report("Change value of epsilon and restart Phase 1.\n", cf)
+                z$epsilonProblem <- TRUE
                 return(z)
             }
-           if (any(npos[!z$fixed]<=1))
+           if (any(npos[!z$fixed] <= 1))
             {
                 j0s <- which(!z$fixed & npos <= 1)
                 for (j0 in j0s)
                 {
-                    Report (c('Difficulties with parameter', j0, '.\n'),
+                    Report (c("Difficulties with parameter", j0, ".\n"),
                             outf)
-                    Report(c('After 10 iterations, only', npos[j0],
-                             'differences in this coordinate.\n'), outf)
-                    Report('This parameter is fixed and not estimated.\n',
+                    Report(c("After ", z$n, " iterations, only", npos[j0],
+                             "differences in this coordinate.\n"), outf)
+                    Report("This parameter is fixed and not estimated.\n",
                            outf)
-                    Report(c('Fix parameter',j0,',in phase 1.\n'), cf)
+                    Report(c("Fix parameter", j0, ", in phase 1.\n"), cf)
                 }
-                z$newFixed[j0s]<- TRUE
+                z$newFixed[j0s] <- TRUE
                 z$fixed[j0s] <- TRUE
                 z$SomeFixed <- TRUE
             }
@@ -120,38 +153,72 @@ phase1.1<- function(z,x,...)
             }
         }
     }
-
     z
 }
 
-doPhase1it<- function(z, x, ...)
+doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
 {
-    z$n <- z$n + 1
     DisplayIteration(z)
-   ##  seed0<- .Random.seed ##store seed for use in finitedifferences
-    ## now stored on z as an array by period and reused in finite differences
-    zz <- x$FRAN(z, x, INIT=FALSE, ...)
-    fra <- colSums(zz$fra)
-    if (!zz$OK)
+    if (int == 1)
     {
-        z$OK <- zz$OK
-        return(z)
+        zz <- x$FRAN(zsmall, xsmall, ...)
+        if (!zz$OK)
+        {
+            z$OK <- zz$OK
+            z$zz <- zz
+            return(z)
+        }
+        z$n <- z$n + 1
+        z$phase1Its <- z$phase1Its + 1
     }
-    if (!is.null(zz[['sc']]))
+    else
     {
-        z$ssc[z$nit, , ] <- zz$sc
+        zz <- clusterCall(cl, usesim, zsmall, xsmall, ...)
+        z$n <- z$n + z$int
+        z$phase1Its <- z$phase1Its + int
     }
-    fra <- fra -z$targets
-    z$sf[z$nit, ] <- fra
-    z$sf2[z$nit, , ] <- zz$fra
+    if (int == 1)
+    {
+        fra <- colSums(zz$fra)
+        fra <- fra - z$targets
+        z$sf[z$nit, ] <- fra
+        z$sf2[z$nit, , ] <- zz$fra
+    }
+    else
+    {
+        for (i in 1:int)
+        {
+            fra <- colSums(zz[[i]]$fra)
+            fra <- fra - z$targets
+            z$sf[z$nit + (i - 1), ] <- fra
+            z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
+        }
+
+    }
     if (z$FinDiff.method)
     {
-        z <- FiniteDifferences(z, x, fra + z$targets, ...)
+        z <- FiniteDifferences(z, x, fra + z$targets, z$cl, z$int, ...)
         z$sdf[z$nit, , ] <- z$sdf0
     }
     else if (x$maxlike)
     {
         z$sdf[z$nit, , ] <- zz$dff
+    }
+    else
+    {
+        if (int==1)
+        {
+            if (!is.null(zz[['sc']]))
+                z$ssc[z$nit , ,] <- zz$sc
+        }
+        else
+        {
+                for (i in 1:int)
+                {
+                    if (!is.null(zz[[i]][['sc']]))
+                        z$ssc[z$nit + (i - 1), , ] <- zz[[i]]$sc
+                }
+            }
     }
     CheckBreaks()
     if (UserInterruptFlag() || UserRestartFlag())
@@ -171,7 +238,8 @@ doPhase1it<- function(z, x, ...)
     z$pb <- setProgressBar(z$pb, val)
     progress <- val / z$pb$pbmax * 100
     if (z$nit <= 5 || z$nit %% z$writefreq == 0 || z$nit %%5 == 0 ||
-        x$maxlike || x$FinDiff.method)
+        x$maxlike || x$FinDiff.method ||
+        (int > 1 && z$nit %% z$writefreq < int))
     {
       #  Report(c('Phase', z$Phase, 'Iteration ', z$nit, '\n'))
         if (is.batch())
@@ -186,15 +254,26 @@ doPhase1it<- function(z, x, ...)
     #browser()
     z
 }
-phase1.2<- function(z, x, ...)
+phase1.2 <- function(z, x, ...)
 {
     ##finish phase 1 iterations and do end-of-phase processing
-    if (z$n1 > 10)
+    zsmall <- NULL
+    zsmall$theta <- z$theta
+    zsmall$Deriv <- z$Deriv
+    zsmall$Phase <- z$Phase
+    zsmall$nit <- z$nit
+    xsmall<- NULL
+    xsmall$cconditional <- x$cconditional
+    zsmall$condvar <- z$condvar
+    int <- z$int
+    if (z$n1 > z$phase1Its)
     {
-        for (nit in 11 : z$n1)
+        nits <- seq((z$phase1Its+1), z$n1, int)
+        for (nit in nits)
         {
             z$nit <- nit
-            z <- doPhase1it(z, x, ...)
+            z <- doPhase1it(z, x, cl=z$cl, int=int, zsmall=zsmall,
+                            xsmall=xsmall, ...)
             if (!z$OK || UserInterruptFlag() || UserRestartFlag())
             {
                 return(z)
@@ -294,9 +373,10 @@ phase1.2<- function(z, x, ...)
     {
         z$theta[!z$fixed] <- z$theta[!z$fixed] - fchange[!z$fixed]
     }
-    Report(c('Phase 1 achieved after ', z$nit, ' iterations.\n'), cf)
+    Report(c('Phase 1 achieved after ', z$phase1Its, ' iterations.\n'), cf)
     WriteOutTheta(z)
-    z$nitPhase1 <- z$nit
+    z$nitPhase1 <- z$phase1Its
+    z$phase1devs <- z$sf
     ##browser()
     z
 }
@@ -388,7 +468,9 @@ CalculateDerivative <- function(z, x)
 FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
 {
     fras <- array(0, dim = c(int, z$pp, z$pp))
-  # browser()
+    xsmall<- NULL
+    xsmall$cconditional <- x$cconditional
+ # browser()
     for (i in 1 : z$pp)
     {
         zdummy <- z[c('theta', 'Deriv')]
@@ -397,9 +479,9 @@ FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
             zdummy$theta[i] <- z$theta[i] + z$epsilon[i]
         }
         ##  assign('.Random.seed',randomseed,pos=1)
-        if (!z$Phase == 3 || int == 1)
+        if (int == 1)
         {
-            zz <- x$FRAN(zdummy, list(x$cconditional), INIT=FALSE,
+            zz <- x$FRAN(zdummy, xsmall, INIT=FALSE,
                          fromFiniteDiff=TRUE, ...)
             if (!zz$OK)
             {
@@ -409,10 +491,10 @@ FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
         }
         else
         {
-            zz <- clusterCall(cl, x$FRAN, zdummy, list(x$cconditional),
+            zz <- clusterCall(cl, x$FRAN, zdummy, xsmall,
                               INIT=FALSE, fromFiniteDiff=TRUE, ...)
         }
-        if (!z$Phase == 3 || int == 1)
+        if (int == 1)
         {
             fras[1, i, ] <- colSums(zz$fra) - fra
         }

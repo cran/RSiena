@@ -43,8 +43,8 @@ public:
 		EpochSimulation * pSimulation);
 	virtual ~NetworkVariable();
 
-	const ActorSet * pSenders() const;
-	const ActorSet * pReceivers() const;
+	const SimulationActorSet * pSenders() const;
+	const SimulationActorSet * pReceivers() const;
 	virtual int m() const;
 	virtual LongitudinalData * pData() const;
 	bool oneModeNetwork() const;
@@ -52,9 +52,10 @@ public:
 	virtual void initialize(int period);
 	virtual bool canMakeChange(int actor) const;
 	virtual void makeChange(int actor);
-	virtual void actOnJoiner(const ActorSet * pActorSet, int actor);
-	virtual void actOnLeaver(const ActorSet * pActorSet, int actor);
-	virtual void setLeaverBack(const ActorSet * pActorSet, int actor);
+	virtual void actOnJoiner(const SimulationActorSet * pActorSet, int actor);
+	virtual void actOnLeaver(const SimulationActorSet * pActorSet, int actor);
+	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
+		int actor);
 	Network * pNetwork() const;
 	Network * pPredictorNetwork() const;
 	void pPredictorNetwork(Network *);
@@ -67,6 +68,11 @@ public:
 	inline ConfigurationTable * pInStarTable() const;
 	inline ConfigurationTable * pOutStarTable() const;
 	inline ConfigurationTable * pCriticalInStarTable() const;
+	inline ConfigurationTable * pRRTable() const;
+	inline ConfigurationTable * pRFTable() const;
+	inline ConfigurationTable * pRBTable() const;
+	inline ConfigurationTable * pFRTable() const;
+	inline ConfigurationTable * pBRTable() const;
 
 private:
 	void preprocessEgo();
@@ -83,6 +89,12 @@ private:
 
 	// The observed data for this network variable
 	NetworkLongitudinalData * lpData;
+
+	// The set of actors acting as tie senders
+	const SimulationActorSet * lpSenders;
+
+	// The set of actors acting as tie receivers
+	const SimulationActorSet * lpReceivers;
 
 	// The number of structural tie variables to active alters per each actor.
 	int * lactiveStructuralTieCount;
@@ -110,6 +122,21 @@ private:
 	// h' != j.
 
 	ConfigurationTable * lpCriticalInStarTable;
+
+	// The number of actors h with reciprocated ties to both i and j.
+	ConfigurationTable * lpRRTable;
+
+	// The number of actors h with a reciprocated tie to i and a tie to j.
+	ConfigurationTable * lpRFTable;
+
+	// The number of actors h with a reciprocated tie to i and a tie from j.
+	ConfigurationTable * lpRBTable;
+
+	// The number of actors h with a tie to i and a reciprocated tie to j.
+	ConfigurationTable * lpFRTable;
+
+	// The number of actors h with a tie from i and a reciprocated tie to j.
+	ConfigurationTable * lpBRTable;
 
 	// Indicates if there is a tie from ego to each of the alters.
 	bool * lpHasOutTie;
@@ -205,6 +232,56 @@ inline ConfigurationTable * NetworkVariable::pOutStarTable() const
 inline ConfigurationTable * NetworkVariable::pCriticalInStarTable() const
 {
 	return this->lpCriticalInStarTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with reciprocated ties
+ * to both i and j.
+ */
+inline ConfigurationTable * NetworkVariable::pRRTable() const
+{
+	return this->lpRRTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a reciprocated tie
+ * to i and a tie to j.
+ */
+inline ConfigurationTable * NetworkVariable::pRFTable() const
+{
+	return this->lpRFTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a reciprocated tie
+ * to i and a tie from j.
+ */
+inline ConfigurationTable * NetworkVariable::pRBTable() const
+{
+	return this->lpRBTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a tie to i and a
+ * reciprocated tie to j.
+ */
+inline ConfigurationTable * NetworkVariable::pFRTable() const
+{
+	return this->lpFRTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a tie from i and a
+ * reciprocated tie to j.
+ */
+inline ConfigurationTable * NetworkVariable::pBRTable() const
+{
+	return this->lpBRTable;
 }
 
 

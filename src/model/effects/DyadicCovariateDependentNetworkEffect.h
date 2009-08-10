@@ -23,6 +23,7 @@ namespace siena
 
 class ConstantDyadicCovariate;
 class ChangingDyadicCovariate;
+class DyadicCovariateValueIterator;
 
 
 // ----------------------------------------------------------------------------
@@ -43,6 +44,8 @@ public:
 protected:
 	double value(int i, int j) const;
 	bool missing(int i, int j) const;
+	DyadicCovariateValueIterator rowValues(int i) const;
+	DyadicCovariateValueIterator columnValues(int j) const;
 
 private:
 	// The constant covariate this effect depends on or 0, if the
@@ -54,9 +57,6 @@ private:
 	// effect depends on a constant covariate.
 
 	ChangingDyadicCovariate * lpChangingCovariate;
-
-	// The period of interest
-//	int lperiod;
 };
 
 }

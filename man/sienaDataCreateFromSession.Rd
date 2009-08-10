@@ -6,14 +6,16 @@ Reads in a Siena session from file or \code{siena01Gui()}
 and creates a Siena data or group object.}
 \usage{
 sienaDataCreateFromSession(filename = NULL, session = NULL,
-    modelName = "Siena", edited = NULL)
+    modelName = "Siena", edited = NULL, files = NULL)
 }
 \arguments{
   \item{filename}{Input session file}
   \item{session}{Input session (from \command{siena01Gui}) }
   \item{modelName}{Character string of project name }
   \item{edited}{Boolean, indicates whether a file has been edited and
-	therefore should not be re-read. Used internally by a\code{siena01Gui}.}
+	therefore should not be re-read. Used internally by
+	\code{siena01Gui}.}
+  \item{files}{List of data files, used internally by \code{siena01Gui}}
   }
 \details{
   Allows creation of data objects of class "Siena" direct from data
@@ -36,14 +38,17 @@ sienaDataCreateFromSession(filename = NULL, session = NULL,
 	  space separated ones for constant covariates.}
 	\item{File Name}{in \code{siena01Gui}, usually entered by using a
 	  file selection box, after clicking \command{Add}.}
-	\item{Format}{Only relevant for networks or dyadic covariates. Can be
-	  matrix or a single
-	  Pajek network (.net). (.paj file support will be added
-	  later, with a specific button to load a complete project.)}
+	\item{Format}{Only relevant for networks or dyadic covariates.  Can be
+	  matrix, a single Pajek network (.net) or a Siena network file
+	  (and edgelist with three or four columns: from, to, value,
+	  wave (optional)).
+	  Not tested for dyadic covariates yet!}
 	\item{Period(s)}{Only relevant for networks and dyadic covariates. All
 	  other files cover all the relevant periods. Indicates the order of
 	  the network and dyadic covariate files. Should range from 1 to
-	  \emph{n} within each group. Use the value 1 or blank for files
+	  \emph{n} within each group. Enter multiple integers with spaces
+	  between for Siena network multi-wave files. Use the value 1 or blank
+	  for other files
 	  which cover multiple periods.}
 	\item{ActorSet}{If you have more than one set of nodes, use this column to
 	  indicate which is relevant to each file. Should not contain
@@ -60,6 +65,8 @@ sienaDataCreateFromSession(filename = NULL, session = NULL,
 	  spaces between different entries.}
 	\item{Nonzero Codes}{Enter any values which indicate ties, with spaces
 	  between different entries.}
+	\item{NbrOfActors}{For Siena network files, enter the number of
+  actors here.}
   }
   If using a file for input, it should be of one of the following types:
   \tabular{ll}{
@@ -85,8 +92,11 @@ sienaDataCreateFromSession(filename = NULL, session = NULL,
   closed.
 }
 \value{
-  A Siena data or group object, of class \code{\link{siena}} or
-  \code{\link{sienaGroup}}
+  A list with the following components:
+	\item{OK}{Boolean, TRUE indicating success}
+	\item{mydata}{A Siena data or group object, of class \code{\link{siena}} or
+	\code{\link{sienaGroup}}}
+	\item{myeff}{Effects object associated with \code{mydata}}
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snidjers/siena/ }}
 \author{Ruth Ripley }

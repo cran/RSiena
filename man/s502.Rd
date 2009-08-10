@@ -1,7 +1,7 @@
 \name{s502}
 \alias{s502}
 \docType{data}
-\title{Network 2 data for excerpt from 'Teenage Friends and Lifestyle Study' data.}
+\title{Network 2 data: excerpt from 'Teenage Friends and Lifestyle Study' data.}
 \description{
 Second timepoint network data from an excerpt of 50 girls from the
 Teenage Friends and Lifestyle Study data set. Useful as a small example

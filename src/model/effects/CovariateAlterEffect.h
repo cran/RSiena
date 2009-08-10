@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: CovariateAlterEffect.h
- * 
+ *
  * Description: This file contains the definition of the
  * CovariateAlterEffect class.
  *****************************************************************************/
@@ -18,17 +18,20 @@ namespace siena
 {
 
 /**
- * Covariate-alter or covariate-related popularity effect (see manual).
+ * Covariate-alter and covariate squared-alter effects (see manual).
  */
 class CovariateAlterEffect : public CovariateDependentNetworkEffect
 {
 public:
-	CovariateAlterEffect(const EffectInfo * pEffectInfo);
-	
+	CovariateAlterEffect(const EffectInfo * pEffectInfo, bool squared);
+
 	virtual double calculateTieFlipContribution(int alter) const;
 	virtual double evaluationStatistic(Network * pNetwork) const;
 	virtual double endowmentStatistic(Network * pInitialNetwork,
 		Network * pLostTieNetwork) const;
+
+private:
+	bool lsquared;
 };
 
 }

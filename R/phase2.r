@@ -11,11 +11,21 @@
 ## ****************************************************************************/
 ## args: z: internal control object
 ##       x: model object (readonly as not returned)
-phase2.1<- function(z,x,...)
+usesim <- function(...)
+{
+   simstats0c(...)
+}
+storeinFRANstore <- function(...)
+{
+    FRANstore(...)
+}
+phase2.1<- function(z, x, ...)
 {
     #initialise phase2
+    int <- 1
+    f <- FRANstore()
     z$Phase <- 2
-    z$writefreq<- 1
+    z$writefreq <- 1
     if (!is.batch())
     {
         tkconfigure(z$tkvars$earlyEndPhase2,state='normal')
@@ -72,6 +82,7 @@ proc2subphase<- function(z, x, subphase, ...)
         ## do the iterations for this repeat of this subphase
         ## ##############################################
         z <- doIterations(z, x, subphase, ...)
+     ##   if (z$nit == 50) browser()
         if (!z$OK || UserInterruptFlag() || UserRestartFlag() ||
             EarlyEndPhase2Flag())
         {
@@ -167,10 +178,19 @@ doIterations<- function(z, x, subphase,...)
 {
     z$nit <- 0
     ac <- 0
+    zsmall <- NULL
+    zsmall$theta <- z$theta
+    zsmall$Deriv <- z$Deriv
+    zsmall$Phase<- z$Phase
+    xsmall<- NULL
+    xsmall$cconditional <- x$cconditional
+    zsmall$condvar <- z$condvar
     repeat
     {
         z$n <- z$n+1
         z$nit <- z$nit + 1
+        if (subphase == 1 && z$nit == 2)
+            z$time1 <- proc.time()[[3]]
         if (subphase == 1 && z$nit == 11)
         {
             time1 <- proc.time()[[3]] - z$time1
@@ -185,7 +205,7 @@ doIterations<- function(z, x, subphase,...)
           #  if (is.batch())
           #  {
           #      z$writefreq <-  z$writefreq * 2 ##compensation for it
-          #     ## running faster with no tcl/tk
+          #      ## running faster with no tcl/tk
           #  }
             z$writefreq <- roundfreq(z$writefreq)
         }
@@ -216,13 +236,27 @@ doIterations<- function(z, x, subphase,...)
                 }
             }
         }
-        zz <- x$FRAN(z, x, INIT = FALSE,...)
-        if (!zz$OK)
+        if (z$int == 1)
         {
-            z$OK <- zz$OK
-            break
+            zz <- x$FRAN(zsmall, xsmall, ...)
+            fra <- colSums(zz$fra) - z$targets
+            if (!zz$OK)
+            {
+                z$OK <- zz$OK
+                break
+            }
         }
-        fra <- colSums(zz$fra) - z$targets
+        else
+        {
+            zz <- clusterCall(z$cl, usesim, zsmall, xsmall, ...)
+            fra <- rowMeans(sapply(zz, function(x) colSums(x$fra)- z$targets))
+            zz$OK <- sapply(zz, function(x) x$OK)
+            if (!all(zz$OK))
+            {
+                z$OK <- FALSE
+                break
+            }
+        }
         if (z$nit %% 2 == 1)
         {
             prev.fra <- fra
@@ -234,9 +268,9 @@ doIterations<- function(z, x, subphase,...)
             ac <- ifelse (z$prod0 > 1e-12, z$prod1 / z$prod0, -2)
             z$maxacor <- max(-99, ac[!z$fixed]) ##note -2 > -99
             z$minacor <- min(1, ac[(!z$fixed) & ac > -1.0])
+            z$ac <- ac
             if  (z$nit %% z$writefreq == 0)
             {
-                z$ac <- ac
                 DisplayThetaAutocor(z)
             }
         }
@@ -267,10 +301,11 @@ doIterations<- function(z, x, subphase,...)
         ## check positivity restriction
         z$positivized[z$nit, ] <- z$posj & (fchange > z$theta)
         fchange <- ifelse(z$posj & (fchange > z$theta), z$theta * 0.5, fchange)
-        z$theta <- z$theta - fchange
-        z$thav <- z$thav + z$theta
+        zsmall$theta <- zsmall$theta - fchange
+        z$theta <- zsmall$theta
+        z$thav <- z$thav + zsmall$theta
         ##check for user interrupt
-        ##   browser()
+       ##   browser()
         CheckBreaks()
         if (UserInterruptFlag() || UserRestartFlag() || EarlyEndPhase2Flag())
         {

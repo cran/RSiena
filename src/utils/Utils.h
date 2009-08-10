@@ -31,6 +31,8 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 std::string toString(int i);
+double identity(int x);
+double invertor(int x);
 
 
 /**

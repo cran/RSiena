@@ -6,15 +6,17 @@
  Creates a basic object which can be used as an argument for Siena07
 }
 \usage{
-model.create(fn = simstats0c, projname = "Siena",
-    MaxDegree = 0, useStdInits = FALSE, n3 = 1000,
-    nsub = 4, maxlike = FALSE, diag = TRUE, condvarno = 0,
-    condname = "", firstg = 0.2, cond = FALSE, findiff = FALSE,
-    seed = NULL)
+     model.create(fn = simstats0c, usesimstats0c=TRUE,
+     projname = "Siena", MaxDegree = 0, useStdInits = FALSE,
+     n3 = 1000, nsub = 4, maxlike = FALSE, diag = TRUE,
+     condvarno = 0, condname = "", firstg = 0.2, cond = FALSE,
+     findiff = FALSE, seed = NULL)
 }
 \arguments{
   \item{fn}{function to do one simulation in the Robbins-Monro
     algorithm}
+  \item{usesimstats0c}{Boolean. If true the standard algorithm is being
+	used which can be used with multiple processors. Just used for validation.}
   \item{projname}{character string name of project. No embedded spaces}
   \item{MaxDegree}{Named vector of maximum degree values for
 	corresponding networks}

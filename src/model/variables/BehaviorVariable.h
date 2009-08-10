@@ -22,6 +22,7 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class BehaviorLongitudinalData;
+class SimulationActorSet;
 
 
 // ----------------------------------------------------------------------------
@@ -42,9 +43,10 @@ public:
 	virtual int m() const;
 	virtual LongitudinalData * pData() const;
 	virtual void initialize(int period);
-	virtual void actOnJoiner(const ActorSet * pActorSet, int actor);
-	virtual void actOnLeaver(const ActorSet * pActorSet, int actor);
-	virtual void setLeaverBack(const ActorSet * pActorSet, int actor);
+	virtual void actOnJoiner(const SimulationActorSet * pActorSet, int actor);
+	virtual void actOnLeaver(const SimulationActorSet * pActorSet, int actor);
+	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
+		int actor);
 
 	virtual void makeChange(int actor);
 
@@ -68,9 +70,6 @@ private:
 
 	// The observed data for this behavioral variable
 	BehaviorLongitudinalData * lpData;
-
-	// The underlying set of actors.
-	const ActorSet * lpActorSet;
 
 	// The current value of the variable per each actor
 	int * lvalues;

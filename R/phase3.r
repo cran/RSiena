@@ -11,59 +11,109 @@
 # * covariance matrix
 # *****************************************************************************/
 ##args: x model object, z control object
-phase3<- function(z, x, useCluster, noClusters, initC, ...)
+phase3<- function(z, x, ...)
 {
     ## initialize phase 3
     f <- FRANstore()
     DisplayTheta(z)
     z$Phase <-  3
-    int <- 1
-    if (useCluster)
-    {
-        cl <- makeCluster(rep("localhost", noClusters), type = "SOCK",
-                          outfile = 'cluster.out')
-        clusterSetupRNG(cl, seed = rep(1, 6))
-        clusterCall(cl, library, 'RSiena', character.only = TRUE)
-        ##  clusterExport(cl, "dllpath")
-        int <- noClusters
-        if (initC)
-        {
-            ans <-  clusterCall(cl, x$FRAN, z, x, INIT=FALSE, initC = initC)
-        }
-    }
+    int <- z$int
+
     if (x$checktime) z$ctime <- proc.time()[3]
-    z$sf <- matrix(0, nrow = x$n3, ncol = z$pp)
-    z$sf2 <- array(0, dim = c(x$n3, f$observations - 1, z$pp))
-    z$ssc <- array(0, dim = c(x$n3, f$observations - 1, z$pp))
-    z$sdf <- array(0, dim = c(x$n3, z$pp, z$pp))
-    z$Deriv<-!x$FinDiff.method ## revert to original requested method for phase 3
+    ## fix up iteration numbers if using multiple processors
+    if (10 %% int == 0)
+    {
+        firstNit <- 10
+    }
+    else
+    {
+        firstNit <- 10 + int - 10 %% int
+    }
+    if ((x$n3 - firstNit) %% int == 0)
+    {
+        endNit <- x$n3
+    }
+    else
+    {
+        endNit <- x$n3  + int - (x$n3 - firstNit) %% int
+    }
+    z$n3 <- endNit
+    z$sf <- matrix(0, nrow = z$n3, ncol = z$pp)
+    z$sf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
+    z$ssc <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
+    z$sdf <- array(0, dim = c(z$n3, z$pp, z$pp))
+    z$sims <- vector("list", z$n3)
+    ## revert to original requested method for phase 3
+    z$Deriv <- !x$FinDiff.method
     if (x$FinDiff.method)
         Report('Estimation of derivatives by the finite difference method.\n\n',outf)
     else
-        Report('Estimation of derivatives by the LR method (type 1).\n\n',outf)
+        Report('Estimation of derivatives by the LR method (type 1).\n\n', outf)
     zsmall <- NULL
     zsmall$theta <- z$theta
     zsmall$Deriv <- z$Deriv
-    zsmall$Phase<- z$Phase
+    zsmall$Phase <- z$Phase
     zsmall$nit <- z$nit
     xsmall<- NULL
     xsmall$cconditional <- x$cconditional
     zsmall$condvar <- z$condvar
-    if (!x$maxlike)
+    if (!x$maxlike && !is.null(z$writefreq))
     {
         if (x$FinDiff.method)
             z$writefreq <- z$writefreq %/% z$pp
         else
             z$writefreq <- z$writefreq %/% 2
-        z$writefreq <-roundfreq(z$writefreq)
+        z$writefreq <- roundfreq(z$writefreq)
     }
-    z<-AnnouncePhase(z, x)
+    z <- AnnouncePhase(z, x)
     Report('Simulated values, phase 3.\n', cf)
-    for (nit in seq(1, x$n3, int))
+    if (x$n3 %% int > 0)
+    {
+        endNit <- x$n3 + int - x$n3 %%int
+    }
+    else
+    {
+        endNit <- x$n3
+    }
+    nits <- seq(1, endNit, int)
+    nits11 <- min(c(endNit, nits[nits >= 11]))
+    writefreq <- z$writefreq
+    if (is.null(z$writefreq))
+    {
+        z$writefreq <- 10
+    }
+    for (nit in nits)
     {
         z$nit <- nit
-        if (nit <= 5 || nit==10 || nit %% z$writefreq == 0 ||
-            (int > 1 && nit %% z$writefreq == 1))
+        if (is.null(writefreq))
+        {
+            if (nit == nits[2])
+            {
+                z$time1 <- proc.time()[[3]]
+            }
+            else if (nit == nits11)
+            {
+                time1 <- proc.time()[[3]] - z$time1
+                if (time1 > 1e-5)
+                {
+                    z$writefreq <- max(1, round(20.0 / time1))
+                }
+                else
+                {
+                    z$writefreq <- 20
+                }
+                if (is.batch())
+                {
+                    z$writefreq <-  z$writefreq * 2 ##compensation for it
+                    ## running faster with no tcl/tk
+                }
+                z$writefreq <- roundfreq(z$writefreq)
+                writefreq <- z$writefreq
+            }
+        }
+        if (nit <= 5 || nit == 10 || nit %% z$writefreq == 0 ||
+            (int > 1 && nit %in% nits[seq(z$writefreq + 1, x$n3 %/% int,
+                                          z$writefreq)]))
         {
             if (!is.batch())
             {
@@ -78,53 +128,57 @@ phase3<- function(z, x, useCluster, noClusters, initC, ...)
             if (nit %% z$writefreq == 0 || (int > 1 &&
                        nit %% z$writefreq == 1) )
             {
-                increment <- ifelse(nit<=5, 1, ifelse(nit <=10, 5, z$writefreq))
+                increment <- ifelse(nit <= 5, 1,
+                                    ifelse(nit <= 10, 5, z$writefreq))
                 val<- getProgressBar(z$pb)
                 if (x$FinDiff.method)
-                    val<-val+increment*(z$pp+1)
+                    val <- val + increment * (z$pp + 1)
                 else
-                    val <- val+increment
+                    val <- val + increment
                 ## sort out progress bar
-                z$pb <- setProgressBar(z$pb,val)
+                z$pb <- setProgressBar(z$pb, val)
                 if (is.batch())
-                    Report(c('Phase ',z$Phase,' Iteration ',nit,
-                             ' Progress ',round(val/z$pb$pbmax*100),'%\n'),sep='')
+                    Report(c("Phase ", z$Phase, " Iteration ", nit,
+                             " Progress ",
+                             round(val / z$pb$pbmax * 100), "%\n"), sep='')
             }
         }
 ###############################
-        z<-doPhase3it(z,x,nit,cl=cl,int=int,zsmall=zsmall,xsmall=xsmall,...)
+        z <- doPhase3it(z, x, nit, cl=z$cl, int=int, zsmall=zsmall,
+                      xsmall=xsmall, ...)
 ##############################
-                                        #  browser()
+        ##  browser()
         if (!is.batch())
         {
           #  if (nit<=3 || nit %%z$writefreq ==0)
           #      DisplayTheta(z)
             if (nit < 10)
-                Report(c('  ',nit,' ',format(z$sf[nit,],width=10,
-                                             digits=4,nsmall=4),'\n'),cf)
+                Report(c("  ", nit, " ", format(z$sf[nit,], width=10,
+                                             digits=4, nsmall=4), "\n"), cf)
             if (nit >= 10)
             {
                 CheckBreaks()
                 ##    if (nit==10) set up stopkey hint Early termination of estimation
                 if( UserInterruptFlag())
                 {
-                    Report(c('The user asked for an early stop of the algorithm ',
-                             'during phase 3.\n'),outf)
-                    z$Phase3Interrupt<- TRUE
-                    if (nit< 500)
+                    Report(c("The user asked for an early stop of the algorithm ",
+                             "during phase 3.\n"), outf)
+                    z$Phase3Interrupt <- TRUE
+                    if (nit < 500)
                     {
                         if (EarlyEndPhase2Flag())
-                            Report('This implies that ',outf)
+                            Report('This implies that ', outf)
                         else
                             Report('This implies that the estimates are as usual,\nbut ',
                                    outf)
                         Report(c('the diagnostic checks, covariance matrices and',
                                  't-values \nare less reliable, because they are now',
-                                 'based on only',nit,'phase-3 iterations.\n'),outf)
+                                 'based on only', nit,
+                                 'phase-3 iterations.\n'), outf)
                     }
-                    z$sf<- z$sf[1:nit,,drop=FALSE]
-                    z$ssc<- z$ssc[1:nit,,,drop=FALSE]
-                    z$sdf<-z$sdf[1:nit,,,drop=FALSE]
+                    z$sf <- z$sf[1:nit,,drop=FALSE]
+                    z$ssc <- z$ssc[1:nit,,,drop=FALSE]
+                    z$sdf <-z$sdf[1:nit,,,drop=FALSE]
                     break
                 }
                 if (UserRestartFlag())
@@ -132,42 +186,42 @@ phase3<- function(z, x, useCluster, noClusters, initC, ...)
             }
         }
     }
-    if (!z$OK||UserRestartFlag())
+    if (!z$OK || UserRestartFlag())
     {
-        if (useCluster)
-            stopCluster(cl)
         return(z)
     }
-    z$Phase3nits<- nit
+    z$Phase3nits <- nit
     z<- phase3.2(z,x)
-    if (useCluster)
-        stopCluster(cl)
     z
 }
 
-doPhase3it<- function(z,x,nit,cl,int,zsmall,xsmall,...)
+doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
 {
-    z$n<- z$n + 1
     if (int == 1)
     {
-        zz <- x$FRAN(zsmall, xsmall)
+        zz <- x$FRAN(zsmall, xsmall, ...)
         if (!zz$OK)
         {
             z$OK <- zz$OK
             z$zz <- zz
             return(z)
         }
+        z$n<- z$n + 1
     }
     else
     {
-        zz <- clusterCall(cl, x$FRAN, zsmall, xsmall)
-    }
+  ##zz <- clusterCall(cl, simstats0c, zsmall, xsmall)
+        zz <- clusterCall(cl, usesim, zsmall, xsmall, ...)
+        z$n <- z$n + z$int
+      #  browser()
+   }
     if (int == 1)
     {
         fra <- colSums(zz$fra)
         fra <- fra - z$targets
         z$sf[nit, ] <- fra
         z$sf2[nit, , ] <- zz$fra
+        z$sims[[nit]] <- zz$nets
     }
     else
     {
@@ -177,7 +231,8 @@ doPhase3it<- function(z,x,nit,cl,int,zsmall,xsmall,...)
             fra <- fra - z$targets
             z$sf[nit + (i - 1), ] <- fra
             z$sf2[nit + (i - 1), , ] <- zz[[i]]$fra
-        }
+            z$sims[[nit + (i - 1)]] <- zz[[i]]$nets
+       }
     }
     if (x$cconditional)
     {
@@ -195,9 +250,11 @@ doPhase3it<- function(z,x,nit,cl,int,zsmall,xsmall,...)
         z$sdf[nit:(nit + (int - 1)), , ] <- z$sdf0
     }
     else if (x$maxlike) ## as far as I can see
+    {
         z$sdf[nit, , ] <- zz$dff
+    }
     else
-        {
+    {
             if (int==1)
             {
                 if (!is.null(zz[['sc']]))

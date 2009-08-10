@@ -8,11 +8,13 @@
  * Description: This file contains the implementation of the
  * OneModeNetwork class.
  *****************************************************************************/
+
 #include <limits>
 #include <stdexcept>
 
 #include "OneModeNetwork.h"
 #include "data/IncidentTieIterator.h"
+#include "data/CommonNeighborIterator.h"
 
 namespace siena
 {
@@ -100,7 +102,7 @@ Network * OneModeNetwork::clone() const
 
 
 /**
- * Destructs this network.
+ * Deallocates this network.
  */
 OneModeNetwork::~OneModeNetwork()
 {
@@ -204,6 +206,33 @@ void OneModeNetwork::clear()
 	{
 		this->lpReciprocalDegree[i] = 0;
 	}
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Iterators
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns an iterator over reciprocated ties of the actor <i>i</i>.
+ */
+CommonNeighborIterator OneModeNetwork::reciprocatedTies(int i) const
+{
+	this->checkSenderRange(i);
+	return CommonNeighborIterator(this->inTies(i), this->outTies(i));
+}
+
+
+/**
+ * Returns an iterator over reciprocated ties of the actor <i>i</i> with
+ * the alter not less than the given bound.
+ */
+CommonNeighborIterator OneModeNetwork::reciprocatedTies(int i,
+	int lowerBound) const
+{
+	this->checkSenderRange(i);
+	return CommonNeighborIterator(this->inTies(i, lowerBound),
+		this->outTies(i, lowerBound));
 }
 
 

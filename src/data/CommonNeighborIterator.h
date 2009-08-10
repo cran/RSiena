@@ -17,7 +17,7 @@ public:
 		IncidentTieIterator iter2);
 	
 	bool valid() const;
-	int neighbor() const;
+	int actor() const;
 	void next();
 	
 private:

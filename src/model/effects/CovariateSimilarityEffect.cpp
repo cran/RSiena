@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: CovariateSimilarityEffect.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * CovariateSimilarityEffect class.
  *****************************************************************************/
@@ -12,6 +12,7 @@
 #include "CovariateSimilarityEffect.h"
 #include "data/Network.h"
 #include "data/IncidentTieIterator.h"
+#include "data/CommonNeighborIterator.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -19,11 +20,16 @@ namespace siena
 
 /**
  * Constructor.
+ * @param[in] pEffectInfo the effect descriptor
+ * @param[in] reciprocal indicates if only reciprocal ties have to be
+ * considered
  */
 CovariateSimilarityEffect::CovariateSimilarityEffect(
-	const EffectInfo * pEffectInfo) :
+	const EffectInfo * pEffectInfo,
+	bool reciprocal) :
 		CovariateDependentNetworkEffect(pEffectInfo)
 {
+	this->lreciprocal = reciprocal;
 }
 
 
@@ -32,62 +38,74 @@ CovariateSimilarityEffect::CovariateSimilarityEffect(
  */
 double CovariateSimilarityEffect::calculateTieFlipContribution(int alter) const
 {
-	double change =
-		this->similarity(this->pVariable()->ego(), alter);
-	
-	if (this->pVariable()->outTieExists(alter))
+	double change = 0;
+
+	if (!this->lreciprocal || this->pVariable()->inTieExists(alter))
 	{
-		// The ego would loose the tie, so we take the opposite value
-		change = -change;
+		change = this->similarity(this->pVariable()->ego(), alter);
+
+		if (this->pVariable()->outTieExists(alter))
+		{
+			// The ego would loose the tie, so we take the opposite value
+			change = -change;
+		}
 	}
-	
+
 	return change;
 }
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * Detailed comment in the base class.
  */
-double CovariateSimilarityEffect::evaluationStatistic(Network * pNetwork) const
+double CovariateSimilarityEffect::statistic(Network * pNetwork,
+	Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	int n = pNetwork->n();
 
-	for (int i = 0; i < pNetwork->n(); i++)
+	for (int i = 0; i < n; i++)
 	{
 		if (!this->missing(i))
 		{
-			for (IncidentTieIterator iter = pNetwork->outTies(i);
-				iter.valid();
-				iter.next())
+			// TODO: This is not very elegant. If CommonNeighborIterator and
+			// IncidentTieIterator had a common base class, we could join the
+			// cycles below.
+
+			if (this->lreciprocal)
 			{
-				if (!this->missing(iter.actor()))
+				CommonNeighborIterator iter(pSummationTieNetwork->outTies(i),
+					pNetwork->inTies(i));
+
+				while (iter.valid())
 				{
-					statistic +=
-						this->similarity(i, iter.actor());
+					if (!this->missing(iter.actor()))
+					{
+						statistic +=
+							this->similarity(i, iter.actor());
+					}
+
+					iter.next();
+				}
+			}
+			else
+			{
+				for (IncidentTieIterator iter =
+						pSummationTieNetwork->outTies(i);
+					iter.valid();
+					iter.next())
+				{
+					if (!this->missing(iter.actor()))
+					{
+						statistic +=
+							this->similarity(i, iter.actor());
+					}
 				}
 			}
 		}
 	}
-	
+
 	return statistic;
-}
-
-
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
- */
-double CovariateSimilarityEffect::endowmentStatistic(Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
-{
-	// This is the same as the evaluation statistic computed with respect
-	// to the network of lost ties.
-	
-	return this->evaluationStatistic(pLostTieNetwork);
 }
 
 }

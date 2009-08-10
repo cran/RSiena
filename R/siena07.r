@@ -16,7 +16,8 @@ bof <- NULL
 cf <- NULL
 
 siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
-                   noClusters = 2, initC=FALSE, tt=NULL,
+                   nbrNodes = 2, initC=FALSE,
+                   clusterString=rep("localhost", nbrNodes), tt=NULL,
                    parallelTesting=FALSE, ...)
 {
     exitfn <- function()
@@ -30,21 +31,28 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
     }
     on.exit(exitfn())
 
-    if (useCluster)
-    {
-        require(snow)
-    }
 
     time0 <-  proc.time()['elapsed']
     z <- NULL ## z is the object for all control information which may change.
     ## x is designed to be readonly. Only z is returned.
 
+    if (useCluster)
+    {
+        require(snow)
+        require(rlecuyer)
+        x$firstg <- x$firstg * nbrNodes
+        z$int <- nbrNodes
+    }
+    else
+    {
+        z$int <- 1
+    }
     if (parallelTesting)
     {
         set.seed(1, kind='Wich')
         ## randomseed2 is for second generator needed only for parallel testing
         randomseed2 <- .Random.seed
-        .Random.seed[2:4] <- as.integer(c(1,2,3))
+      #  .Random.seed[2:4] <- as.integer(c(1,2,3))
         randomseed2[2:4] <- as.integer(c(3,2,1))
         seed <- 1
         newseed <- 1
@@ -93,11 +101,14 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
         z$pb <- list(pb=NULL, pbval=0, pbmax=1)
     }
 
-    z <- robmon(z, x, useCluster, noClusters, initC, ...)
+    z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,...)
 
     time1 <-  proc.time()['elapsed']
     Report(c("Total computation time", round(time1 - time0, digits=2),
              "seconds.\n"), outf)
+
+    if (useCluster)
+        stopCluster(z$cl)
 
     class(z) <- "sienaFit"
     z
@@ -109,10 +120,21 @@ InitReports <- function(seed, newseed)
     Report(c("Date and time:", format(Sys.time(),"%d/%m/%Y %H:%M:%S")), outf)
     Report("\nNew results follow.\n", outf)
     Report("-----------------------------------\n", outf)
+    rforgeRevision <-  packageDescription("RSiena",
+                                          fields="Repository/R-Forge/Revision")
+    if (is.na(rforgeRevision))
+    {
+        revision <- ""
+    }
+    else
+    {
+        revision <- paste(" R-forge revision: ", rforgeRevision, " ", sep="")
+    }
     Report(c("\nSiena version ",
              packageDescription("RSiena", fields = "Version"), " (",
              format(as.Date(packageDescription("RSiena", fields = "Date")),
-                    "%d %b %y"), ")\n\n"), sep = '',  outf )
+                    "%d %b %y"), ")",
+             revision, "\n\n"), sep = '',  outf )
     Heading(1, outf, "Estimation by stochastic approximation algorithm.")
     if (is.null(seed))
     {
@@ -255,7 +277,7 @@ AnnouncePhase <- function(z, x, subphase=NULL)
             z$pb<-createProgressBar(z$pb,max)
        }
     }
-z
+    z
 }
 
 roundfreq<- function(w)
@@ -269,7 +291,7 @@ roundfreq<- function(w)
     w
 }
 
-model.create<- function(fn=simstats0c,
+model.create<- function(fn=simstats0c, usesimstats0c=TRUE,
                         projname="Siena", MaxDegree=0, useStdInits=FALSE,
                         n3=1000, nsub=4, maxlike=FALSE, diag=TRUE,
                         condvarno=0, condname='',
@@ -294,6 +316,10 @@ model.create<- function(fn=simstats0c,
     model$ModelType <- 1
     model$MaxDegree <- MaxDegree
     model$randomSeed <- seed
+    if (deparse(substitute(fn)) == "simstats0c")
+        model$simstats0c <- TRUE
+    else
+        model$simstats0c <- usesimstats0c
     class(model) <- "sienaModel"
     model
 }

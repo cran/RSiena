@@ -8,9 +8,26 @@
 # * Description: This module contains the code for the gui for creation of a
 # * Siena data object.
 # *****************************************************************************/
+installGui <- function()
+{
+    if (.Platform$OS.type =="windows")
+    {
+        tmp <- list.files(pkgpath)
+        if (subs <- grep("sienaguisetup", tmp))
+        {
+            filename=paste(pkgpath, "/", tmp[subs], sep="", collapse="")
+            system(filename)
+        }
+    }
+    else
+    {
+        stop("Gui only needs installing on Windows: on Linux use sienascript")
+    }
+}
+
 siena01Gui <- function()
 {
-    DONE (FALSE) ## this is so we can exit cleanly
+   ## DONE (FALSE) ## this is so we can exit cleanly
     maxDegree <- NULL
     nMaxDegree <- NULL
     resultsFileID <-  NULL
@@ -31,12 +48,14 @@ siena01Gui <- function()
     ph2spinVar  <-  NULL
     rsspinVar <- NULL
     rsVar <- NULL
+    clustVar  <-  NULL
+    clustspinVar <- NULL
     derivVar <- NULL
     ph3spinVar <- NULL
     maxdfVar <- NULL
     session <- NULL
-    defaults <- c('Group1','Var1', '','', ' ', 'Actors',
-                  '','Yes', 'NA', '1')
+    defaults <- c("Group1","Var1", "","", " ", "Actors",
+                  "","Yes", "NA", "1", " ")
     mydata <- NULL
     myeff <- NULL
     mymodel <-  NULL
@@ -45,14 +64,14 @@ siena01Gui <- function()
     {
         noFiles <<- noFiles+1
         addFiletypes <- paste("{{Data Files} .dat}",
-                              " {{Pajek network files} .net}",
+                              "{{Pajek network files} .net}",
                               "{{All files} *}")
         filename[noFiles] <<-
             basename(tclvalue(tkgetOpenFile(filetypes=addFiletypes,
                                             initialdir=initialDir)))
         if (filename[noFiles] == "")
         {
-            noFiles <- noFiles - 1
+            noFiles <<- noFiles - 1
             return()
         }
         if (tableRows < noFiles)
@@ -67,7 +86,7 @@ siena01Gui <- function()
         mytkarray[[noFiles, 5]] <<- noFiles ## period
         if (substring(filename[noFiles], nchar(filename[noFiles]) - 3,
                       nchar(filename[noFiles]))=='.net')
-            tkset(formatspins[[noFiles]], 2)
+            tkset(formatspins[[noFiles]], "pajek net")
         tcl(table1, "selection", "clear", "all") ## unselect everything
         tcl(table1, "selection", 'set', paste(noFiles,',3', sep=''))
         tcl(table1, "yview", noFiles)
@@ -120,7 +139,8 @@ siena01Gui <- function()
         if (inherits(resp <-
                      try(sienaDataCreateFromSession(session=session,
                                                     modelName=modelName,
-                                                    edited=fileEditFlag),
+                                                    edited=fileEditFlag,
+                                                    files=files),
                          silent=TRUE), "try-error"))
         {
             tkmessageBox(message=resp, icon='error')
@@ -140,7 +160,7 @@ siena01Gui <- function()
         noFiles <<- 0
         filename <<- NULL
         for (i in 1:tableRows)
-            for (j in 1:9)
+            for (j in 1:11)
                 mytkarray[[i,j]] <<- NULL
         lapply(typespins, function(x) tkset(x, 'network'))
         lapply(formatspins, function(x) tkset(x,'matrix' ))
@@ -178,12 +198,17 @@ siena01Gui <- function()
         {
             fileno <- as.numeric(strsplit(selcursor, ',')[[1]][1])
             sessionFromTcl()
-            files <<- readInFiles(session, fileEditFlag)
+            files <<- readInFiles(session, fileEditFlag, files)
             tmpfile <- files[[fileno]]
             files[[fileno]] <<- edit(tmpfile) ## may need to undo
             fileEditFlag[fileno] <<-  TRUE
         }
         tkfocus(tt)
+        ## put on top globally temporarily
+        tcl('wm', 'attributes', tt, '-topmost', 1)
+        Sys.sleep(0.1)
+        tcl('wm', 'attributes', tt, '-topmost', 0)
+        invisible()
     }
     fromFileFn <- function()
     {
@@ -354,19 +379,18 @@ siena01Gui <- function()
                                    Selected = "Yes",
                                    MissingValues = "NA",
                                    NonZeroCode = "1",
+                                   NbrOfActors = "",
                                    stringsAsFactors = FALSE)
 
-            session <<- session[rep(1, tableRows),]
-            row.names(session) <- 1:tableRows
+            session <<- session[rep(1, noFiles),]
+            row.names(session) <<- 1:noFiles
         }
-        defaults <- c('Group1','Var1', '','', ' ', 'Actors',
-                      '','Yes', 'NA', '1')
-        for (i in 1:tableRows)
+        for (i in 1:noFiles)
         {
-            for (j in c(1,2,3,5,6,8,9,10))
+            for (j in c(1,2,3,5,6,8,9,10,11))
             {
                 if (is.null( mytkarray[[i,j]]) ||
-                    tclvalue(mytkarray[[i,j]]) =='')
+                    tclvalue(mytkarray[[i,j]]) =="")
                 {
                     mytkarray[[i,j]] <<- as.tclObj(defaults[j], drop=TRUE)
                 }
@@ -402,7 +426,15 @@ siena01Gui <- function()
         {
             model$randomSeed <- as.numeric(tclvalue(rsspinVar))
         }
-        model$FinDiff.method <- tclvalue(derivVar) == '0. crude Monte Carlo'
+         if (tclvalue(clustVar) == '0')
+        {
+            model$nbrNodes <- 1
+        }
+        else
+        {
+            model$nbrNodes <- as.numeric(tclvalue(clustspinVar))
+        }
+       model$FinDiff.method <- tclvalue(derivVar) == '0. crude Monte Carlo'
         model$n3 <- as.numeric(tclvalue(ph3spinVar))
         degs <- rep(0, nMaxDegree)
         for (i in 1:nMaxDegree)
@@ -445,21 +477,36 @@ siena01Gui <- function()
             {
                 effEdit[,i] <- as.numeric(effEdit[,i])
             }
-            fix(effEdit, edit.row.names=FALSE)
+            effEdit <- edit(effEdit, edit.row.names=FALSE)
             for (i in c("include", "fix", "test"))
             {
                 effEdit[,i] <- as.logical(effEdit[,i])
             }
-            myeff[, editCols] <- effEdit
-            tkfocus(tt)
+            myeff[, editCols] <<- effEdit
+          #  browser()
+        ## make sure this window is top with a global grab, bu only for a second
+        tcl('wm', 'attributes', tt, '-topmost', 1)
+        Sys.sleep(0.1)
+        tcl('wm', 'attributes', tt, '-topmost', 0)
+      #      tkfocus(tt)
         }
          estimateFn <- function()
         {
             ##create mymodel
             mymodel <<- modelFromTcl()
-            if (inherits(resp <- try(siena07(mymodel, data=mydata,
-                                             effects=myeff),
-                                     silent=TRUE), "try-error"))
+            if (mymodel$nbrNodes > 1)
+            {
+                resp <- try(siena07(mymodel, data=mydata, effects=myeff,
+                                    useCluster=TRUE, initC=TRUE,
+                                    nbrNodes=mymodel$nbrnodes),
+                            silent=TRUE)
+            }
+            else
+            {
+                resp <- try(siena07(mymodel, data=mydata, effects=myeff),
+                            silent=TRUE)
+            }
+            if (inherits(resp, "try-error"))
             {
                 tkmessageBox(message=resp, icon="error")
             }
@@ -474,7 +521,7 @@ siena01Gui <- function()
                     initValues <- rep(0, length(use))
                     initValues[estimAns$condvar] <- estimAns$rate
                     initValues[!estimAns$condvar] <- estimAns$theta
-                    myeff$initialValue[myeff$include] <- initValues
+                    myeff$initialValue[myeff$include] <<- initValues
                 }
                 else
                 {
@@ -509,11 +556,24 @@ siena01Gui <- function()
             if (val == 0)
             {
                 tkgrid.forget(rsspin)
-                tclvalue(rsspinVar) <- 0
+                tclvalue(rsspinVar) <<- 0
             }
             else
             {
                 tkgrid(rsspin, row=3, column=1)
+            }
+        }
+        clustersFn <- function()
+        {
+            val <- as.numeric(tclvalue(clustVar))
+            if (val == 0)
+            {
+                tkgrid.forget(clustspin)
+                tclvalue(clustspinVar) <<- 0
+            }
+            else
+            {
+                tkgrid(clustspin, row=4, column=1)
             }
         }
         returnFn <- function()
@@ -544,8 +604,12 @@ siena01Gui <- function()
             {
                 effEdit[,i] <- as.numeric(effEdit[,i])
             }
-            fix(effEdit, edit.row.names=FALSE)
-            tkfocus(tt)
+            edit(effEdit, edit.row.names=FALSE)
+          ##  tkfocus(tt)
+        ## make sure this window is top with a global grab, bu only for a second
+        tcl('wm', 'attributes', tt, '-topmost', 1)
+        Sys.sleep(0.1)
+        tcl('wm', 'attributes', tt, '-topmost', 0)
         }
         resultsFn <- function()
         {
@@ -705,6 +769,17 @@ siena01Gui <- function()
                             textvariable=rsspinVar, cursor="arrow")
         tkgrid(rs, row=3, sticky='w')
 
+        ##create and display fields for number of processors entry
+        clustVar <<- tclVar()
+        tclvalue(clustVar) <<- '0'
+        clust <- tkcheckbutton(optf,
+                               text=' Number of processors: ',
+                               variable=clustVar,
+                               command=clustersFn)
+        clustspinVar <<- tclVar()
+        clustspin <-  tkwidget(optf, 'spinbox', from=2, to=1000, width=10,
+                            textvariable=clustspinVar, cursor="arrow")
+        tkgrid(clust, row=4, sticky='w')
         ##create and display field for derivative method
         derivlab <- tklabel(optf, text=' Derivative method ')
         derivlist <- c('0. crude Monte Carlo',
@@ -858,7 +933,7 @@ siena01Gui <- function()
                         command=function(...)tkxview(table1, ...))
     yscr <- tkscrollbar(f1, command=function(...)tkyview(table1, ...))
     tableRows <- 2
-    table1 <- tkwidget(f1, 'table', cols=10, rows=tableRows+1, height=3,
+    table1 <- tkwidget(f1, 'table', cols=11, rows=tableRows+1, height=3,
                        variable= mytkarray, titlerows=1, roworigin=0,
                        colorigin=1, anchor="w", cursor="arrow",
                        xscrollcommand=function(...) tkset(xscr,...),
@@ -889,9 +964,10 @@ siena01Gui <- function()
     mytkarray[[0,8]] <- 'Selected'
     mytkarray[[0,9]] <- as.tclObj("MissingValues", drop=TRUE)
     mytkarray[[0,10]] <- as.tclObj("NonZeroCode", drop=TRUE)
+    mytkarray[[0,11]] <- "NbrOfActors"
 
     ##create spinboxes for format
-    ff <- c("matrix {pajek net}")
+    ff <- c("matrix {pajek net} {Siena net}")
     formatspins <- lapply(1:tableRows, function(x)
                           tkwidget(table1, 'spinbox', state='readonly',
                                    width=20, values=ff, cursor="arrow"))
@@ -927,11 +1003,15 @@ siena01Gui <- function()
     tkpack(table1)
 
     ## configure the table column widths
-    tcl(table1, 'width', 3, 30)
     tcl(table1, 'width', 1, 6)
-    tcl(table1, 'width', 9, 20)
-    tcl(table1, 'width', 10, 20)
-    tcl(table1, 'width', 7, 25)
+    tcl(table1, 'width', 3, 30)
+    tcl(table1, 'width', 5, 8)
+    tcl(table1, 'width', 6, 8)
+    tcl(table1, 'width', 7, 24)
+    tcl(table1, 'width', 8, 8)
+    tcl(table1, 'width', 9, 12)
+    tcl(table1, 'width', 10, 12)
+    tcl(table1, 'width', 11, 10)
 
     ## create and display the bottom bottons
     f2 <- tkframe(df)

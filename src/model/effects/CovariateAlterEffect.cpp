@@ -8,7 +8,6 @@
  * Description: This file contains the implementation of the
  * CovariateAlterEffect class.
  *****************************************************************************/
-#include <R.h>
 
 #include "CovariateAlterEffect.h"
 #include "data/Network.h"
@@ -19,10 +18,14 @@ namespace siena
 
 /**
  * Constructor.
+ * @param[in] pEffectInfo the effect descriptor
+ * @param[in] squared indicates if the covariate values must be squared
  */
-CovariateAlterEffect::CovariateAlterEffect(const EffectInfo * pEffectInfo) :
-	CovariateDependentNetworkEffect(pEffectInfo)
+CovariateAlterEffect::CovariateAlterEffect(const EffectInfo * pEffectInfo,
+	bool squared) :
+		CovariateDependentNetworkEffect(pEffectInfo)
 {
+	this->lsquared = squared;
 }
 
 
@@ -33,12 +36,17 @@ double CovariateAlterEffect::calculateTieFlipContribution(int alter) const
 {
 	double change = this->value(alter);
 
+	if (this->lsquared)
+	{
+		change *= change;
+	}
+
 	if (this->pVariable()->outTieExists(alter))
 	{
 		// The ego would loose the tie and the covariate value of the alter
 		change = -change;
 	}
-//	Rprintf("%d %f\n", alter, change);
+
 	return change;
 }
 
@@ -55,8 +63,14 @@ double CovariateAlterEffect::evaluationStatistic(Network * pNetwork) const
 	{
 		if (!this->missing(i))
 		{
-			statistic +=
-				pNetwork->inDegree(i) * this->value(i);
+			double value = this->value(i);
+
+			if (this->lsquared)
+			{
+				value *= value;
+			}
+
+			statistic += pNetwork->inDegree(i) * value;
 		}
 	}
 

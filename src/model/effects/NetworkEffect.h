@@ -1,3 +1,14 @@
+/******************************************************************************
+ * SIENA: Simulation Investigation for Empirical Network Analysis
+ *
+ * Web: http://www.stats.ox.ac.uk/~snijders/siena/
+ *
+ * File: NetworkEffect.h
+ *
+ * Description: This file contains the definition of the
+ * NetworkEffect class.
+ *****************************************************************************/
+
 #ifndef NETWORKEFFECT_H_
 #define NETWORKEFFECT_H_
 

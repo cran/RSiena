@@ -30,7 +30,7 @@ class DependentVariable;
 class Model;
 class ActorSet;
 class EffectInfo;
-class Function;
+class SimulationActorSet;
 
 
 // ----------------------------------------------------------------------------
@@ -51,13 +51,12 @@ public:
 
     void runEpoch(int period);
 
-    bool active(const ActorSet * pActorSet, int actor);
-    int activeActorCount(const ActorSet * pActorSet);
-
     const Data * pData() const;
     const Model * pModel() const;
     const DependentVariable * pVariable(string name) const;
     const vector<DependentVariable *> & rVariables() const;
+    const SimulationActorSet * pSimulationActorSet(
+    	const ActorSet * pOriginalActorSet) const;
     int period() const;
 
     double time() const;
@@ -84,9 +83,15 @@ private:
     // The actor-based model to be simulated
     Model * lpModel;
 
+    // A wrapper object per actor set for simulation purposes
+    vector<SimulationActorSet *> lsimulationActorSets;
+
+    // Stores the wrappers of each original actor set
+    map<const ActorSet *, SimulationActorSet *> lactorSetMap;
+
     // A list of dependent variables with their current values
     vector<DependentVariable *> lvariables;
-    
+
     // The current period to be simulated
     int lperiod;
 
@@ -94,13 +99,6 @@ private:
     // the dependent variable to change and the actor to make the change.
 
     double * lcummulativeRates;
-
-    // A flag per each actor of each actor set indicating if the actor
-    // has joined or not
-    map<const ActorSet *, bool *> lactive;
-
-    // The number of currently active actors per actor set
-    map<const ActorSet *, int> lactiveActorCount;
 
     // The current time of the simmulation
     double ltime;

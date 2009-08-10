@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: Utils.cpp
- * 
+ *
  * Description: Defines some utilities for general use.
  *****************************************************************************/
 
@@ -22,6 +22,24 @@ std::string toString(int i)
 	std::stringstream out;
 	out << i;
 	return out.str();
+}
+
+
+/**
+ * An identity function simply returning its argument.
+ */
+double identity(int x)
+{
+	return x;
+}
+
+
+/**
+ * Returns the inverse of (<i>x</i> + 1).
+ */
+double invertor(int x)
+{
+	return 1.0 / (x + 1);
 }
 
 

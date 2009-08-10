@@ -1,7 +1,7 @@
 \name{s50a}
 \alias{s50a}
 \docType{data}
-\title{Alcohol use data for excerpt from 'Teenage Friends and Lifestyle Study' data}
+\title{Alcohol use data: excerpt from 'Teenage Friends and Lifestyle Study' data}
 \description{
 Data from an excerpt of 50 girls from the Teenage Friends and Lifestyle Study data
 set. Useful as a small example of network and behaviour, for which

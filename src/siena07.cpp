@@ -42,6 +42,7 @@
 #include "data/ActorSet.h"
 #include "model/EpochSimulation.h"
 #include "model/variables/DependentVariable.h"
+#include "model/variables/NetworkVariable.h"
 using namespace std;
 using namespace siena;
 
@@ -144,7 +145,7 @@ void printOutData(Data *pData)
 
 			}
 		}
-		Rprintf("gothere\n");
+		//Rprintf("gothere\n");
 		const std::vector<ConstantCovariate * > rConstantCovariates =
 			pData->rConstantCovariates();
 		for (unsigned i = 0; i < pData->rConstantCovariates().size(); i++)
@@ -309,6 +310,26 @@ SEXP getAdjacency(const Network& net)
     for (TieIterator iter=net.ties(); iter.valid(); iter.next())
     {
 	ians[iter.ego()+(iter.alter()*n)] = iter.value();
+    }
+
+    UNPROTECT(1);
+    return(ans) ;
+}
+SEXP getEdgeList(const Network& net)
+{
+    SEXP ans;
+	int nties = net.tieCount();
+    PROTECT(ans = allocMatrix(INTSXP, nties, 2));
+    int *ians = INTEGER(ans);
+    /* initialise the memory: possibly only neccesary in case of error! */
+    for (int i = 0; i < nties * 2; i++)
+		ians[i] = 0;
+	int irow = 0;
+    for (TieIterator iter=net.ties(); iter.valid(); iter.next())
+    {
+		ians[irow ] = iter.ego() + 1;
+		ians[ nties + irow] = iter.alter() + 1;
+		irow ++;
     }
 
     UNPROTECT(1);
@@ -783,7 +804,7 @@ void setupConstantCovariate(SEXP COCOVAR, ConstantCovariate *
 
 {
     int nActors = length(COCOVAR);
-//    Rprintf("nactors %d\n", nActors);
+  Rprintf("%x\n", pConstantCovariate);
     double * start = REAL(COCOVAR);
     for (int actor = 0; actor < nActors; actor++)
     {
@@ -1862,6 +1883,7 @@ one of values, one of missing values (boolean) */
 						}
 						else
 						{
+							Rprintf("here\n");
 							score = 0;
 						}
 					}
@@ -1990,7 +2012,7 @@ one of values, one of missing values (boolean) */
 
     SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 			   SEXP FROMFINITEDIFF, SEXP MODELPTR, SEXP EFFECTSLIST,
-		SEXP THETA, SEXP RANDOMSEED2, SEXP PROFILEDATA)
+		SEXP THETA, SEXP RANDOMSEED2, SEXP RETURNDEPS)
     {
 		SEXP NEWRANDOMSEED; /* for parallel testing only */
 		PROTECT(NEWRANDOMSEED = duplicate(RANDOMSEED2));
@@ -2014,6 +2036,8 @@ one of values, one of missing values (boolean) */
             totObservations += (*pGroupData)[group]->observationCount() - 1;
 
 		int fromFiniteDiff = asInteger(FROMFINITEDIFF);
+
+		int returnDependents = asInteger(RETURNDEPS);
 
 		int deriv = asInteger(DERIV);
 
@@ -2052,7 +2076,11 @@ one of values, one of missing values (boolean) */
 
         /* ans will be the return value */
         SEXP ans;
-        PROTECT(ans = allocVector(VECSXP, 5));
+        PROTECT(ans = allocVector(VECSXP, 6));
+
+		/* nets will be the returned simulated networks */
+		SEXP nets;
+        PROTECT(nets = allocVector(VECSXP, 2));
 
 		/* seed store is a list to save the random states */
         SEXP seedstore;
@@ -2158,7 +2186,18 @@ one of values, one of missing values (boolean) */
 				{
                     rntim[periodFromStart - 1] = pEpochSimulation->time();
 				}
-          } /* end of period */
+				// get simulated network
+				if (returnDependents)
+				{
+					const DependentVariable * thisnet =
+						pEpochSimulation->rVariables()[0];
+					const NetworkVariable * thisnetv =
+						(const NetworkVariable * ) thisnet;
+					const Network * thisn = thisnetv->pNetwork();
+					SEXP thisedge = getEdgeList(*thisn);
+					SET_VECTOR_ELT(nets, period, thisedge);
+				}
+			} /* end of period */
 			delete pEpochSimulation;
    } /* end of group */
        /* send the .Random.seed back to R */
@@ -2173,7 +2212,8 @@ one of values, one of missing values (boolean) */
 		if (deriv)
         {
             SET_VECTOR_ELT(ans, 1, scores);
-        }
+ 		SET_VECTOR_ELT(ans, 5, nets);
+       }
       SET_VECTOR_ELT(ans, 0, fra);
 		SET_VECTOR_ELT(ans, 3, ntim);
 // 			Rprintf("r2 %d %d %d %d\n",INTEGER(NEWRANDOMSEED)[0],
@@ -2184,7 +2224,7 @@ one of values, one of missing values (boolean) */
 		{
 			SET_VECTOR_ELT(ans, 4, NEWRANDOMSEED);
 		}
-        UNPROTECT(7);
+        UNPROTECT(8);
         return(ans);
     }
 

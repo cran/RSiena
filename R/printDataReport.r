@@ -85,10 +85,15 @@ DataReport <- function(z, x, f)
         }
         Report('is 1.0.\n', outf)
     }
-    if (x$FinDiff.method)
+    if (z$FinDiff.method)
     {
         Report(c('Standard errors are estimated with the finite difference',
                  'method.\n'), outf)
+        if (!x$FinDiff.method)
+        {
+            Report("Note that the option requested has been over-ridden\n",
+                   outf)
+        }
     }
     else
     {

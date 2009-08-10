@@ -37,21 +37,23 @@ sessionFromFile <- function(loadfilename, tk=FALSE)
        ## apply(session, 2, trim.blanks)
    ## }
    ## else
-    if (extension == 'csv')
+    if (extension == "csv")
     {
-        session <- read.csv(loadfilename, comment.char='',
-                             colClasses='character', strip.white=TRUE,
-                            na.strings='')
-        }
-    else if (extension =='txt')
-    {
-        session <- read.delim(loadfilename, comment.char='',
-                               colClasses='character', strip.white=TRUE )
+       ( session <- read.csv(loadfilename, comment.char="",
+                            colClasses="character", strip.white=TRUE,
+                            na.strings=NULL))
     }
-    else if (extension =='prn')
+    else if (extension =="txt")
     {
-        session <- read.table(loadfilename, comment.char='',
-                               colClasses='character', strip.white=TRUE)
+        session <- read.delim(loadfilename, comment.char="",
+                              colClasses="character", strip.white=TRUE,
+                              na.strings=NULL)
+    }
+    else if (extension =="prn")
+    {
+        session <- read.table(loadfilename, comment.char="",
+                              colClasses="character", strip.white=TRUE,
+                              na.strings=NULL)
     }
     else
     {
@@ -71,12 +73,16 @@ sessionFromFile <- function(loadfilename, tk=FALSE)
     session
 }
 
-readInFiles <- function(session, edited)
+readInFiles <- function(session, edited, files=NULL)
 {
     noFiles <- nrow(session)
     if (!any(edited))
     {
-        files <- vector('list', noFiles)
+        files <- vector("list", noFiles)
+    }
+    else if (is.null(files))
+    {
+        stop("need some files if they have been edited")
     }
     for (i in 1:noFiles)
     {
@@ -100,14 +106,19 @@ readInFiles <- function(session, edited)
             }
             else
             {
-                if (session$Format[i] == 'matrix')
+                if (session$Format[i] != "pajek net")
                 {
-                    tmp <- as.matrix(read.table(session$Filename[i], as.is=TRUE))
+                    tmp <- as.matrix(read.table(session$Filename[i],
+                                                as.is=TRUE))
                 }
                 else
                 {
                     require(network)
-                    tmp <- read.paj(session$Filename[i]) ## should be a single net
+                    oldwarn <- getOption("warn")
+                    options(warn = -1)
+                    tmp <- read.paj(session$Filename[i])
+                    options(warn = oldwarn)
+                    ## should be a single net
                 }
             }
             files[[i]] <- tmp
@@ -116,7 +127,8 @@ readInFiles <- function(session, edited)
     files
 }
 sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
-                                        modelName='Siena', edited=NULL)
+                                        modelName='Siena', edited=NULL,
+                                        files=NULL)
 {
     turnoffwarn <- function()
     {
@@ -135,13 +147,23 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
             if (any (namesession$ActorSet != namesession$ActorSet[1]))
                 tkmessageBox(message =
                              "Actor set must be the same for one object")
-            tmp <- sapply(namefiles, dim)
-            if (!is.matrix(tmp) || nrow(tmp) !=2)
-                tkmessageBox(message =
-                             "Dimensions must be the same for one object")
-            if (any (tmp[,] != tmp[,1]))
-                tkmessageBox(message =
-                             "Dimensions must be the same for one object")
+            if (namesession$Format[1] == "matrix")
+            {
+                tmp <- sapply(namefiles, dim)
+                if (!is.matrix(tmp) || nrow(tmp) !=2)
+                    tkmessageBox(message =
+                                 "Dimensions must be the same for one object")
+                if (any (tmp[,] != tmp[,1]))
+                    tkmessageBox(message =
+                                 "Dimensions must be the same for one object")
+            }
+            else if (namesession$Format[1] == "pajek net")
+            {
+                if (any(sapply(namefiles, network.size) !=
+                    network.size(namefiles[[1]])))
+                    tkmessageBox(message =
+                                 "Dimensions must be the same for one object")
+            }
         }
         nodeSets <- unlist(strsplit(namesession$ActorSet[1], ' '))
         if (length(nodeSets) > 2)
@@ -154,7 +176,14 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
             {
                 k <- k + 1
                 ActorSets[k] <<- nodeSets[i]
-                ActorSetsSize[k] <<- dim(namefiles[[1]])[i]
+                if (namesession$Format[1] == "matrix")
+                {
+                    ActorSetsSize[k] <<- dim(namefiles[[1]])[i]
+                }
+                else if (namesession$Format[1] == "pajek net")
+                    ActorSetsSize[k] <<- network.size(namefiles[[1]])
+                else
+                    ActorSetsSize[k] <<- as.numeric(namesession$NbrOfActors[1])
             }
             else if (dim(namefiles[[1]])[i] != ActorSetsSize[mymatch])
             {
@@ -180,7 +209,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
             edited <- rep(FALSE, nrow(session))
         }
     }
-    files <- readInFiles(session, edited)
+    files <- readInFiles(session, edited, files)
     gps <- unique(session$Group)
     for (i in seq(along=gps))
     {
@@ -188,7 +217,8 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
         ActorSetsSize <- NULL
         gpsession <- session[session$Group == gps[i], ]
         ops <- turnoffwarn()
-        observations <- max(as.numeric(gpsession$Period), na.rm=TRUE)
+        gpsessionperiods <- unlist(strsplit(gpsession$Period, " "))
+        observations <- max(as.numeric(gpsessionperiods), na.rm=TRUE)
         turnonwarn(ops)
         gpfiles <- files[session$Group == gps[i]]
         objnames <- unique(gpsession$Name)
@@ -199,31 +229,114 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
             validateNamesession()
             switch(
                    namesession$Type[1],
-                   'network' = {
-                       myarray <- array(NA, dim=c(dim(namefiles[[1]]),
-                                             observations))
+                   "network" = {
                        miss1 <- strsplit(namesession$MissingValues, " ")
-                       nonzero <-  strsplit(namesession$NonZeroCode, ' ')
-                       for (x in 1:nrow(namesession))
+                       nonzero <-  strsplit(namesession$NonZeroCode, " ")
+                       if (namesession$Format[1] == "matrix")
                        {
-                           ##miss <- gsub(" ", "|", miss1[x], fixed=TRUE)
-                           miss <- miss1[[x]]
-                           ## namefiles[[x]][grep(miss, namefiles[[x]])] <- NA
-                           namefiles[[x]][namefiles[[x]] %in% miss] <- NA
-                           ## nonzero <- gsub(" ", "|", nonzero1[x], fixed=TRUE)
-                           ## namefiles[[x]][grep(nonzero, namefiles[[x]])] <- 1
-                           namefiles[[x]][!(is.na(namefiles[[x]]))
-                                          & !(namefiles[[x]] %in%
-                                              nonzero[[x]])] <- 0
-                           namefiles[[x]][namefiles[[x]] %in% nonzero[[x]]] <- 1
-                           ##  namefiles[[x]][!(is.na(namefiles[[x]]))
-                           ##   & !(namefiles[[x]] %in% c(0, 1))] <- 0
-                           myarray[ , , as.numeric(namesession$Period[x])] <-
-                               namefiles[[x]]
+                           if (observations != nrow(namesession))
+                               stop("observations and periods don't match")
+                           myarray <- array(NA, dim=c(dim(namefiles[[1]]),
+                                                observations))
+                           for (x in 1:nrow(namesession))
+                           {
+                               miss <- miss1[[x]]
+                               namefiles[[x]][namefiles[[x]] %in% miss] <- NA
+                               namefiles[[x]][!(is.na(namefiles[[x]]))
+                                              & !(namefiles[[x]] %in%
+                                                  c(nonzero[[x]], 10, 11))] <- 0
+                               namefiles[[x]][namefiles[[x]] %in%
+                                              nonzero[[x]]] <- 1
+                               myarray[ , ,
+                                       as.numeric(namesession$Period[x])] <-
+                                           namefiles[[x]]
+                               tmp <- sienaNet(myarray, nodeSet=namesession[1,
+                                                        "ActorSet"])
+                           }
                        }
-                       tmp <- sienaNet(myarray, nodeSet=namesession[1,
-                                                "ActorSet"])
-
+                       else if (namesession$Format[1] == "Siena net")
+                       {
+                         ##  require(Matrix)
+                           if (nrow(namesession) == 1)
+                           {
+                               miss <- miss1[[1]]
+                               myedgelist <- namefiles[[1]]
+                               myedgelist[myedgelist[, 3] %in% miss, 3] <- NA
+                               myedgelist[!(is.na(myedgelist[,3]))
+                                          & !(myedgelist[,3] %in%
+                                              c(nonzero[[1]], 10, 11)), 3] <- 0
+                               myedgelist[myedgelist[,3] %in%
+                                          nonzero[[1]], 3] <- 1
+                               mylist <- split.data.frame(myedgelist[, 1:3],
+                                                          myedgelist[, 4])
+                               if (!is.na(observations) && observations !=
+                                   length(mylist))
+                                   stop("Differing numbers of observations ",
+                                        observations, " ", length(mylist))
+                               nActors <- as.numeric(namesession$NbrOfActors[1])
+                           }
+                           else ## multiple siena nets
+                           {
+                               if (observations != nrow(namesession))
+                                   stop("observations and periods don't match")
+                               mylist <- vector("list", observations)
+                               nActors <- as.numeric(namesession$NbrOfActors[1])
+                               for (x in 1:nrow(namesession))
+                               {
+                                   miss <- miss1[[x]]
+                                   myedgelist <- namefiles[[x]][ ,1:3]
+                                   myedgelist[myedgelist[, 3] %in% miss, 3] <-
+                                       NA
+                                   myedgelist[!(is.na(myedgelist[,3]))
+                                              & !(myedgelist[,3] %in%
+                                                  c(nonzero[[x]], 10, 11)), 3] <- 0
+                                   myedgelist[myedgelist[,3] %in%
+                                              nonzero[[x]], 3] <- 1
+                                   if (as.numeric(namesession$NbrOfActors[x]) !=
+                                       nActors)
+                                       stop("number of actors inconsistent")
+                                   mylist[[x]] <- myedgelist
+                               }
+                           }
+                           mylist <- lapply(mylist, function(y){
+                               spMatrix(nrow = nActors, ncol=nActors,
+                                        i=y[, 1],
+                                        j=y[, 2],
+                                        x=y[, 3])
+                           } )
+                           tmp <- sienaNet(mylist, nodeSet=namesession[1,
+                                                   "ActorSet"])
+                       }
+                       else ## pajek net
+                       {
+                           ##require(Matrix)
+                           nActors <- network.size(namefiles[[1]])
+                           mylist <- vector("list", observations)
+                           for (x in 1:nrow(namesession))
+                           {
+                               miss <- miss1[[x]]
+                               myedgelist <-
+                                   as.matrix.network(namefiles[[x]],
+                                                     matrix.type="edgelist")
+                               myedgelist <-
+                                   cbind(myedgelist,
+                                         get.edge.value(namefiles[[x]],
+                                                        list.edge.attributes(namefiles[[x]])[2]))
+                               myedgelist[myedgelist[, 3] %in% miss, 3] <-
+                                   NA
+                               myedgelist[!(is.na(myedgelist[,3]))
+                                          & !(myedgelist[,3] %in%
+                                              c(nonzero[[x]], 10, 11)), 3] <- 0
+                               myedgelist[myedgelist[,3] %in%
+                                          nonzero[[x]], 3] <- 1
+                               if (network.size(namefiles[[x]]) != nActors)
+                                   stop("number of actors inconsistent")
+                               mylist[[x]] <-
+                                   spMatrix(nrow=nActors, ncol=nActors, i= myedgelist[,1], j=myedgelist[,2], x=myedgelist[,3])
+                           }
+                           tmp <- sienaNet(mylist, nodeSet=namesession[1,
+                                           "ActorSet"])
+                       }
                        assign(objnames[j], tmp, .GlobalEnv)
                    },
                    'bipartite' = {

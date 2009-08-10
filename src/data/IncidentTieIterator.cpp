@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: IncidentTieIterator.cpp
- * 
+ *
  * Description: This module defines the class IncidentTieIterator for
  * convenient iteration over incoming or outgoing ties of an actor.
  *****************************************************************************/
@@ -22,7 +22,7 @@ IncidentTieIterator::IncidentTieIterator()
 {
 	// The internal iterators lcurrent and lend are not initialized,
 	// and consequently this iterator is not valid.
-	
+
 	this->linitialized = false;
 }
 
@@ -40,6 +40,21 @@ IncidentTieIterator::IncidentTieIterator(std::map<int, int> & ties)
 }
 
 
+//
+// Creates an iterator over a collection of ties represented by the
+// given map. The values of the pairs in the map represent the values
+// of ties, and the keys represent the corresponding neighbors. Only
+// neighbors that are greater or equal with the given bound are returned.
+//
+IncidentTieIterator::IncidentTieIterator(std::map<int, int> & ties,
+	int lowerBound)
+{
+	this->lcurrent = ties.lower_bound(lowerBound);
+	this->lend = ties.end();
+	this->linitialized = true;
+}
+
+
 /**
  * Returns the neighbor incident to the current tie.
  */
@@ -49,7 +64,7 @@ int IncidentTieIterator::actor() const
 	{
 		throw InvalidIteratorException();
 	}
-	
+
 	return this->lcurrent->first;
 }
 
@@ -63,8 +78,8 @@ int IncidentTieIterator::value() const
 	{
 		throw InvalidIteratorException();
 	}
-	
-	return this->lcurrent->second;	
+
+	return this->lcurrent->second;
 }
 
 

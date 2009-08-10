@@ -22,6 +22,7 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
 #include "model/Model.h"
+#include "model/SimulationActorSet.h"
 #include "model/effects/Effect.h"
 
 namespace siena
@@ -40,6 +41,22 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     this->lpData = pData;
     this->lpModel = pModel;
     this->lpConditioningVariable = 0;
+
+	// Create a wrapper for each actor set for simulation purposes,
+	// and find the maximum number of actors in any actor set.
+
+	int maxN = 0;
+
+	for (unsigned i = 0; i < pData->rActorSets().size(); i++)
+	{
+		const ActorSet * pActorSet = pData->rActorSets()[i];
+		SimulationActorSet * pSimulationActorSet =
+			new SimulationActorSet(pActorSet);
+
+		this->lsimulationActorSets.push_back(pSimulationActorSet);
+		this->lactorSetMap[pActorSet] = pSimulationActorSet;
+		maxN = std::max(maxN, pActorSet->n());
+	}
 
     // Create the dependent variables from the observed data
 
@@ -66,17 +83,6 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     	this->lvariables[i]->initializeEndowmentFunction();
     }
 
-    // Find the maximum number of actors in any actor set
-
-    int maxN = 0;
-
-    for (unsigned i = 0; i < pData->rActorSets().size(); i++)
-    {
-        const ActorSet * pActorSet = pData->rActorSets()[i];
-        this->lactive[pActorSet] = new bool[pActorSet->n()];
-        maxN = std::max(maxN, pActorSet->n());
-    }
-
     // Allocate a helper array
 
     this->lcummulativeRates =
@@ -95,19 +101,8 @@ EpochSimulation::~EpochSimulation()
 
     this->lcummulativeRates = 0;
 
-    // Delete the dependent variables
     deallocateVector(this->lvariables);
-
-    // Activity related
-
-    while (!this->lactive.empty())
-    {
-    	bool * array = this->lactive.begin()->second;
-    	this->lactive.erase(this->lactive.begin());
-    	delete[] array;
-    }
-
-    this->lactiveActorCount.clear();
+    deallocateVector(this->lsimulationActorSets);
 }
 
 
@@ -125,23 +120,17 @@ void EpochSimulation::initialize(int period)
 
 	// Initialize the active actor indicators
 
-    for (unsigned i = 0; i < this->lpData->rActorSets().size(); i++)
+    for (unsigned i = 0; i < this->lsimulationActorSets.size(); i++)
     {
-        const ActorSet * pActorSet = this->lpData->rActorSets()[i];
-        int activeActorCount = 0;
+        SimulationActorSet * pActorSet = this->lsimulationActorSets[i];
 
         for (int i = 0; i < pActorSet->n(); i++)
         {
-            this->lactive[pActorSet][i] =
-                this->lpData->active(pActorSet, i, period);
-
-            if (this->lactive[pActorSet][i])
-            {
-                activeActorCount++;
-            }
+        	pActorSet->active(i,
+        		this->lpData->active(pActorSet->pOriginalActorSet(),
+        			i,
+        			period));
         }
-
-        this->lactiveActorCount[pActorSet] = activeActorCount;
     }
 
     // Initialize each dependent variable
@@ -150,21 +139,21 @@ void EpochSimulation::initialize(int period)
     {
       this->lvariables[i]->initialize(period);
     }
-    
+
     // Initialize the effects for the upcoming simulation
 
     for (unsigned i = 0; i < this->lvariables.size(); i++)
     {
     	const Function * pFunction =
     		this->lvariables[i]->pEvaluationFunction();
-    	
+
     	for (unsigned j = 0; j < pFunction->rEffects().size(); j++)
     	{
     		pFunction->rEffects()[j]->initializeBeforeSimulation(period);
     	}
 
     	pFunction = this->lvariables[i]->pEndowmentFunction();
-    	
+
     	for (unsigned j = 0; j < pFunction->rEffects().size(); j++)
     	{
     		pFunction->rEffects()[j]->initializeBeforeSimulation(period);
@@ -344,35 +333,36 @@ bool EpochSimulation::reachedCompositionChange() const
  */
 void EpochSimulation::makeNextCompositionChange()
 {
-    ExogenousEvent * pEvent = *this->lnextEvent;
-    this->lnextEvent++;
+	ExogenousEvent * pEvent = *this->lnextEvent;
+	this->lnextEvent++;
 
-    if (pEvent->type() == JOINING)
-    {
-        this->lactive[pEvent->pActorSet()][pEvent->actor()] = true;
-        this->lactiveActorCount[pEvent->pActorSet()]++;
+	SimulationActorSet * pActorSet =
+		this->lactorSetMap[pEvent->pActorSet()];
 
-        for (unsigned i = 0; i < this->lvariables.size(); i++)
-        {
-            this->lvariables[i]->actOnJoiner(pEvent->pActorSet(),
-                pEvent->actor());
-        }
-    }
-    else if (pEvent->type() == LEAVING)
-    {
-        this->lactive[pEvent->pActorSet()][pEvent->actor()] = false;
-        this->lactiveActorCount[pEvent->pActorSet()]--;
+	if (pEvent->type() == JOINING)
+	{
+		pActorSet->active(pEvent->actor(), true);
 
-        for (unsigned i = 0; i < this->lvariables.size(); i++)
-        {
-            this->lvariables[i]->actOnLeaver(pEvent->pActorSet(),
-                pEvent->actor());
-        }
-    }
+		for (unsigned i = 0; i < this->lvariables.size(); i++)
+		{
+			this->lvariables[i]->actOnJoiner(pActorSet, pEvent->actor());
+		}
+	}
+	else if (pEvent->type() == LEAVING)
+	{
+		pActorSet->active(pEvent->actor(), false);
 
-    this->ltau = pEvent->time() - this->ltime;
+		for (unsigned i = 0; i < this->lvariables.size(); i++)
+		{
+			this->lvariables[i]->actOnLeaver(pActorSet, pEvent->actor());
+		}
+	}
+
+	this->ltau = pEvent->time() - this->ltime;
 	this->ltime = pEvent->time();
 }
+
+
 /**
  * Resets the values for any actors who left the system during the current
  * period to their value at the start of the period. It will then not affect
@@ -397,12 +387,14 @@ void EpochSimulation::setLeaversBack()
 // 		}
 
 		DependentVariable *pVariable = this->lvariables[i];
-		const ActorSet *pActorSet = pVariable->pActorSet();
+		const SimulationActorSet *pActorSet = pVariable->pActorSet();
 
 		for (int j = 0; j < pVariable->n(); j++)
 		{
-			if (!this->active(pActorSet, j))
+			if (!pActorSet->active(j))
+			{
 				pVariable->setLeaverBack(pActorSet, j);
+			}
 		}
 	}
 }
@@ -457,25 +449,6 @@ int EpochSimulation::chooseActor(const DependentVariable * pVariable) const
 
     return nextIntWithCumulativeProbabilities(pVariable->n(),
         this->lcummulativeRates);
-}
-
-
-/**
- * Returns if the given actor is currently active, i.e. it is part of the
- * networks.
- */
-bool EpochSimulation::active(const ActorSet * pActorSet, int actor)
-{
-    return this->lactive[pActorSet][actor];
-}
-
-
-/**
- * Returns the number of currently active actors in the given set.
- */
-int EpochSimulation::activeActorCount(const ActorSet * pActorSet)
-{
-    return this->lactiveActorCount[pActorSet];
 }
 
 
@@ -537,9 +510,32 @@ const DependentVariable * EpochSimulation::pVariable(string name) const
 }
 
 
+/**
+ * Returns a reference to the vector of dependent variables.
+ */
 const vector<DependentVariable *> & EpochSimulation::rVariables() const
 {
 	return this->lvariables;
+}
+
+
+/**
+ * Returns the wrapper actor set corresponding to the given original actor set.
+ */
+const SimulationActorSet * EpochSimulation::pSimulationActorSet(
+	const ActorSet * pOriginalActorSet) const
+{
+	map<const ActorSet *, SimulationActorSet *>::const_iterator iter =
+		this->lactorSetMap.find(pOriginalActorSet);
+
+	const SimulationActorSet * pSimulationActorSet = 0;
+
+	if (iter != this->lactorSetMap.end())
+	{
+		pSimulationActorSet = iter->second;
+	}
+
+	return pSimulationActorSet;
 }
 
 

@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ChangingDyadicCovariate.h
- * 
+ *
  * Description: This file contains the definition of the
  * ChangingDyadicCovariate class.
  *****************************************************************************/
@@ -20,6 +20,17 @@ using namespace std;
 
 namespace siena
 {
+
+// ----------------------------------------------------------------------------
+// Section: Forward declarations
+// ----------------------------------------------------------------------------
+
+class DyadicCovariateValueIterator;
+
+
+// ----------------------------------------------------------------------------
+// Section: ChangingDyadicCovariate definition
+// ----------------------------------------------------------------------------
 
 /**
  * This class defines a dyadic covariate that changes over time.
@@ -37,19 +48,33 @@ public:
 	void value(int i, int j, int observation, double value);
 	bool missing(int i, int j, int observation) const;
 	void missing(int i, int j, int observation, bool flag);
+	DyadicCovariateValueIterator rowValues(int i, int observation) const;
+	DyadicCovariateValueIterator columnValues(int j, int observation) const;
 
 private:
-	// An array of arrays of maps storing the non-zero values of the covariate.
+	// A row based representation of non-zero values of the covariate.
 	// The value at observation k for a pair (i,j) is stored in
-	// lpValues[k][i][j].
-	
-	map<int, double> ** lpValues;
-	
-	// An array of arrays of actor sets. Actor j belongs to lpMissings[k][i]
-	// if and only if the covariate value for the pair (i,j) is missing at
-	// observation k.
-	
-	set<int> ** lpMissings;
+	// lpRowValues[k][i][j].
+
+	map<int, double> ** lpRowValues;
+
+	// A column based representation of non-zero values of the covariate.
+	// The value at observation k for a pair (i,j) is stored in
+	// lpColumnValues[k][j][i].
+
+	map<int, double> ** lpColumnValues;
+
+	// A row based representation of missing values. Actor j belongs to
+	// lpRowMissings[k][i] if and only if the covariate value for the pair
+	// (i,j) is missing at observation k.
+
+	set<int> ** lpRowMissings;
+
+	// A column based representation of missing values. Actor i belongs to
+	// lpColumnMissings[k][j] if and only if the covariate value for the pair
+	// (i,j) is missing at observation k.
+
+	set<int> ** lpColumnMissings;
 
 	// The number of observations
 	int lobservationCount;

@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: TwoPathTable.h
- * 
+ *
  * Description: This file defines the class TwoPathTable.
  *****************************************************************************/
 
@@ -20,12 +20,11 @@ namespace siena
 /**
  * This class defines a table of generalized two-paths between a fixed actor,
  * the ego, and all other actors. In a generalized two-path, ties can be
- * traversed in either direction. For instance, one can think of in-stars
+ * traversed in either direction, or one can require to traverse only
+ * reciprocated ties. For instance, one can think of in-stars
  * between two actors i and j as generalized two-paths, where we traverse
  * one outgoing tie of i, say (i,h), in the forward direction followed by the
- * incoming tie (j,h) of h in the backward direction. Essentially, we have
- * four types of generalized two-paths depending on the directions of the
- * first and the second tie.
+ * incoming tie (j,h) of h in the backward direction.
  */
 class TwoPathTable : public ConfigurationTable
 {
@@ -33,14 +32,17 @@ public:
 	TwoPathTable(NetworkVariable * pVariable,
 		Direction firstStepDirection,
 		Direction secondStepDirection);
-	
+
 protected:
 	virtual void vCalculate();
-	
+
 private:
+	template<class Iterator> void performFirstStep(Iterator iter);
+	template<class Iterator> void performSecondStep(Iterator iter);
+
 	// The direction of the first step
 	Direction lfirstStepDirection;
-	
+
 	// The direction of the second step
 	Direction lsecondStepDirection;
 };

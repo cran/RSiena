@@ -1,16 +1,17 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ChangingDyadicCovariate.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * ChangingDyadicCovariate class.
  *****************************************************************************/
 
 #include "ChangingDyadicCovariate.h"
 #include "data/ActorSet.h"
+#include "data/DyadicCovariateValueIterator.h"
 
 namespace siena
 {
@@ -29,13 +30,17 @@ ChangingDyadicCovariate::ChangingDyadicCovariate(std::string name,
 		DyadicCovariate(name, pFirstActorSet, pSecondActorSet)
 {
 	this->lobservationCount = observationCount;
-	this->lpValues = new map<int, double> * [observationCount];
-	this->lpMissings = new set<int> * [observationCount];
-	
+	this->lpRowValues = new map<int, double> * [observationCount];
+	this->lpColumnValues = new map<int, double> * [observationCount];
+	this->lpRowMissings = new set<int> * [observationCount];
+	this->lpColumnMissings = new set<int> * [observationCount];
+
 	for (int k = 0; k < observationCount; k++)
 	{
-		this->lpValues[k] = new map<int, double>[pFirstActorSet->n()];
-		this->lpMissings[k] = new set<int>[pFirstActorSet->n()];
+		this->lpRowValues[k] = new map<int, double>[pFirstActorSet->n()];
+		this->lpColumnValues[k] = new map<int, double>[pSecondActorSet->n()];
+		this->lpRowMissings[k] = new set<int>[pFirstActorSet->n()];
+		this->lpColumnMissings[k] = new set<int>[pSecondActorSet->n()];
 	}
 }
 
@@ -47,14 +52,20 @@ ChangingDyadicCovariate::~ChangingDyadicCovariate()
 {
 	for (int k = 0; k < this->lobservationCount; k++)
 	{
-		delete[] this->lpValues[k];
-		delete[] this->lpMissings[k];
+		delete[] this->lpRowValues[k];
+		delete[] this->lpColumnValues[k];
+		delete[] this->lpRowMissings[k];
+		delete[] this->lpColumnMissings[k];
 	}
-	
-	delete[] this->lpValues;
-	delete[] this->lpMissings;
-	this->lpValues = 0;	
-	this->lpMissings = 0;
+
+	delete[] this->lpRowValues;
+	delete[] this->lpColumnValues;
+	delete[] this->lpRowMissings;
+	delete[] this->lpColumnMissings;
+	this->lpRowValues = 0;
+	this->lpColumnValues = 0;
+	this->lpRowMissings = 0;
+	this->lpColumnMissings = 0;
 }
 
 
@@ -72,11 +83,13 @@ void ChangingDyadicCovariate::value(int i,
 {
 	if (value)
 	{
-		this->lpValues[observation][i][j] = value;
+		this->lpRowValues[observation][i][j] = value;
+		this->lpColumnValues[observation][j][i] = value;
 	}
 	else
 	{
-		this->lpValues[observation][i].erase(j);
+		this->lpRowValues[observation][i].erase(j);
+		this->lpColumnValues[observation][j].erase(i);
 	}
 }
 
@@ -88,14 +101,14 @@ void ChangingDyadicCovariate::value(int i,
 double ChangingDyadicCovariate::value(int i, int j, int observation) const
 {
 	map<int, double>::const_iterator iter =
-		this->lpValues[observation][i].find(j);
+		this->lpRowValues[observation][i].find(j);
 	double value = 0;
-	
-	if (iter != this->lpValues[observation][i].end())
+
+	if (iter != this->lpRowValues[observation][i].end())
 	{
 		value = iter->second;
 	}
-	
+
 	return value;
 }
 
@@ -115,11 +128,13 @@ void ChangingDyadicCovariate::missing(int i,
 {
 	if (flag)
 	{
-		this->lpMissings[observation][i].insert(j);
+		this->lpRowMissings[observation][i].insert(j);
+		this->lpColumnMissings[observation][j].insert(i);
 	}
 	else
 	{
-		this->lpMissings[observation][i].erase(j);
+		this->lpRowMissings[observation][i].erase(j);
+		this->lpColumnMissings[observation][j].erase(i);
 	}
 }
 
@@ -130,8 +145,32 @@ void ChangingDyadicCovariate::missing(int i,
  */
 bool ChangingDyadicCovariate::missing(int i, int j, int observation) const
 {
-	return this->lpMissings[observation][i].find(j) !=
-		this->lpMissings[observation][i].end();
+	return this->lpRowMissings[observation][i].find(j) !=
+		this->lpRowMissings[observation][i].end();
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given row
+ * at the given observation.
+ */
+DyadicCovariateValueIterator ChangingDyadicCovariate::rowValues(int i,
+	int observation) const
+{
+	return DyadicCovariateValueIterator(this->lpRowValues[observation][i],
+		this->lpRowMissings[observation][i]);
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given column
+ * at the given observation.
+ */
+DyadicCovariateValueIterator ChangingDyadicCovariate::columnValues(int j,
+	int observation) const
+{
+	return DyadicCovariateValueIterator(this->lpColumnValues[observation][j],
+		this->lpColumnMissings[observation][j]);
 }
 
 }

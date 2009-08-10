@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: OneModeNetwork.h
- * 
+ *
  * Description: This file contains the definition of the
  * OneModeNetwork class.
  *****************************************************************************/
@@ -16,6 +16,17 @@
 
 namespace siena
 {
+
+// ----------------------------------------------------------------------------
+// Section: Forward declarations
+// ----------------------------------------------------------------------------
+
+class CommonNeighborIterator;
+
+
+// ----------------------------------------------------------------------------
+// Section: OneModeNetwork class
+// ----------------------------------------------------------------------------
 
 /**
  * This class defines a regular network where a single set of actors acts as
@@ -29,18 +40,22 @@ public:
 	OneModeNetwork & operator=(const OneModeNetwork & rNetwork);
 	virtual Network * clone() const;
 	virtual ~OneModeNetwork();
-	
+
 	bool loopsPermitted() const;
 	int reciprocalDegree(int i) const;
 	bool symmetric() const;
 	virtual void clear();
+
+	CommonNeighborIterator reciprocatedTies(int i) const;
+	CommonNeighborIterator reciprocatedTies(int i,
+		int lowerBound) const;
 
 	int twoPathCount(int i, int j) const;
 	int truncatedTwoPathCount(int i, int j, int threshold = 2) const;
 	bool noTwoPaths(int i, int j, int intermediateActorUpperBound) const;
 	bool existsTwoPath(int i, int j) const;
 	bool atMostKTwoPaths(int i, int j, int k, int & twoPathCount) const;
-	void neighborCensus(int i, int j, int & n3, int & n4) const;	
+	void neighborCensus(int i, int j, int & n3, int & n4) const;
 
 protected:
 	virtual int changeTieValue(int i, int j, int v, ChangeType type);
@@ -51,7 +66,7 @@ protected:
 private:
 	// Indicates if loops are permitted in this network
 	bool lloopsPermitted;
-	
+
 	// The reciprocal degree of each actor
 	int * lpReciprocalDegree;
 };

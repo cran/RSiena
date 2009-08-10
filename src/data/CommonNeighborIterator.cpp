@@ -41,7 +41,7 @@ bool CommonNeighborIterator::valid() const
 /**
  * Returns the current common actor.
  */
-int CommonNeighborIterator::neighbor() const
+int CommonNeighborIterator::actor() const
 {
 	if (!this->valid())
 	{

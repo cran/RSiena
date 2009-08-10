@@ -20,6 +20,7 @@
 #include "model/Model.h"
 #include "model/effects/BehaviorEffect.h"
 #include "model/EffectInfo.h"
+#include "model/SimulationActorSet.h"
 
 namespace siena
 {
@@ -36,7 +37,6 @@ BehaviorVariable::BehaviorVariable(BehaviorLongitudinalData * pData,
 			pSimulation)
 {
 	this->lpData = pData;
-	this->lpActorSet = pData->pActorSet();
 	this->lvalues = new int[this->n()];
 	this->lpredictorValues = new int[this->n()];
 	this->levaluationEffectContribution = new double * [3];
@@ -207,13 +207,13 @@ void BehaviorVariable::initialize(int period)
 	{
 		this->lvalues[i] = this->lpData->value(period, i);
 
-		if (this->pSimulation()->active(this->lpActorSet, i))
+		if (this->pActorSet()->active(i))
 		{
 			this->lmean += this->lvalues[i];
 		}
 	}
 
-	this->lmean /= this->pSimulation()->activeActorCount(this->lpActorSet);
+	this->lmean /= this->pActorSet()->activeActorCount();
 }
 
 /**
@@ -233,7 +233,8 @@ void BehaviorVariable::predictorValue(int actor, int value)
 /**
  * Updates the state of this variable when an actor becomes active.
  */
-void BehaviorVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
+void BehaviorVariable::actOnJoiner(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	if (pActorSet == this->pActorSet())
 	{
@@ -242,13 +243,13 @@ void BehaviorVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
 		// First calculate the sum over previously active actors (all active
 		// actors except for the joiner itself).
 
-		this->lmean *= this->pSimulation()->activeActorCount(pActorSet) - 1;
+		this->lmean *= pActorSet->activeActorCount() - 1;
 
 		// Add the value of the joiner to the sum.
 		this->lmean += this->lvalues[actor];
 
 		// Divide by the number of active actors, so we get the average.
-		this->lmean /= this->pSimulation()->activeActorCount(pActorSet);
+		this->lmean /= pActorSet->activeActorCount();
 	}
 }
 
@@ -256,7 +257,8 @@ void BehaviorVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
 /**
  * Updates the state of this variable when an actor becomes inactive.
  */
-void BehaviorVariable::actOnLeaver(const ActorSet * pActorSet, int actor)
+void BehaviorVariable::actOnLeaver(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	if (pActorSet == this->pActorSet())
 	{
@@ -265,25 +267,28 @@ void BehaviorVariable::actOnLeaver(const ActorSet * pActorSet, int actor)
 		// First calculate the sum over previously active actors (all active
 		// actors plus the leaver, who is inactive now).
 
-		this->lmean *= this->pSimulation()->activeActorCount(pActorSet) + 1;
+		this->lmean *= pActorSet->activeActorCount() + 1;
 
 		// Subtract the value of the leaver from the sum.
 		this->lmean -= this->lvalues[actor];
 
 		// Divide by the number of active actors, so we get the average.
-		this->lmean /= this->pSimulation()->activeActorCount(pActorSet);
+		this->lmean /= pActorSet->activeActorCount();
 	}
 }
+
 
 /**
  * Updates the current network and other variables when an actor becomes
  * inactive.
  */
-void BehaviorVariable::setLeaverBack(const ActorSet * pActorSet, int actor)
+void BehaviorVariable::setLeaverBack(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	if (pActorSet == this->pActorSet())
 	{
 		// Reset ties from the given actor to values at start
+
 		for (int i = 0; i < this->n(); i++)
 		{
 			this->lvalues[actor] =	this->lpData->value(this->period(), actor);
@@ -375,7 +380,7 @@ void BehaviorVariable::makeChange(int actor)
 
 		this->lmean +=
 			((double) difference) /
-				this->pSimulation()->activeActorCount(this->pActorSet());
+				this->pActorSet()->activeActorCount();
 
 		// Update the distance from the observed data at the beginning of the
 		// period. Actors with missing values at any of the endpoints of the

@@ -11,7 +11,7 @@
 ##args:x: model object - intended to be read only
 ##     z: model fitting object
 ## returns updated z
-robmon <- function(z, x, useCluster, noClusters, initC, ...)
+robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString, ...)
 {
     z$FinDiff.method<- x$FinDiff.method
     z$n <- 0
@@ -32,13 +32,36 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
     ##
     ##if conditional, FRAN changes z$theta etc
     #######################################################
-    z$newFixed <- rep(FALSE,z$pp)
+    if (useCluster)
+    {
+        if (!is.null(x$simstats0c) && !x$simstats0c)
+        {
+            stop("Multiple processors only for simstats0c at present")
+        }
+        cl <- makeCluster(clusterString, type = "SOCK",
+                          outfile = 'cluster.out', homogeneous=FALSE)
+        clusterSetupRNG(cl, seed = rep(1, 6))
+        clusterCall(cl, library, "RSiena", character.only = TRUE)
+        clusterCall(cl, storeinFRANstore,  FRANstore())
+        if (initC)
+        {
+            ans <-  clusterCall(cl, usesim, NULL, x,
+                                INIT=FALSE, initC = initC)
+        }
+        z$cl <- cl
+        z$int <- nbrNodes
+    }
+    else
+    {
+        z$int <-  1
+    }
+    z$newFixed <- rep(FALSE, z$pp)
     z$AllNowFixed <- FALSE
     z$dinv <- matrix(NA, nrow = z$pp, ncol = z$pp)
     z$scale <- rep(0.1, z$pp)
     Report('\n', outf)
     Report('\nStochastic approximation algorithm.\n', cf)
-    if (x$firstg<=0)
+    if (x$firstg <= 0)
     {
         Report(c('Initial value of the gain parameter is ', x$firstg,
                  '.\n'), outf)
@@ -115,7 +138,7 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
             {
                 if (!z$haveDfra)
                 {
-                    ##start phase1 and do 10 iterations,
+                    ##start phase1 and do 10 (approx) iterations,
                     z <- phase1.1(z, x, ...)
                     ##check epsilon
                     if (!z$OK || UserInterruptFlag() || UserRestartFlag())
@@ -128,7 +151,7 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
                         z$restart<- !z$restarted
                         break
                     }
-                    z<- phase1.2(z,x,...)
+                    z<- phase1.2(z, x, ...)
                     ## browser()
                     if (!z$OK || z$DerivativeProblem ||
                         UserInterruptFlag() || UserRestartFlag())
@@ -153,7 +176,7 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
                 }
                 if (x$nsub>1 && !EarlyEndPhase2Flag())
                 {
-                    z <- proc2subphase(z,x,2,...)
+                    z <- proc2subphase(z, x, 2, ...)
                 }
                 if (!z$OK || z$restart||
                     UserInterruptFlag() || UserRestartFlag() )
@@ -161,9 +184,9 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
                     if (!is.batch())
                     {
                         tkdelete(z$tkvars$subphase,0,'end')
-                        tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
-                        tkconfigure(z$tkvars$subphase,state='disabled')
-                        tkconfigure(z$tkvars$subphaselabel,state='disabled')
+                        tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
+                        tkconfigure(z$tkvars$subphase, state='disabled')
+                        tkconfigure(z$tkvars$subphaselabel, state='disabled')
                     }
                     break
                 }
@@ -177,10 +200,12 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
                         {
                             if (!is.batch())
                             {
-                                tkdelete(z$tkvars$subphase,0,'end')
-                                tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
-                                tkconfigure(z$tkvars$subphase,state='disabled')
-                                tkconfigure(z$tkvars$subphaselabel,state='disabled')
+                                tkdelete(z$tkvars$subphase, 0, 'end')
+                                tkconfigure(z$tkvars$earlyEndPhase2,
+                                            state='disabled')
+                                tkconfigure(z$tkvars$subphase, state='disabled')
+                                tkconfigure(z$tkvars$subphaselabel,
+                                            state='disabled')
                             }
                             break
                         }
@@ -190,10 +215,12 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
                     {
                         if (!is.batch())
                         {
-                            tkdelete(z$tkvars$subphase,0,'end')
-                            tkconfigure(z$tkvars$subphase,state='disabled')
-                            tkconfigure(z$tkvars$subphaselabel,state='disabled')
-                            tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
+                            tkdelete(z$tkvars$subphase, 0, 'end')
+                            tkconfigure(z$tkvars$subphase, state='disabled')
+                            tkconfigure(z$tkvars$subphaselabel,
+                                        state='disabled')
+                            tkconfigure(z$tkvars$earlyEndPhase2,
+                                        state='disabled')
                         }
                         break
                     }
@@ -201,12 +228,12 @@ robmon <- function(z, x, useCluster, noClusters, initC, ...)
             }
             if (!is.batch())
             {
-                tkdelete(z$tkvars$subphase,0,'end')
-                tkconfigure(z$tkvars$subphase,state='disabled')
-                tkconfigure(z$tkvars$subphaselabel,state='disabled')
-                tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
+                tkdelete(z$tkvars$subphase, 0, 'end')
+                tkconfigure(z$tkvars$subphase, state='disabled')
+                tkconfigure(z$tkvars$subphaselabel, state='disabled')
+                tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
             }
-            z<- phase3(z, x, useCluster, noClusters, initC, ...)
+            z<- phase3(z, x, ...)
             break
         }
         ##stop if not OK or user has asked to

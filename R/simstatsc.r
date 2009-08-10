@@ -10,7 +10,7 @@
 # *****************************************************************************/
 simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                         effects=NULL, fromFiniteDiff=FALSE,
-                      profileData=FALSE, prevAns=NULL)
+                      profileData=FALSE, prevAns=NULL, returnDeps=FALSE)
 {
     if (INIT || initC)  ## initC is to initialise multiple C processes in phase3
     {
@@ -81,6 +81,28 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                            sub("^(1/2)", "", effects$effectName[assort],
                                fixed=TRUE))
             }
+            ## and inverse out degree
+            outinv <- effects$shortName %in% c("outInv", "outSqInv")
+            if (sum(outinv) > 0)
+            {
+
+                effects$functionName[outinv] <-
+                    gsub("#", effects$parm[outinv],
+                           effects$functionName[outinv])
+
+                effects$effectName[outinv] <-
+                    gsub("#", effects$parm[outinv],
+                           effects$effectName[outinv])
+            }
+            ## and dense triads
+            dense <- effects$shortName == "denseTriads"
+            if (sum(dense) > 0)
+            {
+                parms <- effects[dense, "parm"]
+                effects$functionName[dense] <-
+                   sub("#", parms, effects$functionName[dense],
+                               fixed=TRUE)
+            }
             if (inherits(data, 'sienaGroup'))
             {
                 nGroup <- length(data)
@@ -135,7 +157,13 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             attr(f, "observations") <- attr(data, "observations")
             attr(f, "compositionChange") <- attr(data, "compositionChange")
             attr(f, "exooptions") <- attr(data, "exooptions")
-            if (x$cconditional)
+           ## if any networks symmetric must use finite differences
+            syms <- attr(data,"symmetric")
+            if (any(!is.na(syms) & syms))
+            {
+                z$FinDiff.method <- TRUE
+            }
+        	if (x$cconditional)
             {
                 attr(f, "change") <-
                     sapply(f, function(xx)attr(xx$depvars[[z$condname]],
@@ -146,32 +174,60 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             ## see if we can use the original dfra
             if (!is.null(prevAns) && inherits(prevAns, "sienaFit"))
             {
-                if (all(names(prevAns$dfra) == effects$shortNames)
+                if (all(rownames(prevAns$dfra) == effects$shortName)
                     && !is.null(prevAns$sf))
                 {
                     z$haveDfra <- TRUE
                     z$dfra <- prevAns$dfra
                     z$sf <- prevAns$sf
+                    ## use thetas too, unless use standard values
+                    if (!x$useStdInits)
+                    {
+                        effects$initialValue <- prevAns$theta
+                        if (!is.null(prevAns$condvar))
+                        {
+                            ## z$condvar has the subscripts of included
+                            ## parameters
+                            ## that correspond to the conditional variable
+                            ## need to scale the other rates again
+                            effects$initialValue[z$posj] <-
+                                effects$initialValue[z$posj] / prevAns$rate
+                        }
+                        z$theta <- effects$initialValue
+                    }
                 }
             }
             z$effects <- effects
         }
+        else
+        {
+            f <- FRANstore()
+            ## Would like f to be just the data objects plus the attributes
+            ## but need the effects later
+            ff <- f
+            f$pData <- NULL
+            f$pModel <-  NULL
+            f$myeffects <-  NULL
+            f$observations <-  NULL
+            f$randomseed2 <- NULL
+            f$seeds <- NULL
+        }
         pData <- .Call('setupData', PACKAGE="RSiena",
                        lapply(f, function(x)(as.integer(x$observations))),
                        lapply(f, function(x)(x$nodeSets)))
-        ans<- .Call('OneMode', PACKAGE="RSiena",
+        ans <- .Call('OneMode', PACKAGE="RSiena",
                     pData, lapply(f, function(x)x$nets))
         ans <- .Call('Behavior', PACKAGE="RSiena",
                      pData, lapply(f, function(x)x$behavs))
-        ans<-.Call('ConstantCovariates', PACKAGE="RSiena",
+        ans <-.Call('ConstantCovariates', PACKAGE="RSiena",
                    pData, lapply(f, function(x)x$cCovars))
-        ans<-.Call('ChangingCovariates', PACKAGE="RSiena",
-                   pData,lapply(f, function(x)x$vCovars))
-        ans<-.Call('DyadicCovariates', PACKAGE="RSiena",
-                   pData,lapply(f, function(x)x$dycCovars))
-        ans<-.Call('ChangingDyadicCovariates', PACKAGE="RSiena",
+        ans <-.Call('ChangingCovariates', PACKAGE="RSiena",
+                   pData, lapply(f, function(x)x$vCovars))
+        ans <-.Call('DyadicCovariates', PACKAGE="RSiena",
+                   pData, lapply(f, function(x)x$dycCovars))
+        ans <-.Call('ChangingDyadicCovariates', PACKAGE="RSiena",
                    pData, lapply(f, function(x)x$dyvCovars))
-        ans<-.Call('ExogEvent', PACKAGE="RSiena",
+        ans <-.Call('ExogEvent', PACKAGE="RSiena",
                    pData, lapply(f, function(x)x$exog))
         ##store the address
         f$pData <- pData
@@ -188,7 +244,7 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
         }
         else
         {
-            myeffects <- f$myeffects
+            myeffects <- ff$myeffects
         }
         ans<- .Call('effects', PACKAGE="RSiena",
                     pData, myeffects)
@@ -221,6 +277,7 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
         {
             CONDVAR <- z$condname
             CONDTARGET <- attr(f, "change")
+         ##   cat(CONDTARGET, '\n')
         }
         else
         {
@@ -231,13 +288,16 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                      pData, pModel, MAXDEGREE, CONDVAR, CONDTARGET,
                      profileData)
         f$myeffects <- myeffects
-        z$effects <- effects
         if (!initC)
         {
             DataReport(z, x, f)
+            f$randomseed2 <- z$randomseed2
+        }
+        else
+        {
+            f$randomseed2 <- ff$randomseed2
         }
         f$observations <- attr(f, "observations") + 1
-        f$randomseed2 <- z$randomseed2
         FRANstore(f) ## store f in FRANstore
         return(z)
     }
@@ -268,7 +328,6 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     }
     ## iteration entry point
     f <- FRANstore()
-
     if (is.null(f$randomseed2))
     {
         randomseed2 <- NULL
@@ -280,8 +339,7 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     ans <- .Call('model', PACKAGE="RSiena",
                  z$Deriv, f$pData, f$seeds,
                  fromFiniteDiff, f$pModel, f$myeffects, z$theta,
-                 randomseed2)
-    ## browser()
+                 randomseed2, returnDeps)
     if (!fromFiniteDiff)
     {
         f$seeds <- ans[[3]]
@@ -298,7 +356,8 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     fra <- t(ans[[1]])
     f$randomseed2 <- ans[[5]]
     FRANstore(f)
-    list(sc = sc, fra = fra, ntim0 = ntim, feasible = TRUE, OK = TRUE)
+    list(sc = sc, fra = fra, ntim0 = ntim, feasible = TRUE, OK = TRUE,
+         nets=ans[[6]])
 }
 clearData <- function(pData)
 {
@@ -392,7 +451,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
     sparse <- attr(depvar, 'sparse')
     if (sparse)
     {
-        require(Matrix)
+        ## require(Matrix)
         ## have a list of sparse matrices in triplet format
         ## with missings and structurals embedded and 0 based indices!
         netmiss <- vector("list", observations)
@@ -411,7 +470,8 @@ unpackOneMode <- function(depvar, observations, compositionChange)
             ## extract missing entries
             netmiss[[i]] <- netmat[is.na(netmat[,3]), , drop = FALSE]
             netmiss[[i]] <-
-                netmiss[[i]][netmiss[[i]][, 1] != netmiss[[i]][, 2], ]
+                netmiss[[i]][netmiss[[i]][, 1] != netmiss[[i]][, 2], ,
+                             drop=FALSE]
             ## carry forward missing values if any
             for (j in seq(along=netmiss[[i]][,1]))
             {

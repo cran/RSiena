@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: DataUtils.h
- * 
+ *
  * Description: This module contains some utilities specific to the
  * 'data' library.
  *****************************************************************************/
@@ -22,7 +22,7 @@ namespace siena
 /**
  * This enumeration defines two possible directions of traversing a tie.
  */
-enum Direction {FORWARD, BACKWARD};
+enum Direction {FORWARD, BACKWARD, RECIPROCAL};
 
 
 // ----------------------------------------------------------------------------

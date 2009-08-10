@@ -10,11 +10,11 @@
  *****************************************************************************/
 
 #include <stdexcept>
-#include <R.h>
 
 #include "DyadicCovariateDependentNetworkEffect.h"
 #include "data/ConstantDyadicCovariate.h"
 #include "data/ChangingDyadicCovariate.h"
+#include "data/DyadicCovariateValueIterator.h"
 #include "model/State.h"
 #include "model/EffectInfo.h"
 #include "model/EpochSimulation.h"
@@ -78,8 +78,6 @@ void DyadicCovariateDependentNetworkEffect::initialize(const Data * pData,
 	this->lpChangingCovariate =
 		pData->pChangingDyadicCovariate(
 			this->pEffectInfo()->interactionName1());
-//	Rprintf("init %d\n", period);
-//this->lperiod = period;
 
 	if (!this->lpConstantCovariate && !this->lpChangingCovariate)
 	{
@@ -129,6 +127,42 @@ bool DyadicCovariateDependentNetworkEffect::missing(int i, int j) const
 	}
 
 	return missing;
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given row
+ * of the covariate.
+ */
+DyadicCovariateValueIterator
+	DyadicCovariateDependentNetworkEffect::rowValues(int i) const
+{
+	if (this->lpConstantCovariate)
+	{
+		return this->lpConstantCovariate->rowValues(i);
+	}
+	else
+	{
+		return this->lpChangingCovariate->rowValues(i, this->period());
+	}
+}
+
+
+/**
+ * Returns an iterator over non-zero non-missing values of the given column
+ * of the covariate.
+ */
+DyadicCovariateValueIterator
+	DyadicCovariateDependentNetworkEffect::columnValues(int j) const
+{
+	if (this->lpConstantCovariate)
+	{
+		return this->lpConstantCovariate->columnValues(j);
+	}
+	else
+	{
+		return this->lpChangingCovariate->columnValues(j, this->period());
+	}
 }
 
 }

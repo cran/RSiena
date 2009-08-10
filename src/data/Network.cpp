@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: Network.cpp
- * 
+ *
  * Description: This module implements the class Network for storing directed
  * valued networks.
  *****************************************************************************/
@@ -34,32 +34,32 @@ Network::Network(int n, int m)
 	{
 		throw std::invalid_argument("Negative number of senders specified");
 	}
-	
+
 	if (m < 0)
 	{
 		throw std::invalid_argument("Negative number of receivers specified");
 	}
-	
+
 	// Store the parameters
-	
+
 	this->ln = n;
 	this->lm = m;
-	
+
 	// Allocate data structures
 	this->allocateArrays();
-	
+
 	// Initialize the various degree counters
-	
+
 	for (int i = 0; i < this->ln; i++)
 	{
 		this->lpPositiveOutDegree[i] = 0;
 	}
-	
+
 	for (int i = 0; i < this->lm; i++)
 	{
 		this->lpPositiveInDegree[i] = 0;
 	}
-	
+
 	// No ties for now
 	this->ltieCount = 0;
 }
@@ -72,26 +72,26 @@ Network::Network(const Network & rNetwork)
 {
 	this->ln = rNetwork.ln;
 	this->lm = rNetwork.lm;
-	
+
 	// Allocate data structures
 	this->allocateArrays();
 
 	// Copy everything from rNetwork
-	
+
 	for (int i = 0; i < this->ln; i++)
 	{
 		this->lpOutTies[i].insert(rNetwork.lpOutTies[i].begin(),
 			rNetwork.lpOutTies[i].end());
 		this->lpPositiveOutDegree[i] = rNetwork.lpPositiveOutDegree[i];
 	}
-	
+
 	for (int i = 0; i < this->lm; i++)
 	{
 		this->lpInTies[i].insert(rNetwork.lpInTies[i].begin(),
 			rNetwork.lpInTies[i].end());
 		this->lpPositiveInDegree[i] = rNetwork.lpPositiveInDegree[i];
 	}
-	
+
 	this->ltieCount = rNetwork.ltieCount;
 }
 
@@ -104,46 +104,46 @@ Network & Network::operator=(const Network & rNetwork)
 	if (this != &rNetwork)
 	{
 		// Empty the current network structure.
-		
+
 		for (int i = 0; i < this->ln; i++)
 		{
 			this->lpOutTies[i].clear();
 		}
-		
+
 		for (int i = 0; i < this->lm; i++)
 		{
 			this->lpInTies[i].clear();
 		}
 
 		// Store the new size of actor sets
-		
+
 		this->ln = rNetwork.ln;
 		this->lm = rNetwork.lm;
-		
+
 		// Reallocate the data structures
-		
+
 		this->deleteArrays();
 		this->allocateArrays();
-		
+
 		// Copy everything from rNetwork
-		
+
 		for (int i = 0; i < this->ln; i++)
 		{
 			this->lpOutTies[i].insert(rNetwork.lpOutTies[i].begin(),
 				rNetwork.lpOutTies[i].end());
 			this->lpPositiveOutDegree[i] = rNetwork.lpPositiveOutDegree[i];
 		}
-		
+
 		for (int i = 0; i < this->lm; i++)
 		{
 			this->lpInTies[i].insert(rNetwork.lpInTies[i].begin(),
 				rNetwork.lpInTies[i].end());
 			this->lpPositiveInDegree[i] = rNetwork.lpPositiveInDegree[i];
 		}
-		
+
 		this->ltieCount = rNetwork.ltieCount;
 	}
-	
+
 	return *this;
 }
 
@@ -161,7 +161,7 @@ Network * Network::clone() const
 void Network::allocateArrays()
 {
 	// Allocate data structures
-	
+
 	this->lpOutTies = new std::map<int, int>[this->ln];
 	this->lpInTies = new std::map<int, int>[this->lm];
 	this->lpPositiveOutDegree = new int[this->ln];
@@ -178,7 +178,7 @@ void Network::deleteArrays()
 	delete[] this->lpInTies;
 	delete[] this->lpPositiveOutDegree;
 	delete[] this->lpPositiveInDegree;
-	
+
 	this->lpOutTies = 0;
 	this->lpInTies = 0;
 	this->lpPositiveOutDegree = 0;
@@ -258,19 +258,19 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 {
 	this->checkSenderRange(i);
 	this->checkReceiverRange(j);
-	
+
 	// Retrieve the old value
-	
+
 	std::map<int, int>::iterator iter = this->lpOutTies[i].find(j);
 	int oldValue = 0;
-	
+
 	if (iter != this->lpOutTies[i].end())
 	{
 		oldValue = iter->second;
 	}
-	
+
 	// Should we increase the value of replace?
-	
+
 	if (type == INCREASE)
 	{
 		v += oldValue;
@@ -278,20 +278,20 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 
 	// Update the positive degree counters if a positive tie becomes
 	// non-positive or vice versa.
-	
+
 	if (oldValue > 0 && v <= 0)
 	{
 		this->lpPositiveOutDegree[i]--;
-		this->lpPositiveInDegree[j]--;		
+		this->lpPositiveInDegree[j]--;
 	}
 	else if (oldValue <= 0 && v > 0)
 	{
 		this->lpPositiveOutDegree[i]++;
-		this->lpPositiveInDegree[j]++;		
+		this->lpPositiveInDegree[j]++;
 	}
-	
+
 	// Act on tie withdrawal or introduction.
-	
+
 	if (oldValue && !v)
 	{
 		// The tie is withdrawn.
@@ -302,21 +302,21 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 		// A new tie is introduced.
 		this->onTieIntroduction(i, j);
 	}
-	
+
 	// Update the maps of incoming and outgoing ties
-	
+
 	if (v == 0)
 	{
 		// The tie (i,j) should be removed from the maps, if it was
 		// explicit before
-		
+
 		if (oldValue)
 		{
 			// A non-zero tie becomes 0. Just remove the corresponding
 			// entries from the maps. Erasing an element pointed to by
 			// an iterator is potentially faster than removing by key,
 			// since we don't have to find the element.
-			
+
 			this->lpOutTies[i].erase(iter);
 			this->lpInTies[j].erase(i);
 		}
@@ -325,23 +325,23 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 	{
 		// The new value of the tie is non-zero, so make sure it is stored
 		// in the maps.
-		
+
 		if (oldValue)
 		{
 			// The tie was explicit before, and we have an iterator pointing
 			// to it in lpOutTies[i]. Simply replace the value, which is the
 			// second element of the pair pointed to by the iterator.
-			
+
 			iter->second = v;
 		}
 		else
 		{
 			this->lpOutTies[i][j] = v;
 		}
-		
+
 		this->lpInTies[j][i] = v;
-	}	
-	
+	}
+
 	return v;
 }
 
@@ -376,16 +376,16 @@ int Network::tieValue(int i, int j) const
 
 	// Look for the tie
 	std::map<int, int>::const_iterator iter = this->lpOutTies[i].find(j);
-	
+
 	// The default value.
 	int v = 0;
-	
+
 	if (iter != this->lpOutTies[i].end())
 	{
 		// We have found an existing tie.
 		v = iter->second;
 	}
-	
+
 	return v;
 }
 
@@ -396,19 +396,19 @@ int Network::tieValue(int i, int j) const
 void Network::clear()
 {
 	// Clear the maps and reset the various degree counters.
-	
+
 	for (int i = 0; i < this->ln; i++)
 	{
 		this->lpOutTies[i].clear();
 		this->lpPositiveOutDegree[i] = 0;
 	}
-	
+
 	for (int i = 0; i < this->lm; i++)
 	{
 		this->lpInTies[i].clear();
 		this->lpPositiveInDegree[i] = 0;
 	}
-	
+
 	// The ties are gone.
 	this->ltieCount = 0;
 }
@@ -437,7 +437,7 @@ void Network::clearOutTies(int actor)
 {
 	// We delegate to setTieValue such that various counters are updated
 	// correctly.
-	
+
 	while (!this->lpOutTies[actor].empty())
 	{
 		int receiver = this->lpOutTies[actor].begin()->first;
@@ -460,12 +460,34 @@ TieIterator Network::ties() const
 
 
 /**
- * Returns an iterator over incoming ties of the actor <i>i</i>
+ * Returns an iterator over incoming ties of the actor <i>i</i>.
  */
 IncidentTieIterator Network::inTies(int i) const
 {
 	this->checkReceiverRange(i);
 	return IncidentTieIterator(this->lpInTies[i]);
+}
+
+
+/**
+ * Returns an iterator over outgoing ties of the actor <i>i</i> with
+ * the receiver not less than the given bound.
+ */
+IncidentTieIterator Network::outTies(int i, int lowerBound) const
+{
+	this->checkSenderRange(i);
+	return IncidentTieIterator(this->lpOutTies[i], lowerBound);
+}
+
+
+/**
+ * Returns an iterator over incoming ties of the actor <i>i</i> with
+ * the sender not less than the given bound.
+ */
+IncidentTieIterator Network::inTies(int i, int lowerBound) const
+{
+	this->checkReceiverRange(i);
+	return IncidentTieIterator(this->lpInTies[i], lowerBound);
 }
 
 
@@ -557,20 +579,20 @@ int Network::minTieValue() const
 	// a sorted multi-set of tie values, if this method turns out to be
 	// a bottleneck. It would add a log(ltieCount) overhead to the method
 	// setTieValue(...), but make this method constant.
-	
+
 	int minValue = std::numeric_limits<int>::max();
-	
+
 	for (TieIterator iter = this->ties(); iter.valid(); iter.next())
 	{
 		minValue = std::min(minValue, iter.value());
 	}
-	
+
 	if (!this->complete())
 	{
 		// The network is not complete, hence some tie variables are 0.
 		minValue = std::min(minValue, 0);
 	}
-	
+
 	return minValue;
 }
 
@@ -585,20 +607,20 @@ int Network::maxTieValue() const
 	// a sorted multi-set of tie values, if this method turns out to be
 	// a bottleneck. It would add a log(ltieCount) overhead to the method
 	// setTieValue(...), but make this method constant.
-	
+
 	int maxValue = std::numeric_limits<int>::min();
-	
+
 	for (TieIterator iter = this->ties(); iter.valid(); iter.next())
 	{
 		maxValue = std::max(maxValue, iter.value());
 	}
-	
+
 	if (!this->complete())
 	{
 		// The network is not complete, hence some tie variables are 0.
 		maxValue = std::max(maxValue, 0);
 	}
-	
+
 	return maxValue;
 }
 
@@ -638,7 +660,7 @@ bool Network::complete() const
 
 
 /**
- * Returns the maximal possible number of ties in this network. 
+ * Returns the maximal possible number of ties in this network.
  */
 int Network::maxTieCount() const
 {

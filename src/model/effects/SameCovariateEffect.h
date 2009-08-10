@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: SameCovariateEffect.h
- * 
+ *
  * Description: This file contains the definition of the
  * SameCovariateEffect class.
  *****************************************************************************/
@@ -18,17 +18,24 @@ namespace siena
 {
 
 /**
- * Same covariate effect (see manual).
+ * Same covariate and same covariate x reciprocity effects (see manual).
  */
 class SameCovariateEffect : public CovariateDependentNetworkEffect
 {
 public:
-	SameCovariateEffect(const EffectInfo * pEffectInfo);
-	
+	SameCovariateEffect(const EffectInfo * pEffectInfo, bool reciprocal);
+
 	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+
+protected:
+	virtual double statistic(Network * pNetwork,
+		Network * pSummationTieNetwork) const;
+
+private:
+	// Indicates if the reciprocal version of the same covariate effect is
+	// required
+
+	bool lreciprocal;
 };
 
 }

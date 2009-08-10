@@ -2,4 +2,14 @@ useDynLib("RSiena")
 export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
 siena01Gui, siena07, sienaCompositionChange,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
-sienaGroupCreate,  sienaNet, sienaNodeSet, simstats0c, varCovar, varDyadCovar)
+sienaGroupCreate,  sienaNet, sienaNodeSet, simstats0c, varCovar, varDyadCovar,
+       installGui)
+
+import(Matrix)
+
+S3method(print, siena)
+S3method(print, sienaGroup)
+S3method(print, sienaFit)
+S3method(print, summary.sienaFit)
+S3method(print, sienaModel)
+S3method(summary, sienaFit)

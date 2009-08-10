@@ -39,6 +39,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new TransitiveTripletsEffect(pEffectInfo);
 	}
+	else if (effectName == "transTriads")
+	{
+		pEffect = new TransitiveTriadsEffect(pEffectInfo);
+	}
 	else if (effectName == "transMedTrip")
 	{
 		pEffect = new TransitiveMediatedTripletsEffect(pEffectInfo);
@@ -59,6 +63,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new BalanceEffect(pEffectInfo);
 	}
+	else if (effectName == "nbrDist2")
+	{
+		pEffect = new DistanceTwoEffect(pEffectInfo, 1);
+	}
+	else if (effectName == "nbrDist2twice")
+	{
+		pEffect = new DistanceTwoEffect(pEffectInfo, 2);
+	}
+//	else if (effectName == "denseTriads")
+//	{
+//		pEffect = new DenseTriadsEffect(pEffectInfo);
+//	}
 	else if (effectName == "inPop")
 	{
 		pEffect = new IndegreePopularityEffect(pEffectInfo, false);
@@ -91,6 +107,14 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new OutdegreeActivitySqrtEffect(pEffectInfo);
 	}
+	else if (effectName == "outInv")
+	{
+		pEffect = new InverseOutdegreeEffect(pEffectInfo);
+	}
+	else if (effectName == "outSqInv")
+	{
+		pEffect = new InverseSquaredOutdegreeEffect(pEffectInfo);
+	}
 	else if (effectName == "outOutAss")
 	{
 		pEffect = new OutOutDegreeAssortativityEffect(pEffectInfo);
@@ -111,9 +135,29 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new DyadicCovariateMainEffect(pEffectInfo);
 	}
+	else if (effectName == "Xrecip")
+	{
+		pEffect = new DyadicCovariateReciprocityEffect(pEffectInfo);
+	}
+	else if (effectName == "WWX")
+	{
+		pEffect = new WWXClosureEffect(pEffectInfo);
+	}
+	else if (effectName == "WXX")
+	{
+		pEffect = new WXXClosureEffect(pEffectInfo);
+	}
+	else if (effectName == "XWX")
+	{
+		pEffect = new XWXClosureEffect(pEffectInfo);
+	}
 	else if (effectName == "altX")
 	{
-		pEffect = new CovariateAlterEffect(pEffectInfo);
+		pEffect = new CovariateAlterEffect(pEffectInfo, false);
+	}
+	else if (effectName == "altSqX")
+	{
+		pEffect = new CovariateAlterEffect(pEffectInfo, true);
 	}
 	else if (effectName == "egoX")
 	{
@@ -121,16 +165,32 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "simX")
 	{
-		pEffect = new CovariateSimilarityEffect(pEffectInfo);
+		pEffect = new CovariateSimilarityEffect(pEffectInfo, false);
+	}
+	else if (effectName == "simRecipX")
+	{
+		pEffect = new CovariateSimilarityEffect(pEffectInfo, true);
 	}
 	else if (effectName == "sameX")
 	{
-		pEffect = new SameCovariateEffect(pEffectInfo);
+		pEffect = new SameCovariateEffect(pEffectInfo, false);
+	}
+	else if (effectName == "sameXRecip")
+	{
+		pEffect = new SameCovariateEffect(pEffectInfo, true);
 	}
 	else if (effectName == "egoXaltX")
 	{
-		pEffect = new CovariateEgoAlterEffect(pEffectInfo);
+		pEffect = new CovariateEgoAlterEffect(pEffectInfo, false);
 	}
+	else if (effectName == "egoXaltXRecip")
+	{
+		pEffect = new CovariateEgoAlterEffect(pEffectInfo, true);
+	}
+//	else if (effectName == "IndTies")
+//	{
+//		pEffect = new CovariateIndirectTiesEffect(pEffectInfo);
+//	}
 	else if (effectName == "linear")
 	{
 		pEffect = new LinearShapeEffect(pEffectInfo);

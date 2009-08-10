@@ -8,6 +8,7 @@
  * Description: This file contains the implementation of the
  * NetworkVariable class.
  *****************************************************************************/
+
 #include <algorithm>
 #include <cmath>
 #include <R.h>
@@ -21,6 +22,7 @@
 #include "data/NetworkLongitudinalData.h"
 #include "data/OneModeNetworkLongitudinalData.h"
 #include "model/EpochSimulation.h"
+#include "model/SimulationActorSet.h"
 #include "model/Model.h"
 #include "model/EffectInfo.h"
 #include "model/effects/NetworkEffect.h"
@@ -46,6 +48,8 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 			pSimulation)
 {
 	this->lpData = pData;
+	this->lpSenders = pSimulation->pSimulationActorSet(pData->pSenders());
+	this->lpReceivers = pSimulation->pSimulationActorSet(pData->pReceivers());
 	this->lpNetwork = 0;
 	this->lpPredictorNetwork = 0;
 	this->lactiveStructuralTieCount = new int[this->n()];
@@ -121,7 +125,7 @@ NetworkVariable::~NetworkVariable()
  */
 void NetworkVariable::initConfigurationTables()
 {
-	// Two-paths, reverse two-paths, in-stars, and out-stars can be seen
+	// Many of the configurations can be seen
 	// as special cases of generalized two-paths, where one can specify
 	// the directions of the first and the second step. For instance, the
 	// number of in-stars between i and j equals the number of possible ways
@@ -135,11 +139,21 @@ void NetworkVariable::initConfigurationTables()
 			new TwoPathTable(this, BACKWARD, BACKWARD);
 		this->lpOutStarTable = new TwoPathTable(this, BACKWARD, FORWARD);
 		this->lpCriticalInStarTable = new CriticalInStarTable(this);
+		this->lpRRTable = new TwoPathTable(this, RECIPROCAL, RECIPROCAL);
+		this->lpRFTable = new TwoPathTable(this, RECIPROCAL, FORWARD);
+		this->lpRBTable = new TwoPathTable(this, RECIPROCAL, BACKWARD);
+		this->lpFRTable = new TwoPathTable(this, FORWARD, RECIPROCAL);
+		this->lpBRTable = new TwoPathTable(this, BACKWARD, RECIPROCAL);
 
 		this->lconfigurationTables.push_back(this->pTwoPathTable());
 		this->lconfigurationTables.push_back(this->pReverseTwoPathTable());
 		this->lconfigurationTables.push_back(this->pOutStarTable());
 		this->lconfigurationTables.push_back(this->pCriticalInStarTable());
+		this->lconfigurationTables.push_back(this->pRRTable());
+		this->lconfigurationTables.push_back(this->pRFTable());
+		this->lconfigurationTables.push_back(this->pRBTable());
+		this->lconfigurationTables.push_back(this->pFRTable());
+		this->lconfigurationTables.push_back(this->pBRTable());
 	}
 
 	this->lpInStarTable = new TwoPathTable(this, FORWARD, BACKWARD);
@@ -161,6 +175,11 @@ void NetworkVariable::deleteConfigurationTables()
 	this->lpInStarTable = 0;
 	this->lpOutStarTable = 0;
 	this->lpCriticalInStarTable = 0;
+	this->lpRRTable = 0;
+	this->lpRFTable = 0;
+	this->lpRBTable = 0;
+	this->lpBRTable = 0;
+	this->lpFRTable = 0;
 }
 
 
@@ -171,18 +190,18 @@ void NetworkVariable::deleteConfigurationTables()
 /**
  * Returns the set of actors acting as tie senders.
  */
-const ActorSet * NetworkVariable::pSenders() const
+const SimulationActorSet * NetworkVariable::pSenders() const
 {
-	return this->lpData->pSenders();
+	return this->lpSenders;
 }
 
 
 /**
  * Returns the set of actors acting as tie receivers.
  */
-const ActorSet * NetworkVariable::pReceivers() const
+const SimulationActorSet * NetworkVariable::pReceivers() const
 {
-	return this->lpData->pReceivers();
+	return this->lpReceivers;
 }
 
 
@@ -256,7 +275,7 @@ void NetworkVariable::initialize(int period)
 
 	for (int i = 0; i < this->m(); i++)
 	{
-		if (!this->pSimulation()->active(this->pReceivers(), i))
+		if (!this->pReceivers()->active(i))
 		{
 			for (IncidentTieIterator iter =
 					this->lpData->pStructuralTieNetwork(period)->inTies(i);
@@ -279,6 +298,7 @@ Network * NetworkVariable::pNetwork() const
 	return this->lpNetwork;
 }
 
+
 /**
  * sets the predictor network.
  */
@@ -286,6 +306,7 @@ void NetworkVariable::pPredictorNetwork(Network * pPredictorNetwork)
 {
 	this->lpPredictorNetwork = pPredictorNetwork;
 }
+
 
 /**
  * Returns the state of this variable at the
@@ -296,6 +317,7 @@ Network * NetworkVariable::pPredictorNetwork() const
 	return this->lpPredictorNetwork;
 }
 
+
 // ----------------------------------------------------------------------------
 // Section: Composition change
 // ----------------------------------------------------------------------------
@@ -304,7 +326,8 @@ Network * NetworkVariable::pPredictorNetwork() const
  * Updates the current network and other variables when an actor becomes
  * active.
  */
-void NetworkVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
+void NetworkVariable::actOnJoiner(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	const Network * pStartNetwork = this->lpData->pNetwork(this->period());
 
@@ -317,7 +340,7 @@ void NetworkVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
 			iter.valid();
 			iter.next())
 		{
-			if (this->pSimulation()->active(this->pReceivers(), iter.actor()))
+			if (this->pReceivers()->active(iter.actor()))
 			{
 				this->lpNetwork->setTieValue(actor,
 					iter.actor(),
@@ -335,7 +358,7 @@ void NetworkVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
 			iter.valid();
 			iter.next())
 		{
-			if (this->pSimulation()->active(this->pSenders(), iter.actor()))
+			if (this->pSenders()->active(iter.actor()))
 			{
 				this->lpNetwork->setTieValue(iter.actor(),
 					actor,
@@ -362,7 +385,8 @@ void NetworkVariable::actOnJoiner(const ActorSet * pActorSet, int actor)
  * Updates the current network and other variables when an actor becomes
  * inactive.
  */
-void NetworkVariable::actOnLeaver(const ActorSet * pActorSet, int actor)
+void NetworkVariable::actOnLeaver(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	if (pActorSet == this->pSenders())
 	{
@@ -389,15 +413,18 @@ void NetworkVariable::actOnLeaver(const ActorSet * pActorSet, int actor)
 	}
 }
 
+
 /**
  * Sets leavers values back to the value at the start of the simulation.
  *
  */
-void NetworkVariable::setLeaverBack(const ActorSet * pActorSet, int actor)
+void NetworkVariable::setLeaverBack(const SimulationActorSet * pActorSet,
+	int actor)
 {
 	if (pActorSet == this->pSenders())
 	{
 		// Reset ties from the given actor to values at start
+
 		for (int i = 0; i < this->m(); i++)
 		{
 			if (i != actor)
@@ -407,18 +434,22 @@ void NetworkVariable::setLeaverBack(const ActorSet * pActorSet, int actor)
 			}
 		}
 	}
+
 	if (pActorSet == this->pReceivers())
 	{
 		for (int i = 0; i < this->n(); i++)
 		{
 			if (i != actor)
 			{
-			this->lpNetwork->setTieValue(i, actor,
-				this->lpData->pNetwork(this->period())->tieValue(i, actor));
+				this->lpNetwork->setTieValue(i,
+					actor,
+					this->lpData->pNetwork(this->period())->tieValue(i,
+						actor));
 			}
 		}
 	}
 }
+
 
 // ----------------------------------------------------------------------------
 // Section: Changing the network
@@ -432,7 +463,7 @@ void NetworkVariable::setLeaverBack(const ActorSet * pActorSet, int actor)
 bool NetworkVariable::canMakeChange(int actor) const
 {
 	int activeAlterCount =
-		this->pSimulation()->activeActorCount(this->pReceivers());
+		this->lpReceivers->activeActorCount();
 
 	if (this->oneModeNetwork())
 	{
@@ -440,7 +471,7 @@ bool NetworkVariable::canMakeChange(int actor) const
 		activeAlterCount--;
 	}
 
-	return this->pSimulation()->active(this->pSenders(), actor) &&
+	return this->lpSenders->active(actor) &&
 		this->lactiveStructuralTieCount[actor] < activeAlterCount;
 }
 
@@ -463,6 +494,7 @@ void NetworkVariable::makeChange(int actor)
 	{
 		this->accumulateScores(alter);
 	}
+
 	// Make a change if we have a real alter (other than the ego)
 
 	if (!this->oneModeNetwork() || this->lego != alter)
@@ -488,6 +520,16 @@ void NetworkVariable::makeChange(int actor)
 		}
 
 		this->lpNetwork->setTieValue(this->lego, alter, 1 - currentValue);
+
+		const OneModeNetworkLongitudinalData * pData =
+			dynamic_cast<const OneModeNetworkLongitudinalData *>(this->pData());
+		if (pData)
+		{
+			if (pData->symmetric())
+			{
+			this->lpNetwork->setTieValue(alter, this->lego, 1 - currentValue);
+			}
+		}
 	}
 }
 
@@ -666,20 +708,25 @@ void NetworkVariable::calculateTieFlipContributions()
 {
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	const vector<Effect *> & rEvaluationEffects =
+		this->pEvaluationFunction()->rEffects();
+	const vector<Effect *> & rEndowmentEffects =
+		this->pEndowmentFunction()->rEffects();
+	bool twoModeNetwork = !this->oneModeNetwork();
+	int m = this->m();
 
-	for (int alter = 0; alter < this->m(); alter++)
+	for (int alter = 0; alter < m; alter++)
 	{
 		// alter = ego for one-mode networks means no change.
 		// No change, no contribution.
 
 		if (this->lpermitted[alter] &&
-			(!this->oneModeNetwork() || alter != this->lego))
+			(twoModeNetwork || alter != this->lego))
 		{
 			for (int i = 0; i < evaluationEffectCount; i++)
 			{
 				NetworkEffect * pEffect =
-					(NetworkEffect *)
-					this->pEvaluationFunction()->rEffects()[i];
+					(NetworkEffect *) rEvaluationEffects[i];
 				this->levaluationEffectContribution[alter][i] =
 					pEffect->calculateTieFlipContribution(alter);
 			}
@@ -695,15 +742,12 @@ void NetworkVariable::calculateTieFlipContributions()
 		// The endowment effects have non-zero contributions on tie
 		// withdrawals only
 
-		if (this->lpermitted[alter] &&
-			(!this->oneModeNetwork() || alter != this->lego) &&
-			this->lpHasOutTie[alter])
+		if (this->lpHasOutTie[alter] && this->lpermitted[alter])
 		{
 			for (int i = 0; i < endowmentEffectCount; i++)
 			{
 				NetworkEffect * pEffect =
-					(NetworkEffect *)
-						this->pEndowmentFunction()->rEffects()[i];
+					(NetworkEffect *) rEndowmentEffects[i];
 				this->lendowmentEffectContribution[alter][i] =
 					pEffect->calculateTieFlipContribution(alter);
 			}

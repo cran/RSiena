@@ -46,7 +46,16 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                 depvar <- data[[group]]$depvars[[j]]
                 atts <- attributes(depvar)
                 subs <- 1:data[[group]]$observations + periodFromStart
-                ones <- sapply(atts$vals, function(x)x["1"])
+                ones <- sapply(atts$vals, function(x){
+                    if (is.na(x["11"]))
+                    {
+                        x["1"]
+                    }
+                    else
+                    {
+                        x["1"] + x["11"]
+                    }
+                })
                 density[subs] <- ones / atts$nval
                 if (any(ones >= atts$nval))
                 {
@@ -113,11 +122,20 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                 if (gpatts$symmetric[net])
                 {
                     tmp$tmp <- tmp$tmp %/% 2
+                    matchange <- matchange %/% 2
                 }
                 for (per in 1:(atts$netdims[3] - 1))
                 {
                     ntot <- tmp$tmp["matcnt", per]
-                    misd <- atts$netdims[1] * (atts$netdims[1] - 1) - ntot
+                    if (gpatts$symmetric[net])
+                    {
+                        misd <- atts$netdims[1] * (atts$netdims[1] - 1) / 2 -
+                            ntot
+                    }
+                    else
+                    {
+                        misd <- atts$netdims[1] * (atts$netdims[1] - 1) - ntot
+                    }
                     if (valmin == 0 && valmax == 1)
                     {
                         jaccard <- format(round(matchange[4, per] /
@@ -206,7 +224,7 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                     ## find the dyad tables
                     if (atts$sparse)
                     {
-                        require(Matrix)
+                      #  require(Matrix)
                         mymat <- depvar[[per]]
                         mymat1 <- mymat@i
                         mymat2 <- mymat@j
@@ -229,15 +247,15 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                                         mymat1[!is.na(mymat3)])
                             missij <- paste(mymat1[is.na(mymat3)],
                                             mymat2[is.na(mymat3)])
-                            missji <- paste(mymat1[is.na(mymat3)],
-                                            mymat2[is.na(mymat3)])
+                            missji <- paste(mymat2[is.na(mymat3)],
+                                            mymat1[is.na(mymat3)])
                             mutual <- sum(ij %in% ji) / 2
                             nondyads <- sum(ji %in% missij)
-                            asymm <- (length(ij) - nondyads - mutual) / 2
+                            asymm <- length(ij) - nondyads - mutual * 2
                             missdyads <- sum(!missij %in% missji) +
                                 sum(missij %in% missji) / 2
                             nulls <- atts$netdims[1] *
-                                (atts$netdims[3] - 1) / 2 -
+                                (atts$netdims[2] - 1) / 2 -
                                     missdyads - mutual - asymm
                             totDyad <- nulls + mutual + asymm
                         }
@@ -247,6 +265,7 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                         mymat <- depvar[, , per]
                         mymat[mymat == 10] <- 0
                         mymat[mymat == 11] <- 1
+                        diag(mymat) <- NA
                         dyadTable <- table(mymat, t(mymat))
                         diag(dyadTable) <- diag(dyadTable) / 2
                         if (valmin == 0 && valmax ==1)
@@ -290,7 +309,7 @@ printInitialDescription <- function(data, effects, modelName="Siena")
             myobj <- myeff[myeff$shortName == "density" &
                            myeff$type == "eval",]
             untrimmed <- myobj$untrimmedValue
-            Report(c(format(myobj$effectName, width=35),
+            Report(c(format(myobj$effectName, width=46),
                      format(round(untrimmed, 4), nsmall=4, width=10),
                      "\n"), outf)
             if (untrimmed > 3)
