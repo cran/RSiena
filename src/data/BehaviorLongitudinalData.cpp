@@ -15,7 +15,8 @@
 #include "BehaviorLongitudinalData.h"
 #include "utils/Utils.h"
 #include "data/ActorSet.h"
-#include "model/variables/BehaviorVariable.h"
+
+using namespace std;
 
 namespace siena
 {
@@ -119,18 +120,6 @@ void BehaviorLongitudinalData::missing(int observation,
 }
 
 
-/**
- * Returns a new behavior variable based on this longitudinal data. The
- * caller must take care of the deallocation of the returned variable.
- * @param[in] pSimulation the simulation using the new variable
- */
-DependentVariable * BehaviorLongitudinalData::createVariable(
-	EpochSimulation * pSimulation)
-{
-	return new BehaviorVariable(this, pSimulation);
-}
-
-
 // ----------------------------------------------------------------------------
 // Section: Various statistics on the observed values
 // ----------------------------------------------------------------------------
@@ -200,9 +189,9 @@ int BehaviorLongitudinalData::range() const
 
 
 /**
- * Calculates various statistics from the observed data.
+ * Calculates various properties of the observed data.
  */
-void BehaviorLongitudinalData::calculateStatistics()
+void BehaviorLongitudinalData::calculateProperties()
 {
 	this->lmin = numeric_limits<int>::max();
 	this->lmax = numeric_limits<int>::min();
@@ -229,7 +218,7 @@ void BehaviorLongitudinalData::calculateStatistics()
 			throw logic_error(
 				"No valid data for dependent actor variable '" +
 				this->name() +
-				"', period " + toString(i));
+				"', observation " + toString(i));
 		}
 
 		this->loverallMean += ((double) sum) / nonMissingValueCount;

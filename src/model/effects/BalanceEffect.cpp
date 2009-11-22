@@ -12,8 +12,8 @@
 #include <stdexcept>
 #include "BalanceEffect.h"
 #include "data/OneModeNetworkLongitudinalData.h"
-#include "data/Network.h"
-#include "data/TieIterator.h"
+#include "network/Network.h"
+#include "network/TieIterator.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/EffectInfo.h"
 #include "model/tables/ConfigurationTable.h"
@@ -32,37 +32,18 @@ BalanceEffect::BalanceEffect(const EffectInfo * pEffectInfo) :
 
 
 /**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void BalanceEffect::initialize(EpochSimulation * pSimulation)
-{
-	NetworkEffect::initialize(pSimulation);
-
-	const OneModeNetworkLongitudinalData * pData =
-		dynamic_cast<const OneModeNetworkLongitudinalData *>(this->pData());
-
-	if (pData)
-	{
-		this->lbalanceMean = pData->balanceMean();
-	}
-	else
-	{
-		throw logic_error("One-mode network variable '" +
-			this->pEffectInfo()->variableName() +
-			"' expected.");
-	}
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void BalanceEffect::initialize(const Data * pData, State * pState, int period)
+void BalanceEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
-	NetworkEffect::initialize(pData, pState, period);
+	NetworkEffect::initialize(pData, pState, period, pCache);
 
 	const OneModeNetworkLongitudinalData * pNetworkData =
 		dynamic_cast<const OneModeNetworkLongitudinalData *>(this->pData());
@@ -83,7 +64,7 @@ void BalanceEffect::initialize(const Data * pData, State * pState, int period)
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double BalanceEffect::calculateTieFlipContribution(int alter) const
+double BalanceEffect::calculateContribution(int alter) const
 {
 	// The formula from SIENA manual:
 	// s_i(x) = sum_j x_{ij} sum_{h!=i,j} (b_0 - |x_{ih} - x_{jh}|)
@@ -96,12 +77,12 @@ double BalanceEffect::calculateTieFlipContribution(int alter) const
 	// j to h.
 
 	// The contribution of a tie flip to A is (n-2) b_0.
-	double a = (this->pVariable()->n() - 2) * this->lbalanceMean;
+	double a = (this->pNetwork()->n() - 2) * this->lbalanceMean;
 
 	// These will be used later.
 
-	int twoPathCount = this->pVariable()->pTwoPathTable()->get(alter);
-	int inStarCount = this->pVariable()->pInStarTable()->get(alter);
+	int twoPathCount = this->pTwoPathTable()->get(alter);
+	int inStarCount = this->pInStarTable()->get(alter);
 
 	// First consider how the number of non-transitive two-paths would
 	// change after introducing the tie from the ego i to the alter j.
@@ -109,9 +90,9 @@ double BalanceEffect::calculateTieFlipContribution(int alter) const
 	// x_{j+} - x_{ji} - IS_{ij} non-transitive two-paths would be created.
 
 	double b =
-		this->pVariable()->pNetwork()->outDegree(alter) - inStarCount;
+		this->pNetwork()->outDegree(alter) - inStarCount;
 
-	if (this->pVariable()->inTieExists(alter))
+	if (this->inTieExists(alter))
 	{
 		b--;
 	}
@@ -123,10 +104,9 @@ double BalanceEffect::calculateTieFlipContribution(int alter) const
 
 	// The number of ties from the ego to actors other than the alter.
 
-	int outDegree =
-		this->pVariable()->pNetwork()->outDegree(this->pVariable()->ego());
+	int outDegree = this->pNetwork()->outDegree(this->ego());
 
-	if (this->pVariable()->outTieExists(alter))
+	if (this->outTieExists(alter))
 	{
 		outDegree--;
 	}
@@ -141,35 +121,17 @@ double BalanceEffect::calculateTieFlipContribution(int alter) const
 
 	b += 2 * outDegree - inStarCount - twoPathCount;
 
-	double change = a - b;
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
-	}
-
-	return change;
-}
-
-
-/**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions.
- */
-bool BalanceEffect::usesTable(const ConfigurationTable * pTable) const
-{
-	return pTable == this->pVariable()->pTwoPathTable() ||
-		pTable == this->pVariable()->pInStarTable();
+	return a - b;
 }
 
 
 /**
  * Detailed comment in the base class.
  */
-double BalanceEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double BalanceEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());

@@ -36,17 +36,24 @@ class BehaviorDependentBehaviorEffect : public BehaviorEffect
 {
 public:
 	BehaviorDependentBehaviorEffect(const EffectInfo * pEffectInfo);
-	virtual ~BehaviorDependentBehaviorEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
-	inline const BehaviorVariable * pBehaviorVariable() const;
+	inline int interactionValue(int actor) const;
+	double centeredInteractionValue(int actor) const;
 
 private:
-	// The behavior variable this effect is interacting with
-	const BehaviorVariable * lpBehaviorVariable;
+	// The values of the behavior variable this effect is interacting with
+	const int * linteractionValues;
+
+	// The observed data for the behavior variable this effect is
+	// interacting with
+
+	BehaviorLongitudinalData * lpInteractionBehaviorData;
 };
 
 
@@ -55,12 +62,11 @@ private:
 // ----------------------------------------------------------------------------
 
 /**
- * Returns the behavior variable this effect is interacting with.
+ * Returns the value of the behavior variable this effect is interacting with.
  */
-const BehaviorVariable * BehaviorDependentBehaviorEffect::pBehaviorVariable()
-	const
+int BehaviorDependentBehaviorEffect::interactionValue(int actor) const
 {
-	return this->lpBehaviorVariable;
+	return this->linteractionValues[actor];
 }
 
 }

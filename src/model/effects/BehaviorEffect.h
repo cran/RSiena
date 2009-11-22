@@ -21,7 +21,7 @@ namespace siena
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
-class BehaviorVariable;
+class BehaviorLongitudinalData;
 
 
 // ----------------------------------------------------------------------------
@@ -36,9 +36,10 @@ class BehaviorEffect : public Effect
 public:
 	BehaviorEffect(const EffectInfo * pEffectInfo);
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
-	inline const BehaviorVariable * pVariable() const;
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 	/**
 	 * Calculates the change in the statistic corresponding to this effect if
@@ -61,23 +62,17 @@ public:
 	virtual double endowmentStatistic(const int * difference,
 		double *currentValues) const = 0;
 
+protected:
+	int n() const;
+	int value(int actor) const;
+	double centeredValue(int actor) const;
+	double range() const;
+	double similarityMean() const;
+
 private:
-	// The behavior variable this effect is associated with
-	const BehaviorVariable * lpVariable;
+	BehaviorLongitudinalData * lpBehaviorData;
+	const int * lvalues;
 };
-
-
-// ----------------------------------------------------------------------------
-// Section: Inline methods
-// ----------------------------------------------------------------------------
-
-/**
- * Returns the behavior variable this effect is associated with.
- */
-const BehaviorVariable * BehaviorEffect::pVariable() const
-{
-	return this->lpVariable;
-}
 
 }
 

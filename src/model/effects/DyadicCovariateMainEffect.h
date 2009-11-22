@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: DyadicCovariateMainEffect.h
- * 
+ *
  * Description: This file contains the definition of the
  * DyadicCovariateMainEffect class.
  *****************************************************************************/
@@ -24,11 +24,11 @@ class DyadicCovariateMainEffect : public DyadicCovariateDependentNetworkEffect
 {
 public:
 	DyadicCovariateMainEffect(const EffectInfo * pEffectInfo);
-	
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+
+	virtual double calculateContribution(int alter) const;
+
+protected:
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 };
 
 }

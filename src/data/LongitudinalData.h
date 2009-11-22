@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: LongitudinalData.h
- * 
+ *
  * Description: This file contains the definition of the
  * LongitudinalData class.
  *****************************************************************************/
@@ -22,8 +22,6 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class ActorSet;
-class DependentVariable;
-class EpochSimulation;
 
 // ----------------------------------------------------------------------------
 // Section: LogitudinalData class
@@ -40,29 +38,26 @@ public:
 		const ActorSet * pActorSet,
 		int observationCount);
 	virtual ~LongitudinalData();
-	
+
 	const ActorSet * pActorSet() const;
 	int observationCount() const;
 	int n() const;
-	
+
 	void upOnly(int period, bool flag);
 	bool upOnly(int period) const;
 	void downOnly(int period, bool flag);
 	bool downOnly(int period) const;
-	
-	virtual DependentVariable * createVariable(
-		EpochSimulation * pSimulation) = 0;
-	
+
 private:
 	// The domain of the dependent variable
 	const ActorSet * lpActorSet;
-	
+
 	// The number of observations
 	int lobservationCount;
-	
+
 	// Stores a flag per each period if only upward changes were observed
 	bool * lupOnly;
-	
+
 	// Stores a flag per each period if only downward changes were observed
 	bool * ldownOnly;
 };

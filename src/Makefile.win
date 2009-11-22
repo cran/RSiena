@@ -6,7 +6,7 @@
 #RHOME = c:/R/R-2.9.0/
 .PHONY: all libs execs
 
-SOURCES=$(wildcard data/*.cpp utils/*.cpp utils/random.h model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp model/adapters/*.cpp)
+SOURCES=$(wildcard data/*.cpp utils/*.cpp utils/random.h model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp network/*.cpp)
 EXTRAS=$(foreach i,$(SOURCES),$(basename $i).o)
 
 PKG_LIBS=-L. -lSn
@@ -21,7 +21,7 @@ libs: libSn.a
 libSn.a: $(EXTRAS)
 	 $(AR) cr libSn.a $(EXTRAS)
 
-RSiena.dll: siena07.o
+RSiena.dll: siena07.o libSn.a
 
 siena.exe:
 	@(cd win32; make all)

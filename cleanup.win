@@ -1,2 +1,3 @@
 rm -f src/*/*.o
+rm -f src/*/*/*.o
 cd src/win32; make clean

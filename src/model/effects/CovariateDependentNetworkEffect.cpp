@@ -32,78 +32,41 @@ CovariateDependentNetworkEffect::CovariateDependentNetworkEffect(
 {
 	this->lpConstantCovariate = 0;
 	this->lpChangingCovariate = 0;
-	this->lpBehaviorVariable = 0;
 	this->lpBehaviorData = 0;
+	this->lvalues = 0;
 }
 
 
 /**
- * Destructor.
- */
-CovariateDependentNetworkEffect::~CovariateDependentNetworkEffect()
-{
-}
-
-
-/**
- * Initializes this effect for calculating contributions of changes to
- * evaluation or endowment functions.
- */
-void CovariateDependentNetworkEffect::initialize(EpochSimulation * pSimulation)
-{
-	NetworkEffect::initialize(pSimulation);
-
-	this->lpConstantCovariate =
-		pSimulation->pData()->pConstantCovariate(
-			this->pEffectInfo()->interactionName1());
-	this->lpChangingCovariate =
-		pSimulation->pData()->pChangingCovariate(
-			this->pEffectInfo()->interactionName1());
-	this->lpBehaviorVariable =
-		dynamic_cast<const BehaviorVariable *>(
-			pSimulation->pVariable(this->pEffectInfo()->interactionName1()));
-	this->lpBehaviorData = 0;
-
-	if (!this->lpConstantCovariate &&
-		!this->lpChangingCovariate &&
-		!this->lpBehaviorVariable)
-	{
-		throw logic_error("Covariate or dependent behavior variable '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
-	}
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
 void CovariateDependentNetworkEffect::initialize(const Data * pData,
 	State * pState,
-	int period)
+	int period,
+	Cache * pCache)
 {
-	NetworkEffect::initialize(pData, pState, period);
+	NetworkEffect::initialize(pData, pState, period, pCache);
+	string name = this->pEffectInfo()->interactionName1();
 
-	this->lpConstantCovariate =
-		pData->pConstantCovariate(this->pEffectInfo()->interactionName1());
-	this->lpChangingCovariate =
-		pData->pChangingCovariate(this->pEffectInfo()->interactionName1());
-	this->lpBehaviorData =
-		pData->pBehaviorData(this->pEffectInfo()->interactionName1());
-	this->lpBehaviorVariable = 0;
+	this->lpConstantCovariate = pData->pConstantCovariate(name);
+	this->lpChangingCovariate = pData->pChangingCovariate(name);
+	this->lpBehaviorData = pData->pBehaviorData(name);
+	this->lvalues = pState->behaviorValues(name);
 
 	if (!this->lpConstantCovariate &&
 		!this->lpChangingCovariate &&
-		!this->lpBehaviorData)
+		!(this->lpBehaviorData && this->lvalues))
 	{
 		throw logic_error("Covariate or dependent behavior variable '" +
-			this->pEffectInfo()->interactionName1() +
+			name +
 			"' expected.");
 	}
 }
+
 
 /**
  * Returns the covariate value for the given actor.
@@ -120,14 +83,9 @@ double CovariateDependentNetworkEffect::value(int i) const
 	{
 		value = this->lpChangingCovariate->value(i, this->period());
 	}
-	else if (this->lpBehaviorVariable)
-	{
-		value = this->lpBehaviorVariable->centeredValue(i);
-	}
 	else
 	{
-		value = this->lpBehaviorData->value(this->period(), i) -
-			this->lpBehaviorData->overallMean();
+		value = this->lvalues[i] - this->lpBehaviorData->overallMean();
 	}
 
 	return value;
@@ -149,14 +107,11 @@ bool CovariateDependentNetworkEffect::missing(int i) const
 	{
 		missing = this->lpChangingCovariate->missing(i, this->period());
 	}
-	else if (this->lpBehaviorVariable)
-	{
-		missing = this->lpBehaviorVariable->missingStartValue(i);
-	}
 	else
 	{
 		missing = this->lpBehaviorData->missing(this->period(), i);
 	}
+
 	return missing;
 }
 
@@ -181,14 +136,11 @@ double CovariateDependentNetworkEffect::similarity(int i, int j) const
 			this->lpChangingCovariate->similarity(this->value(i),
 				this->value(j));
 	}
-	else if (this->lpBehaviorVariable)
-	{
-		similarity = this->lpBehaviorVariable->similarity(i, j);
-	}
 	else
 	{
 		similarity =
-			this->lpBehaviorData->similarity(this->value(i), this->value(j));
+			this->lpBehaviorData->similarity(this->lvalues[i],
+				this->lvalues[j]);
 	}
 
 	return similarity;

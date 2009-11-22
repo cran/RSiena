@@ -13,9 +13,13 @@
 
 #include "NetworkEffect.h"
 #include "data/NetworkLongitudinalData.h"
+#include "model/State.h"
 #include "model/EpochSimulation.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
+#include "model/tables/Cache.h"
+#include "model/tables/NetworkCache.h"
+#include "model/tables/EgocentricConfigurationTable.h"
 
 using namespace std;
 
@@ -28,54 +32,57 @@ namespace siena
 NetworkEffect::NetworkEffect(const EffectInfo * pEffectInfo) :
 	Effect(pEffectInfo)
 {
-	this->lpVariable = 0;
+	this->lpNetwork = 0;
 	this->lpNetworkData = 0;
+	this->lpNetworkCache = 0;
+	this->lpTwoPathTable = 0;
+	this->lpReverseTwoPathTable = 0;
+	this->lpInStarTable = 0;
+	this->lpOutStarTable = 0;
+	this->lpCriticalInStarTable = 0;
+	this->lpRRTable = 0;
+	this->lpRFTable = 0;
+	this->lpRBTable = 0;
+	this->lpFRTable = 0;
+	this->lpBRTable = 0;
 }
 
 
 /**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void NetworkEffect::initialize(EpochSimulation * pSimulation)
-{
-	Effect::initialize(pSimulation);
-
-	this->lpVariable =
-		dynamic_cast<const NetworkVariable *>(
-			pSimulation->pVariable(this->pEffectInfo()->variableName()));
-
-	if (!this->lpVariable)
-	{
-		throw logic_error("Network variable '" +
-			this->pEffectInfo()->variableName() +
-			"' expected.");
-	}
-
-	this->lpNetworkData =
-		dynamic_cast<const NetworkLongitudinalData *>(
-			this->lpVariable->pData());
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void NetworkEffect::initialize(const Data * pData, State * pState, int period)
+void NetworkEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
-	Effect::initialize(pData, pState, period);
+	Effect::initialize(pData, pState, period, pCache);
+	string name = this->pEffectInfo()->variableName();
 
-	this->lpNetworkData =
-		pData->pNetworkData(this->pEffectInfo()->variableName());
+	this->lpNetworkData = pData->pNetworkData(name);
 
 	if (!this->lpNetworkData)
 	{
-		throw logic_error("Data for network variable '" +
-			this->pEffectInfo()->variableName() +
-			"' expected.");
+		throw logic_error("Data for network variable '" + name +"' expected.");
 	}
+
+	this->lpNetwork = pState->pNetwork(name);
+	this->lpNetworkCache = pCache->pNetworkCache(this->lpNetwork);
+
+	this->lpTwoPathTable = this->lpNetworkCache->pTwoPathTable();
+	this->lpReverseTwoPathTable = this->lpNetworkCache->pReverseTwoPathTable();
+	this->lpInStarTable = this->lpNetworkCache->pInStarTable();
+	this->lpOutStarTable = this->lpNetworkCache->pOutStarTable();
+	this->lpCriticalInStarTable = this->lpNetworkCache->pCriticalInStarTable();
+	this->lpRRTable = this->lpNetworkCache->pRRTable();
+	this->lpRFTable = this->lpNetworkCache->pRFTable();
+	this->lpRBTable = this->lpNetworkCache->pRBTable();
+	this->lpFRTable = this->lpNetworkCache->pFRTable();
+	this->lpBRTable = this->lpNetworkCache->pBRTable();
 }
 
 
@@ -84,46 +91,47 @@ void NetworkEffect::initialize(const Data * pData, State * pState, int period)
  * contributions for a specific ego. This method must be invoked before
  * calling NetworkEffect::calculateTieFlipContribution(...).
  */
-void NetworkEffect::preprocessEgo()
+void NetworkEffect::preprocessEgo(int ego)
 {
-	// Empty here. See the derived classes for something more interesting.
+	this->lego = ego;
 }
 
 
 /**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions. The method has to
- * be overriden by all effects using any of the precalculated configuration
- * tables.
+ * Returns if there is a tie from the current ego to the given alter.
  */
-bool NetworkEffect::usesTable(const ConfigurationTable * pTable) const
+bool NetworkEffect::outTieExists(int alter) const
 {
-	// No tables used by default.
-	return false;
+	return this->lpNetworkCache->outTieExists(alter);
 }
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * Returns if there is a tie from the given alter to the current ego.
  */
-double NetworkEffect::evaluationStatistic(Network * pNetwork) const
+bool NetworkEffect::inTieExists(int alter) const
 {
-	return this->statistic(pNetwork, pNetwork);
+	return this->lpNetworkCache->inTieExists(alter);
 }
 
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
+ * the evaluation function.
  */
-double NetworkEffect::endowmentStatistic(Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
+double NetworkEffect::evaluationStatistic() const
 {
-	return this->statistic(pInitialNetwork, pLostTieNetwork);
+	return this->statistic(this->pNetwork());
+}
+
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork) const
+{
+	return this->statistic(pLostTieNetwork);
 }
 
 
@@ -137,8 +145,7 @@ double NetworkEffect::endowmentStatistic(Network * pInitialNetwork,
  * For endowment function, X is the initial network of the period, and Y is the
  * network of ties that have been lost during the network evolution.
  */
-double NetworkEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double NetworkEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	// Nothing in the base class.
 	return 0;

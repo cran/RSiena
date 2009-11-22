@@ -69,12 +69,12 @@ Data::~Data()
 
 	// Various vectors
 
-	deallocateVector(this->lactorSets);
 	deallocateVector(this->ldependentVariableData);
 	deallocateVector(this->lconstantCovariates);
 	deallocateVector(this->lchangingCovariates);
 	deallocateVector(this->lconstantDyadicCovariates);
 	deallocateVector(this->lchangingDyadicCovariates);
+	deallocateVector(this->lactorSets);
 
 	// Delete the exogenous events.
 

@@ -1,3 +1,15 @@
+#/******************************************************************************
+# * SIENA: Simulation Investigation for Empirical Network Analysis
+# *
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# *
+# * File: Sienatest.r
+# *
+# * Description: This module contains the function for instability analysis and
+# * score tests.
+# *
+# *****************************************************************************/
+##@InstabilityAnalysis siena07 Not currently used
 InstabilityAnalysis<- function(z)
 {
     ##I think this is not correct, because of scaling. cond number of var matrix of X
@@ -47,16 +59,17 @@ InstabilityAnalysis<- function(z)
     Report(c('\n\n',date(),'\n'),sep='',lf)
 }
 
+##@MatrixNorm siena07 Not currently used. May be incorrect.
 MatrixNorm<- function(mat)
 {
     tmp<-  apply(mat,2,function(x)x/sqrt(crossprod(x)))
     ##or  sweep(mat,2,apply(mat,2,function(x)x/sqrt(crossprod(x))
     tmp
 }
-
-TestOutput <- function(z,x)
+##@TestOutput siena07 Print report
+TestOutput <- function(z, x)
 {
-    testn<- sum(z$test)
+    testn <- sum(z$test)
    # browser()
     if (testn)
     {
@@ -82,7 +95,7 @@ TestOutput <- function(z,x)
         Report('   \n',outf)
         if (testn > 1)
             Report('Joint test:\n-----------\n',outf)
-        Report(c('   c = ',sprintf("%8.4f",z$testresOverall),
+        Report(c('   c = ',sprintf("%8.4f", z$testresOverall),
                  '   d.f. = ',j,'   p-value '),sep='',outf)
         pvalue <- 1-pchisq(z$testresOverall,j)
         if (pvalue < 0.0001)
@@ -127,44 +140,51 @@ TestOutput <- function(z,x)
         Report('\n',outf)
     }
 }
-ScoreTest<- function(z,x)
+##@ScoreTest siena07 Do score tests
+ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
 {
-    z$testresult<- rep(NA,z$pp) ##for chisq per parameter
-    z$testresulto <- rep(NA,z$pp) ##for one-sided tests per parameter
+    testresult<- rep(NA, pp) ##for chisq per parameter
+    testresulto <- rep(NA, pp) ##for one-sided tests per parameter
     ##first the general one
-    ans<-EvaluateTestStatistic(x,z$test,z$dfra,z$msf,z$fra)
-    z$testresOverall<- ans$cvalue
-    if (sum(z$test)==1)
-        z$testresulto[1]<- ans$oneSided
+    ans <- EvaluateTestStatistic(maxlike, test, dfra, msf, fra)
+    testresOverall <- ans$cvalue
+    covMatrix <- ans$covMatrix
+    if (sum(test) == 1)
+    {
+        testresulto[1] <- ans$oneSided
+    }
     else
     {
         ## single df tests
-        use<- !z$test
-        k<- 0
-        for (i in 1:z$pp)
+        use <- !test
+        k <- 0
+        for (i in 1:pp)
         {
-            if (z$test[i])
+            if (test[i])
             {
-                k<- k+1
-                use[i]<- TRUE
-                ans<-EvaluateTestStatistic(x,z$test[use],z$dfra[use,use],
-                           z$msf[use,use],z$fra[use])
-                z$testresult[k]<- ans$cvalue
-                z$testresulto[k]<- ans$oneSided
-                use[i]<- FALSE
+                k <- k+1
+                use[i] <- TRUE
+                ans <- EvaluateTestStatistic(maxlike, test[use], dfra[use, use],
+                           msf[use, use], fra[use])
+                testresult[k] <- ans$cvalue
+                testresulto[k] <- ans$oneSided
+                use[i] <- FALSE
             }
         }
     }
     ##onestep estimator
-    if (x$maxlike)
-        dfra2<- z$dfra+ z$msf
+    if (maxlike)
+        dfra2 <- dfra + msf
     else
-        dfra2<- z$dfra
-    dinv2<- solve(dfra2)
-    z$oneStep<- -dinv2%*%z$fra
-   z
+        dfra2 <- dfra
+    dinv2 <- solve(dfra2)
+    oneStep<- -dinv2 %*% fra
+    list(testresult=testresult, testresulto=testresulto,
+         testresOverall=testresOverall, covMatrix=covMatrix,
+         oneStep=oneStep, dinv2= dinv2, dfra2=dfra2)
 }
-EvaluateTestStatistic<- function(x,test,dfra,msf,fra)
+##@EvaluateTestStatistic siena07 Calculate score test statistics
+EvaluateTestStatistic<- function(maxlike, test, dfra, msf, fra)
 {
     ##uses local arrays set up in the calling procedure
     d11 <- dfra[!test,!test,drop=FALSE]
@@ -179,7 +199,7 @@ EvaluateTestStatistic<- function(x,test,dfra,msf,fra)
     z2 <- fra[test]
     id11 <- solve(d11)
     rg<- d21%*%id11
-    if (!x$maxlike)
+    if (!maxlike)
     {
         ##orthogonalise deviation vector
         ov<- z2-rg%*%z1
@@ -204,10 +224,10 @@ EvaluateTestStatistic<- function(x,test,dfra,msf,fra)
             oneSided <- ov * sqrt(vav)
         else
             oneSided <- 0
-        if (!x$maxlike) oneSided<- - oneSided
+        if (!maxlike) oneSided<- - oneSided
         ## change the sign for intuition for users
     }
     else
         oneSided <- 0
-    list(cvalue=cvalue,oneSided=oneSided)
+    list(cvalue=cvalue, oneSided=oneSided, covMatrix=v9)
 }

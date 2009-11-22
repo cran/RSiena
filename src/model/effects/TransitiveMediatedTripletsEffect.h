@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: TransitiveMediatedTripletsEffect.h
- * 
+ *
  * Description: This file contains the declaration of the class
  * TransitiveMediatedTripletsEffect.
  *****************************************************************************/
@@ -25,11 +25,10 @@ class TransitiveMediatedTripletsEffect : public NetworkEffect
 public:
 	TransitiveMediatedTripletsEffect(const EffectInfo * pEffectInfo);
 
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual bool usesTable(const ConfigurationTable * pTable) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+	virtual double calculateContribution(int alter) const;
+
+protected:
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 };
 
 }

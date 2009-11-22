@@ -9,11 +9,12 @@
  * FourCyclesEffect class.
  *****************************************************************************/
 
+#include <cmath>
 #include <stdexcept>
 #include "FourCyclesEffect.h"
 #include "utils/SqrtTable.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -51,28 +52,21 @@ FourCyclesEffect::~FourCyclesEffect()
 
 
 /**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void FourCyclesEffect::initialize(EpochSimulation * pSimulation)
-{
-	NetworkEffect::initialize(pSimulation);
-
-	delete[] this->lcounters;
-	this->lcounters = new int[this->pVariable()->m()];
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
 void FourCyclesEffect::initialize(const Data * pData,
 	State * pState,
-	int period)
+	int period,
+	Cache * pCache)
 {
-	NetworkEffect::initialize(pData, pState, period);
+	NetworkEffect::initialize(pData, pState, period, pCache);
+
+	delete[] this->lcounters;
+	this->lcounters = new int[this->pNetwork()->m()];
 }
 
 
@@ -81,10 +75,11 @@ void FourCyclesEffect::initialize(const Data * pData,
  * contributions for a specific ego. This method must be invoked before
  * calling NetworkEffect::calculateTieFlipContribution(...).
  */
-void FourCyclesEffect::preprocessEgo()
+void FourCyclesEffect::preprocessEgo(int ego)
 {
-	int ego = this->pVariable()->ego();
-	Network * pNetwork = this->pVariable()->pNetwork();
+	NetworkEffect::preprocessEgo(ego);
+
+	const Network * pNetwork = this->pNetwork();
 
 	// Count the number of three paths i -> h <- k -> j from i to each j
 	this->countThreePaths(ego, pNetwork, this->lcounters);
@@ -115,7 +110,7 @@ void FourCyclesEffect::preprocessEgo()
  * i -> h <- k -> j.
  */
 void FourCyclesEffect::countThreePaths(int i,
-	Network * pNetwork,
+	const Network * pNetwork,
 	int * counters) const
 {
 	int m = pNetwork->m();
@@ -165,7 +160,7 @@ void FourCyclesEffect::countThreePaths(int i,
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double FourCyclesEffect::calculateTieFlipContribution(int alter) const
+double FourCyclesEffect::calculateContribution(int alter) const
 {
 	double change;
 
@@ -173,7 +168,7 @@ double FourCyclesEffect::calculateTieFlipContribution(int alter) const
 	{
 		int newCycleCount = this->lcurrentCycleCount;
 
-		if (this->pVariable()->outTieExists(alter))
+		if (this->outTieExists(alter))
 		{
 			newCycleCount -= this->lcounters[alter];
 		}
@@ -182,17 +177,12 @@ double FourCyclesEffect::calculateTieFlipContribution(int alter) const
 			newCycleCount += this->lcounters[alter];
 		}
 
-		change = this->lpSqrtTable->sqrt(newCycleCount) -
-			this->lpSqrtTable->sqrt(this->lcurrentCycleCount);
+		change = fabs(this->lpSqrtTable->sqrt(newCycleCount) -
+			this->lpSqrtTable->sqrt(this->lcurrentCycleCount));
 	}
 	else
 	{
 		change = this->lcounters[alter];
-
-		if (this->pVariable()->outTieExists(alter))
-		{
-			change = -change;
-		}
 	}
 
 	return change;
@@ -202,10 +192,10 @@ double FourCyclesEffect::calculateTieFlipContribution(int alter) const
 /**
  * Detailed comment in the base class.
  */
-double FourCyclesEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double FourCyclesEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	int m = pNetwork->m();
 	int * counters = new int[m];

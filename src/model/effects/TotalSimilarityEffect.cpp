@@ -11,8 +11,8 @@
 
 #include <cmath>
 #include "TotalSimilarityEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
@@ -38,7 +38,7 @@ double TotalSimilarityEffect::calculateChangeContribution(int actor,
 	int difference) const
 {
 	double contribution = 0;
-	Network * pNetwork = this->pNetworkVariable()->pNetwork();
+	const Network * pNetwork = this->pNetwork();
 
 	if (pNetwork->outDegree(actor) > 0)
 	{
@@ -56,7 +56,7 @@ double TotalSimilarityEffect::calculateChangeContribution(int actor,
 		// the sum being taken over all neighbors of i. This is what
 		// is calculated below.
 
-		int oldValue = this->pVariable()->value(actor);
+		int oldValue = this->value(actor);
 		int newValue = oldValue + difference;
 		int totalSimilarityChange = 0;
 
@@ -64,13 +64,12 @@ double TotalSimilarityEffect::calculateChangeContribution(int actor,
 			iter.valid();
 			iter.next())
 		{
-			int alterValue = this->pVariable()->value(iter.actor());
+			int alterValue = this->value(iter.actor());
 			totalSimilarityChange +=
 				abs(oldValue - alterValue) - abs(newValue - alterValue);
 		}
 
-		contribution = ((double) totalSimilarityChange) /
-			this->pVariable()->range();
+		contribution = ((double) totalSimilarityChange) / this->range();
 	}
 
 	return contribution;
@@ -83,28 +82,31 @@ double TotalSimilarityEffect::calculateChangeContribution(int actor,
 double TotalSimilarityEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
-	double similarityMean =  this->pVariable()->similarityMean();
+	double similarityMean =  this->similarityMean();
+
 	for (int i = 0; i < n; i++)
 	{
-		if (this->pNetworkVariable()->pPredictorNetwork()->outDegree(i))
+		if (this->pNetwork()->outDegree(i))
 		{
 			double thisStatistic = 0;
-			for (IncidentTieIterator iter=this->pNetworkVariable()->
-					 pPredictorNetwork()->outTies(i);
+
+			for (IncidentTieIterator iter = this->pNetwork()->outTies(i);
 				 iter.valid();
 				 iter.next())
 			{
 				double alterValue = currentValues[iter.actor()];
-				double range = this->pVariable()->range();
+				double range = this->range();
 				thisStatistic += iter.value() *
 					(1.0 - fabs(alterValue - currentValues[i]) / range);
 				thisStatistic -= similarityMean;
 			}
+
 			statistic += thisStatistic;
 		}
 	}
+
 	return statistic;
 }
 
@@ -118,52 +120,55 @@ double TotalSimilarityEffect::endowmentStatistic(const int * difference,
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
-	double similarityMean =  this->pVariable()->similarityMean();
+	double similarityMean =  this->similarityMean();
+
 	for (int i = 0; i < n; i++)
 	{
 		if (difference[i] > 0)
 		{
-			if (this->pNetworkVariable()->pPredictorNetwork()->outDegree(i))
+			if (this->pNetwork()->outDegree(i))
 			{
 				double thisStatistic = 0;
-				for (IncidentTieIterator iter=this->pNetworkVariable()->
-						 pPredictorNetwork()->outTies(i);
+
+				for (IncidentTieIterator iter = this->pNetwork()->outTies(i);
 					 iter.valid();
 					 iter.next())
 				{
 					double alterValue = currentValues[iter.actor()];
-					double range = this->pVariable()->range();
+					double range = this->range();
 					thisStatistic += iter.value() *
 						(1.0 - fabs(alterValue - currentValues[i]) / range);
 					thisStatistic -= similarityMean;
 				}
-				statistic += 2 * thisStatistic;
 
+				statistic += 2 * thisStatistic;
 
 				// do the same using the difference in i's value
 				// rather than current state and subtract it.
 				// not sure whether this is correct.
 
 				thisStatistic = 0;
-				for (IncidentTieIterator iter=this->pNetworkVariable()->
-						 pPredictorNetwork()->outTies(i);
+
+				for (IncidentTieIterator iter = this->pNetwork()->outTies(i);
 					 iter.valid();
 					 iter.next())
 				{
 					double alterValue = currentValues[iter.actor()];
-					double range = this->pVariable()->range();
+					double range = this->range();
 					thisStatistic += iter.value() *
 						(1.0 - fabs(alterValue - (difference[i] +
 								currentValues[i]))
 							/ range);
 					thisStatistic -= similarityMean;
 				}
+
 				statistic -= thisStatistic;
 			}
 		}
 	}
+
 	return statistic;
 }
 

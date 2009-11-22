@@ -1,7 +1,7 @@
-##/******************************************************************************
+##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://stat.gamma.rug.nl/siena.html
+## * Web: http://www.stats.ox.ac.uk/~snidjers/siena
 ## *
 ## * File: phase1.r
 ## *
@@ -11,9 +11,10 @@
 ## * restart. Phase 1.2 does the rest of the iterations and then calculates
 ## * the derivative estimate. doPhase1it does one iteration, is called by
 ## * phase1.1 and phase1.2.
-## *****************************************************************************/
+## ****************************************************************************/
 ##args: x model object (readonly), z control object
 ##
+##@phase1.1 siena07 Do first 10 iterations (before check if using finite differences)
 phase1.1 <- function(z, x, ...)
 {
     ## initialise phase 1
@@ -54,15 +55,21 @@ phase1.1 <- function(z, x, ...)
     zsmall$Deriv <- z$Deriv
     zsmall$Phase <- z$Phase
     zsmall$nit <- z$nit
+    zsmall$FinDiff.method <- z$FinDiff.method
     xsmall<- NULL
-    xsmall$cconditional <- x$cconditional
+    zsmall$cconditional <- z$cconditional
     zsmall$condvar <- z$condvar
     nits <- seq(1, firstNit, int)
-    nits6 <- min(nits[nits >= 6 ])
+    if (any(nits >= 6))
+    {
+        nits6 <- min(nits[nits >= 6 ])
+    }
+    else
+        nits6 <- -1
     for (nit in nits)
     {
          z$nit <- nit
-         if (nit == nits[2])
+         if (length(nits) > 1 && nit == nits[2])
          {
              time1 <- proc.time()['elapsed']
              if (x$checktime)
@@ -156,12 +163,13 @@ phase1.1 <- function(z, x, ...)
     z
 }
 
+##@doPhase1it siena07 does 1 iteration in Phase 1
 doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
 {
     DisplayIteration(z)
     if (int == 1)
     {
-        zz <- x$FRAN(zsmall, xsmall, ...)
+        zz <- x$FRAN(zsmall, xsmall)
         if (!zz$OK)
         {
             z$OK <- zz$OK
@@ -173,7 +181,7 @@ doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
     }
     else
     {
-        zz <- clusterCall(cl, usesim, zsmall, xsmall, ...)
+        zz <- clusterCall(cl, usesim, zsmall, xsmall)
         z$n <- z$n + z$int
         z$phase1Its <- z$phase1Its + int
     }
@@ -183,6 +191,7 @@ doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
         fra <- fra - z$targets
         z$sf[z$nit, ] <- fra
         z$sf2[z$nit, , ] <- zz$fra
+        z$sims[[z$nit]] <- zz$sims
     }
     else
     {
@@ -192,13 +201,14 @@ doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
             fra <- fra - z$targets
             z$sf[z$nit + (i - 1), ] <- fra
             z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
+            z$sims[[z$nit + (i - 1)]] <- zz[[i]]$sims
         }
 
     }
     if (z$FinDiff.method)
     {
         z <- FiniteDifferences(z, x, fra + z$targets, z$cl, z$int, ...)
-        z$sdf[z$nit, , ] <- z$sdf0
+        z$sdf[z$nit:(z$nit + (z$int - 1)), , ] <- z$sdf0
     }
     else if (x$maxlike)
     {
@@ -238,7 +248,7 @@ doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
     z$pb <- setProgressBar(z$pb, val)
     progress <- val / z$pb$pbmax * 100
     if (z$nit <= 5 || z$nit %% z$writefreq == 0 || z$nit %%5 == 0 ||
-        x$maxlike || x$FinDiff.method ||
+        x$maxlike || z$FinDiff.method ||
         (int > 1 && z$nit %% z$writefreq < int))
     {
       #  Report(c('Phase', z$Phase, 'Iteration ', z$nit, '\n'))
@@ -254,6 +264,7 @@ doPhase1it<- function(z, x, cl, int, zsmall, xsmall, ...)
     #browser()
     z
 }
+##@phase1.2 siena07 Do rest of phase 1 iterations
 phase1.2 <- function(z, x, ...)
 {
     ##finish phase 1 iterations and do end-of-phase processing
@@ -263,14 +274,23 @@ phase1.2 <- function(z, x, ...)
     zsmall$Phase <- z$Phase
     zsmall$nit <- z$nit
     xsmall<- NULL
-    xsmall$cconditional <- x$cconditional
+    zsmall$cconditional <- z$cconditional
     zsmall$condvar <- z$condvar
+    zsmall$FinDiff.method <- z$FinDiff.method
     int <- z$int
     if (z$n1 > z$phase1Its)
     {
         nits <- seq((z$phase1Its+1), z$n1, int)
         for (nit in nits)
         {
+            if (is.null(z$ctime))
+            {
+                time1 <- proc.time()['elapsed']
+                if (x$checktime)
+                {
+                    z$ctime <- time1
+                }
+            }
             z$nit <- nit
             z <- doPhase1it(z, x, cl=z$cl, int=int, zsmall=zsmall,
                             xsmall=xsmall, ...)
@@ -281,7 +301,7 @@ phase1.2 <- function(z, x, ...)
         }
     }
     z$timePhase1 <- (proc.time()['elapsed'] - z$ctime) / (z$nit - 1)
-    if (x$checktime)
+    if (x$checktime  && !is.na(z$timePhase1))
     {
         Report(c('Time per iteration in phase 1  =',
                  format(z$timePhase1, digits = 4, nsmall = 4),'\n'), lf)
@@ -377,10 +397,14 @@ phase1.2 <- function(z, x, ...)
     WriteOutTheta(z)
     z$nitPhase1 <- z$phase1Its
     z$phase1devs <- z$sf
+    z$phase1dfra <- z$frda
+    z$phase1sdf <- z$sdf
+    z$phase1scores <- z$ssc
     ##browser()
     z
 }
 
+##@CalculateDerivative siena07 Calculates derivative in Phase 1
 CalculateDerivative <- function(z, x)
 {
     f <- FRANstore()
@@ -393,22 +417,9 @@ CalculateDerivative <- function(z, x)
         ##note that warnings is never set as this piece of code is not executed
         ##if force_fin_diff_phase_1 is true so warning is zero on entry
         ##browser()
-        dfra<- matrix(0, nrow = z$pp, ncol = z$pp)
-       # browser()
-        for (i in 1 : (f$observations-1))
-        {
-            tmp <- sapply(1 : z$n1,function(j, y, s)
-                              outer(y[j, ], s[j, ]),
-                          y = matrix(z$sf2[, i, ], ncol=z$pp),
-                          s = matrix(z$ssc[, i, ], ncol=z$pp))
-            tmp <- array(tmp, dim = c(z$pp, z$pp, z$n1))
-            dfra <- dfra + apply(tmp, c(1, 2), sum)
-        }
-        dfra <- dfra / z$n1
-        tmp <- matrix(sapply(1 : (f$observations - 1), function(i)
-                                   outer(colMeans(z$sf2)[i,],
-                  colMeans(z$ssc)[i,])), ncol=f$observations-1)
-        dfra <- dfra - matrix(rowSums(tmp), nrow = z$pp)
+
+        dfra <-derivativeFromScoresAndDeviations(z$ssc, z$sf2)
+
         z$jacobianwarn1 <- rep(FALSE, z$pp)
         if (any(diag(dfra) <= 0))
         {
@@ -465,15 +476,15 @@ CalculateDerivative <- function(z, x)
     z
 }
 
+##@FiniteDifferences siena07 Does the extra iterations for finite differences
 FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
 {
     fras <- array(0, dim = c(int, z$pp, z$pp))
     xsmall<- NULL
-    xsmall$cconditional <- x$cconditional
- # browser()
+ ##browser()
     for (i in 1 : z$pp)
     {
-        zdummy <- z[c('theta', 'Deriv')]
+        zdummy <- z[c('theta', 'Deriv', 'cconditional', 'FinDiff.method')]
         if (!z$fixed[i])
         {
             zdummy$theta[i] <- z$theta[i] + z$epsilon[i]
@@ -482,7 +493,7 @@ FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
         if (int == 1)
         {
             zz <- x$FRAN(zdummy, xsmall, INIT=FALSE,
-                         fromFiniteDiff=TRUE, ...)
+                         fromFiniteDiff=TRUE)
             if (!zz$OK)
             {
                 z$OK <- zz$OK
@@ -491,8 +502,8 @@ FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
         }
         else
         {
-            zz <- clusterCall(cl, x$FRAN, zdummy, xsmall,
-                              INIT=FALSE, fromFiniteDiff=TRUE, ...)
+            zz <- clusterCall(cl, usesim, zdummy, xsmall,
+                              INIT=FALSE, fromFiniteDiff=TRUE)
         }
         if (int == 1)
         {
@@ -506,9 +517,38 @@ FiniteDifferences <- function(z, x, fra, cl, int=1, ...)
     }
                                         # browser()
     if (z$Phase == 1 && z$nit <= 10)
-        z$npos <- z$npos + ifelse(abs(diag(fras[1, , ])) > 1e-6, 1, 0)
-    sdf <- fras / rep(z$epsilon, z$pp)
+    {
+        for (ii in 1: min(10 - z$nit + 1, int))
+        {
+            z$npos <- z$npos + ifelse(abs(diag(fras[ii, , ])) > 1e-6, 1, 0)
+        }
+    }
+    sdf <- fras
+    for (i in 1:int)
+    {
+        sdf[i, , ] <- fras[i, , ] / rep(z$epsilon, z$pp)
+    }
     z$sdf0 <- sdf
                                         # browser()
     z
+}
+##@derivativeFromScoresAndDeviations siena07 create dfra from scores and deviations
+derivativeFromScoresAndDeviations <- function(scores, deviations)
+{
+    nIterations <- dim(scores)[1]
+    nWaves <- dim(scores)[2]
+    nParameters <- dim(scores)[3]
+    dfra <- rowSums(sapply(1:nWaves, function(i)
+                          sapply(1:nIterations, function(j, y, s)
+                                 outer(y[j, ], s[j, ]),
+                                 y=matrix(deviations[, i, ], ncol=nParameters),
+                                 s=matrix(scores[, i, ], ncol=nParameters))))
+    dim(dfra)<- c(nParameters, nParameters, nIterations)
+    dfra<- apply(dfra, c(1, 2), sum)
+    dfra<- dfra / nIterations
+    tmp <- matrix(sapply(1 : nWaves, function(i)
+                         outer(colMeans(deviations)[i,],
+                               colMeans(scores)[i,])), ncol=nWaves)
+
+    dfra - matrix(rowSums(tmp), nrow=nParameters)
 }

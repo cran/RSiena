@@ -22,9 +22,10 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class Network;
-class NetworkVariable;
 class NetworkLongitudinalData;
 class ConfigurationTable;
+class NetworkCache;
+class Cache;
 
 
 // ----------------------------------------------------------------------------
@@ -39,12 +40,16 @@ class NetworkEffect : public Effect
 public:
 	NetworkEffect(const EffectInfo * pEffectInfo);
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
-	inline const NetworkVariable * pVariable() const;
+	inline const Network * pNetwork() const;
 	inline const NetworkLongitudinalData * pData() const;
-	virtual void preprocessEgo();
+
+	virtual void preprocessEgo(int ego);
+	inline int ego() const;
 
 	/**
 	 * Assuming that the ego would flip the tie to the given actor,
@@ -52,24 +57,69 @@ public:
 	 * to this effect. The method has to be overriden by all concrete
 	 * effect classes.
 	 */
-	virtual double calculateTieFlipContribution(int alter) const = 0;
+	virtual double calculateContribution(int alter) const = 0;
 
-	virtual bool usesTable(const ConfigurationTable * pTable) const;
-
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+	virtual double evaluationStatistic() const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
+
+	inline ConfigurationTable * pTwoPathTable() const;
+	inline ConfigurationTable * pReverseTwoPathTable() const;
+	inline ConfigurationTable * pInStarTable() const;
+	inline ConfigurationTable * pOutStarTable() const;
+	inline ConfigurationTable * pCriticalInStarTable() const;
+	inline ConfigurationTable * pRRTable() const;
+	inline ConfigurationTable * pRFTable() const;
+	inline ConfigurationTable * pRBTable() const;
+	inline ConfigurationTable * pFRTable() const;
+	inline ConfigurationTable * pBRTable() const;
+	bool inTieExists(int alter) const;
+	bool outTieExists(int alter) const;
 
 private:
-	// The network variable this effect is associated with
-	const NetworkVariable * lpVariable;
+	// The network this effect is associated with
+	const Network * lpNetwork;
 
 	// The observed network data underlying the network variable.
 	const NetworkLongitudinalData * lpNetworkData;
+
+	NetworkCache * lpNetworkCache;
+	int lego;
+
+	// The number of two-paths from the ego to each of the alters
+	ConfigurationTable * lpTwoPathTable;
+
+	// The number of two-paths from each of the alters to the ego
+	ConfigurationTable * lpReverseTwoPathTable;
+
+	// The number of in-stars between the ego and each of the alters.
+	ConfigurationTable * lpInStarTable;
+
+	// The number of out-stars between the ego and each of the alters.
+	ConfigurationTable * lpOutStarTable;
+
+	// The number of in-stars <(i,h), (j,h)> between the ego i and each
+	// of the alters j, such that there are no two paths i -> h' -> h for
+	// h' != j.
+
+	ConfigurationTable * lpCriticalInStarTable;
+
+	// The number of actors h with reciprocated ties to both i and j.
+	ConfigurationTable * lpRRTable;
+
+	// The number of actors h with a reciprocated tie to i and a tie to j.
+	ConfigurationTable * lpRFTable;
+
+	// The number of actors h with a reciprocated tie to i and a tie from j.
+	ConfigurationTable * lpRBTable;
+
+	// The number of actors h with a tie to i and a reciprocated tie to j.
+	ConfigurationTable * lpFRTable;
+
+	// The number of actors h with a tie from i and a reciprocated tie to j.
+	ConfigurationTable * lpBRTable;
 };
 
 
@@ -78,11 +128,11 @@ private:
 // ----------------------------------------------------------------------------
 
 /**
- * Returns the network variable this effect is associated with.
+ * Returns the network this effect is associated with.
  */
-const NetworkVariable * NetworkEffect::pVariable() const
+const Network * NetworkEffect::pNetwork() const
 {
-	return this->lpVariable;
+	return this->lpNetwork;
 }
 
 
@@ -93,6 +143,116 @@ const NetworkVariable * NetworkEffect::pVariable() const
 const NetworkLongitudinalData * NetworkEffect::pData() const
 {
 	return this->lpNetworkData;
+}
+
+
+/**
+ * Returns the current ego, whose tie flip contributions are to be calculated.
+ */
+int NetworkEffect::ego() const
+{
+	return this->lego;
+}
+
+
+/**
+ * Returns the table storing the number of two-paths from the ego to
+ * each of the alters.
+ */
+inline ConfigurationTable * NetworkEffect::pTwoPathTable() const
+{
+	return this->lpTwoPathTable;
+}
+
+
+/**
+ * Returns the table storing the number of two-paths from each of the
+ * alters to the ego.
+ */
+inline ConfigurationTable * NetworkEffect::pReverseTwoPathTable() const
+{
+	return this->lpReverseTwoPathTable;
+}
+
+
+/**
+ * Returns the table storing the number of in-stars between the ego and
+ * each of the alters.
+ */
+inline ConfigurationTable * NetworkEffect::pInStarTable() const
+{
+	return this->lpInStarTable;
+}
+
+
+/**
+ * Returns the table storing the number of out-stars between the ego and
+ * each of the alters.
+ */
+inline ConfigurationTable * NetworkEffect::pOutStarTable() const
+{
+	return this->lpOutStarTable;
+}
+
+
+/**
+ * Returns the table storing the number of critical in-stars between the
+ * ego and each of the alters. An in-star <(i,h), (j,h)> is critical if
+ * there are no two paths i -> h' -> h for h' != j.
+ */
+inline ConfigurationTable * NetworkEffect::pCriticalInStarTable() const
+{
+	return this->lpCriticalInStarTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with reciprocated ties
+ * to both i and j.
+ */
+inline ConfigurationTable * NetworkEffect::pRRTable() const
+{
+	return this->lpRRTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a reciprocated tie
+ * to i and a tie to j.
+ */
+inline ConfigurationTable * NetworkEffect::pRFTable() const
+{
+	return this->lpRFTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a reciprocated tie
+ * to i and a tie from j.
+ */
+inline ConfigurationTable * NetworkEffect::pRBTable() const
+{
+	return this->lpRBTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a tie to i and a
+ * reciprocated tie to j.
+ */
+inline ConfigurationTable * NetworkEffect::pFRTable() const
+{
+	return this->lpFRTable;
+}
+
+
+/**
+ * Returns the table storing the number of actors with a tie from i and a
+ * reciprocated tie to j.
+ */
+inline ConfigurationTable * NetworkEffect::pBRTable() const
+{
+	return this->lpBRTable;
 }
 
 }

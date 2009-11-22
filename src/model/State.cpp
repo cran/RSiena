@@ -2,6 +2,7 @@
 
 #include "State.h"
 #include "data/Data.h"
+#include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
 #include "data/BehaviorLongitudinalData.h"
 #include "model/EpochSimulation.h"
@@ -68,7 +69,15 @@ State::State(EpochSimulation * pSimulation)
 			throw domain_error("Unexpected class of dependent variable");
 		}
 	}
-	lpSimulation = pSimulation;
+}
+
+
+/**
+ * Default constructor creating an empty state. The current values of dependent
+ * variables can be stored later with the appropriate setters.
+ */
+State::State()
+{
 }
 
 
@@ -86,11 +95,15 @@ const Network * State::pNetwork(string name) const
 	return pNetwork;
 }
 
-const EpochSimulation * State::pSimulation() const
-{
 
-	return lpSimulation;
+/**
+ * Stores the network for the given name.
+ */
+void State::pNetwork(string name, const Network * pNetwork)
+{
+	this->lnetworks[name] = pNetwork;
 }
+
 
 const int * State::behaviorValues(string name) const
 {
@@ -104,6 +117,41 @@ const int * State::behaviorValues(string name) const
 	}
 
 	return values;
+}
+
+
+/**
+ * Stores the values of a behavior variable with the given name.
+ */
+void State::behaviorValues(string name, const int * values)
+{
+	this->lbehaviors[name] = values;
+}
+
+
+/**
+ * Deletes the values stored in this state.
+ */
+void State::deleteValues()
+{
+	// Cannot use clearMap as the keys are not pointers.
+
+	while (!this->lnetworks.empty())
+	{
+		const Network * pNetwork = this->lnetworks.begin()->second;
+		this->lnetworks.erase(this->lnetworks.begin());
+		delete pNetwork;
+	}
+
+	// Cannot use clearMap as the values are arrays and should be deleted with
+	// delete[] operator.
+
+	while (!this->lbehaviors.empty())
+	{
+		const int * values = this->lbehaviors.begin()->second;
+		this->lbehaviors.erase(this->lbehaviors.begin());
+		delete[] values;
+	}
 }
 
 }

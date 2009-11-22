@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: IndegreeActivityEffect.h
- * 
+ *
  * Description: This file contains the definition of the
  * IndegreeActivityEffect class.
  *****************************************************************************/
@@ -41,16 +41,16 @@ class IndegreeActivityEffect : public NetworkEffect
 {
 public:
 	IndegreeActivityEffect(const EffectInfo * pEffectInfo, bool root);
-	
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+
+	virtual double calculateContribution(int alter) const;
+
+protected:
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
 	// Indicates if the square root of indegrees must be used
 	bool lroot;
-	
+
 	// Lookup table for fast square root calculations
 	SqrtTable * lsqrtTable;
 };

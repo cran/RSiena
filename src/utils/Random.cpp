@@ -23,7 +23,7 @@ double nextDouble()
 
 /**
  * Returns an exponential variate for the given rate parameter.
- * QAD for comparison with Delphi.
+ * QAD for comparison with Delphi or for SienaProfile.exe
  */
 double nextExponentialQAD(double lambda)
 {

@@ -11,9 +11,9 @@
 
 #include <stdexcept>
 #include "DenseTriadsEffect.h"
-#include "data/OneModeNetwork.h"
-#include "data/IncidentTieIterator.h"
-#include "data/CommonNeighborIterator.h"
+#include "network/OneModeNetwork.h"
+#include "network/IncidentTieIterator.h"
+#include "network/CommonNeighborIterator.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
@@ -39,7 +39,7 @@ DenseTriadsEffect::DenseTriadsEffect(const EffectInfo * pEffectInfo) :
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double DenseTriadsEffect::calculateTieFlipContribution(int alter) const
+double DenseTriadsEffect::calculateContribution(int alter) const
 {
 	int change = 0;
 
@@ -48,19 +48,19 @@ double DenseTriadsEffect::calculateTieFlipContribution(int alter) const
 
 	if (this->ldensity == 6)
 	{
-		if (this->pVariable()->inTieExists(alter))
+		if (this->inTieExists(alter))
 		{
 			// The dyad (i,j) is becoming complete, so there will be a new
 			// full triad for each h with reciprocated ties to both i and j.
 			// Each such triad contributes twice to s_i; once for each of the
 			// ties (i,j) and (i,h).
 
-			change = 2 * this->pVariable()->pRRTable()->get(alter);
+			change = 2 * this->pRRTable()->get(alter);
 		}
 	}
 	else
 	{
-		if (this->pVariable()->inTieExists(alter))
+		if (this->inTieExists(alter))
 		{
 			// Okay, we have a complete dyad (i,j), so each h with at least
 			// 3 ties to/from i and j will form a triad with at least 5 ties.
@@ -89,11 +89,11 @@ double DenseTriadsEffect::calculateTieFlipContribution(int alter) const
 			// but the triad (i,h,j) wasn't dense before introduction of the
 			// tie (i,j).
 
-			change =  2 * this->pVariable()->pRFTable()->get(alter) +
-				2 * this->pVariable()->pRBTable()->get(alter) +
-				2 * this->pVariable()->pFRTable()->get(alter) +
-				this->pVariable()->pBRTable()->get(alter) -
-				6 * this->pVariable()->pRRTable()->get(alter);
+			change =  2 * this->pRFTable()->get(alter) +
+				2 * this->pRBTable()->get(alter) +
+				2 * this->pFRTable()->get(alter) +
+				this->pBRTable()->get(alter) -
+				6 * this->pRRTable()->get(alter);
 		}
 		else
 		{
@@ -103,15 +103,8 @@ double DenseTriadsEffect::calculateTieFlipContribution(int alter) const
 			// Note, that each of these triads contributes twice to the
 			// statistic s_i, once per each tie (i,j) and (i,h).
 
-			change = 2 * this->pVariable()->pRRTable()->get(alter);
+			change = 2 * this->pRRTable()->get(alter);
 		}
-	}
-
-	// If we are withdrawing the tie, the contribution is negative.
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
 	}
 
 	return change;
@@ -119,30 +112,15 @@ double DenseTriadsEffect::calculateTieFlipContribution(int alter) const
 
 
 /**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions.
- */
-bool DenseTriadsEffect::usesTable(const ConfigurationTable * pTable) const
-{
-	return pTable == this->pVariable()->pRRTable() ||
-		this->ldensity == 5 &&
-			(pTable == this->pVariable()->pRFTable() ||
-			pTable == this->pVariable()->pRBTable() ||
-			pTable == this->pVariable()->pFRTable() ||
-			pTable == this->pVariable()->pBRTable());
-}
-
-
-/**
  * Detailed comment in the base class.
  */
-double DenseTriadsEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double DenseTriadsEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	int statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
-	OneModeNetwork * pOneModeNetwork =
-		dynamic_cast<OneModeNetwork *>(pNetwork);
+	const OneModeNetwork * pOneModeNetwork =
+		dynamic_cast<const OneModeNetwork *>(pNetwork);
 
 	// A helper array of marks
 

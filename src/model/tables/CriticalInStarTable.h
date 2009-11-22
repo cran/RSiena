@@ -1,17 +1,17 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: CriticalInStarTable.h
- * 
+ *
  * Description: This file defines the class CriticalInStarTable.
  *****************************************************************************/
 
 #ifndef CRITICALINSTARTABLE_H_
 #define CRITICALINSTARTABLE_H_
 
-#include "ConfigurationTable.h"
+#include "EgocentricConfigurationTable.h"
 
 namespace siena
 {
@@ -22,13 +22,13 @@ namespace siena
  * An in-star <(i,h), (j,h)> is called critical, if there are no two-paths
  * from i to h through an intermediary actor other than j.
  */
-class CriticalInStarTable : public ConfigurationTable
+class CriticalInStarTable : public EgocentricConfigurationTable
 {
 public:
-	CriticalInStarTable(NetworkVariable * pVariable);
+	CriticalInStarTable(NetworkCache * pOwner);
 
 protected:
-	virtual void vCalculate();
+	virtual void calculate();
 };
 
 }

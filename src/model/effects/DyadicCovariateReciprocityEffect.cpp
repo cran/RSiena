@@ -10,8 +10,8 @@
  *****************************************************************************/
 
 #include "DyadicCovariateReciprocityEffect.h"
-#include "data/Network.h"
-#include "data/CommonNeighborIterator.h"
+#include "network/Network.h"
+#include "network/CommonNeighborIterator.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -30,21 +30,15 @@ DyadicCovariateReciprocityEffect::DyadicCovariateReciprocityEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double DyadicCovariateReciprocityEffect::calculateTieFlipContribution(
+double DyadicCovariateReciprocityEffect::calculateContribution(
 	int alter) const
 {
 	double change = 0;
-	int ego = this->pVariable()->ego();
+	int ego = this->ego();
 
-	if (this->pVariable()->inTieExists(alter) && !this->missing(ego, alter))
+	if (this->inTieExists(alter) && !this->missing(ego, alter))
 	{
 		change = this->value(ego, alter);
-
-		if (this->pVariable()->outTieExists(alter))
-		{
-			// The ego would loose the tie and consequently the covariate value
-			change = -change;
-		}
 	}
 
 	return change;
@@ -54,10 +48,11 @@ double DyadicCovariateReciprocityEffect::calculateTieFlipContribution(
 /**
  * Detailed comment in the base class.
  */
-double DyadicCovariateReciprocityEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double DyadicCovariateReciprocityEffect::statistic(
+	const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	// The summation network is a subnetwork of the (main) network.

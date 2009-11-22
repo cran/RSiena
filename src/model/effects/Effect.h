@@ -22,6 +22,7 @@ class EpochSimulation;
 class EffectInfo;
 class State;
 class Data;
+class Cache;
 
 
 // ----------------------------------------------------------------------------
@@ -39,27 +40,30 @@ class Effect
 public:
 	Effect(const EffectInfo * pEffectInfo);
 	virtual ~Effect();
-	
-	inline double weight() const;
-	void weight(double weight);
-	
+
+	inline double parameter() const;
+
 	inline int period() const;
-	
+	inline Cache * pCache() const;
+
 	const EffectInfo * pEffectInfo() const;
-	 
-	virtual void initializeBeforeSimulation(int period);
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 private:
 	// The effect info object that this effect is created for
 	const EffectInfo * lpEffectInfo;
-	
+
 	// The coefficient of this effect in the owner function
-	double lweight;
-	
+	double lparameter;
+
 	// The period of interest
 	int lperiod;
+
+	Cache * lpCache;
 };
 
 
@@ -71,9 +75,9 @@ private:
  * Returns the weight of this effect in the owner function, which is a weighted
  * sum of effects.
  */
-double Effect::weight() const
+double Effect::parameter() const
 {
-	return this->lweight;
+	return this->lparameter;
 }
 
 
@@ -83,6 +87,12 @@ double Effect::weight() const
 int Effect::period() const
 {
 	return this->lperiod;
+}
+
+
+Cache * Effect::pCache() const
+{
+	return this->lpCache;
 }
 
 }

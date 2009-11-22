@@ -13,8 +13,8 @@
 #include <stdexcept>
 
 #include "OneModeNetwork.h"
-#include "data/IncidentTieIterator.h"
-#include "data/CommonNeighborIterator.h"
+#include "network/IncidentTieIterator.h"
+#include "network/CommonNeighborIterator.h"
 
 namespace siena
 {

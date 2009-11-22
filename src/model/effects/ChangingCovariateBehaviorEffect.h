@@ -35,10 +35,11 @@ class ChangingCovariateBehaviorEffect : public BehaviorEffect
 {
 public:
 	ChangingCovariateBehaviorEffect(const EffectInfo * pEffectInfo);
-	virtual ~ChangingCovariateBehaviorEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
 	inline const ChangingCovariate * pCovariate() const;
@@ -56,8 +57,7 @@ private:
 /**
  * Returns the covariate this effect is interacting with.
  */
-const ChangingCovariate * ChangingCovariateBehaviorEffect::pCovariate()
-	const
+const ChangingCovariate * ChangingCovariateBehaviorEffect::pCovariate() const
 {
 	return this->lpCovariate;
 }

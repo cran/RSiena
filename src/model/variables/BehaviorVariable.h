@@ -54,9 +54,6 @@ public:
 	int value(int actor) const;
 	double centeredValue(int actor) const;
 	double similarity(int i, int j) const;
-	int predictorValue(int actor) const;
-	void predictorValue(int actor, int value);
-	double centeredPredictorValue(int actor) const;
 	const int * values() const;
 	int range() const;
 	double similarityMean() const;
@@ -66,7 +63,8 @@ private:
 		int difference) const;
 	double totalEndowmentContribution(int actor,
 		int difference) const;
-	void accumulateScores(int difference) const;
+	void accumulateScores(int difference, bool UpPossible,
+		bool downPossible) const;
 
 	// The observed data for this behavioral variable
 	BehaviorLongitudinalData * lpData;
@@ -92,10 +90,6 @@ private:
 	// Selection probability per each difference
 
 	double * lprobabilities;
-
-	// Predictor values of the variable: starting values with missings zeroed.
-
-	int * lpredictorValues;
 };
 
 }

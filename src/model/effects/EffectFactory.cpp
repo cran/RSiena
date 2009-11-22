@@ -12,11 +12,23 @@
 #include <stdexcept>
 
 #include "EffectFactory.h"
+#include "data/Data.h"
+#include "data/NetworkLongitudinalData.h"
 #include "model/EffectInfo.h"
 #include "model/effects/AllEffects.h"
 
 namespace siena
 {
+
+/**
+ * Constructor.
+ * @param[in] pData the data this factory will create effects for
+ */
+EffectFactory::EffectFactory(const Data * pData)
+{
+	this->lpData = pData;
+}
+
 
 /**
  * Creates and returns a concrete effect of the Effect class hierarchy
@@ -230,6 +242,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "effFromBeh")
 	{
 		pEffect = new BehaviorMainBehaviorEffect(pEffectInfo);
+	}
+	else if (effectName == "4-cycles")
+	{
+		pEffect = new FourCyclesEffect(pEffectInfo);
 	}
 	else
 	{

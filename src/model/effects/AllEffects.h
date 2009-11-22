@@ -29,6 +29,7 @@
 #include "DistanceTwoEffect.h"
 #include "DyadicCovariateMainEffect.h"
 #include "DyadicCovariateReciprocityEffect.h"
+#include "FourCyclesEffect.h"
 #include "IndegreeEffect.h"
 #include "IndegreeActivityEffect.h"
 #include "IndegreePopularityEffect.h"

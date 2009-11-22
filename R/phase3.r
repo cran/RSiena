@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://stat.gamma.rug.nl/siena.html
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
 # *
 # * File: phase3.r
 # *
@@ -11,7 +11,8 @@
 # * covariance matrix
 # *****************************************************************************/
 ##args: x model object, z control object
-phase3<- function(z, x, ...)
+##@phase3 siena07 Does phase 3
+phase3 <- function(z, x, ...)
 {
     ## initialize phase 3
     f <- FRANstore()
@@ -43,23 +44,34 @@ phase3<- function(z, x, ...)
     z$ssc <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
     z$sdf <- array(0, dim = c(z$n3, z$pp, z$pp))
     z$sims <- vector("list", z$n3)
-    ## revert to original requested method for phase 3
-    z$Deriv <- !x$FinDiff.method
-    if (x$FinDiff.method)
+    ## revert to original requested method for phase 3 unless symmetric
+    if (z$FinDiff.method && !x$FinDiff.method &&
+        (!is.null(z$FinDiffBecauseSymmetric)) && z$FinDiffBecauseSymmetric)
+    {
+        z$Deriv <- FALSE
+        z$FinDiff.method <- TRUE
+    }
+    else
+    {
+        z$Deriv <- !x$FinDiff.method
+        z$FinDiff.method <- x$FinDiff.method
+    }
+    if (z$FinDiff.method)
         Report('Estimation of derivatives by the finite difference method.\n\n',outf)
     else
         Report('Estimation of derivatives by the LR method (type 1).\n\n', outf)
     zsmall <- NULL
+    zsmall$FinDiff.method <- z$FinDiff.method
     zsmall$theta <- z$theta
     zsmall$Deriv <- z$Deriv
     zsmall$Phase <- z$Phase
     zsmall$nit <- z$nit
     xsmall<- NULL
-    xsmall$cconditional <- x$cconditional
+    zsmall$cconditional <- z$cconditional
     zsmall$condvar <- z$condvar
     if (!x$maxlike && !is.null(z$writefreq))
     {
-        if (x$FinDiff.method)
+        if (z$FinDiff.method)
             z$writefreq <- z$writefreq %/% z$pp
         else
             z$writefreq <- z$writefreq %/% 2
@@ -111,7 +123,7 @@ phase3<- function(z, x, ...)
                 writefreq <- z$writefreq
             }
         }
-        if (nit <= 5 || nit == 10 || nit %% z$writefreq == 0 ||
+        if (nit <= 5 || nit == 10 || (int==1 && nit %% z$writefreq == 0 ) ||
             (int > 1 && nit %in% nits[seq(z$writefreq + 1, x$n3 %/% int,
                                           z$writefreq)]))
         {
@@ -128,10 +140,10 @@ phase3<- function(z, x, ...)
             if (nit %% z$writefreq == 0 || (int > 1 &&
                        nit %% z$writefreq == 1) )
             {
-                increment <- ifelse(nit <= 5, 1,
-                                    ifelse(nit <= 10, 5, z$writefreq))
+                increment <- ifelse(nit <= 5, int,
+                                    ifelse(nit <= 10, 5, z$writefreq * int))
                 val<- getProgressBar(z$pb)
-                if (x$FinDiff.method)
+                if (z$FinDiff.method)
                     val <- val + increment * (z$pp + 1)
                 else
                     val <- val + increment
@@ -195,11 +207,12 @@ phase3<- function(z, x, ...)
     z
 }
 
+##@doPhase3it siena07 Does one iteration in phase 3
 doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
 {
     if (int == 1)
     {
-        zz <- x$FRAN(zsmall, xsmall, ...)
+        zz <- x$FRAN(zsmall, xsmall)
         if (!zz$OK)
         {
             z$OK <- zz$OK
@@ -211,7 +224,7 @@ doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
     else
     {
   ##zz <- clusterCall(cl, simstats0c, zsmall, xsmall)
-        zz <- clusterCall(cl, usesim, zsmall, xsmall, ...)
+        zz <- clusterCall(cl, usesim, zsmall, xsmall)
         z$n <- z$n + z$int
       #  browser()
    }
@@ -221,7 +234,7 @@ doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
         fra <- fra - z$targets
         z$sf[nit, ] <- fra
         z$sf2[nit, , ] <- zz$fra
-        z$sims[[nit]] <- zz$nets
+        z$sims[[nit]] <- zz$sims
     }
     else
     {
@@ -231,10 +244,10 @@ doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
             fra <- fra - z$targets
             z$sf[nit + (i - 1), ] <- fra
             z$sf2[nit + (i - 1), , ] <- zz[[i]]$fra
-            z$sims[[nit + (i - 1)]] <- zz[[i]]$nets
+            z$sims[[nit + (i - 1)]] <- zz[[i]]$sims
        }
     }
-    if (x$cconditional)
+    if (z$cconditional)
     {
         if (int==1)
             z$ntim[nit,]<- zz$ntim0
@@ -244,7 +257,7 @@ doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
                 z$ntim[nit+(i-1),]<- zz[[i]]$ntim0
         }
     }
-    if (x$FinDiff.method)
+    if (z$FinDiff.method)
     {
         z <- FiniteDifferences(z, x, fra + z$targets, cl, int, ...)
         z$sdf[nit:(nit + (int - 1)), , ] <- z$sdf0
@@ -271,6 +284,8 @@ doPhase3it<- function(z, x, nit, cl, int, zsmall, xsmall, ...)
         }
     z
 }
+
+##@phase3.2 siena07 Processing at end of phase 3
 phase3.2<- function(z,x,...)
 {
     z$timePhase3<-(proc.time()['elapsed']-z$ctime)/z$Phase3nits
@@ -294,7 +309,7 @@ phase3.2<- function(z,x,...)
     Report(c('Total of', z$n,'iterations.\n'),outf)
     Report(c('Parameter estimates based on', z$n-z$Phase3nits,
              'iterations,\n'), outf)
-    if (x$cconditional)
+    if (z$cconditional)
         Report(c('basic rate parameter',c('','s')[as.integer(z$observations>2)+1],
                  ' as well as \n'),outf)
     Report(c('convergence diagnostics, covariance and derivative matrices based on ',
@@ -303,7 +318,7 @@ phase3.2<- function(z,x,...)
     Report(c('Averages, standard deviations, ',
            'and t-ratios for deviations from targets:\n'),sep='',outf)
   #  Report(c(date(),'\n'),bof)
-    if (x$cconditional)
+    if (z$cconditional)
         Report('\nconditional moment estimation.',bof)
     else if (x$maxlike)
         Report('\nMaximum Likelihood estimation.',bof)
@@ -313,15 +328,16 @@ phase3.2<- function(z,x,...)
     Report(c('Averages, standard deviations, ',
         'and t-ratios for deviations from targets:\n'),bof,sep='')
     ##calculate t-ratios
-    dmsf<- diag(z$msf)
-    sf<- colMeans(z$sf)
-    use<- dmsf< 1e-20*z$scale*z$scale
+    dmsf <- diag(z$msf)
+    sf <- colMeans(z$sf)
+    use <- dmsf < 1e-20*z$scale*z$scale
     use2 <- abs(sf)<1e-10*z$scale
-    dmsf[use]<- 1e-20*z$scale[use]*z$scale[use]
-    tstat<- rep(NA,z$pp)
+    dmsf[use] <- 1e-20*z$scale[use]*z$scale[use]
+    tstat <- rep(NA,z$pp)
     tstat[!use]<- sf[!use]/sqrt(dmsf[!use])
     tstat[use&use2]<- 0
     tstat[use&!use2]<- 999
+    z$tstat <- tstat
     mymess1<- paste(format(1:z$pp,width=3), '. ',
                     format(round(sf, 4), width=8, nsmall=4), ' ',
                     format(round(sqrt(dmsf), 4) ,width=8, nsmall=4), ' ',
@@ -417,31 +433,18 @@ phase3.2<- function(z,x,...)
    z
 }
 
-
+##@CalulateDerivative3 siena07 Calculates derivative at end of phase 3
 CalculateDerivative3<- function(z,x)
 {
     f <- FRANstore()
     z$mnfra<- colMeans(z$sf)
-    if (x$FinDiff.method||x$maxlike)
+    if (z$FinDiff.method||x$maxlike)
     {
         dfra<- t(apply(z$sdf,c(2,3),mean))
     }
    else
     {
-       dfra <-rowSums(sapply(1:(f$observations-1), function(i,y,s)
-                              sapply(1:z$Phase3nits, function(j,y,s)
-                                     outer(y[j,], s[j,]),
-                                     y=matrix(z$sf2[,i,], ncol=z$pp),
-                                     s=matrix(z$ssc[,i,], ncol=z$pp))))
-        dim(dfra)<- c(z$pp, z$pp, z$Phase3nits)
-        dfra<- apply(dfra,c(1,2),sum)
-        dfra<- dfra/z$Phase3nits
-        tmp <- matrix(sapply(1 : (f$observations - 1), function(i)
-                                   outer(colMeans(z$sf2)[i,],
-                  colMeans(z$ssc)[i,])), ncol=f$observations-1)
-
-        dfra<- dfra - matrix(rowSums(tmp), nrow=z$pp)
-
+        dfra <-  derivativeFromScoresAndDeviations(z$ssc, z$sf2)
         if (any(diag(dfra) < 0))
         {
             sub <- which(diag(dfra) < 0)
@@ -464,6 +467,7 @@ CalculateDerivative3<- function(z,x)
     z
 }
 
+##@PotentialNR siena07 Calculates change if NR step done now
 PotentialNR<-function(z,x,MakeStep=FALSE)
 {
     z$dfrac<- z$dfra

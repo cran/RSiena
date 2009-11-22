@@ -8,6 +8,7 @@
 # * Description: This module contains the code for the gui for creation of a
 # * Siena data object.
 # *****************************************************************************/
+##@installGui Miscellaneous
 installGui <- function()
 {
     if (.Platform$OS.type =="windows")
@@ -25,9 +26,10 @@ installGui <- function()
     }
 }
 
-siena01Gui <- function()
+##@siena01Gui siena01
+siena01Gui <- function(getDocumentation=FALSE)
 {
-   ## DONE (FALSE) ## this is so we can exit cleanly
+   ##DONE (FALSE) ## this is so we can exit cleanly, but seems redundant here
     maxDegree <- NULL
     nMaxDegree <- NULL
     resultsFileID <-  NULL
@@ -42,6 +44,7 @@ siena01Gui <- function()
     ndepvars <- 0
     nettypes <- NULL
     estimVar <- NULL
+    effectsVar <-  NULL
     condVar <- NULL
     gainVar  <-  NULL
     stdstartVar <- NULL
@@ -59,7 +62,7 @@ siena01Gui <- function()
     mydata <- NULL
     myeff <- NULL
     mymodel <-  NULL
-
+    ##@addFile internal siena01Gui
     addFile<- function()
     {
         noFiles <<- noFiles+1
@@ -94,6 +97,7 @@ siena01Gui <- function()
         initialDir <<- dirname(filename[noFiles])
     }
 
+    ##@addTableRow internal siena01Gui
     addTableRow <- function(i)
     {
         tkinsert(table1,"rows","end","1")
@@ -114,7 +118,8 @@ siena01Gui <- function()
         tkconfigure(table1, height=i+1)
     }
 
-   applyFn <- function() ## prompt to save, then try to create data, then
+    ##@applyFn internal siena01Gui
+    applyFn <- function() ## prompt to save, then try to create data, then
         ## sienaModelOptions
     {
         if (noFiles == 0)
@@ -149,12 +154,13 @@ siena01Gui <- function()
         {
             mydata <<- resp$mydata
             myeff <<- resp$myeff
-            mymodel <<- model.create(fn=simstats0c)
-            savedObjectName <- paste(modelName, ".RData", sep="")
+            mymodel <<- sienaModelCreate(fn=simstats0c)
+            savedObjectName <- paste(modelName, ".Rdata", sep="")
             save(mydata, myeff, mymodel, file=savedObjectName)
             sienaModelOptions()
         }
     }
+    ##@clearFn internal siena01Gui
     clearFn <- function()
     {
         noFiles <<- 0
@@ -166,14 +172,24 @@ siena01Gui <- function()
         lapply(formatspins, function(x) tkset(x,'matrix' ))
 
     }
+    ##@deleteTableRow internal siena01Gui
     deleteTableRow <- function(i)
     {
+        ## unmap the format window from the table
         mypos <- paste(i,',4', sep='')
         tkwindow.configure(table1, mypos, window="")
+        ## delete the window
         tcl(table1, 'window', 'delete', mypos)
+        ## remove the tcl variable behind it
+        formatspins <<- formatspins[-i]
+        ## unmap the type window from the table
         mypos <- paste(i,',7', sep='')
         tkwindow.configure(table1, mypos, window="")
+        ## delete the window
         tcl(table1, 'window', 'delete', mypos)
+        ## remove the tcl variable behind it
+        typespins <<- typespins[-i]
+        ## delete the row from the table
         tkdelete(table1, 'rows', i, '1')
         tableRows <<- tableRows - 1
         ##  sessionFromTcl()
@@ -185,6 +201,7 @@ siena01Gui <- function()
         else
             files <<- NULL
     }
+    ##@editFile internal siena01Gui
     editFile<- function()
     {
         ##try: may be nothing selected or a box beneath spinbox
@@ -210,6 +227,7 @@ siena01Gui <- function()
         tcl('wm', 'attributes', tt, '-topmost', 0)
         invisible()
     }
+    ##@fromFileFn internal siena01Gui
     fromFileFn <- function()
     {
 
@@ -232,25 +250,32 @@ siena01Gui <- function()
         session <<- sessionFromFile(loadfilename, tk=TRUE)
         procSession()
     }
+    ##@fromFileContFn internal siena01Gui
     fromFileContFn <- function()
     {
         fromFileFn()
         ## try to read in the project object
         savedModelName <- paste(modelName, ".Rdata", sep='')
-        if (inherits(resp <- try(load(savedModelName, .GlobalEnv),
+        #browser()
+        if (inherits(resp <- try(load(savedModelName),
                                  silent=TRUE), "try-error"))
         {
             tkmessageBox(message="Unable to load saved model", icon="error")
         }
         else
         {
+            mydata <<- mydata
+            mymodel <<- mymodel
+            myeff <<- myeff
             sienaModelOptions()
         }
     }
+    ##@helpFn internal siena01Gui
     helpFn <- function() ## display the manual
     {
         RShowDoc("s_man400", package="RSiena")
     }
+    ##@myStop internal siena01Gui
     myStop<- function()
     {
         if (!DONE() && exists("mydata") && exists("myeff") &&
@@ -266,6 +291,7 @@ siena01Gui <- function()
         tkdestroy(tt)
         DONE(TRUE)
     }
+    ##@procSession internal siena01Gui
     procSession <- function(replace=FALSE) ##
     {
         if (replace)
@@ -296,6 +322,7 @@ siena01Gui <- function()
         tcl(table1, "activate", "1, 3")
         tcl(table1, "selection", 'set', paste('1', ',3', sep=''))
     }
+    ##@removeFile internal siena01Gui
     removeFile <- function()
     {
         selcursor <- tclvalue(tcl(table1, 'curselection'))
@@ -310,6 +337,7 @@ siena01Gui <- function()
         tcl(table1, "selection", "clear", "all") ## unselect everything
         tcl(table1, "activate", '1, 4')
     }
+    ##@saveFn internal siena01Gui
     saveFn <- function() ## saves session file
     {
         if (noFiles == 0)
@@ -341,6 +369,7 @@ siena01Gui <- function()
             modelName <<- substring(modelName, 1, (ipos - 1))
         }
     }
+    ##@savefileFn internal siena01Gui
     savefileFn <- function() ## saves data and model
     {
         mymodel <<- modelFromTcl()
@@ -354,12 +383,12 @@ siena01Gui <- function()
             init <- "Siena"
         }
         savefilename <- tclvalue(tkgetSaveFile(filetypes=modelFiletypes,
-                                               defaultextension='.RData',
+                                               defaultextension='.Rdata',
                                                initialfile=init))
         if (savefilename != "")
             save(mymodel, mydata, myeff, file=savefilename)
     }
-
+    ##@sessionFromTcl internal siena01Gui
     sessionFromTcl <- function()
     {
         rows <- as.numeric(strsplit(tclvalue(tkconfigure(table1,  '-rows')),
@@ -402,6 +431,7 @@ siena01Gui <- function()
         ##one day we will validate too!
     }
 
+    ##@modelFromTcl internal siena01Gui
     modelFromTcl <- function() ## used by stop function and modeloptions screen
     {
         model <- NULL
@@ -466,13 +496,30 @@ siena01Gui <- function()
         class(model) <- "sienaModel"
         model
     }
+    ##@sienaModelOptions internal siena01Gui
     sienaModelOptions <- function()
     {
+        ##@editFn internal siena01Gui
         editFn <- function()
         {
+            ## split effects if a variable is selected
+            theseEffects <- tclvalue(effectsVar)
+            myeffcopy <- myeff
+            if (theseEffects != "")
+            {
+                myeffcopy <- myeff[myeff$name == theseEffects, ]
+            }
+            if (is.null(myeffcopy$effectNumber))
+            {
+                myeffcopy <- cbind(effectNumber=1:nrow(myeff), myeff,
+                               effect1=rep(NA, nrow(myeff)),
+                               effect2=rep(NA, nrow(myeff)),
+                               effect3=rep(NA,nrow(myeff)))
+            }
             editCols <- c("name", "effectName", "type", "include", "fix",
-                          "test", "initialValue", "parm")
-            effEdit <- myeff[, editCols]
+                          "test", "initialValue", "parm", "effectNumber",
+                          "effect1", "effect2", "effect3")
+            effEdit <- myeffcopy[, editCols]
             for (i in c("include", "fix", "test"))
             {
                 effEdit[,i] <- as.numeric(effEdit[,i])
@@ -482,15 +529,18 @@ siena01Gui <- function()
             {
                 effEdit[,i] <- as.logical(effEdit[,i])
             }
-            myeff[, editCols] <<- effEdit
-          #  browser()
-        ## make sure this window is top with a global grab, bu only for a second
-        tcl('wm', 'attributes', tt, '-topmost', 1)
-        Sys.sleep(0.1)
-        tcl('wm', 'attributes', tt, '-topmost', 0)
-      #      tkfocus(tt)
+            myeffcopy[, editCols] <- effEdit
+            myeff[myeff$name == theseEffects, ] <<- myeffcopy
+            ##  browser()
+            ## make sure this window is top with a global grab,
+            ##but only for a second
+            tcl('wm', 'attributes', tt, '-topmost', 1)
+            Sys.sleep(0.1)
+            tcl('wm', 'attributes', tt, '-topmost', 0)
+                                        #      tkfocus(tt)
         }
-         estimateFn <- function()
+        ##@estimateFn internal siena01Gui
+        estimateFn <- function()
         {
             ##create mymodel
             mymodel <<- modelFromTcl()
@@ -498,7 +548,7 @@ siena01Gui <- function()
             {
                 resp <- try(siena07(mymodel, data=mydata, effects=myeff,
                                     useCluster=TRUE, initC=TRUE,
-                                    nbrNodes=mymodel$nbrnodes),
+                                    nbrNodes=mymodel$nbrNodes),
                             silent=TRUE)
             }
             else
@@ -513,7 +563,7 @@ siena01Gui <- function()
             else ## update the thetas to use next time
             {
                 estimAns <<- resp
-                if (mymodel$cconditional)
+                if (estimAns$cconditional)
                 {
                     ## z$condvar has the subscripts of included parameters that
                     ## correspond to the conditional variable
@@ -546,10 +596,12 @@ siena01Gui <- function()
                 tkfocus(resultsframe)
             }
         }
+        ##@modelhelpFn internal siena01Gui
         modelhelpFn <- function()
         {
             RShowDoc("s_man400", package="RSiena")
         }
+        ##@randomseedFn internal siena01Gui
         randomseedFn <- function()
         {
             val <- as.numeric(tclvalue(rsVar))
@@ -563,6 +615,7 @@ siena01Gui <- function()
                 tkgrid(rsspin, row=3, column=1)
             }
         }
+        ##@clustersFn internal siena01Gui
         clustersFn <- function()
         {
             val <- as.numeric(tclvalue(clustVar))
@@ -576,6 +629,7 @@ siena01Gui <- function()
                 tkgrid(clustspin, row=4, column=1)
             }
         }
+        ##@returnFn internal siena01Gui
         returnFn <- function()
         {
             ans <- tkmessageBox(message="Do you want to save the model?",
@@ -595,6 +649,7 @@ siena01Gui <- function()
             tkpack(frame1, side='top', padx=5)
             tkpack(f0, side="bottom")
         }
+        ##@showFn internal siena01Gui
         showFn <- function()
         {
             editCols <- c("name", "effectName", "type", "include", "fix",
@@ -605,12 +660,14 @@ siena01Gui <- function()
                 effEdit[,i] <- as.numeric(effEdit[,i])
             }
             edit(effEdit, edit.row.names=FALSE)
-          ##  tkfocus(tt)
-        ## make sure this window is top with a global grab, bu only for a second
-        tcl('wm', 'attributes', tt, '-topmost', 1)
-        Sys.sleep(0.1)
-        tcl('wm', 'attributes', tt, '-topmost', 0)
+            ##  tkfocus(tt)
+            ## make sure this window is top with a global grab,
+            ## but only for a second
+            tcl('wm', 'attributes', tt, '-topmost', 1)
+            Sys.sleep(0.1)
+            tcl('wm', 'attributes', tt, '-topmost', 0)
         }
+        ##@resultsFn internal siena01Gui
         resultsFn <- function()
         {
             if (resultsOpen)
@@ -636,6 +693,7 @@ siena01Gui <- function()
                 resultsOpen <<- TRUE
             }
         }
+        ##@saveresultsFn internal siena01Gui
         saveresultsFn <- function()
         {
             if (is.null(estimAns))
@@ -654,13 +712,13 @@ siena01Gui <- function()
                 init <- "sienaResults"
             }
             savefilename <- tclvalue(tkgetSaveFile(filetypes=modelFiletypes,
-                                                   defaultextension='.RData',
+                                                   defaultextension='.Rdata',
                                                    initialfile=init))
             if (savefilename != "")
                 save(estimAns, file=savefilename)
         }
         ########################################
-        ## start of ModelOptions function proper
+        ## start of sienaModelOptions function proper
         ########################################
         resultsOpen <- FALSE
         if (inherits(mydata, "sienaGroup"))
@@ -710,17 +768,29 @@ siena01Gui <- function()
 
         ## create and display top inner frame
         optf <- tkwidget(optiontt, 'frame', borderwidth=2, relief="groove")
-        tkgrid(optf, padx=5, pady=5, columnspan=2)
+        tkgrid.configure(optf, padx=5, pady=5)#), columnspan=2)
+        maxdf <- tkframe(optf, borderwidth=2, relief='groove')
+        tkgrid.configure(maxdf, padx=5, pady=5, rowspan=4, column=4, row=0)
 
         ## create and display estimation method option box and its label
         estimlist <- c('0. unconditional Method of Moments',
                        '1. conditional Method of Moments')
         estimVar <<- tclVar()
-        tclvalue(estimVar) <<- '0. Unconditional Method of Moments'
+        if (ndepvars == 1)
+        {
+            tclvalue(estimVar) <<- '1. conditional Method of Moments'
+        }
+        else
+        {
+            tclvalue(estimVar) <<- '0. unconditional Method of Moments'
+        }
         estim <- ttkcombobox(optf, values=estimlist, state="readonly",
                              textvariable=estimVar, width=30)
         estimlab <- tklabel(optf, text='Estim. method')
         tkgrid(estimlab, estim)
+
+        tkgrid.configure(estimlab, column=0, row=0)
+        tkgrid.configure(estim, column=1, row=0)
 
         ## create options box to select a conditional variable
         if (ndepvars > 1)
@@ -729,7 +799,9 @@ siena01Gui <- function()
             condvarl <- ttkcombobox(optf, values= depvarnames, state='readonly',
                                     textvariable=condVar, width=10)
             condlab <- tklabel(optf, text=' Conditioning Variable ')
-            tkgrid(condlab, condvarl)
+            tkgrid(condlab,  row=1, column=0)
+            tkgrid( condvarl, row=1, column=1)
+            tclvalue(condVar) <<- depvarnames[1]
         }
         ## create and display initial value of gain parameter box
         gainlab <- tklabel(optf, text=' Initial value of gain parameter ')
@@ -748,6 +820,7 @@ siena01Gui <- function()
         tclvalue(stdstartVar) <<- '0'
         stdstart <- tkcheckbutton(optf, text=' Standard starting value ',
                                   variable=stdstartVar)
+        tkgrid(stdstart, row=2, sticky='w', columnspan=2)
 
         ## create and display box for number of phase 2 subphases
         ph2lab <- tklabel(optf, text=' Number of phase 2 subphases ')
@@ -755,7 +828,6 @@ siena01Gui <- function()
         tclvalue(ph2spinVar) <<- 4
         ph2spin <-  tkwidget(optf, 'spinbox', from=0, to=10, width=10,
                              textvariable=ph2spinVar, cursor="arrow")
-        tkgrid(stdstart, row=2, sticky='w')
         tkgrid(ph2lab, row=1, column=2, padx=5)
         tkgrid(ph2spin, row=1, column=3, sticky='w', padx=5)
 
@@ -767,19 +839,20 @@ siena01Gui <- function()
         rsspinVar <<- tclVar()
         rsspin <-  tkwidget(optf, 'spinbox', from=0, to=1000000, width=10,
                             textvariable=rsspinVar, cursor="arrow")
-        tkgrid(rs, row=3, sticky='w')
+        tkgrid(rs, row=3, sticky='w', columnspan=2)
 
         ##create and display fields for number of processors entry
         clustVar <<- tclVar()
         tclvalue(clustVar) <<- '0'
         clust <- tkcheckbutton(optf,
-                               text=' Number of processors: ',
+                               text=' Multiple processors: ',
                                variable=clustVar,
                                command=clustersFn)
         clustspinVar <<- tclVar()
         clustspin <-  tkwidget(optf, 'spinbox', from=2, to=1000, width=10,
                             textvariable=clustspinVar, cursor="arrow")
-        tkgrid(clust, row=4, sticky='w')
+        tkgrid(clust, row=4, sticky='w', columnspan=2)
+
         ##create and display field for derivative method
         derivlab <- tklabel(optf, text=' Derivative method ')
         derivlist <- c('0. crude Monte Carlo',
@@ -787,7 +860,7 @@ siena01Gui <- function()
         derivVar <<- tclVar()
         tclvalue(derivVar) <<- '1. score function'
         derivw <- ttkcombobox(optf, values=derivlist, state="readonly",
-                              textvariable=derivVar, width=20)
+                              textvariable=derivVar, width=18)
         tkgrid(derivlab,  row=2, column=2, sticky='w', padx=5)
         tkgrid(derivw,  row=2, column=3, sticky='w', padx=5)
 
@@ -801,8 +874,6 @@ siena01Gui <- function()
         tkgrid(ph3spin, row=3, column=3, sticky='w', padx=5)
 
         ##create and display field for restricting degree of model
-        maxdf <- tkframe(optiontt, borderwidth=2, relief='groove')
-        tkgrid(maxdf)
         maxdfVar <<- tclArray()
         xscr2 <- tkscrollbar(maxdf, orient="horizontal",
                              command=function(...)tkxview(table2,...))
@@ -826,7 +897,7 @@ siena01Gui <- function()
             tcl(table2, 'tag','configure','title',fg='SystemHighlightText',
                 bg='SystemHighlight')
         }
-        maxdfVar[[0,1]] <<- as.tclObj('Dependent NetWork Variable', drop=TRUE)
+        maxdfVar[[0,1]] <<- as.tclObj("NetWork", drop=TRUE)
         maxdfVar[[0,2]] <<- as.tclObj('Max Degree', drop=TRUE)
         for (i in 1:nMaxDegree)
         {
@@ -836,18 +907,28 @@ siena01Gui <- function()
         tkpack(yscr2, fill="y", side="right")
         tkpack(xscr2, fill="x", side="bottom")
         tkpack(table2)
-        tcl(table2, 'width', 1, 20)
-        tcl(table2, 'width', 2, 15)
+        tcl(table2, 'width', 1, 15)
+        tcl(table2, 'width', 2, 10)
 
         ## create and display the frame for the buttons.
         comf <- tkframe(optiontt,  borderwidth=2, relief='groove')
-        tkgrid(comf, row=1, column=1)
+        tkgrid(comf, row=1, column=0)
 
         ## create the buttons
-        editbut <- tkbutton(comf, command=editFn, text=' Edit effects ',
-                            width=22)
+        ## create options box to select an effects list
+        ## if (ndepvars > 1)
+        ## {
+        effectsVar <<- tclVar()
+        effectsvarl <- ttkcombobox(comf,
+                                   values= depvarnames, state='readonly',
+                                   textvariable=effectsVar, width=10)
+        effectslab <- tklabel(comf, text=' Effects dependent variable ')
+        ##}
+        editbut <- tkbutton(comf, command=editFn,
+                            text=' Edit effects (selected variable) ',
+                            width=27)
         showbut <- tkbutton(comf, command=showFn,
-                            text=' Show included effects ', width=22)
+                            text=' Show included effects (all) ', width=22)
         applybut <- tkbutton(comf, command=estimateFn, text=' Estimate ',
                              width=22)
         saveresultsbut <- tkbutton(comf, command=saveresultsFn,
@@ -860,10 +941,18 @@ siena01Gui <- function()
                               text=' Exit Model Options ', width=22)
         helpbut <- tkbutton(comf, command=modelhelpFn, text=' Help ',
                             width=22)
-        tkgrid(editbut, showbut, applybut,  savefilebut, padx=5, pady=5)
-        tkgrid(savefilebut, resultsbut, saveresultsbut,
-               returnbut, helpbut, padx=5, pady=5)
-
+        ## if (ndepvars > 1)
+        ## {
+        tkgrid(effectslab, effectsvarl,
+               applybut,  savefilebut, returnbut, padx=5, pady=5)
+        ##}
+        ##else
+        ## {
+        ##   tkgrid(editbut, showbut, applybut,  savefilebut, padx=5, pady=5)
+        ## }
+        tkgrid(editbut, showbut,  resultsbut, saveresultsbut,
+                helpbut, padx=5, pady=5)
+        tkgrid(effectsvarl, sticky="w")
         ## make sure this window is top with a global grab, bu only for a second
         tcl('wm', 'attributes', tt, '-topmost', 1)
         Sys.sleep(0.1)
@@ -872,13 +961,15 @@ siena01Gui <- function()
     ## ##############################################
     ## start of siena01Gui function proper
     ## ##############################################
-
+    if (getDocumentation)
+    {
+        return(getInternals())
+    }
     ## check we have the right libraries
     library(tcltk)
     if (!inherits(tclRequire("Tktable"), "tclObj"))
-        stop("This function needs the package TkTable: install it, or use ",
-             "an alternative data entry method: see RSiena help page")
-
+        stop("This function needs the tcl/tk package TkTable: install it, ",
+             "or use an alternative data entry method: see RSiena help page")
     ## directory for startup
     initialDir <- getwd()
 
@@ -983,7 +1074,7 @@ siena01Gui <- function()
                   )
 
     ##create spinboxes for type
-    typelist <- c("network", "behavior", "constant covariate",
+    typelist <- c("network", "bipartite", "behavior", "constant covariate",
                   "changing covariate", "constant dyadic covariate",
                   "changing dyadic covariate", "exogenous event")
     typespins <- lapply(1:tableRows, function(x)

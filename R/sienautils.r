@@ -9,6 +9,7 @@
 # * objects from vectors etc
 # *****************************************************************************/
 
+##@sienaCompositionChange Create
 sienaCompositionChange <- function(changelist, nodeSet='Actors', option=1)
 {
     if (!is.list(changelist))
@@ -33,6 +34,7 @@ sienaCompositionChange <- function(changelist, nodeSet='Actors', option=1)
     attr(out, "ccOption") <- option
     out
 }
+##@sienaCompositionChangeFromFile Create
 sienaCompositionChangeFromFile <- function(filename, nodeSet='Actors',
                                            fileobj=NULL, option=1)
 {
@@ -69,6 +71,7 @@ sienaCompositionChangeFromFile <- function(filename, nodeSet='Actors',
     attr(out, "ccOption") <- option
     out
 }
+##@sienaNodeSet Create
 sienaNodeSet <- function(n, nodeSetName='Actors', names=NULL)
 {
     if (!is.numeric(n))
@@ -84,6 +87,7 @@ sienaNodeSet <- function(n, nodeSetName='Actors', names=NULL)
     out
 }
 
+##@coCovar Create
 coCovar <- function(val, nodeSet='Actors')
 {
     ##vector, numeric or factor
@@ -96,7 +100,7 @@ coCovar <- function(val, nodeSet='Actors')
     attr(out, 'nodeSet') <- nodeSet
     out
 }
-
+##@varCovar Create
 varCovar<- function(val, nodeSet='Actors')
 {
     ##matrix, numeric or factor, nrow = nactors and cols = observations-1
@@ -110,6 +114,7 @@ varCovar<- function(val, nodeSet='Actors')
     out
 }
 
+##@coDyadCovar Create
 coDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
 {
     ##matrix, numeric or factor, dims= those of net - must validate later
@@ -127,6 +132,7 @@ coDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
     attr(out, 'sparse') <- FALSE ### for now!
     out
 }
+##@varDyadCovar Create
 varDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
 {
     ##array, numeric or factor, dims= those of net by observations-1 -
@@ -147,7 +153,7 @@ varDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
     attr(out, 'sparse') <- FALSE ### for now!
     out
 }
-
+##@sienaNet Create
 sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
                     nodeSet='Actors', sparse=is.list(netarray))
 {
@@ -222,12 +228,14 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
         if (!is.character(nodeSet))
             stop ('nodeset should be a character string')
     }
-    if (type != 'behavior')
+    if (type != "behavior")
+    {
         if (sparse)
         {
-             if (!all(sapply(netarray, function(x)
-                            {
-                                tmp <- x@x
+            netarray <- lapply(netarray, function(x)as(drop0(x), "dgTMatrix"))
+            if (!all(sapply(netarray, function(x)
+                        {
+                            tmp <- x@x
                                 all(is.na(tmp) | tmp == 1 | tmp == 10 |
                                     tmp == 11 )
                             }
@@ -239,7 +247,7 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
             if (!all(netarray %in% c(0, 1, 10, 11) | is.na(netarray)))
                 stop('entries in networks must be 0, 1, 10 or 11')
         }
-
+    }
     obj <- netarray
     class(obj) <- ('sienaNet')
     attr(obj, 'type') <- type
@@ -248,7 +256,7 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
     attr(obj, 'netdims') <- netdims
     obj
 }
-
+##@vallidateSienaNet Miscellaneous not used yet
 validateSienaNet <- function(net)
 {
     if (!inherits(net,'sienaNet'))

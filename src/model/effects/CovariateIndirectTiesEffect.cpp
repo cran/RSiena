@@ -12,9 +12,9 @@
 #include <stdexcept>
 
 #include "CovariateIndirectTiesEffect.h"
-#include "data/Network.h"
+#include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
-#include "data/IncidentTieIterator.h"
+#include "network/IncidentTieIterator.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
 
@@ -34,7 +34,7 @@ CovariateIndirectTiesEffect::CovariateIndirectTiesEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double CovariateIndirectTiesEffect::calculateTieFlipContribution(int alter)
+double CovariateIndirectTiesEffect::calculateContribution(int alter)
 	const
 {
 	double change = 0;
@@ -43,7 +43,7 @@ double CovariateIndirectTiesEffect::calculateTieFlipContribution(int alter)
 	// we loose the distance 2 pair (i,j) by introducing the tie between
 	// them.
 
-	if (this->pVariable()->pTwoPathTable()->get(alter) != 0)
+	if (this->pTwoPathTable()->get(alter) != 0)
 	{
 		change -= this->value(alter);
 	}
@@ -53,15 +53,14 @@ double CovariateIndirectTiesEffect::calculateTieFlipContribution(int alter)
 
 	int criticalTwoPathCount = 0;
 
-	if (this->pVariable()->outTieExists(alter))
+	if (this->outTieExists(alter))
 	{
 		criticalTwoPathCount = 1;
 	}
 
 	// Consider each outgoing tie of the alter j.
 
-	for (IncidentTieIterator iter =
-			this->pVariable()->pNetwork()->outTies(alter);
+	for (IncidentTieIterator iter = this->pNetwork()->outTies(alter);
 		iter.valid();
 		iter.next())
 	{
@@ -72,43 +71,26 @@ double CovariateIndirectTiesEffect::calculateTieFlipContribution(int alter)
 		// for the pair <i,h> to be a valid distance two pair,
 		// then increment the contribution.
 
-		if (h != this->pVariable()->ego() &&
-			!this->pVariable()->outTieExists(h) &&
-			this->pVariable()->pTwoPathTable()->get(h) == criticalTwoPathCount)
+		if (h != this->ego() &&
+			!this->outTieExists(h) &&
+			this->pTwoPathTable()->get(h) == criticalTwoPathCount)
 		{
 			change += this->value(h);
 		}
 	}
 
-	// For dissolutions of ties the contribution works in the opposite way.
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
-	}
 	return change;
 }
 
 
 /**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions.
- */
-bool CovariateIndirectTiesEffect::usesTable(const ConfigurationTable * pTable)
-	const
-{
-	return pTable == this->pVariable()->pTwoPathTable();
-}
-
-
-/**
  * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * the evaluation function.
  */
-double CovariateIndirectTiesEffect::evaluationStatistic(Network * pNetwork)
-	const
+double CovariateIndirectTiesEffect::evaluationStatistic() const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	const Network * pStartMissingNetwork =
@@ -218,12 +200,9 @@ double CovariateIndirectTiesEffect::evaluationStatistic(Network * pNetwork)
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
+ * the endowment function.
  */
-double CovariateIndirectTiesEffect::endowmentStatistic(Network * pInitialNetwork,
+double CovariateIndirectTiesEffect::endowmentStatistic(
 	Network * pLostTieNetwork) const
 {
 	throw logic_error(

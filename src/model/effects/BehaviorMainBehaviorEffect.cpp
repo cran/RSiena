@@ -31,15 +31,16 @@ BehaviorMainBehaviorEffect::BehaviorMainBehaviorEffect(
  * Calculates the change in the statistic corresponding to this effect if
  * the given actor would change his behavior by the given amount.
  */
-double BehaviorMainBehaviorEffect::calculateChangeContribution(int
-	actor, int difference) const
+double BehaviorMainBehaviorEffect::calculateChangeContribution(int actor,
+	int difference) const
 {
 	// The formula for the effect:
 	// s_i(x) = v_i *  c_i
 	// We need to calculate the change delta in s_i(x), if we changed
 	// v_i to v_i + d (d being the given amount of change in v_i).
 	// This is d * c_i.
-	return difference * this->pBehaviorVariable()->centeredValue(actor);
+
+	return difference * this->centeredInteractionValue(actor);
 }
 
 /**
@@ -49,15 +50,13 @@ double BehaviorMainBehaviorEffect::calculateChangeContribution(int
 double BehaviorMainBehaviorEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
-
-	const BehaviorVariable * pBehaviorVariable = this->pBehaviorVariable();
+	int n = this->n();
 
 	for (int i = 0; i < n; i++)
 	{
-		statistic += currentValues[i] *
-			pBehaviorVariable->centeredPredictorValue(i);
+		statistic += currentValues[i] * this->centeredInteractionValue(i);
 	}
+
 	return statistic;
 }
 
@@ -71,16 +70,13 @@ double BehaviorMainBehaviorEffect::endowmentStatistic(const int * difference,
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
-
-	const BehaviorVariable * pBehaviorVariable = this->pBehaviorVariable();
+	int n = this->n();
 
 	for (int i = 0; i < n; i++)
 	{
 		if (difference[i] > 0)
 		{
-			statistic += currentValues[i] *
-				pBehaviorVariable->centeredPredictorValue(i);
+			statistic += currentValues[i] * this->centeredInteractionValue(i);
 		}
 	}
 

@@ -6,11 +6,13 @@
   Siena data objects.
 }
 \usage{
-sienaGroupCreate(objlist, singleOK = FALSE)
+sienaGroupCreate(objlist, singleOK = FALSE, getDocumentation=FALSE)
 }
 \arguments{
   \item{objlist}{ List of objects of class "siena" }
   \item{singleOK}{ Boolean: is it OK to only have one object?}
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
 }
 \details{
 

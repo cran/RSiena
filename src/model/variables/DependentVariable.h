@@ -102,8 +102,6 @@ public:
 	double inDegreeScore(const NetworkVariable * pNetwork) const;
 	double reciprocalDegreeScore(const NetworkVariable * pNetwork) const;
 	double inverseOutDegreeScore(const NetworkVariable * pNetwork) const;
-	void changingCovariatePeriod(int period);
-	int changingCovariatePeriod() const;
 
 protected:
 	inline EpochSimulation * pSimulation() const;
@@ -164,11 +162,6 @@ private:
 	// of the current period
 
 	int lsimulatedDistance;
-
-	// Which value of changing covariate applies to this dependent variable.
-	// This will be the same as the current period except when calculating
-	// observed values, when it will be one less than the current period.
-	int lchangingCovariatePeriod;
 
 	// The score for the basic rate parameter for this variable for this period
 	double lbasicRateScore;

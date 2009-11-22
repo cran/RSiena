@@ -1,14 +1,14 @@
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.0.5
-Date: 2009-08-10
+Version: 1.0.8
+Date: 2009-11-22
 Author: Various
-Depends: R (>= 2.7.0)
+Depends: R (>= 2.7.0), xtable
 Imports: Matrix
-Suggests: tcltk, snow, rlecuyer, network
+Suggests: tcltk, snow, rlecuyer, network, codetools
 SystemRequirements: GNU make, tcl/tk 8.5, Tktable
-Maintainer: <ruth@stats.ox.ac.uk>
+Maintainer: Ruth Ripley <ruth@stats.ox.ac.uk>
 Description: Fits models to longitudinal networks
 License: GPL (>= 2)
 LazyLoad: yes
@@ -16,6 +16,6 @@ LazyData: yes
 URL: http://www.stats.ox.ac.uk/~snijders/siena
 Repository: CRAN
 Repository/R-Forge/Project: rsiena
-Repository/R-Forge/Revision: 11
-Date/Publication: 2009-08-19 08:14:31
-Packaged: 2009-08-14 20:10:13 UTC; rforge
+Repository/R-Forge/Revision: 39
+Date/Publication: 2010-01-13 11:29:19
+Packaged: 2010-01-12 21:09:00 UTC; rforge

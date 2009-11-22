@@ -9,10 +9,13 @@
 # * detachment.
 # *****************************************************************************/
 #dllpath <- ''
+##@imagepath Objects/Path Path for image of Siena
 imagepath <- ''
 ##csvpath <- ''
 ## or .onAttach?
+##@pkgpath Objects/Path Path for installation of siena.exe
 pkgpath <- ''
+##@.onLoad Miscellaneous Start-up processing
 .onLoad <- function(libname,pkgname){
 #   dllpath <<- if (nzchar(.Platform$r_arch))
 ##       file.path(libname, pkgname, "libs", .Platform$r_arch,
@@ -29,6 +32,7 @@ pkgpath <- ''
  #  cat (libname,pkgname,'\n')
 }
 
+##@.onUnload Miscellaneous Unload processing
 .onUnload <- function(libpath) {
     library.dynam.unload("RSiena", libpath)
 }

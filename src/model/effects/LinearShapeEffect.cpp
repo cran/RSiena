@@ -43,12 +43,13 @@ double LinearShapeEffect::calculateChangeContribution(int actor,
 double LinearShapeEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
 	for (int i = 0; i < n; i++)
 	{
 		statistic += currentValues[i];
 	}
+
 	return statistic;
 }
 
@@ -63,7 +64,8 @@ double LinearShapeEffect::endowmentStatistic(const int * difference,
 {
 	double statistic = 0;
 
-	int n = this->pVariable()->n();
+	int n = this->n();
+
 	for (int i = 0; i < n; i++)
 	{
 		if (difference[i] > 0)
@@ -71,6 +73,7 @@ double LinearShapeEffect::endowmentStatistic(const int * difference,
 			statistic += currentValues[i]  ;
 		}
 	}
+
 	return statistic;
 }
 

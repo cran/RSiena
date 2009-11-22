@@ -11,7 +11,7 @@
 
 #include "StructuralRateEffect.h"
 #include "utils/Utils.h"
-#include "data/OneModeNetwork.h"
+#include "network/OneModeNetwork.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/EffectValueTable.h"
 

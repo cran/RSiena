@@ -10,8 +10,8 @@
  *****************************************************************************/
 
 #include "BetweennessEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "data/NetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
@@ -31,15 +31,14 @@ BetweennessEffect::BetweennessEffect(const EffectInfo * pEffectInfo) :
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double BetweennessEffect::calculateTieFlipContribution(int alter) const
+double BetweennessEffect::calculateContribution(int alter) const
 {
 	// Get the number of actors h other than the alter j that have a tie
 	// to the ego i.
 
-	int inDegree =
-		this->pVariable()->pNetwork()->inDegree(this->pVariable()->ego());
+	int inDegree = this->pNetwork()->inDegree(this->ego());
 
-	if (this->pVariable()->inTieExists(alter))
+	if (this->inTieExists(alter))
 	{
 		inDegree--;
 	}
@@ -48,36 +47,17 @@ double BetweennessEffect::calculateTieFlipContribution(int alter) const
 	// creates a new non-transitive two-path through i unless there's a tie
 	// (h,j), in which case <(h,i),(h,j)> is an out-star.
 
-	int change = inDegree - this->pVariable()->pOutStarTable()->get(alter);
-
-	// If we are withdrawing the tie, the contribution is negative.
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
-	}
-
-	return change;
-}
-
-
-/**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions.
- */
-bool BetweennessEffect::usesTable(const ConfigurationTable * pTable) const
-{
-	return pTable == this->pVariable()->pOutStarTable();
+	return inDegree - this->pOutStarTable()->get(alter);
 }
 
 
 /**
  * Detailed comment in the base class.
  */
-double BetweennessEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double BetweennessEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	int statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());

@@ -1,14 +1,28 @@
-printInitialDescription <- function(data, effects, modelName="Siena")
+#/******************************************************************************
+# * SIENA: Simulation Investigation for Empirical Network Analysis
+# *
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# *
+# * File: printInitialDescription.r
+# *
+# * Description: This module contains the code to print details of the project.
+# *
+# *****************************************************************************/
+##@printInitialDescription Reporting
+printInitialDescription <- function(data, effects, modelName="Siena",
+                                    getDocumentation=FALSE)
 {
+    ##@initialNetworks internal printInitialDescription
     initialNetworks <- function()
     {
         Heading(2, outf,'Change in networks:')
         difficult <- FALSE
-        for (net in which(types=="oneMode"))
+        for (net in which(types %in% c("oneMode", "bipartite")))
         {
-            if (nOneMode > 1)
+            bipartite <- types[net] == "bipartite"
+            if ((nOneMode + nBipartite) > 1)
             {
-                Heading(3, outf, c("Network", netnames[net]))
+                Heading(3, outf, c("Network: ", netnames[net]))
             }
 
             Report(c("For the following statistics, missing values (if any)",
@@ -61,14 +75,23 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                 {
                     difficult <- TRUE
                 }
-                degree[subs] <- (atts$netdims[1] - 1) * ones / atts$nval
+                if (bipartite)
+                {
+                    degree[subs] <- atts$netdims[2] * ones / atts$nval
+                    missings[subs] <- 1 - atts$nval/ atts$netdims[1] /
+                        atts$netdims[2]
+                }
+                else
+                {
+                    degree[subs] <- (atts$netdims[1] - 1) * ones / atts$nval
+                    missings[subs] <- 1 - atts$nval/ atts$netdims[1] /
+                        (atts$netdims[1] - 1)
+               }
                 nties[subs] <- ones
                 if (gpatts$symmetric[net])
                 {
                     nties <- nties / 2
                 }
-                missings[subs] <- 1 - atts$nval/ atts$netdims[1] /
-                    (atts$netdims[1] - 1)
                 periodFromStart <- data[[group]]$observations
             }
             ## now do the format
@@ -81,7 +104,6 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                       "number of ties", "missing fraction")
             text <- c(format(text[1], width=24), format(text[-1], width=25))
             eols <- rep("\n", length(text))
-         #   browser()
             repeat
             {
                 endCol <- startCol + 6
@@ -101,7 +123,6 @@ printInitialDescription <- function(data, effects, modelName="Siena")
             valmax <- gpatts$netRanges[2, net]
             tmp <- expand.grid(valmin:valmax, valmin:valmax)
             heads <- paste(tmp[, 2], "=> ", tmp[,1])
-           # browser()
             Report(c(format(" periods", width=16),
                      format(heads, width=10),
                      ifelse(valmin == 0 && valmax == 1,
@@ -115,7 +136,14 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                 if (is.na(j))
                     stop("network names not consistent")
                 depvar <- data[[group]]$depvars[[j]]
-                tmp <- getNetworkStartingVals(depvar, structValid=TRUE)
+                if (bipartite)
+                {
+                    tmp <- getBipartiteStartingVals(depvar)
+                 }
+                else
+                {
+                    tmp <- getNetworkStartingVals(depvar)
+                }
                 atts <- attributes(depvar)
                 matchange <- tmp$tmp[-c(1:2), , drop=FALSE]
                 ## if symmetric: divide by 2
@@ -131,6 +159,10 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                     {
                         misd <- atts$netdims[1] * (atts$netdims[1] - 1) / 2 -
                             ntot
+                    }
+                    else if (bipartite)
+                    {
+                        misd <- atts$netdims[1] * atts$netdims[2] - ntot
                     }
                     else
                     {
@@ -193,101 +225,104 @@ printInitialDescription <- function(data, effects, modelName="Siena")
                          "and therefore are double the distance",
                          "reported above.)\n\n"), outf)
             }
-            Report("Dyad Counts:\n", outf)
-            if (valmin == 0 & valmax == 1)
+            if (!bipartite)
             {
-                Report(" observation    total    mutual    asymm.     null\n",
-                       outf)
-            }
-            else
-            {
-                Report(" observation    total \n", outf)
-                heads <- expand.grid(valmin:valmax, valmin:valmax)
-                heads <- heads[, c(2, 1)] ## reverse the column order
-                heads <- heads[heads[,2] >= heads[,1], ] ## remove col2 < col1
-                heads <- paste("(", heads[, 1], ",", heads[, 2], ")", sep="")
-                Report(heads, outf)
-                Report("\n", outf)
-                ## this one needs more work!
-            }
-            periodFromStart <- 0
-            for (group in 1:nData)
-            {
-                j <- match(netnames[net], names(data[[group]]$depvars))
-                if (is.na(j))
-                    stop("network names not consistent")
-                depvar <- data[[group]]$depvars[[j]]
-                atts <- attributes(depvar)
-
-                for (per in 1:(atts$netdims[3]))
+                Report("Dyad Counts:\n", outf)
+                if (valmin == 0 & valmax == 1)
                 {
-                    ## find the dyad tables
-                    if (atts$sparse)
-                    {
-                      #  require(Matrix)
-                        mymat <- depvar[[per]]
-                        mymat1 <- mymat@i
-                        mymat2 <- mymat@j
-                        mymat3 <- mymat@x
-                        if (any(duplicated(paste(mymat1, mymat2))))
-                            stop("sparse matrix has duplicate triples")
-                        mymat3[mymat3==10] <- 0
-                        mymat3[mymat3==11] <- 1
-                        mymat1 <- mymat1[is.na(mymat3) | mymat3 != 0]
-                        mymat2 <- mymat2[is.na(mymat3) | mymat3 != 0]
-                        mymat3 <- mymat3[is.na(mymat3) | mymat3 != 0]
-                        ## for not 0/1 need to tabulate the equivs to mutuals
-                        ## and asymms by
-                        ## the non zero one.
-                        if (valmin == 0 && valmax ==1)
-                        {
-                            ij <- paste(mymat1[!is.na(mymat3)],
-                                        mymat2[!is.na(mymat3)])
-                            ji <- paste(mymat2[!is.na(mymat3)],
-                                        mymat1[!is.na(mymat3)])
-                            missij <- paste(mymat1[is.na(mymat3)],
-                                            mymat2[is.na(mymat3)])
-                            missji <- paste(mymat2[is.na(mymat3)],
-                                            mymat1[is.na(mymat3)])
-                            mutual <- sum(ij %in% ji) / 2
-                            nondyads <- sum(ji %in% missij)
-                            asymm <- length(ij) - nondyads - mutual * 2
-                            missdyads <- sum(!missij %in% missji) +
-                                sum(missij %in% missji) / 2
-                            nulls <- atts$netdims[1] *
-                                (atts$netdims[2] - 1) / 2 -
-                                    missdyads - mutual - asymm
-                            totDyad <- nulls + mutual + asymm
-                        }
-                    }
-                    else
-                    {
-                        mymat <- depvar[, , per]
-                        mymat[mymat == 10] <- 0
-                        mymat[mymat == 11] <- 1
-                        diag(mymat) <- NA
-                        dyadTable <- table(mymat, t(mymat))
-                        diag(dyadTable) <- diag(dyadTable) / 2
-                        if (valmin == 0 && valmax ==1)
-                        {
-                            mutual <- dyadTable[2, 2]
-                            asymm <- dyadTable[2, 1]
-                            nulls <- dyadTable[1, 1]
-                            totDyad <- nulls + asymm + mutual
-
-                        }
-                    }
-                    if (valmin == 0 && valmax == 1)
-                    {
-                        Report(c(format(per + periodFromStart, width=6),
-                                 ".", format(totDyad, width=14),
-                                 format(mutual, width=9),
-                                 format(asymm, width=10),
-                                 format(nulls, width=10), "\n"),
-                               sep="", outf)
-                    }
+                    Report(" observation    total    mutual    asymm.     null\n",
+                           outf)
                 }
-                periodFromStart <- periodFromStart + atts$netdims[3]
+                else
+                {
+                    Report(" observation    total \n", outf)
+                    heads <- expand.grid(valmin:valmax, valmin:valmax)
+                    heads <- heads[, c(2, 1)] ## reverse the column order
+                    heads <- heads[heads[,2] >= heads[,1], ] ## remove col2 < col1
+                    heads <- paste("(", heads[, 1], ",", heads[, 2], ")", sep="")
+                    Report(heads, outf)
+                    Report("\n", outf)
+                    ## this one needs more work!
+                }
+                periodFromStart <- 0
+                for (group in 1:nData)
+                {
+                    j <- match(netnames[net], names(data[[group]]$depvars))
+                    if (is.na(j))
+                        stop("network names not consistent")
+                    depvar <- data[[group]]$depvars[[j]]
+                    atts <- attributes(depvar)
+
+                    for (per in 1:(atts$netdims[3]))
+                    {
+                        ## find the dyad tables
+                        if (atts$sparse)
+                        {
+                            ##  require(Matrix)
+                            mymat <- depvar[[per]]
+                            mymat1 <- mymat@i
+                            mymat2 <- mymat@j
+                            mymat3 <- mymat@x
+                            if (any(duplicated(paste(mymat1, mymat2))))
+                                stop("sparse matrix has duplicate triples")
+                            mymat3[mymat3==10] <- 0
+                            mymat3[mymat3==11] <- 1
+                            mymat1 <- mymat1[is.na(mymat3) | mymat3 != 0]
+                            mymat2 <- mymat2[is.na(mymat3) | mymat3 != 0]
+                            mymat3 <- mymat3[is.na(mymat3) | mymat3 != 0]
+                            ## for not 0/1 need to tabulate the equivs to mutuals
+                            ## and asymms by
+                            ## the non zero one.
+                            if (valmin == 0 && valmax ==1)
+                            {
+                                ij <- paste(mymat1[!is.na(mymat3)],
+                                            mymat2[!is.na(mymat3)])
+                                ji <- paste(mymat2[!is.na(mymat3)],
+                                            mymat1[!is.na(mymat3)])
+                                missij <- paste(mymat1[is.na(mymat3)],
+                                                mymat2[is.na(mymat3)])
+                                missji <- paste(mymat2[is.na(mymat3)],
+                                                mymat1[is.na(mymat3)])
+                                mutual <- sum(ij %in% ji) / 2
+                                nondyads <- sum(ji %in% missij)
+                                asymm <- length(ij) - nondyads - mutual * 2
+                                missdyads <- sum(!missij %in% missji) +
+                                    sum(missij %in% missji) / 2
+                                nulls <- atts$netdims[1] *
+                                    (atts$netdims[2] - 1) / 2 -
+                                        missdyads - mutual - asymm
+                                totDyad <- nulls + mutual + asymm
+                            }
+                        }
+                        else
+                        {
+                            mymat <- depvar[, , per]
+                            mymat[mymat == 10] <- 0
+                            mymat[mymat == 11] <- 1
+                            diag(mymat) <- NA
+                            dyadTable <- table(mymat, t(mymat))
+                            diag(dyadTable) <- diag(dyadTable) / 2
+                            if (valmin == 0 && valmax ==1)
+                            {
+                                mutual <- dyadTable[2, 2]
+                                asymm <- dyadTable[2, 1]
+                                nulls <- dyadTable[1, 1]
+                                totDyad <- nulls + asymm + mutual
+
+                            }
+                        }
+                        if (valmin == 0 && valmax == 1)
+                        {
+                            Report(c(format(per + periodFromStart, width=6),
+                                     ".", format(totDyad, width=14),
+                                     format(mutual, width=9),
+                                     format(asymm, width=10),
+                                     format(nulls, width=10), "\n"),
+                                   sep="", outf)
+                        }
+                    }
+                    periodFromStart <- periodFromStart + atts$netdims[3]
+                }
             }
             if (difficult)
             {
@@ -308,25 +343,29 @@ printInitialDescription <- function(data, effects, modelName="Siena")
             }
             myobj <- myeff[myeff$shortName == "density" &
                            myeff$type == "eval",]
-            untrimmed <- myobj$untrimmedValue
-            Report(c(format(myobj$effectName, width=46),
-                     format(round(untrimmed, 4), nsmall=4, width=10),
-                     "\n"), outf)
-            if (untrimmed > 3)
+            if (nrow(myobj) > 0)
             {
-                Report(c("The initial parameter value is very low.",
-                         "It is truncated to -3. \n"), outf)
-            }
-            else
-                if (untrimmed < -3)
+                untrimmed <- myobj$untrimmedValue
+                Report(c(format(myobj$effectName, width=46),
+                         format(round(untrimmed, 4), nsmall=4, width=10),
+                         "\n"), outf)
+                if (untrimmed > 3)
                 {
-                    Report(c("The initial parameter value is very high.",
-                             "It is truncated to 3.\n"), outf)
+                    Report(c("The initial parameter value is very low.",
+                             "It is truncated to -3. \n"), outf)
                 }
+                else
+                    if (untrimmed < -3)
+                    {
+                        Report(c("The initial parameter value is very high.",
+                                 "It is truncated to 3.\n"), outf)
+                    }
+            }
         }
         Report("\n", outf)
     }
 
+    ##@initialBehaviors internal printInitialDescription
     initialBehaviors <- function()
     {
         Report("\n", outf)
@@ -452,7 +491,11 @@ printInitialDescription <- function(data, effects, modelName="Siena")
 
         Report("\n", outf)
     }
-
+    ##### start of printInitialDescription function
+    if (getDocumentation)
+    {
+        return(getInternals())
+    }
     if (!inherits(data, "sienaGroup"))
     {
         nData <- 1
@@ -470,7 +513,8 @@ printInitialDescription <- function(data, effects, modelName="Siena")
     nobs <- gpatts$observations + length(data)
     nOneMode <- sum(types == "oneMode")
     nBehav <- sum(types == "behavior")
-    if (nOneMode> 0)
+    nBipartite <- sum(types == "bipartite")
+    if (nOneMode  + nBipartite > 0)
     {
         initialNetworks()
     }

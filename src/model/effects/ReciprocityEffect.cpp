@@ -1,17 +1,17 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ReciprocityEffect.cpp
- * 
+ *
  * Description: This file contains the implementation of the class
  * ReciprocityEffect.
  *****************************************************************************/
 
 #include "ReciprocityEffect.h"
-#include "data/OneModeNetwork.h"
-#include "data/IncidentTieIterator.h"
+#include "network/OneModeNetwork.h"
+#include "network/IncidentTieIterator.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -29,77 +29,48 @@ ReciprocityEffect::ReciprocityEffect(const EffectInfo * pEffectInfo) :
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double ReciprocityEffect::calculateTieFlipContribution(int alter) const
+double ReciprocityEffect::calculateContribution(int alter) const
 {
 	double change = 0;
-	
+
 	// This tie flip has an effect only if there is a tie from the alter
 	// to the ego.
-	
-	if (this->pVariable()->inTieExists(alter))
-	{
-		// Check if we gain or loose a reciprocated tie by doing this flip.
-		
-		change = 1;
 
-		if (this->pVariable()->outTieExists(alter))
-		{
-			change = -1;
-		}
+	if (this->inTieExists(alter))
+	{
+		change = 1;
 	}
-	
+
 	return change;
 }
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * See base class.
  */
-double ReciprocityEffect::evaluationStatistic(Network * pNetwork) const
+double ReciprocityEffect::statistic(const Network * pSummationTieNetwork) const
 {
-	OneModeNetwork * pOneModeNetwork = (OneModeNetwork *) pNetwork;
-	int reciprocatedTieCount = 0;
-	
-	for (int i = 0; i < pOneModeNetwork->n(); i++)
-	{
-		reciprocatedTieCount += pOneModeNetwork->reciprocalDegree(i);
-	}
-	
-	return reciprocatedTieCount;
-}
-
-
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
- */
-double ReciprocityEffect::endowmentStatistic(Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
-{
-	int n = pInitialNetwork->n();
+	const Network * pNetwork = this->pNetwork();
+	int n = pNetwork->n();
 	int * marks = new int[n];
-	
+
 	for (int i = 0; i < n; i++)
 	{
 		marks[i] = -1;
 	}
-	
+
 	int counter = 0;
-	
+
 	for (int i = 0; i < n; i++)
 	{
-		for (IncidentTieIterator iter = pInitialNetwork->inTies(i);
+		for (IncidentTieIterator iter = pNetwork->inTies(i);
 			iter.valid();
 			iter.next())
 		{
 			marks[iter.actor()] = i;
 		}
 
-		for (IncidentTieIterator iter = pLostTieNetwork->outTies(i);
+		for (IncidentTieIterator iter = pSummationTieNetwork->outTies(i);
 			iter.valid();
 			iter.next())
 		{
@@ -109,7 +80,8 @@ double ReciprocityEffect::endowmentStatistic(Network * pInitialNetwork,
 			}
 		}
 	}
-	
+
+	delete[] marks;
 	return counter;
 }
 

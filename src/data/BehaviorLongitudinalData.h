@@ -41,10 +41,7 @@ public:
 	double similarity(double a, double b) const;
 	double similarityMean() const;
 	void similarityMean(double similarityMean);
-	void calculateStatistics();
-
-	virtual DependentVariable * createVariable(
-		EpochSimulation * pSimulation);
+	void calculateProperties();
 
 private:
 	// An array of values per each observation

@@ -26,11 +26,10 @@ class DyadicCovariateReciprocityEffect :
 public:
 	DyadicCovariateReciprocityEffect(const EffectInfo * pEffectInfo);
 
-	virtual double calculateTieFlipContribution(int alter) const;
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 };
 
 }

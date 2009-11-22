@@ -34,56 +34,27 @@ DyadicCovariateDependentNetworkEffect::DyadicCovariateDependentNetworkEffect(
 
 
 /**
- * Initializes this effect for calculating contributions of changes to
- * evaluation or endowment functions.
- */
-void DyadicCovariateDependentNetworkEffect::initialize(
-	EpochSimulation * pSimulation)
-{
-	NetworkEffect::initialize(pSimulation);
-
-	this->lpConstantCovariate =
-		pSimulation->pData()->pConstantDyadicCovariate(
-			this->pEffectInfo()->interactionName1());
-	this->lpChangingCovariate =
-		pSimulation->pData()->pChangingDyadicCovariate(
-			this->pEffectInfo()->interactionName1());
-//	this->lperiod = pSimulation->period();
-//	Rprintf("init dyadic %x %d\n", this, this->lperiod);
-
-	if (!this->lpConstantCovariate && !this->lpChangingCovariate)
-	{
-		throw logic_error("Dyadic covariate variable '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
-	}
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
 void DyadicCovariateDependentNetworkEffect::initialize(const Data * pData,
 	State * pState,
-	int period)
+	int period,
+	Cache * pCache)
 {
-	NetworkEffect::initialize(pData, pState, period);
+	NetworkEffect::initialize(pData, pState, period, pCache);
+	string name = this->pEffectInfo()->interactionName1();
 
-	this->lpConstantCovariate =
-		pData->pConstantDyadicCovariate(
-			this->pEffectInfo()->interactionName1());
-	this->lpChangingCovariate =
-		pData->pChangingDyadicCovariate(
-			this->pEffectInfo()->interactionName1());
+	this->lpConstantCovariate =	pData->pConstantDyadicCovariate(name);
+	this->lpChangingCovariate =	pData->pChangingDyadicCovariate(name);
 
 	if (!this->lpConstantCovariate && !this->lpChangingCovariate)
 	{
-		throw logic_error("Dyadic covariate variable '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
+		throw logic_error(
+			"Dyadic covariate variable '" + name + "' expected.");
 	}
 }
 

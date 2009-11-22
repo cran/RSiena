@@ -75,6 +75,10 @@ private:
 	void subtractNetwork(Network * pNetwork,
 		const Network * pMissingTieNetwork) const;
 
+	void replaceNetwork(Network * pNetwork,
+		const Network * pValueNetwork,
+		const Network * pStructuralTieNetwork) const;
+
 	// The data to be used for calculating the statistics
 	const Data * lpData;
 
@@ -92,6 +96,8 @@ private:
 
 	// Array of simulated distances per variable
 	map<LongitudinalData *, int *> ldistances;
+
+	State * lpPredictorState;
 };
 
 }

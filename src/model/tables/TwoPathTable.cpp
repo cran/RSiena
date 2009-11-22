@@ -10,10 +10,9 @@
  *****************************************************************************/
 
 #include "TwoPathTable.h"
-#include "data/IncidentTieIterator.h"
-#include "data/CommonNeighborIterator.h"
-#include "data/OneModeNetwork.h"
-#include "model/variables/NetworkVariable.h"
+#include "network/IncidentTieIterator.h"
+#include "network/CommonNeighborIterator.h"
+#include "network/OneModeNetwork.h"
 
 namespace siena
 {
@@ -26,9 +25,9 @@ namespace siena
  * Creates a new table for storing two-paths with the specified directions for
  * the first and the second tie.
  */
-TwoPathTable::TwoPathTable(NetworkVariable * pVariable,
+TwoPathTable::TwoPathTable(NetworkCache * pOwner,
 	Direction firstStepDirection,
-	Direction secondStepDirection) : ConfigurationTable(pVariable)
+	Direction secondStepDirection) : EgocentricConfigurationTable(pOwner)
 {
 	this->lfirstStepDirection = firstStepDirection;
 	this->lsecondStepDirection = secondStepDirection;
@@ -43,7 +42,7 @@ TwoPathTable::TwoPathTable(NetworkVariable * pVariable,
  * Calculates the number of generalized two-paths between the ego and all
  * other actors.
  */
-void TwoPathTable::vCalculate()
+void TwoPathTable::calculate()
 {
 	// Reset the counters to zeroes
 	this->reset();
@@ -54,20 +53,20 @@ void TwoPathTable::vCalculate()
 	if (this->lfirstStepDirection == FORWARD)
 	{
 		this->performFirstStep(
-			this->pVariable()->pNetwork()->outTies(this->pVariable()->ego()));
+			this->pNetwork()->outTies(this->ego()));
 	}
 	else if (this->lfirstStepDirection == BACKWARD)
 	{
 		this->performFirstStep(
-			this->pVariable()->pNetwork()->inTies(this->pVariable()->ego()));
+			this->pNetwork()->inTies(this->ego()));
 	}
 	else
 	{
-		OneModeNetwork * pOneModeNetwork =
-			dynamic_cast<OneModeNetwork *>(this->pVariable()->pNetwork());
+		const OneModeNetwork * pOneModeNetwork =
+			dynamic_cast<const OneModeNetwork *>(this->pNetwork());
 
 		this->performFirstStep(
-			pOneModeNetwork->reciprocatedTies(this->pVariable()->ego()));
+			pOneModeNetwork->reciprocatedTies(this->ego()));
 	}
 }
 
@@ -95,17 +94,17 @@ void TwoPathTable::performFirstStep(Iterator iter)
 		if (this->lsecondStepDirection == FORWARD)
 		{
 			this->performSecondStep(
-				this->pVariable()->pNetwork()->outTies(middleActor));
+				this->pNetwork()->outTies(middleActor));
 		}
 		else if (this->lsecondStepDirection == BACKWARD)
 		{
 			this->performSecondStep(
-				this->pVariable()->pNetwork()->inTies(middleActor));
+				this->pNetwork()->inTies(middleActor));
 		}
 		else
 		{
-			OneModeNetwork * pOneModeNetwork =
-				dynamic_cast<OneModeNetwork *>(this->pVariable()->pNetwork());
+			const OneModeNetwork * pOneModeNetwork =
+				dynamic_cast<const OneModeNetwork *>(this->pNetwork());
 			this->performSecondStep(
 				pOneModeNetwork->reciprocatedTies(middleActor));
 		}
@@ -122,7 +121,7 @@ void TwoPathTable::performSecondStep(Iterator iter)
 {
 	while (iter.valid())
 	{
-		this->set(iter.actor(), this->get(iter.actor()) + 1);
+		this->ltable[iter.actor()]++;
 		iter.next();
 	}
 }

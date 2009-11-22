@@ -27,11 +27,10 @@ public:
 	CovariateSimilarityEffect(const EffectInfo * pEffectInfo,
 		bool reciprocal);
 
-	virtual double calculateTieFlipContribution(int alter) const;
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
 	// Indicates if the reciprocal version of the similarity effect is

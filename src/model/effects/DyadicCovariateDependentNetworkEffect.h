@@ -38,8 +38,10 @@ class DyadicCovariateDependentNetworkEffect : public NetworkEffect
 public:
 	DyadicCovariateDependentNetworkEffect(const EffectInfo * pEffectInfo);
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
 	double value(int i, int j) const;

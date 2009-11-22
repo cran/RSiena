@@ -31,8 +31,7 @@ QuadraticShapeEffect::QuadraticShapeEffect(const EffectInfo * pEffectInfo) :
 double QuadraticShapeEffect::calculateChangeContribution(int actor,
 	int difference) const
 {
-	return (2 * this->pVariable()->centeredValue(actor) + difference) *
-		difference;
+	return (2 * this->centeredValue(actor) + difference) * difference;
 }
 
 /**
@@ -42,7 +41,8 @@ double QuadraticShapeEffect::calculateChangeContribution(int actor,
 double QuadraticShapeEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
+
 	for (int i = 0; i < n; i++)
 	{
 		statistic += currentValues[i] * currentValues[i];
@@ -61,7 +61,8 @@ double QuadraticShapeEffect::endowmentStatistic(const int * difference,
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
+
 	for (int i = 0; i < n; i++)
 	{
 		if (difference[i] > 0)
@@ -71,5 +72,8 @@ double QuadraticShapeEffect::endowmentStatistic(const int * difference,
 				(currentValues[i] + difference[i]);
 		}
 	}
+
 	return statistic;
-}}
+}
+
+}

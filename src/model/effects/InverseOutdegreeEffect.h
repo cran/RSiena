@@ -27,10 +27,9 @@ class InverseOutdegreeEffect : public NetworkEffect
 public:
 	InverseOutdegreeEffect(const EffectInfo * pEffectInfo);
 
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+	virtual double calculateContribution(int alter) const;
+	virtual double evaluationStatistic() const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
 
 private:
 	double lc;

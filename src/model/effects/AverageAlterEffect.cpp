@@ -11,8 +11,8 @@
 
 #include <cmath>
 #include "AverageAlterEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
@@ -38,7 +38,7 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 	int difference) const
 {
 	double contribution = 0;
-	Network * pNetwork = this->pNetworkVariable()->pNetwork();
+	const Network * pNetwork = this->pNetwork();
 
 	if (pNetwork->outDegree(actor) > 0)
 	{
@@ -55,7 +55,7 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 			iter.valid();
 			iter.next())
 		{
-			double alterValue = this->pVariable()->centeredValue(iter.actor());
+			double alterValue = this->centeredValue(iter.actor());
 			averageAlterChange += alterValue;
 		}
 
@@ -66,6 +66,7 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 	return contribution;
 }
 
+
 /**
  * Returns the statistic corresponding to this effect as part of
  * the evaluation function with respect to the given behavior variable.
@@ -73,26 +74,28 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 double AverageAlterEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
+	const Network * pNetwork = this->pNetwork();
 
 	for (int i = 0; i < n; i++)
 	{
-		if (this->pNetworkVariable()->pPredictorNetwork()->outDegree(i))
+		if (pNetwork->outDegree(i))
 		{
 			double thisStatistic = 0;
-			for (IncidentTieIterator iter=this->pNetworkVariable()->
-					 pPredictorNetwork()->outTies(i);
+
+			for (IncidentTieIterator iter = pNetwork->outTies(i);
 				 iter.valid();
 				 iter.next())
 			{
 				double alterValue = currentValues[iter.actor()];
 				thisStatistic += iter.value() *	alterValue;
 			}
-			thisStatistic *= currentValues[i] /
-				this->pNetworkVariable()->pPredictorNetwork()->outDegree(i);
+
+			thisStatistic *= currentValues[i] / pNetwork->outDegree(i);
 			statistic += thisStatistic;
 		}
 	}
+
 	return statistic;
 }
 
@@ -106,18 +109,19 @@ double AverageAlterEffect::endowmentStatistic(const int * difference,
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
+	const Network * pNetwork = this->pNetwork();
 
 	for (int i = n-1; i > -1; i--)
 	{
 		if (difference[i] > 0)
 		{
-			if (this->pNetworkVariable()->pPredictorNetwork()->outDegree(i))
+			if (pNetwork->outDegree(i))
 			{
 				double thisStatistic = 0;
 				double previousStatistic = 0;
-				for (IncidentTieIterator iter=this->pNetworkVariable()->
-						 pPredictorNetwork()->outTies(i);
+
+				for (IncidentTieIterator iter = pNetwork->outTies(i);
 					 iter.valid();
 					 iter.next())
 				{
@@ -127,14 +131,16 @@ double AverageAlterEffect::endowmentStatistic(const int * difference,
 					thisStatistic += iter.value() * alterValue;
 					previousStatistic += iter.value() * alterPreviousValue;
 				}
-				thisStatistic *= currentValues[i] /
-					this->pNetworkVariable()->pPredictorNetwork()->outDegree(i);
-				previousStatistic *= (currentValues[i] + difference[i])/
-					this->pNetworkVariable()->pPredictorNetwork()->outDegree(i);
-				statistic +=  thisStatistic - previousStatistic;
+
+				thisStatistic *= currentValues[i] / pNetwork->outDegree(i);
+				previousStatistic *=
+					(currentValues[i] + difference[i]) /
+						pNetwork->outDegree(i);
+				statistic += thisStatistic - previousStatistic;
 			}
 		}
 	}
+
 	return statistic;
 }
 

@@ -29,11 +29,9 @@ public:
 	DistanceTwoEffect(const EffectInfo * pEffectInfo,
 		int requiredTwoPathCount);
 
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual bool usesTable(const ConfigurationTable * pTable) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+	virtual double calculateContribution(int alter) const;
+	virtual double evaluationStatistic() const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
 
 private:
 	int lrequiredTwoPathCount;

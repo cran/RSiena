@@ -13,7 +13,7 @@
 #define BALANCEEFFECT_H_
 
 #include "NetworkEffect.h"
-#include "data/IncidentTieIterator.h"
+#include "network/IncidentTieIterator.h"
 
 namespace siena
 {
@@ -26,15 +26,15 @@ class BalanceEffect : public NetworkEffect
 public:
 	BalanceEffect(const EffectInfo * pEffectInfo);
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual bool usesTable(const ConfigurationTable * pTable) const;
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
 	void markInvalidActors(IncidentTieIterator iter,

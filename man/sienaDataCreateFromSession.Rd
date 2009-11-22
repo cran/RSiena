@@ -6,7 +6,8 @@ Reads in a Siena session from file or \code{siena01Gui()}
 and creates a Siena data or group object.}
 \usage{
 sienaDataCreateFromSession(filename = NULL, session = NULL,
-    modelName = "Siena", edited = NULL, files = NULL)
+    modelName = "Siena", edited = NULL, files = NULL,
+    getDocumentation=FALSE)
 }
 \arguments{
   \item{filename}{Input session file}
@@ -16,6 +17,8 @@ sienaDataCreateFromSession(filename = NULL, session = NULL,
 	therefore should not be re-read. Used internally by
 	\code{siena01Gui}.}
   \item{files}{List of data files, used internally by \code{siena01Gui}}
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
   }
 \details{
   Allows creation of data objects of class "Siena" direct from data

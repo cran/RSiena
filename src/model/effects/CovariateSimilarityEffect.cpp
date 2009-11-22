@@ -10,9 +10,9 @@
  *****************************************************************************/
 
 #include "CovariateSimilarityEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
-#include "data/CommonNeighborIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
+#include "network/CommonNeighborIterator.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -36,19 +36,13 @@ CovariateSimilarityEffect::CovariateSimilarityEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double CovariateSimilarityEffect::calculateTieFlipContribution(int alter) const
+double CovariateSimilarityEffect::calculateContribution(int alter) const
 {
 	double change = 0;
 
-	if (!this->lreciprocal || this->pVariable()->inTieExists(alter))
+	if (!this->lreciprocal || this->inTieExists(alter))
 	{
-		change = this->similarity(this->pVariable()->ego(), alter);
-
-		if (this->pVariable()->outTieExists(alter))
-		{
-			// The ego would loose the tie, so we take the opposite value
-			change = -change;
-		}
+		change = this->similarity(this->ego(), alter);
 	}
 
 	return change;
@@ -58,10 +52,11 @@ double CovariateSimilarityEffect::calculateTieFlipContribution(int alter) const
 /**
  * Detailed comment in the base class.
  */
-double CovariateSimilarityEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double CovariateSimilarityEffect::statistic(
+	const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	for (int i = 0; i < n; i++)

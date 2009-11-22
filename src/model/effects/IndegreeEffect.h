@@ -21,7 +21,7 @@ namespace siena
  * Indegree effect defined as the product of the ego with its
  * indegree (with respect to a certain network).
  */
-	class IndegreeEffect : public NetworkDependentBehaviorEffect
+class IndegreeEffect : public NetworkDependentBehaviorEffect
 {
 public:
 	IndegreeEffect(const EffectInfo * pEffectInfo);

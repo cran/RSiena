@@ -12,8 +12,8 @@
 #include <stdexcept>
 
 #include "DistanceTwoEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "data/OneModeNetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
@@ -34,7 +34,7 @@ DistanceTwoEffect::DistanceTwoEffect(const EffectInfo * pEffectInfo,
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double DistanceTwoEffect::calculateTieFlipContribution(int alter) const
+double DistanceTwoEffect::calculateContribution(int alter) const
 {
 	int change = 0;
 
@@ -42,8 +42,7 @@ double DistanceTwoEffect::calculateTieFlipContribution(int alter) const
 	// we loose the distance 2 pair (i,j) by introducing the tie between
 	// them.
 
-	if (this->pVariable()->pTwoPathTable()->get(alter) >=
-		this->lrequiredTwoPathCount)
+	if (this->pTwoPathTable()->get(alter) >= this->lrequiredTwoPathCount)
 	{
 		change--;
 	}
@@ -53,15 +52,14 @@ double DistanceTwoEffect::calculateTieFlipContribution(int alter) const
 
 	int criticalTwoPathCount = this->lrequiredTwoPathCount;
 
-	if (!this->pVariable()->outTieExists(alter))
+	if (!this->outTieExists(alter))
 	{
 		criticalTwoPathCount--;
 	}
 
 	// Consider each outgoing tie of the alter j.
 
-	for (IncidentTieIterator iter =
-			this->pVariable()->pNetwork()->outTies(alter);
+	for (IncidentTieIterator iter = this->pNetwork()->outTies(alter);
 		iter.valid();
 		iter.next())
 	{
@@ -72,19 +70,12 @@ double DistanceTwoEffect::calculateTieFlipContribution(int alter) const
 		// for the pair <i,h> to be a valid distance two pair,
 		// then increment the contribution.
 
-		if (h != this->pVariable()->ego() &&
-			!this->pVariable()->outTieExists(h) &&
-			this->pVariable()->pTwoPathTable()->get(h) == criticalTwoPathCount)
+		if (h != this->ego() &&
+			!this->outTieExists(h) &&
+			this->pTwoPathTable()->get(h) == criticalTwoPathCount)
 		{
 			change++;
 		}
-	}
-
-	// For dissolutions of ties the contribution works in the opposite way.
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
 	}
 
 	return change;
@@ -92,22 +83,13 @@ double DistanceTwoEffect::calculateTieFlipContribution(int alter) const
 
 
 /**
- * Returns if the given configuration table is used by this effect
- * during the calculation of tie flip contributions.
- */
-bool DistanceTwoEffect::usesTable(const ConfigurationTable * pTable) const
-{
-	return pTable == this->pVariable()->pTwoPathTable();
-}
-
-
-/**
  * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * the evaluation function.
  */
-double DistanceTwoEffect::evaluationStatistic(Network * pNetwork) const
+double DistanceTwoEffect::evaluationStatistic() const
 {
 	int statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());
@@ -247,13 +229,9 @@ double DistanceTwoEffect::evaluationStatistic(Network * pNetwork) const
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
+ * the endowment function.
  */
-double DistanceTwoEffect::endowmentStatistic(Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
+double DistanceTwoEffect::endowmentStatistic(Network * pLostTieNetwork) const
 {
 	throw logic_error(
 		"Endowment effect not supported for distance 2 effects.");

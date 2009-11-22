@@ -18,12 +18,16 @@
 #include "data/ActorSet.h"
 #include "data/ExogenousEvent.h"
 #include "data/LongitudinalData.h"
+#include "data/NetworkLongitudinalData.h"
+#include "data/BehaviorLongitudinalData.h"
 #include "model/variables/DependentVariable.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
 #include "model/Model.h"
 #include "model/SimulationActorSet.h"
+#include "model/State.h"
 #include "model/effects/Effect.h"
+#include "model/tables/Cache.h"
 
 namespace siena
 {
@@ -42,7 +46,12 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     this->lpModel = pModel;
     this->lpConditioningVariable = 0;
 
-	// Create a wrapper for each actor set for simulation purposes,
+    // Create a cache object to be used to speed up effect calculations
+    // during the simulation.
+
+    this->lpCache = new Cache();
+
+    // Create a wrapper for each actor set for simulation purposes,
 	// and find the maximum number of actors in any actor set.
 
 	int maxN = 0;
@@ -62,8 +71,28 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
 
     for (unsigned i = 0; i < pData->rDependentVariableData().size(); i++)
     {
-    	DependentVariable * pVariable =
-    		pData->rDependentVariableData()[i]->createVariable(this);
+    	DependentVariable * pVariable = 0;
+    	NetworkLongitudinalData * pNetworkData =
+    		dynamic_cast<NetworkLongitudinalData *>(
+    			pData->rDependentVariableData()[i]);
+		BehaviorLongitudinalData * pBehaviorData =
+			dynamic_cast<BehaviorLongitudinalData *>(
+				pData->rDependentVariableData()[i]);
+
+    	if (pNetworkData)
+    	{
+    		pVariable = new NetworkVariable(pNetworkData, this);
+    	}
+    	else if (pBehaviorData)
+    	{
+    		pVariable = new BehaviorVariable(pBehaviorData, this);
+    	}
+    	else
+    	{
+    		throw logic_error(
+    			"EpochSimulation: Network or behavior data expected.");
+    	}
+
         this->lvariables.push_back(pVariable);
 
         if (pModel->conditional() &&
@@ -89,6 +118,10 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
         new double[std::max(maxN, (int) this->lvariables.size())];
     this->ltargetChange = 0;
 
+    // Create a state object that will store the current values of all
+    // dependent variables during the simulation.
+
+    this->lpState = new State(this);
 }
 
 
@@ -98,11 +131,15 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
 EpochSimulation::~EpochSimulation()
 {
     delete[] this->lcummulativeRates;
+	delete this->lpState;
+	delete this->lpCache;
 
     this->lcummulativeRates = 0;
+    this->lpState = 0;
+    this->lpCache = 0;
 
     deallocateVector(this->lvariables);
-    deallocateVector(this->lsimulationActorSets);
+	deallocateVector(this->lsimulationActorSets);
 }
 
 
@@ -149,14 +186,20 @@ void EpochSimulation::initialize(int period)
 
     	for (unsigned j = 0; j < pFunction->rEffects().size(); j++)
     	{
-    		pFunction->rEffects()[j]->initializeBeforeSimulation(period);
+    		pFunction->rEffects()[j]->initialize(this->lpData,
+    			this->lpState,
+    			period,
+    			this->lpCache);
     	}
 
     	pFunction = this->lvariables[i]->pEndowmentFunction();
 
     	for (unsigned j = 0; j < pFunction->rEffects().size(); j++)
     	{
-    		pFunction->rEffects()[j]->initializeBeforeSimulation(period);
+    		pFunction->rEffects()[j]->initialize(this->lpData,
+    			this->lpState,
+    			period,
+    			this->lpCache);
     	}
     }
 
@@ -170,7 +213,8 @@ void EpochSimulation::initialize(int period)
     // targets for conditional simulation
     if (this->lpModel->conditional())
     {
-        this->ltargetChange = this->lpModel->rTargetChange(period);
+        this->ltargetChange =
+        	this->lpModel->targetChange(this->lpData, period);
     }
     else
     {
@@ -245,8 +289,11 @@ void EpochSimulation::runStep()
 			this->makeNextCompositionChange();
 			if (this->pModel()->needScores())
 			{
-				// commented out for parallel testing: bug in Siena3
-				//	this->accumulateRateScores(this->ltau);
+				// not done if parallel running: bug in Siena3
+				if (!this->lpModel->parallelRun())
+				{
+					this->accumulateRateScores(this->ltau);
+				}
 			}
 		}
 		else
@@ -263,6 +310,7 @@ void EpochSimulation::runStep()
 					selectedActor);
 			}
 
+			this->lpCache->initialize(selectedActor);
 			pSelectedVariable->makeChange(selectedActor);
 		}
 	}
@@ -309,8 +357,22 @@ void EpochSimulation::drawTimeIncrement()
         totalRate += this->lvariables[i]->totalRate();
     }
 
-    // revert to non QAD when we have finished parallel runs
-    double tau = nextExponentialQAD(totalRate);
+    // use QAD if parallel running as other one uses 2 random numbers
+	// also use QAD if STANDALONE (SienaProfile.cpp)
+	double tau;
+
+#ifndef STANDALONE
+	if (this->lpModel->parallelRun())
+	{
+#endif
+		tau = nextExponentialQAD(totalRate);
+#ifndef STANDALONE
+	}
+	else
+	{
+		tau = nextExponential(totalRate);
+	}
+#endif
 
 	this->ltau = tau;
 }
@@ -437,8 +499,8 @@ DependentVariable * EpochSimulation::chooseVariable() const
  */
 int EpochSimulation::chooseActor(const DependentVariable * pVariable) const
 {
-    for (int i = 0; i < pVariable->n(); i++)
-    {
+	for (int i = 0; i < pVariable->n(); i++)
+	{
         this->lcummulativeRates[i] = pVariable->rate(i);
 
 		if (i > 0)
@@ -582,6 +644,15 @@ double EpochSimulation::score(const EffectInfo * pEffect) const
 void EpochSimulation::score(const EffectInfo * pEffect, double value)
 {
 	this->lscores[pEffect] = value;
+}
+
+
+/**
+ * Returns the cache object used to speed up the simulations.
+ */
+Cache * EpochSimulation::pCache() const
+{
+	return this->lpCache;
 }
 
 }

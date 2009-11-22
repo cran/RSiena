@@ -1,7 +1,7 @@
 ##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://stat.gamma.rug.nl/siena.html
+## * Web: http://www.stats.ox.ac.uk/~snidjers/siena
 ## *
 ## * File: phase2.r
 ## *
@@ -11,14 +11,18 @@
 ## ****************************************************************************/
 ## args: z: internal control object
 ##       x: model object (readonly as not returned)
+
+##@usesim siena07 Used to avoid Namespace problems with multiple processes
 usesim <- function(...)
 {
    simstats0c(...)
 }
+##@storeinFRANstore siena07 Used to avoid Namespace problems with multiple processes
 storeinFRANstore <- function(...)
 {
     FRANstore(...)
 }
+##@phase2.1 siena07 Start phase 2
 phase2.1<- function(z, x, ...)
 {
     #initialise phase2
@@ -53,6 +57,7 @@ phase2.1<- function(z, x, ...)
     }
     z
 }
+##@proc2subphase siena07 Do one subphase of phase 2
 proc2subphase<- function(z, x, subphase, ...)
 {
     ## init subphase of phase 2
@@ -76,6 +81,7 @@ proc2subphase<- function(z, x, subphase, ...)
         z$ctime <- proc.time()[3]
         z$time1 <- proc.time()[3]
         z$thav <- z$theta
+       ## cat(z$thav, z$theta, '\n')
         z$prod0 <- rep(0, z$pp)
         z$prod1 <- rep(0, z$pp)
         ## ###############################################
@@ -143,7 +149,6 @@ proc2subphase<- function(z, x, subphase, ...)
                      ' = ', format(subphaseTime, nsmall=4, digits=4),
                      '\n', sep=''), lf)
     }
-    ## browser()
     z$theta <- z$thav / (z$nit + 1)
     DisplayThetaAutocor(z)
     ##    cat('it',z$nit,'\n')
@@ -174,6 +179,7 @@ proc2subphase<- function(z, x, subphase, ...)
     z
 } ##end of this subphase
 
+##@doIterations siena07 Do all iterations for 1 repeat of 1 subphase of phase 2
 doIterations<- function(z, x, subphase,...)
 {
     z$nit <- 0
@@ -181,9 +187,10 @@ doIterations<- function(z, x, subphase,...)
     zsmall <- NULL
     zsmall$theta <- z$theta
     zsmall$Deriv <- z$Deriv
-    zsmall$Phase<- z$Phase
-    xsmall<- NULL
-    xsmall$cconditional <- x$cconditional
+    zsmall$Phase <- z$Phase
+    zsmall$FinDiff.method <- z$FinDiff.method
+    xsmall <- NULL
+    zsmall$cconditional <- z$cconditional
     zsmall$condvar <- z$condvar
     repeat
     {
@@ -238,7 +245,7 @@ doIterations<- function(z, x, subphase,...)
         }
         if (z$int == 1)
         {
-            zz <- x$FRAN(zsmall, xsmall, ...)
+            zz <- x$FRAN(zsmall, xsmall)
             fra <- colSums(zz$fra) - z$targets
             if (!zz$OK)
             {
@@ -248,7 +255,7 @@ doIterations<- function(z, x, subphase,...)
         }
         else
         {
-            zz <- clusterCall(z$cl, usesim, zsmall, xsmall, ...)
+            zz <- clusterCall(z$cl, usesim, zsmall, xsmall)
             fra <- rowMeans(sapply(zz, function(x) colSums(x$fra)- z$targets))
             zz$OK <- sapply(zz, function(x) x$OK)
             if (!all(zz$OK))

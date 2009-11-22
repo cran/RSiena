@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: InInDegreeAssortativityEffect.h
- * 
+ *
  * Description: This file contains the definition of the
  * InInDegreeAssortativityEffect class.
  *****************************************************************************/
@@ -35,16 +35,16 @@ class InInDegreeAssortativityEffect : public NetworkEffect
 {
 public:
 	InInDegreeAssortativityEffect(const EffectInfo * pEffectInfo);
-	
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
-	
+
+	virtual double calculateContribution(int alter) const;
+
+protected:
+	virtual double statistic(const Network * pSummationTieNetwork) const;
+
 private:
 	// Indicates if the square root of degrees must be used
 	bool lroot;
-	
+
 	// Lookup table for fast square root calculations
 	SqrtTable * lsqrtTable;
 };

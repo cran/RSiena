@@ -52,7 +52,7 @@ double ConstantCovariateMainBehaviorEffect::calculateChangeContribution(int
 double ConstantCovariateMainBehaviorEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
 	const ConstantCovariate * pCovariate = this->pCovariate();
 
@@ -73,7 +73,7 @@ double ConstantCovariateMainBehaviorEffect::endowmentStatistic(const int * diffe
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
 	const ConstantCovariate * pCovariate = this->pCovariate();
 

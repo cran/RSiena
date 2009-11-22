@@ -10,6 +10,7 @@
 
 #include "Model.h"
 #include "utils/Utils.h"
+#include "data/Data.h"
 #include "data/LongitudinalData.h"
 #include "model/EffectInfo.h"
 #include "model/variables/DependentVariable.h"
@@ -29,6 +30,7 @@ Model::Model()
 {
 	this->lconditional = false;
 	this->lneedScores = false;
+	this->lparallelRun = false;
 }
 
 
@@ -47,6 +49,15 @@ Model::~Model()
 	}
 
 	deallocateVector(this->leffects);
+
+	// Delete the arrays of target changes
+
+	while (!this->ltargetChanges.empty())
+	{
+		int * array = this->ltargetChanges.begin()->second;
+		this->ltargetChanges.erase(this->ltargetChanges.begin());
+		delete[] array;
+	}
 }
 
 
@@ -106,6 +117,22 @@ bool Model::needScores() const
 	return this->lneedScores;
 }
 
+/**
+ * Stores if this is a parallel run
+ */
+void Model::parallelRun(bool flag)
+{
+	this->lparallelRun = flag;
+}
+
+
+/**
+ * Returns if this is a parallel run
+ */
+bool Model::parallelRun() const
+{
+	return this->lparallelRun;
+}
 
 // ----------------------------------------------------------------------------
 // Section: Effect management
@@ -136,7 +163,6 @@ void Model::basicRateParameter(LongitudinalData * pDependentVariableData,
 
 		this->lbasicRateParameters[pDependentVariableData] = array;
 	}
-
 	this->lbasicRateParameters[pDependentVariableData][period] = value;
 }
 
@@ -280,20 +306,48 @@ const vector<EffectInfo *> & Model::rEndowmentEffects(string variableName)
 // ----------------------------------------------------------------------------
 
 /**
- * Stores the target change for the next period for conditional simulation
+ * Stores the target change for the given period to be used in conditional
+ * simulation. Since the change is specific to a certain data object, the data
+ * object should be provided as a parameter too.
  */
-void Model::addTargetChange(int change)
+void Model::targetChange(const Data * pData, int period, int change)
 {
-	this->ltargetChange.push_back(change);
+	if (!this->ltargetChanges[pData])
+	{
+		int * array =
+			new int[pData->observationCount() - 1];
+
+		// Initialize the array
+
+		for (int i = 0; i < pData->observationCount() - 1; i++)
+		{
+			array[i] = 0;
+		}
+
+		this->ltargetChanges[pData] = array;
+	}
+
+	this->ltargetChanges[pData][period] = change;
 }
 
 
 /**
- * Returns the target change for given period for conditional simulation
+ * Returns the target change for the given period to be used in conditional
+ * simulation. Since the change is specific to a certain data object, the data
+ * object should be provided as a parameter too.
  */
-int Model::rTargetChange(int period) const
+int Model::targetChange(const Data * pData, int period) const
 {
-	return this->ltargetChange[period];
+	map<const Data *, int *>::const_iterator iter =
+		this->ltargetChanges.find(pData);
+	int value = 1;
+
+	if (iter != this->ltargetChanges.end())
+	{
+		value = iter->second[period];
+	}
+
+	return value;
 }
 
 }

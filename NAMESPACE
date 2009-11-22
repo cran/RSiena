@@ -1,11 +1,12 @@
-useDynLib("RSiena")
+useDynLib(RSiena)
 export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
 siena01Gui, siena07, sienaCompositionChange,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
-sienaGroupCreate,  sienaNet, sienaNodeSet, simstats0c, varCovar, varDyadCovar,
-       installGui)
+sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, simstats0c, varCovar, varDyadCovar,
+       installGui)#, sienaTimeTest)
 
 import(Matrix)
+import(xtable)
 
 S3method(print, siena)
 S3method(print, sienaGroup)
@@ -13,3 +14,9 @@ S3method(print, sienaFit)
 S3method(print, summary.sienaFit)
 S3method(print, sienaModel)
 S3method(summary, sienaFit)
+S3method(xtable, sienaFit)
+S3method(print, xtable.sienaFit)
+#S3method(print, sienaTimeTest)
+#S3method(summary, sienaTimeTest)
+#S3method(print, summary.sienaTimeTest)
+#S3method(plot, sienaTimeTest)

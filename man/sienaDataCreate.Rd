@@ -6,7 +6,7 @@
 Creates a Siena data object from input networks, covariates and
 composition change objects.}
 \usage{
-sienaDataCreate(..., nodeSets=NULL)
+sienaDataCreate(..., nodeSets=NULL, getDocumentation=FALSE)
 }
 \arguments{
   \item{\dots}{objects of class "sienaNet",
@@ -15,6 +15,8 @@ sienaDataCreate(..., nodeSets=NULL)
   \item{nodeSets}{list of Siena node sets. Default is the single node
     set named 'Actors', length equal to the number of rows in the first
     object of class "sienaNet"}
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
 }
 \details{
 Checks that the objects fit, that there is at least one network,

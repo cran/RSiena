@@ -8,6 +8,7 @@
 # * Description: This module contains the code to produce the report on a
 # * siena07 model fit.
 # *****************************************************************************/
+##@PrintReport siena07 Print report
 PrintReport <- function(z, x)
 {
     Report('\n\n', outf)
@@ -23,7 +24,7 @@ PrintReport <- function(z, x)
            Report(c("Total of", z$n, "iteration steps.\n\n"), bof)
            Heading(3, outf, "Estimates and standard errors")
            Heading(3, bof, "Estimates and standard errors")
-           if (x$cconditional) ## deal with rate parameter
+           if (z$cconditional) ## deal with rate parameter
            {
                Report('Rate parameters:\n', outf)
                Report('Rate parameters:\n', bof)
@@ -57,14 +58,14 @@ PrintReport <- function(z, x)
                        tmp <- paste(' 0.', nnstr, ' Rate parameter period ',
                                     1:nn, '              ',
                                     format(round(z$rate,4),width=9),
-                                    '  (',format(round(z$vrate,4),width=9),
+                                    '  (',format(round(sqrt(z$vrate),4),width=9),
                                     ')\n', sep = '')
                    }                   else{
                        tmp <- paste(' 0.', nnstr,
                                     'Rate parameter cond. variable period ',
                                     1:nn, '              ',
                                     format(round(z$rate,4),width=9),
-                                    '  (',format(round(z$vrate,4),width=9),
+                                    '  (',format(round(sqrt(z$vrate),4),width=9),
                                     ')\n',   sep='')
                    }
                    Report(tmp, outf, sep='')
@@ -73,8 +74,8 @@ PrintReport <- function(z, x)
                    Report('\nOther parameters:\n', bof)
                }
            }
-           nBehavs <- length(z$f$behavs)
-           nOneModes <- length(z$f$nets)
+           nBehavs <- length(z$f[[1]]$behavs)
+           nOneModes <- length(z$f[[1]]$nets)
            if (nBehavs > 0 && nOneModes > 0)
            {
                Report("Network Dynamics\n", outf)
@@ -93,17 +94,21 @@ PrintReport <- function(z, x)
            {
                behEffects <- z$effects[z$effects$netType == 'behavior',]
                behNames <- unique(behEffects$name)
-               behEffects$effectName <- paste('<',
-                                              (1:nBehavs)[match(behEffects$name,
-                                                                behNames)],
-                                              '> ', behEffects$effectName,
-                                              sep='')
-               z$effects$effectName[z$effects$netType=='behavior'] <-
-                   behEffects$effectName
+               if (nBehavs > 1)
+               {
+                   behEffects$effectName <- paste('<',
+                                             (1:nBehavs)[match(behEffects$name,
+                                                                    behNames)],
+                                                  '> ', behEffects$effectName,
+                                                  sep='')
+                   z$effects$effectName[z$effects$netType=='behavior'] <-
+                       behEffects$effectName
+               }
            }
-           tmp <- paste(sprintf("%2d",1:length(z$effects$effectName)),
+           typesp <- ifelse (z$effects$type== "endow", ": ", ":  ")
+           tmp <- paste(sprintf("%2d", 1:length(z$effects$effectName)),
                         '. ',format(paste(z$effects$type,
-                        ':  ', z$effects$effectName, sep = ''), width=50),
+                        typesp, z$effects$effectName, sep = ''), width=50),
                          theta, ses, '\n', sep='', collapse = '')
            if (nBehavs > 0 && nOneModes > 0)
            {
@@ -114,7 +119,7 @@ PrintReport <- function(z, x)
                tmp2 <- substring(tmp, tmpsub - 1, nchar(tmp))
                Report(tmp1, outf)
                Report(tmp1, bof)
-               Report('\n Behavior Dynamics\n', outf)
+               Report('\nBehavior Dynamics\n', outf)
                Report(tmp2, outf)
                Report(tmp2, bof)
            }
@@ -125,7 +130,7 @@ PrintReport <- function(z, x)
            }
            Report('\n', outf)
            Report('\n', bof)
-           if (x$cconditional && length(attr(z$f, 'netnames')) > 1)
+           if (z$cconditional && length(attr(z$f, 'netnames')) > 1)
            {
                Report(c('For conditional estimation, ',
                         'the standard errors of rate parameters\n',

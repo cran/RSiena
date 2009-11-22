@@ -1,26 +1,28 @@
 \name{getEffects}
 \alias{getEffects}
-\alias{"effects"}
-\alias{"groupEffects"}
+\alias{sienaEffects}
+\alias{sienaGroupEffects}
 \title{Function to create a Siena effects object}
 \description{
   Creates a basic list of effects for each of the dependent
   variables in the input siena object.
 }
 \usage{
-getEffects(x, nintn = 10)
+getEffects(x, nintn = 10, getDocumentation=FALSE)
 }
 \arguments{
   \item{x}{an object of class `siena' or `sienaGroup'}
   \item{nintn}{Number of lines for user defined interactions. (maybe
     superfluous now!)}
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
 }
 \details{
 Considers all the elements of the input siena data object and creates
 lists of effects for use in siena model fits. Note that the class of the
 return object may be lost if the data.frame is edited using \command{fix}.
 }
-\value{An object of class "effects" or "groupEffects": this is a data
+\value{An object of class "sienaEffects" or "sienaGroupEffects": this is a data
   frame, each part of which relates to one dependent variable in the input
   object, with columns
   \item{name}{name of the dependent variable}
@@ -44,7 +46,7 @@ return object may be lost if the data.frame is edited using \command{fix}.
   \item{statisticFn}{here NULL, but could be replaced by a function
 	later}
   \item{untrimmedValue}{Used to store initial values which could be trimmed}
-  \item{netType}{"oneMode", "Behavior", "Bipartite"}
+  \item{netType}{"oneMode", "behavior", "bipartite"}
   \item{groupName}{name of relevant data object}
   \item{group}{sequential number of relevant data object in total}
 }

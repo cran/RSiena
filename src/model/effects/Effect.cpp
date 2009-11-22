@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: Effect.cpp
- * 
+ *
  * Description: This file contains the implementation of the class Effect.
  *****************************************************************************/
 
@@ -24,7 +24,7 @@ namespace siena
 Effect::Effect(const EffectInfo * pEffectInfo)
 {
 	this->lpEffectInfo = pEffectInfo;
-	this->lweight = pEffectInfo->parameter();
+	this->lparameter = pEffectInfo->parameter();
 	this->lperiod = 0;
 }
 
@@ -42,16 +42,6 @@ Effect::~Effect()
 // ----------------------------------------------------------------------------
 
 /**
- * Stores the weight of this effect to be used when calculating the owner
- * function.
- */
-void Effect::weight(double weight)
-{
-	this->lweight = weight;
-}
-
-
-/**
  * Returns the effect info object this effect is based on.
  */
 const EffectInfo * Effect::pEffectInfo() const
@@ -65,32 +55,19 @@ const EffectInfo * Effect::pEffectInfo() const
 // ----------------------------------------------------------------------------
 
 /**
- * Initializes this effect for calculating contributions of changes to
- * evaluation or endowment functions.
- */
-void Effect::initialize(EpochSimulation * pSimulation)
-{	
-}
-
-
-/**
- * Initializes this effect before the simulation of the given period.
- */
-void Effect::initializeBeforeSimulation(int period)
-{
-	this->lperiod = period;
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void Effect::initialize(const Data * pData, State * pState, int period)
+void Effect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
 	this->lperiod = period;
+	this->lpCache = pCache;
 }
 
 }

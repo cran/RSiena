@@ -21,7 +21,7 @@ namespace siena
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
-class NetworkVariable;
+class Network;
 
 
 // ----------------------------------------------------------------------------
@@ -35,17 +35,18 @@ class NetworkDependentBehaviorEffect : public BehaviorEffect
 {
 public:
 	NetworkDependentBehaviorEffect(const EffectInfo * pEffectInfo);
-	virtual ~NetworkDependentBehaviorEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
-	inline const NetworkVariable * pNetworkVariable() const;
+	inline const Network * pNetwork() const;
 
 private:
-	// The network variable this effect is interacting with
-	const NetworkVariable * lpNetworkVariable;
+	// The network this effect is interacting with
+	const Network * lpNetwork;
 };
 
 
@@ -54,12 +55,12 @@ private:
 // ----------------------------------------------------------------------------
 
 /**
- * Returns the network variable this effect is interacting with.
+ * Returns the network this effect is interacting with.
  */
-const NetworkVariable * NetworkDependentBehaviorEffect::pNetworkVariable()
+const Network * NetworkDependentBehaviorEffect::pNetwork()
 	const
 {
-	return this->lpNetworkVariable;
+	return this->lpNetwork;
 }
 
 }

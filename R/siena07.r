@@ -1,4 +1,4 @@
-##/******************************************************************************
+##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
 ## * Web: http://stat.gamma.rug.nl/siena.html
@@ -7,14 +7,10 @@
 ## *
 ## * Description: This file contains the main controlling module for the model
 ## * fitting
-## * Also contains utility functions
-## *****************************************************************************/
+## * Also contains utility functions used within siena07
+## ****************************************************************************/
 
-outf <- NULL
-lf <- NULL
-bof <- NULL
-cf <- NULL
-
+##@siena07 siena07
 siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
                    nbrNodes = 2, initC=FALSE,
                    clusterString=rep("localhost", nbrNodes), tt=NULL,
@@ -40,7 +36,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
     {
         require(snow)
         require(rlecuyer)
-        x$firstg <- x$firstg * nbrNodes
+        x$firstg <- x$firstg * sqrt(nbrNodes)
         z$int <- nbrNodes
     }
     else
@@ -53,9 +49,11 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
         ## randomseed2 is for second generator needed only for parallel testing
         randomseed2 <- .Random.seed
       #  .Random.seed[2:4] <- as.integer(c(1,2,3))
-        randomseed2[2:4] <- as.integer(c(3,2,1))
+       # randomseed2[2:4] <- as.integer(c(3,2,1))
+        randomseed2[2:4] <- as.integer(c(1, 2, 3))
         seed <- 1
         newseed <- 1
+        z$parallelTesting <- TRUE
     }
     else
     {
@@ -65,7 +63,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
         {
             set.seed(x$randomSeed)
             seed <- x$randomSeed
-       }
+        }
         else
         {
             if (exists(".Random.seed"))
@@ -92,7 +90,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
     ## create the screen
     if (!is.batch())
     {
-        tkvars <- runtk(tt=tt)
+        tkvars <- siena07Gui(tt=tt)
         z$tkvars<- tkvars
         z$pb <- list(pb=tkvars$pb, pbval=0, pbmax=1)
     }
@@ -113,6 +111,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
     class(z) <- "sienaFit"
     z
 }
+##@InitReports siena07 Print report
 InitReports <- function(seed, newseed)
 {
     Report("\n\n-----------------------------------\n", outf)
@@ -146,61 +145,8 @@ InitReports <- function(seed, newseed)
         Report(sprintf("Current random number seed is %d.\n", seed), outf)
     }
 }
-WriteOutTheta <- function(z)
-{
-    if (!is.batch())
-    {
-        tkdelete(z$tkvars$current, "1.0", "end")
-        tmp <- paste(c("", rep("\n", z$pp - 1)),
-                    format(round(z$theta,4), width=12, sep=""),
-                    collapse="")
-        tkinsert(z$tkvars$current, "1.0", tmp)
-    }
-    else
-    {
-        Report(c("theta:", format(z$theta, digits=3), "\n"))
-    }
-    Report("Current parameter values:\n", cf)
-    Report(format(z$theta), cf, fill=80)
-}
 
-DisplayTheta<- function(z)
-{
-    if ((z$Phase == 2 || z$nit == 1 ) && (z$nit <= 30))
-    {
-        if (!is.batch())
-        {
-            tkdelete(z$tkvars$current, "1.0", "end")
-            tmp<- paste(c("", rep("\n", z$pp - 1)),
-                        format(z$theta, width=12, sep=""),
-                    collapse="")
-            tkinsert(z$tkvars$current, "1.0", tmp)
-        }
-        else
-        {
-          Report(c("theta:", format(z$theta, digits=3), "\n"))
-        }
-    }
-
-}
-
-NullChecks <- function()
-{
-    UserInterrupt(FALSE)
-    EarlyEndPhase2(FALSE)
-    UserRestart(FALSE)
-    UserInterruptFlag(FALSE)
-    EarlyEndPhase2Flag(FALSE)
-    UserRestartFlag(FALSE)
-}
-
-CheckBreaks <- function()
-{
-    UserInterruptFlag(UserInterrupt())
-    EarlyEndPhase2Flag(EarlyEndPhase2())
-    UserRestartFlag(UserRestart())
-}
-
+##@AnnouncePhase siena07 Progress reporting
 AnnouncePhase <- function(z, x, subphase=NULL)
 {
     if (!is.batch())
@@ -227,16 +173,17 @@ AnnouncePhase <- function(z, x, subphase=NULL)
     {
         if (!is.batch())
         {
-            tkconfigure(z$tkvars$current, height=z$pp)
-            tkconfigure(z$tkvars$deviation, height=z$pp)
-            tkconfigure(z$tkvars$quasi, height=z$pp)
+            tkconfigure(z$tkvars$current, height=min(z$pp, 30))
+            tkconfigure(z$tkvars$deviation, height=min(z$pp, 30))
+            tkconfigure(z$tkvars$quasi, height=min(z$pp, 30))
         }
         n1pos <- z$n1 * (z$pp + 1)
         z$n2min0 <- 7 + z$pp
+        z$n2min0 <- max(5, z$n2min0 / z$int)
         z$n2minimum<- rep(0, x$nsub)
         z$n2maximum<- rep(0, x$nsub)
     ## 2.5198421 = 2^(4/3); this gives a gain parameter of order n^(-3/4) ##
-        if (x$nsub>0)
+        if (x$nsub > 0)
         {
             z$n2minimum[1] <- trunc(z$n2min0 * 2.52)
             z$n2maximum[1] <- z$n2minimum[1] + 200
@@ -256,170 +203,64 @@ AnnouncePhase <- function(z, x, subphase=NULL)
         z$n1pos<- n1pos
         if (!x$maxlike && z$FinDiff.method)
             pbmax <- pbmax + x$n3 * z$pp
-        z$pb$pbval<- 0
+        z$pb$pbval <- 0
         z$pb <- createProgressBar(z$pb, maxvalue=pbmax)
-        z$pb$pbmax<- pbmax
+        z$pb$pbmax <- pbmax
    }
     if (z$Phase==2)
     {
         propo <- z$n1pos + z$n2partsum[subphase]
         if (propo> getProgressBar(z$pb))
-            z$pb<-setProgressBar(z$pb,propo)
+            z$pb <-setProgressBar(z$pb,propo)
     }
     if (z$Phase ==3)
     {
         propo <- z$n1pos + z$n2partsum[x$nsub + 1]
         if (!z$AllUserFixed)
-            z$pb<- setProgressBar(z$pb,propo)
+            z$pb <- setProgressBar(z$pb,propo)
        else
         {
             max <- x$n3
-            z$pb<-createProgressBar(z$pb,max)
+            z$pb <-createProgressBar(z$pb,max)
        }
     }
     z
 }
-
-roundfreq<- function(w)
+##@roundfreq siena07 Prettify interval between progress reports
+roundfreq <- function(w)
 {
     vec1 <- c(1, 2, 3, 4, 31, 66, 101, 300, 500)
     vec2 <- c(1, 2, 3, 20, 50, 100, 200, 500)
     if (is.batch())
-        w <- vec2[findInterval(w, vec1, all.inside=TRUE)]
+        w <- max(10,vec2[findInterval(w, vec1, all.inside=TRUE)])
     else
         w <- vec2[findInterval(w, vec1[1:7], all.inside=TRUE)]
     w
 }
 
-model.create<- function(fn=simstats0c, usesimstats0c=TRUE,
-                        projname="Siena", MaxDegree=0, useStdInits=FALSE,
-                        n3=1000, nsub=4, maxlike=FALSE, diag=TRUE,
-                        condvarno=0, condname='',
-                        firstg=0.2, cond=FALSE, findiff=FALSE,  seed=NULL)
+##@WriteOutTheta siena07 Progress reporting
+WriteOutTheta <- function(z)
 {
-    model <- NULL
-    model$projname <- projname
-    model$useStdInits <- useStdInits
-    model$checktime <- TRUE
-    model$n3 <- n3
-    model$firstg <- firstg
-    model$maxrat <- 1.0
-    model$maxmaxrat <- 10.0
-    model$FRAN <- fn
-    model$maxlike <-  maxlike
-    model$cconditional <- cond
-    model$condvarno <-  condvarno
-    model$condname <- condname
-    model$FinDiff.method <-  findiff
-    model$nsub <- nsub
-    model$diag <- diag
-    model$ModelType <- 1
-    model$MaxDegree <- MaxDegree
-    model$randomSeed <- seed
-    if (deparse(substitute(fn)) == "simstats0c")
-        model$simstats0c <- TRUE
-    else
-        model$simstats0c <- usesimstats0c
-    class(model) <- "sienaModel"
-    model
-}
-
-Reportfun<- function(x, verbose = FALSE)
-{
-    x <- x
-    beverbose <- verbose
-    function(txt, dest, fill=FALSE, sep=" ", hdest,
-             open=FALSE, close=FALSE,
-             type=c("a", "w"),  projname="Siena" , verbose=FALSE)
+    if (!is.batch())
     {
-        if (open)
-        {
-            type <- match.arg(type)
-            beverbose <<- verbose
-            if (type =='w')
-            {
-                x$outf <<- file(paste(projname, ".out", sep=""), open="w")
-            }
-            else
-            {
-                x$outf <<- file(paste(projname, ".out", sep=""), open="a")
-            }
-
-        }
-        else if (close)
-        {
-            close(x[["outf"]])
-        }
-        else
-        {
-            if (missing(dest) && missing(hdest))
-            {
-                cat(txt, fill = fill, sep = sep)
-            }
-            else
-            {
-                if (missing(dest))
-                {
-                    if (hdest  %in% c("cf", "lf", "bof"))
-                    {
-                        if (beverbose)
-                        {
-                            cat(txt, fill=fill, sep=sep)
-                        }
-                    }
-                    else
-                    {
-                        cat(txt, file = x[[hdest]], fill = fill, sep = sep)
-                    }
-                }
-                else
-                {
-                    if (deparse(substitute(dest)) %in% c("cf", "lf", "bof"))
-                    {
-                        if (beverbose)
-                        {
-                            cat(txt, fill=fill, sep=sep)
-                        }
-                    }
-                    else
-                    {
-                        cat(txt, file=x[[deparse(substitute(dest))]],
-                            fill=fill, sep=sep)
-                    }
-                }
-            }
-       }
+        DisplayTheta(z)
     }
+    else
+    {
+        Report(c("theta:", format(z$theta, digits=3), "\n"))
+    }
+    Report("Current parameter values:\n", cf)
+    Report(format(z$theta), cf, fill=80)
 }
 
-
-Report <- local({verbose <-  NULL;
-                 Reportfun(list(outf=outf, lf=lf, cf=cf, bof=bof), verbose)})
-
-UserInterrupt <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-EarlyEndPhase2 <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-UserRestart <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-UserInterruptFlag <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-EarlyEndPhase2Flag <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-UserRestartFlag <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-is.batch <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
-DONE <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;invisible(A)}})
-FRANstore <- local({A <-  NULL;function(x){if (!missing(x)) A<<-x;A}})
-
+##@DisplayThetaAutocor siena07 Progress reporting
 DisplayThetaAutocor <- function(z)
 {
     if (!is.batch())
     {
-        tkdelete(z$tkvars$current, "1.0", "end")
-        tmp<- paste(c("", rep("\n", z$pp - 1)),
-                    format(round(z$theta, 4), width=12, sep=""),
-                    collapse="")
-        tkinsert(z$tkvars$current, "1.0", tmp)
+        DisplayTheta(z)
         tkdelete(z$tkvars$quasi, "1.0", "end")
-        tmp<- paste(c("", rep("\n", z$pp - 1)),
-                    format(round(z$ac, 4), width=12, sep=""),
-                    collapse="")
-        tkinsert(z$tkvars$quasi, "1.0", tmp)
+        tkinsert(z$tkvars$quasi, "1.0", FormatString(z$pp, z$ac))
     }
     else
     {
@@ -428,44 +269,48 @@ DisplayThetaAutocor <- function(z)
   }
 
 }
+##@DisplayandWriteTheta siena07 Progress reporting
 DisplayandWritetheta <- function(z)
 {
     if (!is.batch())
     {
-        tkdelete(z$tkvars$current, "1.0", "end")
-        tmp<- paste(c("", rep("\n", z$pp - 1)),
-                    format(round(z$theta, 4), width=12, nsmall=4, sep=""),
-                    collapse="")
-        tkinsert(z$tkvars$current, "1.0", tmp)
+        DisplayTheta(z)
     }
     else
     {
         Report(c("theta", format(z$theta, digits=3), "\n"))
     }
 }
+##@DisplayTheta siena07 Progress reporting
 DisplayTheta <- function(z)
 {
-        if (!is.batch())
-        {
-            tkdelete(z$tkvars$current, "1.0", "end")
-            tmp<- paste(c("", rep("\n", z$pp - 1)),
-                        format(round(z$theta, 4), width=12, sep="", nsmall=4),
-                        collapse="")
-            tkinsert(z$tkvars$current, "1.0", tmp)
-        }
+    if (!is.batch())
+    {
+        tkdelete(z$tkvars$current, "1.0", "end")
+        tkinsert(z$tkvars$current, "1.0", FormatString(z$pp, z$theta))
+    }
 
 }
+##@FormatString siena07 Progress Reporting
+FormatString <- function(pp, value)
+{
+    ppuse <- min(30, pp)
+    nbrs <- format(1:ppuse)
+    nch <- nchar(nbrs[1])
+    formatstr <- paste("%", nch, "d.%", (13 - nch), ".4f\n", sep="",
+                       collapse="")
+    paste(sprintf(formatstr, 1:ppuse, value[1:ppuse]), collapse="")
+}
+##@DisplayDeviations siena07 Progress reporting
 DisplayDeviations <- function(z, fra)
 {
-        if (!is.batch())
-        {
-            tkdelete(z$tkvars$deviations, "1.0", "end")
-            tmp<- paste(c("", rep("\n", z$pp - 1)),
-                        format(round(fra, 4), width=12, sep="", nsmall=4),
-                        collapse="")
-            tkinsert(z$tkvars$deviations, "1.0", tmp)
-        }
+    if (!is.batch())
+    {
+        tkdelete(z$tkvars$deviations, "1.0", "end")
+        tkinsert(z$tkvars$deviations, "1.0", FormatString(z$pp, fra))
+    }
 }
+##@DisplayIteration siena07 Progress reporting
 DisplayIteration <- function(z)
 {
     if (!is.batch())
@@ -475,44 +320,13 @@ DisplayIteration <- function(z)
         tcl("update")
     }
 }
-
-Heading<- function(level=1, dest, text, fill=FALSE)
-{
-    ch <- c("=", "-", " ")[level]
-    if (missing(dest))
-    {
-        Report(c("@", level, "\n", text, "\n"), sep="", fill=fill)
-        Report(rep(ch, sum(nchar(text)) + 3), sep="", fill=fill)
-        Report("\n\n")
-    }
-    else
-    {
-        dest <- deparse(substitute(dest))
-        Report(c("@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
-        Report(rep(ch, sum(nchar(text))), hdest=dest, sep="", fill=fill)
-        if (level < 3)
-            Report("\n\n", hdest = dest)
-        else
-            Report("\n", hdest = dest)
-    }
-}
-
-PrtOutMat<- function(mat,dest)
-{
-    if (missing(dest))
-        Report(format(t(mat)), sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
-    else
-    {
-        Report(format(t(mat)), sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
-               hdest=deparse(substitute(dest)))
-        Report("\n", hdest=deparse(substitute(dest)))
-    }
-}
+##@Root siena07 Safe square root for compatibility with siena3. Probably not necessary in R.
 Root<- function(x)
 {
     ifelse(abs(x) > 1e-36, sqrt(abs(x)), 1e-18)
 }
 
+##@getProgressBar siena07 Progress reporting
 getProgressBar <- function(pb)
 {
     if (is.batch())
@@ -522,6 +336,7 @@ getProgressBar <- function(pb)
     val
 }
 
+##@setProgressBarProgress siena07 reporting
 setProgressBar <- function(pb, val)
 {
     if (is.batch())
@@ -535,6 +350,7 @@ setProgressBar <- function(pb, val)
     }
     pb
 }
+##@createProgressBar siena07 Progress reporting
 createProgressBar <- function(pb, maxvalue)
 {
     if (is.batch())
@@ -543,12 +359,13 @@ createProgressBar <- function(pb, maxvalue)
         tkconfigure(pb$pb, maximum=maxvalue)
     pb
 }
-
+##@tkErrorMessage Miscellaneous Not used
 tkErrorMessage <- function()
 {
     tkmessageBox(geterrmessage(), icon="error")
 }
 
+##@errorHandler Miscellaneous Not used
 errorHandler <- function()
 {
     opts <- options()
@@ -557,6 +374,4 @@ errorHandler <- function()
         options(show.error.messages=FALSE)
         options(error=tkErrorMessage)
     }
-
-
 }

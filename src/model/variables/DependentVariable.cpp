@@ -19,8 +19,8 @@
 #include "data/ActorSet.h"
 #include "data/ConstantCovariate.h"
 #include "data/ChangingCovariate.h"
-#include "data/Network.h"
-#include "data/OneModeNetwork.h"
+#include "network/Network.h"
+#include "network/OneModeNetwork.h"
 #include "data/LongitudinalData.h"
 #include "data/NetworkLongitudinalData.h"
 #include "model/Model.h"
@@ -259,14 +259,13 @@ void DependentVariable::initializeEndowmentFunction()
 void DependentVariable::initializeFunction(Function * pFunction,
 	const vector<EffectInfo *> & rEffects) const
 {
-	EffectFactory factory;
+	EffectFactory factory(this->pSimulation()->pData());
 
 	for (unsigned i = 0; i < rEffects.size(); i++)
 	{
 		EffectInfo * pEffectInfo = rEffects[i];
 		Effect * pEffect = factory.createEffect(pEffectInfo);
 		pFunction->addEffect(pEffect);
-		pEffect->initialize(this->lpSimulation);
 	}
 }
 
@@ -326,21 +325,6 @@ int DependentVariable::simulatedDistance() const
 	return this->lsimulatedDistance;
 }
 
-/**
- * sets the changing covariate period.
- */
-void DependentVariable::changingCovariatePeriod(int changingCovariatePeriod)
-{
-	this->lchangingCovariatePeriod = changingCovariatePeriod;
-}
-
-/**
- * Returns the changing covariate period
- */
-int DependentVariable::changingCovariatePeriod() const
-{
-	return this->lchangingCovariatePeriod;
-}
 
 // ----------------------------------------------------------------------------
 // Section: Initialization

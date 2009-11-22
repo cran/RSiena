@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 #include "InverseSquaredOutdegreeEffect.h"
-#include "data/Network.h"
+#include "network/Network.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -38,17 +38,15 @@ InverseSquaredOutdegreeEffect::InverseSquaredOutdegreeEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double InverseSquaredOutdegreeEffect::calculateTieFlipContribution(int alter)
+double InverseSquaredOutdegreeEffect::calculateContribution(int alter)
 	const
 {
-	double sum =
-		this->pVariable()->pNetwork()->outDegree(this->pVariable()->ego()) +
-			this->lc;
+	double sum = this->pNetwork()->outDegree(this->ego()) + this->lc;
 
-	if (this->pVariable()->outTieExists(alter))
+	if (this->outTieExists(alter))
 	{
 		// Tie withdrawal
-		return 2.0 / ((sum - 1) * sum * (sum + 1));
+		return -2.0 / ((sum - 1) * sum * (sum + 1));
 	}
 	else
 	{
@@ -60,11 +58,12 @@ double InverseSquaredOutdegreeEffect::calculateTieFlipContribution(int alter)
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * the evaluation function.
  */
-double InverseSquaredOutdegreeEffect::evaluationStatistic(Network * pNetwork) const
+double InverseSquaredOutdegreeEffect::evaluationStatistic() const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	for (int i = 0; i < n; i++)
@@ -79,12 +78,9 @@ double InverseSquaredOutdegreeEffect::evaluationStatistic(Network * pNetwork) co
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
+ * the endowment function.
  */
-double InverseSquaredOutdegreeEffect::endowmentStatistic(Network * pInitialNetwork,
+double InverseSquaredOutdegreeEffect::endowmentStatistic(
 	Network * pLostTieNetwork) const
 {
 	throw logic_error(

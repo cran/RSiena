@@ -1,20 +1,19 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: NetworkLongitudinalData.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * NetworkLongitudinalData class.
  *****************************************************************************/
 
 #include <limits>
 #include "NetworkLongitudinalData.h"
-#include "data/Network.h"
-#include "data/OneModeNetwork.h"
+#include "network/Network.h"
+#include "network/OneModeNetwork.h"
 #include "data/ActorSet.h"
-#include "model/variables/NetworkVariable.h"
 
 namespace siena
 {
@@ -42,7 +41,7 @@ NetworkLongitudinalData::NetworkLongitudinalData(
 	this->lstructuralTieNetworks = new Network * [observationCount];
 	this->lmissingTieNetworks = new Network * [observationCount];
 	this->lmaxDegree = std::numeric_limits<int>::max();
-	
+
 	for (int i = 0; i < observationCount; i++)
 	{
 		if (pSenders == pReceivers)
@@ -59,7 +58,7 @@ NetworkLongitudinalData::NetworkLongitudinalData(
 			this->lstructuralTieNetworks[i] =
 				new Network(pSenders->n(), pReceivers->n());
 			this->lmissingTieNetworks[i] =
-				new Network(pSenders->n(), pReceivers->n());			
+				new Network(pSenders->n(), pReceivers->n());
 		}
 	}
 }
@@ -76,14 +75,52 @@ NetworkLongitudinalData::~NetworkLongitudinalData()
 		delete this->lstructuralTieNetworks[i];
 		delete this->lmissingTieNetworks[i];
 	}
-	
+
 	delete[] this->lnetworks;
 	delete[] this->lstructuralTieNetworks;
 	delete[] this->lmissingTieNetworks;
-	
+
 	this->lnetworks = 0;
 	this->lstructuralTieNetworks = 0;
 	this->lmissingTieNetworks = 0;
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Preprocessing
+// ----------------------------------------------------------------------------
+
+/**
+ * Calculates various statistical properties from the stored network data.
+ */
+void NetworkLongitudinalData::calculateProperties()
+{
+	// Calculate the average indegree and outdegree.
+
+	this->laverageInDegree = 0;
+	this->laverageOutDegree = 0;
+
+	for (int observation = 0;
+		observation < this->observationCount();
+		observation++)
+	{
+		Network * pNetwork = this->lnetworks[observation];
+
+		for (int i = 0; i < this->lpReceivers->n(); i++)
+		{
+			this->laverageInDegree += pNetwork->inDegree(i);
+		}
+
+		for (int i = 0; i < this->pActorSet()->n(); i++)
+		{
+			this->laverageOutDegree += pNetwork->outDegree(i);
+		}
+	}
+
+	this->laverageInDegree /=
+		this->lpReceivers->n() * this->observationCount();
+	this->laverageOutDegree /=
+		this->pActorSet()->n() * this->observationCount();
 }
 
 
@@ -110,33 +147,11 @@ const ActorSet * NetworkLongitudinalData::pReceivers() const
 
 
 /**
- * Returns the network as of the given observation moment. This method
- * should be used for populating the data object, as it provides write
- * access to the network.
- */
-Network * NetworkLongitudinalData::pNetwork(int observation)
-{
-	return this->lnetworks[observation];
-}
-
-
-/**
  * Returns the observed network as of the given observation moment.
  */
 const Network * NetworkLongitudinalData::pNetwork(int observation) const
 {
 	return this->lnetworks[observation];
-}
-
-
-/**
- * Returns the network storing the structural tie indicators for the given
- * observation. This method should be used for populating the data object,
- * as it provides write access to the network.
- */
-Network * NetworkLongitudinalData::pStructuralTieNetwork(int observation)
-{
-	return this->lstructuralTieNetworks[observation];
 }
 
 
@@ -153,17 +168,6 @@ const Network * NetworkLongitudinalData::pStructuralTieNetwork(int observation)
 
 /**
  * Returns the network storing the missing tie indicators for the given
- * observation. This method should be used for populating the data object,
- * as it provides write access to the network.
- */
-Network * NetworkLongitudinalData::pMissingTieNetwork(int observation)
-{
-	return this->lmissingTieNetworks[observation];
-}
-
-
-/**
- * Returns the network storing the missing tie indicators for the given
  * observation.
  */
 const Network * NetworkLongitudinalData::pMissingTieNetwork(int observation)
@@ -174,12 +178,25 @@ const Network * NetworkLongitudinalData::pMissingTieNetwork(int observation)
 
 
 /**
- * Returns the observed value of a tie from <i>i</i> to <i>j</i> at the given
+ * Returns the observed value of the tie from <i>i</i> to <i>j</i> at the given
  * observation.
  */
 int NetworkLongitudinalData::tieValue(int i, int j, int observation) const
 {
 	return this->lnetworks[observation]->tieValue(i, j);
+}
+
+
+/**
+ * Stores the observed value of the tie from <i>i</i> to <i>j</i> at the given
+ * observation.
+ */
+void NetworkLongitudinalData::tieValue(int i,
+	int j,
+	int observation,
+	int value)
+{
+	this->lnetworks[observation]->setTieValue(i, j, value);
 }
 
 
@@ -190,6 +207,53 @@ int NetworkLongitudinalData::tieValue(int i, int j, int observation) const
 bool NetworkLongitudinalData::missing(int i, int j, int observation) const
 {
 	return this->lmissingTieNetworks[observation]->tieValue(i, j);
+}
+
+
+/**
+ * Stores if the tie value between the given actors is missing at the
+ * given observation.
+ */
+void NetworkLongitudinalData::missing(int i, int j, int observation, bool flag)
+{
+	if (flag)
+	{
+		this->lmissingTieNetworks[observation]->setTieValue(i, j, 1);
+	}
+	else
+	{
+		this->lmissingTieNetworks[observation]->setTieValue(i, j, 0);
+	}
+}
+
+
+/**
+ * Returns if the tie value between the given actors is structurally determined
+ * at the given observation.
+ */
+bool NetworkLongitudinalData::structural(int i, int j, int observation) const
+{
+	return this->lstructuralTieNetworks[observation]->tieValue(i, j);
+}
+
+
+/**
+ * Stores if the tie value between the given actors is structurally determined
+ * at the given observation.
+ */
+void NetworkLongitudinalData::structural(int i,
+	int j,
+	int observation,
+	bool flag)
+{
+	if (flag)
+	{
+		this->lstructuralTieNetworks[observation]->setTieValue(i, j, 1);
+	}
+	else
+	{
+		this->lstructuralTieNetworks[observation]->setTieValue(i, j, 0);
+	}
 }
 
 
@@ -222,19 +286,21 @@ int NetworkLongitudinalData::maxDegree() const
 }
 
 
-// ----------------------------------------------------------------------------
-// Section: Overrides
-// ----------------------------------------------------------------------------
+/**
+ * Returns the average in-degree over all receivers and observations.
+ */
+double NetworkLongitudinalData::averageInDegree() const
+{
+	return this->laverageInDegree;
+}
+
 
 /**
- * Returns a new network variable based on this longitudinal data. The
- * caller must take care of the deallocation of the returned variable.
- * @param[in] pSimulation the simulation using the new variable
+ * Returns the average out-degree over all senders and observations.
  */
-DependentVariable * NetworkLongitudinalData::createVariable(
-	EpochSimulation * pSimulation)
+double NetworkLongitudinalData::averageOutDegree() const
 {
-	return new NetworkVariable(this, pSimulation);
+	return this->laverageOutDegree;
 }
 
 }

@@ -12,7 +12,7 @@
 #include "Network.h"
 #include "TieIterator.h"
 #include "IncidentTieIterator.h"
-#include "DataUtils.h"
+#include "NetworkUtils.h"
 #include "../utils/Utils.h"
 #include <map>
 #include <stdexcept>
@@ -48,20 +48,10 @@ Network::Network(int n, int m)
 	// Allocate data structures
 	this->allocateArrays();
 
-	// Initialize the various degree counters
-
-	for (int i = 0; i < this->ln; i++)
-	{
-		this->lpPositiveOutDegree[i] = 0;
-	}
-
-	for (int i = 0; i < this->lm; i++)
-	{
-		this->lpPositiveInDegree[i] = 0;
-	}
-
 	// No ties for now
 	this->ltieCount = 0;
+
+	this->lmodificationCount = 0;
 }
 
 
@@ -82,17 +72,16 @@ Network::Network(const Network & rNetwork)
 	{
 		this->lpOutTies[i].insert(rNetwork.lpOutTies[i].begin(),
 			rNetwork.lpOutTies[i].end());
-		this->lpPositiveOutDegree[i] = rNetwork.lpPositiveOutDegree[i];
 	}
 
 	for (int i = 0; i < this->lm; i++)
 	{
 		this->lpInTies[i].insert(rNetwork.lpInTies[i].begin(),
 			rNetwork.lpInTies[i].end());
-		this->lpPositiveInDegree[i] = rNetwork.lpPositiveInDegree[i];
 	}
 
 	this->ltieCount = rNetwork.ltieCount;
+	this->lmodificationCount = 0;
 }
 
 
@@ -131,17 +120,16 @@ Network & Network::operator=(const Network & rNetwork)
 		{
 			this->lpOutTies[i].insert(rNetwork.lpOutTies[i].begin(),
 				rNetwork.lpOutTies[i].end());
-			this->lpPositiveOutDegree[i] = rNetwork.lpPositiveOutDegree[i];
 		}
 
 		for (int i = 0; i < this->lm; i++)
 		{
 			this->lpInTies[i].insert(rNetwork.lpInTies[i].begin(),
 				rNetwork.lpInTies[i].end());
-			this->lpPositiveInDegree[i] = rNetwork.lpPositiveInDegree[i];
 		}
 
 		this->ltieCount = rNetwork.ltieCount;
+		this->lmodificationCount++;
 	}
 
 	return *this;
@@ -164,8 +152,6 @@ void Network::allocateArrays()
 
 	this->lpOutTies = new std::map<int, int>[this->ln];
 	this->lpInTies = new std::map<int, int>[this->lm];
-	this->lpPositiveOutDegree = new int[this->ln];
-	this->lpPositiveInDegree = new int[this->lm];
 }
 
 
@@ -176,13 +162,9 @@ void Network::deleteArrays()
 {
 	delete[] this->lpOutTies;
 	delete[] this->lpInTies;
-	delete[] this->lpPositiveOutDegree;
-	delete[] this->lpPositiveInDegree;
 
 	this->lpOutTies = 0;
 	this->lpInTies = 0;
-	this->lpPositiveOutDegree = 0;
-	this->lpPositiveInDegree = 0;
 }
 
 
@@ -269,25 +251,11 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 		oldValue = iter->second;
 	}
 
-	// Should we increase the value of replace?
+	// Should we increase the value or replace?
 
 	if (type == INCREASE)
 	{
 		v += oldValue;
-	}
-
-	// Update the positive degree counters if a positive tie becomes
-	// non-positive or vice versa.
-
-	if (oldValue > 0 && v <= 0)
-	{
-		this->lpPositiveOutDegree[i]--;
-		this->lpPositiveInDegree[j]--;
-	}
-	else if (oldValue <= 0 && v > 0)
-	{
-		this->lpPositiveOutDegree[i]++;
-		this->lpPositiveInDegree[j]++;
 	}
 
 	// Act on tie withdrawal or introduction.
@@ -341,6 +309,9 @@ int Network::changeTieValue(int i, int j, int v, ChangeType type)
 
 		this->lpInTies[j][i] = v;
 	}
+
+	// Remember that the network has changed
+	this->lmodificationCount++;
 
 	return v;
 }
@@ -400,17 +371,18 @@ void Network::clear()
 	for (int i = 0; i < this->ln; i++)
 	{
 		this->lpOutTies[i].clear();
-		this->lpPositiveOutDegree[i] = 0;
 	}
 
 	for (int i = 0; i < this->lm; i++)
 	{
 		this->lpInTies[i].clear();
-		this->lpPositiveInDegree[i] = 0;
 	}
 
 	// The ties are gone.
 	this->ltieCount = 0;
+
+	// The network has changed
+	this->lmodificationCount++;
 }
 
 
@@ -522,46 +494,6 @@ int Network::outDegree(int i) const
 {
 	this->checkSenderRange(i);
 	return this->lpOutTies[i].size();
-}
-
-
-/**
- * Returns the number of positive incoming ties of the actor <i>i</i>.
- */
-int Network::positiveInDegree(int i) const
-{
-	this->checkReceiverRange(i);
-	return this->lpPositiveInDegree[i];
-}
-
-
-/**
- * Returns the number of negative incoming ties of the actor <i>i</i>.
- */
-int Network::negativeInDegree(int i) const
-{
-	// The range of actors is checked in inDegree
-	return this->inDegree(i) - this->lpPositiveInDegree[i];
-}
-
-
-/**
- * Returns the number of positive outgoing ties of the actor <i>i</i>.
- */
-int Network::positiveOutDegree(int i) const
-{
-	this->checkSenderRange(i);
-	return this->lpPositiveOutDegree[i];
-}
-
-
-/**
- * Returns the number of negative outgoing ties of the actor <i>i</i>.
- */
-int Network::negativeOutDegree(int i) const
-{
-	// The range of actors is checked in outDegree
-	return this->outDegree(i) - this->lpPositiveOutDegree[i];
 }
 
 

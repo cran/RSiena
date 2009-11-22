@@ -1,5 +1,17 @@
-print01Report <- function(data, myeff, modelname="Siena", session=NULL)
+#/******************************************************************************
+# * SIENA: Simulation Investigation for Empirical Network Analysis
+# *
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# *
+# * File: print01Report.r
+# *
+# * Description: This module contains the function to print the initial report
+# *****************************************************************************/
+##@print01Report Reporting
+print01Report <- function(data, myeff, modelname="Siena", session=NULL,
+                          getDocumentation=FALSE)
 {
+    ##@reportDataObject1 internal print01Report
     reportDataObject1 <- function(x)
     {
         Report(c(x$observations, "observations,\n"), outf)
@@ -20,26 +32,32 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
             Report(c(length(x$nodeSets[[1]]), "actors\n"), outf)
         }
     }
+    ##@reportDataObject internal print01Report
     reportDataObject <- function(x, periodFromStart=0, multi=FALSE)
     {
+        ##@reportStart internal print01Report
         reportStart <- function()
         {
             multipleNodeSets <- length(x$nodeSets) > 1
             if (multipleNodeSets)
             {
-                Report("Dependent variables   Type      NodeSet(s) (R, C)\n",
+                Report("Dependent variables   Type       NodeSet(s) (R, C)\n",
                        outf)
-                Report("-------------------   ----      -----------------\n",
+                Report("-------------------   ----       -----------------\n",
                        outf)
                 for (i in 1:length(x$depvars))
                 {
                     atts <- attributes(x$depvars[[i]])
                     Report(c(format(atts$name, width=20),
-                             format(atts$type, width=10)), outf)
-                    for (j in 1:length(atts$nodeSets))
+                             format(atts$type, width=12)), outf)
+                    for (j in 1:length(atts$nodeSet))
                     {
-                        Report(c(format(atts$nodeSets, width=10),
-                                 "(", atts$dim[j], ")"), sep="", outf)
+                        if (j > 1)
+                        {
+                            Report(', ', outf)
+                        }
+                        Report(c(format(atts$nodeSet[j]),
+                                 " (", atts$netdims[j], ")"), sep="", outf)
                     }
                     Report("\n", outf)
                 }
@@ -80,6 +98,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
          Report("\n", outf)
         }
 
+        ##@reportNetworks internal print01Report
         reportNetworks <- function()
         {
             Heading(2, outf, "Reading network variables.")
@@ -104,7 +123,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                     {
                         Report("This is a two-mode network.\n", outf)
                         Report(c("The number of units in the second mode is ",
-                                 atts$dim[2], ".\n"), sep="", outf)
+                                 atts$netdims[2], ".\n"), sep="", outf)
                     }
                     for (k in 1:x$observations)
                     {
@@ -163,12 +182,23 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                             missrow <- rowSums(is.na(tmpdepvar))
                             misscol <- colSums(is.na(tmpdepvar))
                         }
-                        tmp <- format(cbind(1:atts$netdims[1], outdeg, indeg))
+                        if (attr(depvar, "type") == "bipartite")
+                        {
+                             tmp <- format(cbind(1:atts$netdims[1], outdeg))
+                         }
+                        else
+                        {
+                            tmp <- format(cbind(1:atts$netdims[1], outdeg, indeg))
+                        }
+
                         Report(tmp[, 1], fill=60, outf)
                         Report("out-degrees\n", outf)
                         Report(tmp[, 2], fill=60, outf)
-                        Report("in-degrees\n", outf)
-                        Report(tmp[, 3], fill=60, outf)
+                        if (attr(depvar, "type") != "bipartite")
+                        {
+                            Report("in-degrees\n", outf)
+                            Report(tmp[, 3], fill=60, outf)
+                        }
                         ## report structural values
                         if (attr(depvar, "structural"))
                         {
@@ -293,6 +323,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
             }
             Report("\n", outf)
         }
+        ##@reportBehaviors internal print01Report
         reportBehaviors <- function()
         {
             Heading(2, outf, "Reading dependent actor variables.")
@@ -356,6 +387,16 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                                  format(atts$modes, width=4)), outf)
                         Report("\n", outf)
                     }
+                    depvar2 <- depvar
+                    depvar2[is.na(depvar2)] <- 0
+                    if (!isTRUE(all.equal(as.vector(depvar2) -
+                                          round(as.vector(depvar2)),
+                                          rep(0, length(depvar2)))))
+                    {
+                         Report(c("Non-integer values noted in this behavior",
+                                  "variable: they will be truncated.\n")
+                                 , outf)
+                    }
                     Report('\n', outf)
                 }
             }
@@ -395,20 +436,38 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                     Report(c(format(netname, width=14),
                              format(round(means, 3), nsmall=3,
                                     width=10), format(round(mean(means),
-                                    3), width=10), '\n\n'), sep="", outf)
+                                    3), width=10), '\n'), sep="", outf)
                 }
             }
         }
+        ##@reportConstantCovariates internal print01Report
         reportConstantCovariates <- function()
         {
             nCovars <- length(x$cCovars)
             covars <- names(x$cCovars)
             Heading(2, outf, "Reading constant actor covariates.")
-            Report(c(nCovars, "variable"),outf)
-            Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
-            for (i in seq(along=covars))
+            if (!is.null(session))
             {
-                Report(c(format(covars[i], width=15), '\n'), outf)
+                covarssession <- session[session$Type == "constant covariate", ]
+                for (i in 1:nrow(covarssession))
+                {
+                    names <- strsplit(covarssession$Name[i],
+                                      " ", fixed=TRUE)[[1]]
+                    ncases <- length(x$cCovars[[match(names[1], covars)]])
+                    Report(c("Covariate data file", covarssession$Filename[i],
+                           "with", length(names), "variables,", ncases,
+                             "cases, named:\n"), outf)
+                    Report(paste(names, "\n"), outf, sep="")
+                }
+            }
+            else
+            {
+                Report(c(nCovars, "variable"),outf)
+                Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
+                for (i in seq(along=covars))
+                {
+                    Report(c(format(covars[i], width=15), '\n'), outf)
+                }
             }
             Report(c("\nA total of", nCovars,
                      "non-changing individual covariate"), outf)
@@ -440,6 +499,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                      " subtracted from the covariate",
                      ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
         }
+        ##@reportChangingCovariates internal print01Report
         reportChangingCovariates <- function()
         {
             nCovars <- length(x$vCovars)
@@ -447,11 +507,28 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
             use <- ! covars %in% names(x$cCovars)
             nCovars <- length(x$vCovars[use])
             Heading(2, outf, "Reading exogenous changing actor covariates.")
-            Report(c(nCovars, "variable"),outf)
-            Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
-            for (i in seq(along=covars[use]))
+            if (!is.null(session))
             {
-                Report(c(format(covars[use][i], width=15), '\n'), outf)
+                covarssession <- session[session$Type == "changing covariate", ]
+                for (i in 1:nrow(covarssession))
+                {
+                    ncases <- nrow(x$vCovars[[match(covarssession$Name[i],
+                                                      covars)]])
+                    Report(c("Exogenous changing covariate ",
+                             covarssession$name[i], " read from file ",
+                             covarssession$Filename[i], ".\n"), sep="", outf)
+                    Report(c("Number of cases is ", ncases, ".\n"), sep="",
+                              outf)
+                }
+            }
+            else
+            {
+                Report(c(nCovars, "variable"),outf)
+                Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
+                for (i in seq(along=covars[use]))
+                {
+                    Report(c(format(covars[use][i], width=15), '\n'), outf)
+                }
             }
             Report(c("\nA total of", nCovars,
                      "exogenous changing actor covariate"), outf)
@@ -504,6 +581,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
             Report(c(ifelse(nCovars  == 1, " is", "s are"),
                      "subtracted from the covariate.\n\n"),  outf)
         }
+        ##@reportConstantDyadicCovariates internal print01Report
         reportConstantDyadicCovariates <- function()
         {
             nCovars <- length(x$dycCovars)
@@ -548,6 +626,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                      "subtracted from the dyadic covariate",
                      ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
         }
+        ##@reportChangingDyadicCovariates internal print01Report
         reportChangingDyadicCovariates <- function()
         {
             covars <- names(x$dyvCovars)
@@ -576,6 +655,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
                      "subtracted from the changing dyadic covariate",
                      ifelse(nCovars ==1, ".\n\n", "s.\n\n")), sep="", outf)
         }
+        ##@reportCompositionChange internal print01Report
         reportCompositionChange <- function()
         {
             comps <- x$compositionChange
@@ -646,6 +726,11 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
         Report("\n\n", outf) ## end of reportDataObject
     }
     ## create output file. ## start of print01Report proper
+    if (getDocumentation)
+    {
+        tt <- getInternals()
+        return(tt)
+    }
     Report(open=TRUE, type="w", projname=modelname)
     Report("                            ************************\n", outf)
     Report(c("                                   ", modelname, ".out\n"),
@@ -719,22 +804,181 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL)
             periodFromStart <- periodFromStart + data[[i]]$observations
         }
         Report("\n", outf)
-   }
-    if (sum(nets) > 0)
-    {
-        if (any(atts$anyMissing[nets]))
-        {
-            netnames <- atts$netnames[nets]
-            missings <- atts$anyMissing[nets]
-            for (i in seq(along=netnames[missings]))
-            {
-                Report(c("There are missing data for network variable ",
-                         netnames[i], ".\n"), sep = "", outf)
-            }
-        }
-        Report("\n", outf)
     }
-  if (sum(atts$types == 'oneMode') > 0)
+    periodNos <- attr(data, "periodNos")
+    if (any(atts$anyUpOnly[nets]))
+    {
+        netnames <- atts$netnames[nets]
+        upOnly <- atts$anyUpOnly[nets]
+        for (i in seq(along=netnames[upOnly]))
+        {
+            if (sum(nets) > 1)
+            {
+                Report(c("Network ", netnames[i], ":\n"), sep = "", outf)
+            }
+            if (atts$observations == 1)
+            {
+                Report("All network changes are upward.\n", outf)
+                Report("This will be respected in the simulations.\n", outf)
+            }
+            else
+            {
+                Report(c("All network changes are upward for the following",
+                         "periods:\n"), outf)
+                periodsUp <-
+                    sapply(data, function(x)
+                       {
+                           attr(x$depvars[[match(netnames[i],
+                                                 names(x$depvars))]],
+                                "uponly")
+                       })
+                periods <- periodNos[c(1:length(periodsUp))[periodsUp]]
+                Report(paste(periods, " => ", periods + 1, ";",
+                             sep=""), fill=80, outf)
+                Report("This will be respected in the simulations.\n", outf)
+                if (atts$allUpOnly[i])
+                {
+                    Report(c("All changes are only up:",
+                             "no outdegree parameter.\n"), outf)
+                }
+            }
+            Report("\n", outf)
+        }
+    }
+    if (any(atts$anyDownOnly[nets]))
+    {
+        netnames <- atts$netnames[nets]
+        downOnly <- atts$anyDownOnly[nets]
+        for (i in seq(along=netnames[downOnly]))
+        {
+            if (sum(nets) > 1)
+            {
+                Report(c("Network ", netnames[i], "\n"), sep = "", outf)
+            }
+            if (atts$observations == 1)
+            {
+                Report("All network changes are downward.\n", outf)
+                Report("This will be respected in the simulations.\n\n", outf)
+            }
+            else
+            {
+                periodsDown <-
+                    sapply(data, function(x)
+                       {
+                           attr(x$depvars[[match(netnames[i],
+                                                 names(x$depvars))]],
+                                "downonly")
+                       })
+                Report(c("All network changes are downward for the",
+                         "following periods:\n"), outf)
+                periods <- periodNos[c(1:length(periodsDown))[periodsDown]]
+                Report(paste(periods, " => ", periods + 1, ";",
+                             sep=""), fill=80, outf)
+                Report("This will be respected in the simulations.\n", outf)
+                if (atts$allDownOnly[i])
+                {
+                    Report(c("All changes are only down:",
+                             "no outdegree parameter.\n"), outf)
+                }
+            }
+            Report("\n", outf)
+        }
+    }
+    if (any(atts$anyUpOnly[!nets]))
+    {
+        netnames <- atts$netnames[!nets]
+        upOnly <- atts$anyUpOnly[!nets]
+        for (i in seq(along=netnames[upOnly]))
+        {
+            Report(c("\nBehavior variable ", netnames[i], ":\n"), sep = "", outf)
+            if (atts$observations == 1)
+            {
+                Report("All behavior changes are upward.\n", outf)
+                Report("This will be respected in the simulations.\n", outf)
+            }
+            else
+            {
+                Report(c("All behavior changes are upward for the following",
+                         "periods:\n"), outf)
+                periodsUp <-
+                    sapply(data, function(x)
+                       {
+                           attr(x$depvars[[match(netnames[i],
+                                                 names(x$depvars))]],
+                                "uponly")
+                       })
+                periods <- periodNos[c(1:length(periodsUp))[periodsUp]]
+                Report(paste(periods, " => ", periods + 1, ";",
+                             sep=""), fill=80, outf)
+                Report("This will be respected in the simulations.\n", outf)
+                if (atts$allUpOnly[i])
+                {
+                    Report(c("All changes are only up:",
+                             "no linear shape parameter.\n\n"), outf)
+                }
+            }
+            Report("\n", outf)
+        }
+    }
+    if (any(atts$anyDownOnly[!nets]))
+    {
+        netnames <- atts$netnames[!nets]
+        downOnly <- atts$anyDownOnly[!nets]
+        for (i in seq(along=netnames[downOnly]))
+        {
+            Report(c("\nBehavior ", netnames[i], ":\n"), sep = "", outf)
+            if (atts$observations == 1)
+            {
+                Report("All behavior changes are downward.\n", outf)
+                Report("This will be respected in the simulations.\n", outf)
+            }
+            else
+            {
+                periodsDown <-
+                    sapply(data, function(x)
+                       {
+                           attr(x$depvars[[match(netnames[i],
+                                                 names(x$depvars))]],
+                                "downonly")
+                       })
+                Report(c("All behavior changes are downward for the",
+                         "following periods:\n"), outf)
+                periods <- periodNos[c(1:length(periodsDown))[periodsDown]]
+                Report(paste(periods, " => ", periods + 1, ";",
+                             sep=""), fill=80, outf)
+                Report("This will be respected in the simulations.\n", outf)
+                if (atts$allDownOnly[i])
+                {
+                    Report(c("All changes are only down:",
+                             "no linear shape parameter.\n"), outf)
+                }
+            }
+             Report("\n", outf)
+       }
+    }
+    if (any(atts$anyMissing[nets]))
+    {
+        netnames <- atts$netnames[nets]
+        missings <- atts$anyMissing[nets]
+        for (i in seq(along=netnames[missings]))
+        {
+            Report(c("There are missing data for network variable ",
+                     netnames[i], ".\n"), sep = "", outf)
+        }
+    }
+     if (any(atts$anyMissing[!nets]))
+    {
+        netnames <- atts$netnames[!nets]
+        missings <- atts$anyMissing[!nets]
+        for (i in seq(along=netnames[missings]))
+        {
+            Report(c("There are missing data for behavior variable ",
+                     netnames[i], ".\n"), sep = "", outf)
+        }
+    }
+   Report("\n", outf)
+
+    if (sum(atts$types == 'oneMode') > 0)
     {
         balmean <- atts$"balmean"
 

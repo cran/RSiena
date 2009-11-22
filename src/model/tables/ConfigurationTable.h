@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ConfigurationTable.h
- * 
+ *
  * Description: This file defines the class ConfigurationTable.
  *****************************************************************************/
 
@@ -18,7 +18,8 @@ namespace siena
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
-class NetworkVariable;
+class NetworkCache;
+class Network;
 
 
 // ----------------------------------------------------------------------------
@@ -26,64 +27,55 @@ class NetworkVariable;
 // ----------------------------------------------------------------------------
 
 /**
- * This class defines a table storing the number of network configurations
- * depending on pairs of actors. The first actor is common to all pairs and
- * is stored indirectly in the owner of this table, which is an instance of
- * the NetworkVariable.
- * 
- * There can be various types of configurations (like the number of two-paths,
- * etc.), each implemented in a derived class. Normally, the derived classes
- * should implement only the purely virtual method vCalculate.
- * 
+ * This class defines a table storing a number of network configurations of
+ * certain type per actor.
+ *
+ * There can be various types of configurations, each implemented in a derived
+ * class. Normally, the derived classes should implement only the purely
+ * virtual method vCalculate.
+ *
+ * The configuration tables are grouped in and owned by an instance of the
+ * NetworkCache class.
+ *
  * The configuration tables are used to speedup the calculations involving
  * effects.
  */
 class ConfigurationTable
 {
 public:
-	ConfigurationTable(NetworkVariable * pVariable);
+	ConfigurationTable(NetworkCache * pOwner);
 	virtual ~ConfigurationTable();
 
-	void calculate();	
-	inline int get(int i) const;
-	void invalidate();
-	
+	virtual int get(int i);
+
 protected:
-	NetworkVariable * pVariable() const;
-	
+	NetworkCache * pOwner() const;
+	const Network * pNetwork() const;
+
 	/**
 	 * An abstract method that has to be implemented by derived classes
 	 * to actually calculate the number of configurations of the respective
 	 * type.
 	 */
-	virtual void vCalculate() = 0;
-	
-	void set(int i, int value);
+	virtual void calculate() = 0;
+
 	void reset();
-	
-private:
-	// The owner dependent variable of this table
-	NetworkVariable * lpVariable;
-	
+
 	// The internal storage
-	int * lpTable;
-	
-	// Indicates if the table is valid or should be recalculated
-	bool lvalid;
+	int * ltable;
+
+private:
+	// The network cache owning this configuration table
+	NetworkCache * lpOwner;
+
+	// The network this configuration table is associated with
+	const Network * lpNetwork;
+
+	// The modification count of the network on the last time this table
+	// was calculated.
+
+	int llastModificationCount;
 };
-
-
-// ----------------------------------------------------------------------------
-// Section: Inline methods
-// ----------------------------------------------------------------------------
-
-/**
- * Returns the number of configurations corresponding to the given actor.
- */
-inline int ConfigurationTable::get(int i) const
-{
-	return this->lpTable[i];
-}
 
 }
 

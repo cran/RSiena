@@ -18,10 +18,10 @@ namespace siena
 {
 
 /**
- * Behavior variable main behavior effect defined as the product of the ego 
+ * Behavior variable main behavior effect defined as the product of the ego
  * with the covariate.
  */
-	class BehaviorMainBehaviorEffect : public BehaviorDependentBehaviorEffect
+class BehaviorMainBehaviorEffect : public BehaviorDependentBehaviorEffect
 {
 public:
 	BehaviorMainBehaviorEffect(const EffectInfo * pEffectInfo);

@@ -13,8 +13,8 @@
 
 #include "InInDegreeAssortativityEffect.h"
 #include "utils/SqrtTable.h"
-#include "data/Network.h"
-#include "data/TieIterator.h"
+#include "network/Network.h"
+#include "network/TieIterator.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -35,39 +35,28 @@ InInDegreeAssortativityEffect::InInDegreeAssortativityEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double InInDegreeAssortativityEffect::calculateTieFlipContribution(int alter)
+double InInDegreeAssortativityEffect::calculateContribution(int alter)
 	const
 {
 	double change = 0;
-	Network * pNetwork = this->pVariable()->pNetwork();
-	int egoDegree = pNetwork->inDegree(this->pVariable()->ego());
+	const Network * pNetwork = this->pNetwork();
+	int egoDegree = pNetwork->inDegree(this->ego());
 	int alterDegree = pNetwork->inDegree(alter);
 
-	if (this->pVariable()->outTieExists(alter))
+	if (!this->outTieExists(alter))
 	{
-		if (this->lroot)
-		{
-			change =
-				- this->lsqrtTable->sqrt(egoDegree) *
-					this->lsqrtTable->sqrt(alterDegree);
-		}
-		else
-		{
-			change = - egoDegree * alterDegree;
-		}
+		alterDegree++;
+	}
+
+	if (this->lroot)
+	{
+		change =
+			this->lsqrtTable->sqrt(egoDegree) *
+				this->lsqrtTable->sqrt(alterDegree);
 	}
 	else
 	{
-		if (this->lroot)
-		{
-			change =
-				this->lsqrtTable->sqrt(egoDegree) *
-					this->lsqrtTable->sqrt(alterDegree + 1);
-		}
-		else
-		{
-			change = egoDegree * (alterDegree + 1);
-		}
+		change = egoDegree * alterDegree;
 	}
 
 	return change;
@@ -75,52 +64,20 @@ double InInDegreeAssortativityEffect::calculateTieFlipContribution(int alter)
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * See base class for a detailed comment.
  */
-double InInDegreeAssortativityEffect::evaluationStatistic(Network * pNetwork)
-	const
+double InInDegreeAssortativityEffect::statistic(
+	const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 
-	for (TieIterator iter = pNetwork->ties(); iter.valid(); iter.next())
+	for (TieIterator iter = pSummationTieNetwork->ties();
+		iter.valid();
+		iter.next())
 	{
 		int egoDegree = pNetwork->inDegree(iter.ego());
 		int alterDegree = pNetwork->inDegree(iter.alter());
-
-		if (this->lroot)
-		{
-			statistic +=
-				this->lsqrtTable->sqrt(egoDegree) *
-					this->lsqrtTable->sqrt(alterDegree);
-		}
-		else
-		{
-			statistic += egoDegree * alterDegree;
-		}
-	}
-
-	return statistic;
-}
-
-
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
- */
-double InInDegreeAssortativityEffect::endowmentStatistic(
-	Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
-{
-	double statistic = 0;
-
-	for (TieIterator iter = pLostTieNetwork->ties(); iter.valid(); iter.next())
-	{
-		int egoDegree = pInitialNetwork->inDegree(iter.ego());
-		int alterDegree = pInitialNetwork->inDegree(iter.alter());
 
 		if (this->lroot)
 		{

@@ -10,8 +10,8 @@
  *****************************************************************************/
 
 #include "WXXClosureEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "data/NetworkLongitudinalData.h"
 #include "data/DyadicCovariateValueIterator.h"
 #include "model/variables/NetworkVariable.h"
@@ -40,28 +40,24 @@ WXXClosureEffect::~WXXClosureEffect()
 
 
 /**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void WXXClosureEffect::initialize(EpochSimulation * pSimulation)
-{
-	DyadicCovariateDependentNetworkEffect::initialize(pSimulation);
-
-	delete[] this->lsums;
-	this->lsums = new double[this->pVariable()->n()];
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
 void WXXClosureEffect::initialize(const Data * pData,
 	State * pState,
-	int period)
+	int period,
+	Cache * pCache)
 {
-	DyadicCovariateDependentNetworkEffect::initialize(pData, pState, period);
+	DyadicCovariateDependentNetworkEffect::initialize(pData,
+		pState,
+		period,
+		pCache);
+
+	delete[] this->lsums;
+	this->lsums = new double[this->pNetwork()->n()];
 }
 
 
@@ -70,11 +66,10 @@ void WXXClosureEffect::initialize(const Data * pData,
  * contributions for a specific ego. This method must be invoked before
  * calling NetworkEffect::calculateTieFlipContribution(...).
  */
-void WXXClosureEffect::preprocessEgo()
+void WXXClosureEffect::preprocessEgo(int ego)
 {
-	this->calculateSums(this->pVariable()->ego(),
-		this->pVariable()->pNetwork(),
-		this->lsums);
+	DyadicCovariateDependentNetworkEffect::preprocessEgo(ego);
+	this->calculateSums(ego, this->pNetwork(), this->lsums);
 }
 
 
@@ -82,8 +77,9 @@ void WXXClosureEffect::preprocessEgo()
  * For each j and the given i, this method calculates the sum
  * sum_h w_{ih} x_{hj}.
  */
-void WXXClosureEffect::calculateSums(int i, Network * pNetwork, double * sums)
-	const
+void WXXClosureEffect::calculateSums(int i,
+	const Network * pNetwork,
+	double * sums) const
 {
 	int n = pNetwork->n();
 
@@ -120,26 +116,19 @@ void WXXClosureEffect::calculateSums(int i, Network * pNetwork, double * sums)
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double WXXClosureEffect::calculateTieFlipContribution(int alter) const
+double WXXClosureEffect::calculateContribution(int alter) const
 {
-	double change = this->lsums[alter];
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
-	}
-
-	return change;
+	return this->lsums[alter];
 }
 
 
 /**
  * Detailed comment in the base class.
  */
-double WXXClosureEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double WXXClosureEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	double * sums = new double[n];
 

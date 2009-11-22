@@ -8,321 +8,336 @@
 # * Description: This module contains the code for the creation of the
 # * effects object to go with a Siena data object or group object.
 # *****************************************************************************/
-getEffects<- function(x, nintn = 10)
+##@getEffects DataCreate
+getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
 {
+    ##@duplicateDataFrameRow internal getEffects Put period numbers in
+    duplicateDataFrameRow <- function(x, n)
+    {
+        tmp <- NULL
+        for (i in 1:n)
+        {
+            xx <- x
+            xx[, c("effectName", "functionName", "period")] <-
+                sub("nnnnnn", periodNos[i], xx[, c("effectName", "functionName",
+                                        "period")])
+            tmp <-  rbind(tmp, xx)
+        }
+        tmp
+    }
+    ##@substituteNames internal getEffects replace xxxxxx, yyyyyy, zzzzzz
+    substituteNames <- function(nameVectors, xName=NULL, yName=NULL, zName=NULL)
+    {
+        effects <- nameVectors[, c("effectName", "functionName",
+                                   "interaction1", "interaction2")]
+        if (!is.null(xName))
+        {
+            effects <- sapply(effects, function(x)
+                                  gsub("xxxxxx", xName, x))
+        }
+        if (!is.null(yName))
+        {
+            effects <- sapply(effects, function(x)
+                                  gsub("yyyyyy", yName, x))
+        }
+         if (!is.null(zName))
+        {
+            effects <- sapply(effects, function(x)
+                                  gsub("zzzzzz", zName, x))
+        }
+        nameVectors[, c("effectName", "functionName",
+                        "interaction1", "interaction2")] <- effects
+        nameVectors
+    }
+    ##@createEffects internal getEffects Extract required rows and change text
+    createEffects <- function(effectGroup, xName=NULL, yName=NULL)
+    {
+        effects <- allEffects[allEffects$effectGroup == effectGroup, ]
+        if (nrow(effects) == 0)
+        {
+            stop("empty effect group")
+        }
+        if (any(is.na(effects$effectName)))
+        {
+            stop("missing effect name")
+        }
+        effects <- substituteNames(effects, xName, yName)
+        effects
+    }
+    ##@networkRateEffects internal getEffects create a set of rate effects
+    networkRateEffects <- function(depvar, varname, symmetric, bipartite)
+    {
+        if (symmetric)
+        {
+            rateEffects <- createEffects("symmetricRate", varname)
+        }
+        else if (bipartite)
+        {
+            rateEffects <- createEffects("bipartiteRate", varname)
+        }
+        else
+        {
+            rateEffects <- createEffects("nonSymmetricRate", varname)
+        }
+        if (observations == 1)
+        {
+            rateEffects <- rateEffects[-2, ] ## remove the extra period
+        }
+        else
+        {
+            ## get correct number of rows
+            rateEffects <- rbind(duplicateDataFrameRow(rateEffects[2, ],
+                                                       observations),
+                                 rateEffects[-c(1, 2), ])
+        }
+        rateEffects
+    }
+    ##@oneModeNet internal getEffects
     oneModeNet <- function(depvar, varname)
     {
+        symmetric <- attr(depvar, "symmetric")
         nodeSet <- attr(depvar, 'nodeSet')
-        if (attr(depvar, 'symmetric'))
-        {
-            if (observations > 1)
-            {
-                rateEffects <- paste('constant', varname,' rate (period ',
-                                        periodNos, ')', sep = '')
-                rateFunctions <- paste("Amount of network change in period",
-                                       periodNos)
-                rateShortNames <- rep('Rate', observations)
-                ratePeriods <- 1:observations
-                rateTypes <- rep(NA, observations)
-            }
-            else
-            {
-                rateEffects <- paste('basic rate parameter', varname)
-                rateShortNames <- 'Rate'
-                rateFunctions <- "Amount of network change"
-                ratePeriods <- 1
-                rateTypes <- NA
-           }
-            rateEffects <- c(rateEffects,
-                             paste(symmetricRateEffects[-(1:2), 1], varname))
-            rateFunctions <- c(rateFunctions, symmetricRateEffects[-(1:2), 2])
-            ratePeriods <- c(ratePeriods, rep(NA, nrow(symmetricRateEffects)-2))
-            rateTypes <- c(rateTypes, rep('structural',
-                                          nrow(symmetricRateEffects)-2))
-            objEffects <- symmetricObjEffects[, 1]
-            objFunctions <- symmetricObjEffects[, 2]
-            objEndowment <- symmetricObjEffects[, 3]
-            objShortNames <- symmetricObjEffects[, 4]
-            objParms <- symmetricObjEffects[, 5]
-            objEffects <- createObjEffectList(objEffects, objFunctions,
-                                              objEndowment, objShortNames,
-                                              objParms, varname)
-            rateEffects <- createRateEffectList(rateEffects, rateFunctions,
-                                              rateShortNames, ratePeriods,
-                                                rateTypes,
-                                                varname)
-            for (j in seq(along = xx$dycCovars))
-            {
-                if (attr(x$dycCovars[[j]], 'nodeSet')[1] == nodeSet)
-                {
-                    tmp <- dyadNetObjEff(names(xx$dycCovars)[j],
-                                         symmetric=TRUE)
-                    objEffects <- rbind(objEffects,   tmp$objEffects)
-                }
-            }
-            for (j in seq(along = xx$dyvCovars))
-            {
-                if (attr(x$dvvCovars[[j]], 'nodeSet')[1] == nodeSet)
-                {
-                    tmp <- dyadNetObjEff(names(xx$dyvCovars)[j],
-                                         symmetric = TRUE)
-                    objEffects <- rbind(objEffects,   tmp$objEffects)
-                }
-            }
-            for (j in seq(along = xx$cCovars))
-            {
-                if (attr(x$cCovars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp <- covSymmNetEff(names(xx$cCovars)[j],
-                                         attr(xx$cCovars[[j]], 'poszvar'),
-                                         attr(xx$cCovars[[j]], 'moreThan2'))
-                    objEffects <-  rbind(objEffects, tmp$objEff)
-                    rateEffects <- rbind(rateEffects, tmp$rateEff)
-               }
-            }
-            for (j in seq(along=x$depvars))
-            {
-                if (types[j] == 'behavior' &&
-                    attr(x$depvars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp <- covSymmNetEff(names(xx$depvars)[j],
-                                        poszvar=TRUE,
-                                        attr(xx$depvars[[j]], 'moreThan2'))
-                    objEffects <- rbind(objEffects, tmp$objEff)
-                    rateEffects <- rbind(rateEffects, tmp$rateEff)
-               }
-            }
-            for (j in seq(along=x$vCovars))
-            {
-                if (attr(x$cCovars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp <- covSymmNetEff(names(xx$vCovars)[j],
-                                        attr(xx$vCovars[[j]], 'poszvar'),
-                                        attr(xx$vCovars[[j]], 'moreThan2'))
-                    objEffects <- rbind(objEffects,tmp$objEff)
-                    rateEffects<- rbind(rateEffects,tmp$rateEff)
-                }
-            }
-        }
-        else ##not symmetric
-        {
-            if (observations > 1)
-            {
-                rateEffects <- paste('constant ', varname,' rate (period ',
-                                     periodNos, ')', sep = '')
-                rateFunctions <- paste("Amount of network change in period",
-                                       periodNos)
-                rateShortNames <- rep('Rate', observations)
-                ratePeriods <- 1:observations
-                rateTypes <- rep(NA, observations)
-            }
-            else
-            {
-                rateEffects <- paste('basic rate parameter', varname)
-                rateFunctions <- "Amount of network change"
-                rateShortNames <- 'Rate'
-                ratePeriods <- 1
-                rateTypes <- NA
-            }
-            rateEffects <- c(rateEffects, nonSymmetricRateEffects[-(1:2), 1])
-            ratePeriods <- c(ratePeriods,
-                             rep(NA, nrow(nonSymmetricRateEffects) - 2))
-            rateTypes <- c(rateTypes, rep('structural',
-                                          nrow(nonSymmetricRateEffects) - 2))
-            objEffects <- nonSymmetricObjEffects[, 1]
-            rateFunctions <- c(rateFunctions, nonSymmetricRateEffects[-(1:2),2])
-            rateShortNames <- c(rateShortNames,
-                                nonSymmetricRateEffects[-c(1:2), 3])
-            objFunctions <- nonSymmetricObjEffects[, 2]
-            objEndowment <- nonSymmetricObjEffects[, 3]
-            objShortNames <- nonSymmetricObjEffects[, 4]
-            objParms <- nonSymmetricObjEffects[, 5]
 
-            objEffects <- createObjEffectList(objEffects, objFunctions,
-                                              objEndowment, objShortNames,
-                                              objParms, varname)
-            rateEffects <- createRateEffectList(rateEffects, rateFunctions,
-                                              rateShortNames, ratePeriods,
-                                              rateTypes, varname)
-            for (j in seq(along = xx$dycCovars))
+        rateEffects <- networkRateEffects(depvar, varname, symmetric=symmetric,
+                                          bipartite=FALSE)
+
+        if (symmetric)
+        {
+            objEffects <- createEffects("symmetricObjective", varname)
+        }
+        else
+        {
+            objEffects <- createEffects("nonSymmetricObjective", varname)
+        }
+        for (j in seq(along = xx$dycCovars))
+        {
+            if (attr(xx$dycCovars[[j]], 'nodeSet')[1] == nodeSet)
             {
-                if (attr(xx$dycCovars[[j]], 'nodeSet')[1] == nodeSet)
-                {
-                    tmp <- dyadNetObjEff(names(xx$dycCovars)[j],
-                                         symmetric = FALSE)
-                    objEffects <- rbind(objEffects, tmp$objEff)
-                }
-            }
-            for (j in seq(along = xx$dyvCovars))
-            {
-                if (attr(xx$dyvCovars[[j]], 'nodeSet')[1] == nodeSet)
-                {
-                    tmp <- dyadNetObjEff(names(xx$dyvCovars)[j],
-                                         symmetric = FALSE)
-                    objEffects <- rbind(objEffects, tmp$objEff)
-                }
-            }
-            for (j in seq(along = xx$cCovars))
-            {
-                if (attr(xx$cCovars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp<- covNonSymmNetEff(names(xx$cCovars)[j],
-                                           attr(xx$cCovars[[j]],
-                                                'poszvar'),
-                                           attr(xx$cCovars[[j]],
-                                                'moreThan2'))
-                    objEffects <- rbind(objEffects, tmp$objEff)
-                    rateEffects <- rbind(rateEffects, tmp$rateEff)
-                }
-            }
-            for (j in seq(along=xx$depvars))
-            {
-                if (types[j] == 'behavior' &&
-                    attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp <- covNonSymmNetEff(names(xx$depvars)[j],
-                                            poszvar=TRUE,
-                                            attr(xx$depvars[[j]],
-                                                 'moreThan2'))
-                    objEffects <- rbind(objEffects,tmp$objEff)
-                    rateEffects <- rbind(rateEffects,tmp$rateEff)
-                }
-            }
-            for (j in seq(along=xx$vCovars))
-            {
-                if (attr(xx$vCovars[[j]], 'nodeSet') == nodeSet)
-                {
-                    tmp <- covNonSymmNetEff(names(xx$vCovars)[j],
-                                            attr(xx$vCovars[[j]],
-                                                 'poszvar'),
-                                            attr(xx$vCovars[[j]],
-                                                 'moreThan2'))
-                    objEffects <- rbind(objEffects, tmp$objEff)
-                    rateEffects <- rbind(rateEffects, tmp$rateEff)
-                }
+                objEffects <- rbind(objEffects,
+                                    createEffects("dyadObjective",
+                                                  names(xx$dycCovars)[j]))
             }
         }
+        for (j in seq(along = xx$dyvCovars))
+        {
+            if (attr(xx$dyvCovars[[j]], 'nodeSet')[1] == nodeSet)
+            {
+                objEffects <- rbind(objEffects,
+                                    createEffects("dyadObjective",
+                                                  names(xx$dyvCovars)[j]))
+            }
+        }
+        for (j in seq(along = xx$cCovars))
+        {
+            if (attr(xx$cCovars[[j]], 'nodeSet') == nodeSet)
+            {
+                tmp <- covarOneModeEff(names(xx$cCovars)[j],
+                                     attr(xx$cCovars[[j]], 'poszvar'),
+                                     attr(xx$cCovars[[j]], 'moreThan2'),
+                                   symmetric)
+                objEffects <-  rbind(objEffects, tmp$objEff)
+                rateEffects <- rbind(rateEffects, tmp$rateEff)
+            }
+        }
+        for (j in seq(along=xx$depvars))
+        {
+            if (types[j] == 'behavior' &&
+                attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
+            {
+                tmp <- covarOneModeEff(names(xx$depvars)[j],
+                                     poszvar=TRUE,
+                                     attr(xx$depvars[[j]], 'moreThan2'),
+                                   symmetric)
+                objEffects <- rbind(objEffects, tmp$objEff)
+                rateEffects <- rbind(rateEffects, tmp$rateEff)
+            }
+        }
+        for (j in seq(along=xx$vCovars))
+        {
+            if (attr(xx$vCovars[[j]], 'nodeSet') == nodeSet)
+            {
+                tmp <- covarOneModeEff(names(xx$vCovars)[j],
+                                     attr(xx$vCovars[[j]], 'poszvar'),
+                                     attr(xx$vCovars[[j]], 'moreThan2'),
+                                   symmetric)
+                objEffects <- rbind(objEffects,tmp$objEff)
+                rateEffects<- rbind(rateEffects,tmp$rateEff)
+            }
+        }
+
 ### not sure we need this: if so then check relevant combinations of nodesets
-       if (length(xx$cCovars) + length(xx$vCovars) +
+        if (length(xx$cCovars) + length(xx$vCovars) +
             length(xx$dycCovars) + length(xx$dyvCovars) +
             length(types=='behavior') > 0)
         {
-            objEff <- rep('unspecified interaction effect', nintn)
-            objEnd <-  rep(TRUE, nintn)
-            objFun <-  rep('unspecified interaction statistic', nintn)
-            objSho <- rep('unspInt', nintn)
-            objParms <- rep(0, nintn)
-            objEffects <- rbind(objEffects, createObjEffectList(objEff, objFun,
-                                              objEnd, objSho, objParms, varname))
+            interaction <- createEffects("unspecifiedNetInteraction")
+            objEffects <-  rbind(objEffects, interaction[rep(1, nintn), ])
         }
-        if (nOneModes > 1)
+
+        for (j in seq(along=xx$depvars))
         {
-            rateEffects$functionName <- paste(varname, ': ',
-                                              rateEffects$functionName,
-                                              sep = '')
+            otherName <- names(xx$depvars)[j]
+            if (types[j] == 'oneMode' &&
+                attr(xx$depvars[[j]], 'nodeSet') == nodeSet &&
+                varname != otherName)
+            {
+                if (attr(xx$depvars[[j]], "symmetric"))
+                {
+                    objEffects <-
+                        rbind(objEffects,
+                              createEffects("nonSymmetricSymmetricObjective",
+                                            otherName))
+                }
+                else
+                {
+                    objEffects <-
+                        rbind(objEffects,
+                              createEffects("nonSymmetricNonSymmetricObjective",
+                                            otherName))
+                }
+            }
+            if (types[j] == 'bipartite' &&
+               (attr(xx$depvars[[j]], 'nodeSet')[1] == nodeSet))
+            {
+                objEffects <-
+                    rbind(objEffects,
+                          createEffects("nonSymmetricBipartiteObjective",
+                                        otherName))
+            }
+            if (types[j] != "behavior" && varname != otherName)
+            {
+                for (k in seq(along=xx$cCovars))
+                {
+                    if (attr(xx$cCovars[[k]], 'nodeSet') == nodeSet)
+                    {
+                        objEffects <-
+                            rbind(objEffects,
+                                  createEffects("covarNetNetObjective",
+                                                otherName, names(xx$cCovars)[k]))
+                    }
+                }
+                 for (k in seq(along=xx$vCovars))
+                {
+                    if (attr(xx$vCovars[[k]], 'nodeSet') == nodeSet)
+                    {
+                        objEffects <-
+                            rbind(objEffects,
+                                  createEffects("covarNetNetObjective",
+                                                otherName, names(xx$vCovars)[k]))
+                    }
+                }
+                  for (k in seq(along=xx$depvars))
+                {
+                    if (types[j] == 'behavior' &&
+                        attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
+                    {
+                        objEffects <-
+                            rbind(objEffects,
+                                  createEffects("covarNetNetObjective",
+                                                otherName,
+                                                names(xx$depvars)[k]))
+                    }
+                }
+
+            }
+        }
+        if ((nOneModes + nBipartites) > 1) ## add the network name
+        {
             objEffects$functionName <- paste(varname, ': ',
                                              objEffects$functionName, sep = '')
+            objEffects$effectName <- paste(varname, ': ',
+                                           objEffects$effectName, sep = '')
         }
+        ## now create the real effects, extra rows for endowment effects etc
+        objEffects <- createObjEffectList(objEffects, varname)
+        rateEffects <- createRateEffectList(rateEffects, varname)
+
+        ## replace the text for endowment effects
         tmp <- objEffects$functionName[objEffects$type =='endow']
         tmp <- paste('Lost ties:', tmp)
         objEffects$functionName[objEffects$type == 'endow'] <- tmp
+
+        ## get starting values
         starts <- getNetworkStartingVals(depvar)
+
         ##set defaults
-        if (observations == 1)
-            effectname <- paste('basic rate parameter', varname)
-        else
-            effectname <- paste('constant ', varname,' rate (period ',
-                                1:noPeriods,')',sep='')
-        rateEffects[rateEffects$effectName %in%
-                    effectname, 'include'] <- TRUE
-        rateEffects[rateEffects$effectName %in% effectname,
-                    'initialValue'] <-  starts$startRate
+        rateEffects[1:noPeriods, "include"] <- TRUE
+        rateEffects[1:noPeriods, "initialValue"] <-  starts$startRate
         rateEffects$basicRate[1:observations] <- TRUE
+
         objEffects$untrimmedValue <- rep(0, nrow(objEffects))
         if (attr(depvar,'symmetric'))
         {
-            objEffects[objEffects$effectName == 'degree (density)' &
-                       objEffects$type == 'eval', 'include'] <- TRUE
-            objEffects[objEffects$effectName =='degree (density)' &
-                       objEffects$type == 'eval', 'initialValue'] <-
-                           starts$degree
-            objEffects[objEffects$effectName =='degree (density)' &
-                       objEffects$type == 'eval', 'untrimmedValue'] <-
-                           starts$untrimmed
+            objEffects[objEffects$effectName == "degree (density)" &
+                       objEffects$type == "eval",
+                       c('include', "initialValue", "untrimmedValue")] <-
+                           list(TRUE, starts$degree, starts$untrimmed)
             objEffects[objEffects$effectName=='transitive triads' &
                        objEffects$type=='eval','include'] <- TRUE
         }
         else
         {
-            if (!(attr(depvar,'anyUpOnly') || attr(depvar, 'anyDownOnly')))
+            if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
             {
                 objEffects[objEffects$effectName =='outdegree (density)'&
-                           objEffects$type == 'eval', 'include'] <- TRUE
-                objEffects[objEffects$effectName ==
-                           'outdegree (density)' &
-                           objEffects$type == 'eval', 'initialValue'] <-
-                               starts$degree
-                                objEffects[objEffects$effectName ==
-                           'outdegree (density)' &
-                           objEffects$type == 'eval', 'untrimmedValue'] <-
-                               starts$untrimmed
-
+                           objEffects$type == 'eval',
+                           c('include', "initialValue", "untrimmedValue")] <-
+                               list(TRUE, starts$degree, starts$untrimmed)
+            }
+            else
+            {
+                objEffects <-
+                    objEffects[!objEffects$shortName == "density", ]
             }
             objEffects[objEffects$effectName == 'reciprocity'&
                        objEffects$type == 'eval','include'] <- TRUE
-            ##if (attr(x$depvars[[i]],'uponly') ||attr(x$depvars[[i]],
-            ##'downonly'))
-            ##effects[['outdegree (density)']]$eval$fix <- TRUE
-            ## maybe when you run it in siena07!
         }
         rateEffects$basicRate[1:observations] <- TRUE
-        rateEffects$untrimmedValue <- rep(0, nrow(rateEffects))
         list(effects=rbind(rateEffects = rateEffects, objEffects = objEffects),
              starts=starts)
     }
 
+    ##@behaviornet internal getEffects
     behaviorNet <- function(depvar, varname)
     {
         nodeSet <- attr(depvar,'nodeSet')
-        objEffects <- paste('behavior', varname,
-                            behaviorObjEffects[1:2, 1])
-        objFunctions <- paste('beh.', varname,
-                              behaviorObjEffects[1:2, 2])
-        objEndowment <- behaviorObjEffects[1:2, 3]
-        objShortNames <- behaviorObjEffects[1:2, 4]
-        objParms <- rep(0, length(objEffects))
-        if (observations==1)
+
+        rateEffects <- createEffects("behaviorRate", varname)
+        if (observations == 1)
         {
-            rateEffects <- paste('rate', varname)
-            rateFunctions <- "Amount of behavioral change"
-            rateShortNames <- 'Rate'
-            ratePeriods <- 1
-            rateTypes <- NA
-       }
+            rateEffects <- rateEffects[-2, ] ## remove the extra period
+        }
         else
         {
-            rateEffects <- paste('rate ',varname,' (period ',
-                                 periodNos, ')', sep='')
-            rateFunctions <- paste("Amount of behavioral change in period",
-                                   periodNos, 'on', varname)
-            rateShortNames <- rep('Rate', observations)
-            ratePeriods <- 1:observations
-            rateTypes <- rep(NA, observations)
-       }
-        objEffects <- createObjEffectList(objEffects, objFunctions,
-                                          objEndowment, objShortNames,
-                                          objParms, varname)
-        rateEffects <- createRateEffectList(rateEffects, rateFunctions,
-                                            rateShortNames, ratePeriods,
-                                            rateTypes, varname)
+            ## get correct number of rows
+            rateEffects <- rbind(duplicateDataFrameRow(rateEffects[2, ],
+                                                       observations),
+                                 rateEffects[-c(1, 2), ])
+        }
+
+        objEffects <- createEffects("behaviorObjective", varname)
+
         for (j in seq(along=xx$depvars))
         {
             if (types[j] == 'oneMode' &&
                 attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
             {
-                tmp <- netBehEff(varname, names(xx$depvars)[j])
-                objEffects<- rbind(objEffects, tmp$objEff)
-                rateEffects<- rbind(rateEffects, tmp$rateEff)
+                objEffects <- rbind(objEffects,
+                                    createEffects("behaviorOneModeObjective",
+                                               varname, names(xx$depvars)[j]))
+                rateEffects <- rbind(rateEffects,
+                                        createEffects("behaviorOneModeRate",
+                                               varname, names(xx$depvars)[j]))
+            }
+            if (types[j] == 'bipartite' &&
+                (attr(xx$depvars[[j]], 'nodeSet')[1] == nodeSet))
+            {
+                 objEffects <- rbind(objEffects,
+                                    createEffects("behaviorBipartiteObjective",
+                                               varname, names(xx$depvars)[j]))
+                rateEffects <- rbind(rateEffects,
+                                        createEffects("behaviorBipartiteRate",
+                                               varname, names(xx$depvars)[j]))
             }
         }
 
@@ -362,197 +377,301 @@ getEffects<- function(x, nintn = 10)
             if (types[j] == 'oneMode' &&
                 attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
             {
-                netObjEffect <- paste('behavior ', varname,
-                                      ': infl. one-sided ? x ', varname,
-                                      ' alter', sep='')
-                netObjFunction <- paste('beh. ', varname,
-                                      ': infl. interaction? x ', varname,
-                                      ' alter', sep='')
-                netShortName <- 'behInfl1sid'
-                objEff <-  createObjEffectList(netObjEffect, netObjFunction,
-                                              TRUE, netShortName, 0,
-                                               varname,
-                                               varname2=names(xx$depvars)[j])
-                objEffects<- rbind(objEffects, objEff)
+                 objEffects <- rbind(objEffects,
+                                    createEffects("behaviorOneModeObjective2",
+                                               varname, names(xx$depvars)[j]))
+            }
+            if (types[j] == 'bipartite' &&
+                attr(xx$depvars[[j]], 'nodeSet')[1] == nodeSet)
+            {
+                 objEffects <- rbind(objEffects,
+                                    createEffects("behaviorBipartiteObjective2",
+                                               varname, names(xx$depvars)[j]))
             }
         }
-        objEff <-  rep(paste('behavior ', varname,
-                                  ': unspecified interaction', sep=''), 4)
-        objFun <-  rep(paste('behavior ', varname,
-                                  ': unspecified interaction', sep=''), 4)
-        objEnd <-  rep(TRUE, 4)
-        objShortNames <- rep('behUnspInt', 4)
-        objParms <- rep(0, 4)
-        objEffects <- rbind(objEffects,
-                            createObjEffectList(objEff, objFun,
-                                          objEnd, objShortNames, objParms, varname))
-        objEffects$untrimmedValue <- rep(0, nrow(objEffects))
+        interaction <- createEffects("unspecifiedBehaviorInteraction",
+                                     varname)
+        objEffects <- rbind(objEffects, interaction[rep(1, 4),])
+
+        ## now create the real effects, extra rows for endowment effects etc
+        objEffects <- createObjEffectList(objEffects, varname)
+        rateEffects <- createRateEffectList(rateEffects, varname)
+
+        ## get starting values
         starts <- getBehaviorStartingVals(depvar)
-        if (!(attr(depvar,'anyUpOnly') || attr(depvar, 'anyDownOnly')))
+        ## set defaults
+        if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
         {
-            effectname <- paste('behavior', varname, 'linear shape')
-            objEffects[objEffects$effectName == effectname &
-                       objEffects$type == 'eval','include']  <- TRUE
-            objEffects[objEffects$effectName == effectname &
-                       objEffects$type=='eval','initialValue']  <-
-                           starts$tendency
-             objEffects[objEffects$effectName == effectname &
-                       objEffects$type=='eval','untrimmedValue']  <-
-                           starts$untrimmed
-           effectname <- paste('behavior', varname, 'quadratic shape')
-            objEffects[objEffects$effectName == effectname &
-                       objEffects$type == 'eval','include']  <- TRUE
-            ## no starting value yet for quadratic effect
+            objEffects[grepl("linear shape", objEffects$effectName) &
+                       objEffects$type == 'eval',
+                       c('include', 'initialValue','untrimmedValue')]  <-
+                           list(TRUE, starts$tendency, starts$untrimmed)
         }
-        if (observations == 1)
-            effectname <- paste('rate', varname)
         else
-            effectname <- paste('rate ', varname,' (period ',
-                                1:noPeriods, ')', sep='')
-        rateEffects[rateEffects$effectName %in%
-                    effectname, 'include'] <- TRUE
-        rateEffects[rateEffects$effectName %in% effectname,
-                    'initialValue'] <-  starts$startRate
+        {
+            objEffects <- objEffects[objEffects$shortName != "linear", ]
+        }
+        if (attr(depvar, "range") > 2)
+        {
+            objEffects[grepl("quadratic shape", objEffects$effectName) &
+                       objEffects$type == 'eval','include']  <- TRUE
+            ## no starting value for quadratic effect
+        }
+
+
+        rateEffects[1:observations, 'include'] <- TRUE
+        rateEffects[1:noPeriods, 'initialValue'] <-  starts$startRate
         rateEffects$basicRate[1:observations] <- TRUE
-        rateEffects$untrimmedValue <- rep(0, nrow(rateEffects))
-        tmp <- objEffects$effectName[objEffects$type == 'endow']
-        tmp <- sub('behavior', 'dec. beh.', tmp)
-        objEffects$effectName[objEffects$type == 'endow'] <- tmp
+
+        ## alter the text for endowment names
+        objEffects$effectName[objEffects$type == 'endow'] <-
+            sub('behavior', 'dec. beh.',
+                objEffects$effectName[objEffects$type == 'endow'])
+
         list(effects = rbind(rateEffects = rateEffects,
              objEffects = objEffects), starts=starts)
     }
 
-    dyadNetObjEff<- function(covarname, symmetric)
+    ##@bipartiteNet internal getEffects
+    bipartiteNet <- function(depvar, varname)
     {
-        if (symmetric)
+        nodeSets <- attr(depvar, 'nodeSet')
+
+        rateEffects <- networkRateEffects(depvar, varname, symmetric=FALSE,
+                                          bipartite=TRUE)
+
+        objEffects <- createEffects("bipartiteObjective", varname)
+
+       for (j in seq(along = xx$dycCovars))
         {
-            covObjEffects <- covarname
-            covObjFunctions <- paste('Sum of ties x', covarname)
+            if (all(nodeSets == attr(xx$dycCovars[[j]], 'nodeSet')))
+            {
+                objEffects <- rbind(objEffects,
+                                    createEffects("dyadObjective",
+                                                  names(xx$dycCovars)[j] ))
+            }
+        }
+        for (j in seq(along = xx$dyvCovars))
+        {
+            if (all(nodeSets == attr(xx$dycCovars[[j]], 'nodeSet')))
+            {
+                objEffects <- rbind(objEffects,
+                                    createEffects("dyadObjective",
+                                                  names(xx$dyvCovars)[j]))
+            }
+        }
+        for (j in seq(along = xx$cCovars))
+        {
+            covNodeset <- match(attr(xx$cCovars[[j]], "nodeSet"),
+                                nodeSets)
+            if (covNodeset > 0)
+            {
+                tmp <- covarBipartiteEff(names(xx$cCovars)[j],
+                                      attr(xx$cCovars[[j]],
+                                           'poszvar'),
+                                      attr(xx$cCovars[[j]],
+                                           'moreThan2'),
+                                      covNodeset)
+                objEffects <- rbind(objEffects, tmp$objEff)
+                rateEffects <- rbind(rateEffects, tmp$rateEff)
+            }
+        }
+        for (j in seq(along=xx$depvars))
+        {
+            if (types[j] == "behavior")
+            {
+                covNodeset <- match(attr(xx$depvars[[j]], "nodeSet"),
+                                    nodeSets)
+                if (covNodeset > 0)
+                {
+                    tmp <- covarBipartiteEff(names(xx$depvars)[j],
+                                           poszvar=TRUE,
+                                           attr(xx$depvars[[j]],
+                                                'moreThan2'),
+                                           covNodeset)
+                    objEffects <- rbind(objEffects,tmp$objEff)
+                    rateEffects <- rbind(rateEffects,tmp$rateEff)
+                }
+            }
+        }
+        for (j in seq(along=xx$vCovars))
+        {
+            covNodeset <- match(attr(xx$vCovars[[j]], "nodeSet"),
+                                nodeSets)
+            if (covNodeset > 0)
+            {
+                tmp <- covarBipartiteEff(names(xx$vCovars)[j],
+                                        attr(xx$vCovars[[j]],
+                                             'poszvar'),
+                                        attr(xx$vCovars[[j]],
+                                             'moreThan2'),
+                                        covNodeset)
+                objEffects <- rbind(objEffects, tmp$objEff)
+                rateEffects <- rbind(rateEffects, tmp$rateEff)
+            }
+        }
+### not sure we need this: if so then check relevant combinations of nodesets
+        if (length(xx$cCovars) + length(xx$vCovars) +
+            length(xx$dycCovars) + length(xx$dyvCovars) +
+            length(types=='behavior') > 0)
+        {
+            interaction <- createEffects("unspecifiedNetInteraction")
+            objEffects <-  rbind(objEffects, interaction[rep(1, nintn), ])
+        }
+
+         for (j in seq(along=xx$depvars))
+        {
+            otherName <- names(xx$depvars)[j]
+            if (types[j] == 'oneMode' &&
+                attr(xx$depvars[[j]], 'nodeSet') ==  nodeSets[1] )
+            {
+                if (attr(xx$depvars[[j]], "symmetric"))
+                {
+                    objEffects <-
+                        rbind(objEffects,
+                              createEffects("bipartiteSymmetricObjective",
+                                            names(xx$depvars)[[j]]))
+                }
+                else
+                {
+                    objEffects <-
+                        rbind(objEffects,
+                              createEffects("bipartiteNonSymmetricObjective",
+                                            names(xx$depvars)[[j]]))
+                }
+            }
+            if (types[j] == 'bipartite' &&
+                (attr(xx$depvars[[j]], 'nodeSet')[1] == nodeSets[1]) &&
+                varname != otherName)
+            {
+                    objEffects <-
+                        rbind(objEffects,
+                              createEffects("bipartiteBipartiteObjective",
+                                            names(xx$depvars)[[j]]))
+            }
+       }
+        if ((nOneModes + nBipartites) > 1) ## add the network name
+        {
+            objEffects$functionName <- paste(varname, ': ',
+                                             objEffects$functionName, sep = '')
+            objEffects$effectName <- paste(varname, ': ',
+                                           objEffects$effectName, sep = '')
+        }
+        ## now create the real effects, extra rows for endowment effects etc
+        objEffects <- createObjEffectList(objEffects, varname)
+        rateEffects <- createRateEffectList(rateEffects, varname)
+
+        objEffects$functionName[objEffects$type == 'endow'] <-
+            paste('Lost ties:',
+                  objEffects$functionName[objEffects$type =='endow'])
+
+        ## get starting values
+        starts <- getBipartiteStartingVals(depvar)
+        ##set defaults
+        rateEffects[1:observations, 'include'] <- TRUE
+        rateEffects[1:noPeriods, 'initialValue'] <-  starts$startRate
+        rateEffects$basicRate[1:observations] <- TRUE
+
+        if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
+        {
+            objEffects[objEffects$effectName =='outdegree (density)' &
+                       objEffects$type == 'eval',
+                       c('include', 'initialValue', 'untrimmedValue')] <-
+                           list(TRUE, starts$degree, starts$untrimmed)
         }
         else
         {
-            covObjEffects <- c(paste(covarname,c('','x reciprocity')))
-            covObjFunctions <- paste(c('Sum of ties x',
-                                       'Sum reciprocated ties x'), covarname)
+            objEffects <-
+                objEffects[!objEffects$shortName == "density", ]
         }
-        covObjEffects <- c(covObjEffects, paste(dyadObjEffects[, 1],
-                                                covarname))
-        covObjFunctions <- c(covObjFunctions, paste(dyadObjEffects[, 1],
-                                                    covarname))
-        covObjShortNames <- c('X', 'Xrecip', dyadObjEffects[,2])
-        objEff <-  createObjEffectList(covObjEffects, covObjFunctions,
-                                       rep(TRUE, length(covObjEffects)),
-                                       covObjShortNames,
-                                       rep(0, length(covObjEffects)),
-                                       varname, varname2=covarname)
-        list(objEff=objEff)
+        if (attr(xx$depvars[[i]],'uponly') || attr(xx$depvars[[i]],
+                                                   'downonly'))
+        {
+            objEffects <-
+                objEffects[!objEffects$shortName == "density", ]
+        }
+
+        rateEffects$basicRate[1:observations] <- TRUE
+
+        list(effects=rbind(rateEffects = rateEffects, objEffects = objEffects),
+             starts=starts)
     }
-    covSymmNetEff<- function(covarname, poszvar, moreThan2)
+
+    ##@covarOneModeEff internal getEffects
+    covarOneModeEff<- function(covarname, poszvar, moreThan2, symmetric)
     {
-        covEffects <- paste(covarname,covarSymmetricObjEffects[, 1])
-        covEffects <- c(covEffects, paste('same', covarname))
-        covEffects <- c(covEffects, paste(covarname, 'ego x', covarname,
-                                          'alter'))
-        covEffects <- c(covEffects, paste(covarname, 'of indirect ties'))
-        covShortNames <- c(covarSymmetricObjEffects[, 2],
-                           'sameX', 'egoXAlt')
+        if (symmetric)
+        {
+            covObjEffects <- createEffects("covarSymmetricObjective", covarname)
+            covRateEffects <- createEffects("covarSymmetricRate", covarname)
+        }
+        else
+        {
+             covObjEffects <- createEffects("covarNonSymmetricObjective",
+                                            covarname)
+             covRateEffects <- createEffects("covarNonSymmetricRate", covarname)
+         }
+
         if (!poszvar)
         {
-            covEffects <- covEffects[1:2]
-            covShortNames <- covShortNames[1:2]
+            if (symmetric)
+            {
+                covObjEffects <- covObjEffects[1:2, ]
+            }
+            else
+            {
+                covObjEffects <- covObjEffects[3, ]
+            }
         }
         if (!moreThan2)
         {
-            covEffects <- covEffects[-2]
-            covShortNames <- covShortNames[-2]
+            covObjEffects <- covObjEffects[-2, ]
         }
 
-        rateEffects<- paste('effect', covarname, 'on rate')
-        rateShortNames <- 'RateX'
-        ratePeriods <- NA
-        rateTypes <- 'covariate'
-        objEff <-  createObjEffectList(covEffects, covEffects,
-                                       rep(TRUE, length(covEffects)),
-                                       covShortNames, 0,
-                                       varname, varname2=covarname)
-        rateEff <-  createRateEffectList(rateEffects, rateEffects,
-                                         rateShortNames, ratePeriods,
-                                         rateTypes, varname, varname2=covarname)
-        list(objEff=objEff, rateEff=rateEff)
+        list(objEff=covObjEffects, rateEff=covRateEffects)
     }
-    covNonSymmNetEff<- function(covarname, poszvar, moreThan2)
+    ##@covarBipartiteEff internal getEffects
+    covarBipartiteEff<- function(covarname, poszvar, moreThan2, nodesetNbr)
     {
-        covEffects<- paste(covarname, covarNonSymmetricObjEffects[, 1])
-        covFunctions<- paste(covarNonSymmetricObjEffects[, 2], covarname)
-        covEffects<- c(covEffects, paste('same',covarname, c('','x reciprocity')))
-        covEffects<- c(covEffects, paste(covarname,'ego x',covarname,
-                                         c('alter', 'alter x recipr.')))
-        covEffects <- c(covEffects, paste('higher',covarname))
-        covEffects<- c(covEffects, paste(covarname,'of indirect ties'))
-        covFunctions <- c(covFunctions,
-                          paste(c('Same values on',
-                                  'Same values x reciprocity on'), covarname))
-        covFunctions <- c(covFunctions, paste ('Sum', covarname, 'ego x',
-                                               covarname,
-                                               c('alter', 'rec.alter')))
-         covFunctions <- c(covFunctions,
-                           paste(c('ego > alter for', 'Sum'),
-                                 covarname, c('', 'of indirect ties')))
-        covShortNames <- c(covarNonSymmetricObjEffects[, 3],
-                           "sameX", "sameXRecip", "egoXaltX",
-                           "egoXaltXRecip", "higher", "IndTies")
-        endow <- rep(TRUE, length(covEffects))
-        endow[length(endow)] <- FALSE
-        if (!poszvar)
+        if (nodesetNbr == 1)
         {
-            covEffects <- covEffects[3]
-            covFunctions <- covFunctions[3]
-            covShortNames <- covShortNames[3]
-            endow <- endow[3]
+            covObjEffects <-
+                createEffects("covarBipartiteObjective", covarname)[3, ]
+            covRateEffects <- createEffects("covarBipartiteRate", covarname)
         }
-        else if (!moreThan2)
+        else if (poszvar)
         {
-            covEffects <- covEffects[-2]
-            covFunctions <- covFunctions[-2]
-            covShortNames <- covShortNames[-2]
-            endow <- endow[-2]
+            covObjEffects <- createEffects("covarBipartiteObjective", covarname)
+            covObjEffects <- covObjEffects[1:2, ]
+            if (!moreThan2)
+            {
+                covObjEffects <- covObjEffects[-2, ]
+            }
         }
-        rateEffects <- paste('effect', covarname,'on rate')
-        rateFunctions <- paste('Amount of change x', covarname)
-        rateShortNames <- 'RateX'
-        ratePeriods <- NA
-        rateTypes <- 'covariate'
-        objEff <-  createObjEffectList(covEffects, covFunctions,
-                                       endow, covShortNames,
-                                       rep(0, length(covEffects)),
-                                       varname, varname2=covarname)
-        rateEff <-  createRateEffectList(rateEffects, rateFunctions,
-                                         rateShortNames, ratePeriods,
-                                         rateTypes, varname, varname2=covarname)
-        list(objEff=objEff, rateEff=rateEff)
+        else
+        {
+            covObjEffects <- NULL
+        }
+
+
+        list(objEff=covObjEffects, rateEff=covRateEffects)
     }
+   ##@covBehEff internal getEffects
     covBehEff<- function(varname, covarname, nodeSet, same=FALSE,
         ## same indicates that varname and covarname are the same:
         ## just one rate effect required
                            type=c('', 'Var', 'Beh'))
     {
+        covarBehObjEffects <- createEffects("covarBehaviorObjective", varname,
+                                            covarname)
+        covObjEffects <-  NULL
         if (!same)
         {
-            covObjEffects<- paste('behavior ', varname,': ',
-                                  covarBehObjEffects[1, 1],' ',
-                                  covarname, sep='')
-            covObjFunctions<- paste('beh. ', varname, ' ',
-                                    covarBehObjEffects[1, 2],' ',
-                                covarname, sep='')
-            covShortNames <- paste(covarBehObjEffects[1, 3], type, sep='')
+            covObjEffects<- covarBehObjEffects[1, ]
         }
-        covRateEffects<- paste('effect', covarname,'on rate', varname)
-        covRateFunctions <- paste('Amount of change on', varname, 'x',
-                                  covarname)
-        rateShortNames <- 'RateX'
-         ratePeriods <- NA
-        rateTypes <- 'covariate'
-        covname3 <- ""
+
+        covRateEffects <- createEffects("covarBehaviorRate", varname, covarname)
+
         if (!same)
         {
             for (j in seq(along=xx$depvars))
@@ -560,132 +679,68 @@ getEffects<- function(x, nintn = 10)
                 if (types[j] == 'oneMode' &&
                     attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
                 {
-                    covObjEffects <- c(covObjEffects,
-                                       paste('behavior ', varname, ': ',
-                                             covarBehObjEffects[2, 1], ' ',
-                                             covarname, sep=''))
-                    covObjFunctions <- c(covObjFunctions,
-                                         paste('beh. ', varname, ' ',
-                                               covarBehObjEffects[2, 2], ' ',
-                                               covarname, sep=''))
-                    covShortNames <- c(covShortNames,
-                                       paste(covarBehObjEffects[2, 3],
-                                             type, sep=''))
-                    covname3 <- c(covname3, names(xx$depvars)[j])
+                    covObjEffects <-
+                        rbind(covObjEffects,
+                              substituteNames(covarBehObjEffects[2, ],
+                                              zName=names(xx$depvars)[j]))
                 }
             }
         }
-        if (!same)
+        if (!is.null(covObjEffects))
         {
-            objEff <-  createObjEffectList(covObjEffects, covObjFunctions,
-                                           rep(TRUE, length(covObjEffects)),
-                                           covShortNames,
-                                           rep(0, length(covObjEffects)),
-                                           varname, varname2=covarname,
-                                           varname3=covname3)
+            usestr <- paste("effFrom", type, sep="")
+            covObjEffects$shortName <-
+                sub("effFrom", usestr, covObjEffects$shortName)
         }
-        else
-            objEff <- NULL
-        rateEff <-  createRateEffectList(covRateEffects, covRateFunctions,
-                                         rateShortNames, ratePeriods,
-                                         rateTypes, varname, varname2=covarname)
-        list(objEff=objEff, rateEff=rateEff)
+
+        list(objEff=covObjEffects, rateEff=covRateEffects)
     }
-    netBehEff<- function(varname, netname)
+    ##@covarNetNetEff internal getEffects
+    covarNetNetEff<- function(othernetname,
+                              covarname, poszvar, moreThan2)
     {
-        netObjEffects <- paste('behavior', varname,
-                               behaviorObjEffects[-c(1, 2), 1])
-        netObjFunctions <- paste('beh.', varname,
-                                 behaviorObjEffects[-c(1, 2), 2])
-        netShortNames <- behaviorObjEffects[-c(1, 2), 4]
-        netRateEffects <- paste(behaviorRateEffects[-1, 1], varname)
-        netRateFunctions <- paste('Amount of change on', varname,
-                                  behaviorRateEffects[-1, 2])
-        netRateShortNames <- behaviorRateEffects[-1, 3]
-        netRatePeriods <- NA
-        netRateTypes <- NA
-        objEff <-  createObjEffectList(netObjEffects, netObjFunctions,
-                                       rep(TRUE, length(netObjEffects)),
-                                       netShortNames,
-                                       rep(0, length(netObjEffects)),
-                                       varname, varname2=netname)
-         rateEff <-  createRateEffectList(netRateEffects, netRateFunctions,
-                                             netRateShortNames, netRatePeriods,
-                                             netRateTypes, varname,
-                                          varname2=netname)
-       list(objEff=objEff, rateEff=rateEff)
+        if (poszvar && (!moreThan2))
+        {
+            createEffects("covarNetNetObjective", othernetname,
+                          covarname)
+        }
     }
-    createObjEffectList<- function(effectnames, functionnames, endowment,
-                                   shortnames, parms, varname, varname2="",
-                                   varname3=NULL)
+  ##@createObjEffectList internal getEffects
+    createObjEffectList<- function(effects, varname)
     {
-        nn <- length(effectnames)
-        effectnames <- rep(effectnames, times=(1 + as.numeric(endowment)))
-        functionnames <- rep(functionnames, times=(1 + as.numeric(endowment)))
-        shortnames <- rep(shortnames, times=(1 + as.numeric(endowment)))
-        parms <- rep(parms, times=(1 + as.numeric(endowment)))
-        if (!is.null(varname3))
-            varname3 <- rep(varname3, times=(1 + as.numeric(endowment)))
-        type <-  unlist(lapply(endowment, function(x) if (x)
+        nn <- nrow(effects)
+        effectsname <- rep(varname, nn)
+        effects <- data.frame(name=effectsname, effects, stringsAsFactors=FALSE)
+        neweffects <- effects[rep(1:nn,
+                                  times=(1 + as.numeric(effects$endowment))), ]
+        neweffects$type <-  unlist(lapply(effects$endowment, function(x) if (x)
                                c('eval', 'endow') else 'eval'))
-        nn <- length(effectnames)
-        if (is.null(varname3))
-            varname3 <- rep("", nn)
-        tmp <-data.frame(name=rep(varname, nn),
-                         effectName=effectnames,
-                         functionName=functionnames,
-                         shortName=shortnames,
-                         interaction1=rep(varname2, nn),
-                         interaction2=varname3,
-                         type=type,
-                         basicRate=rep(FALSE, nn),
-                         include=rep(FALSE, nn),
-                         randomEffects=rep(FALSE, nn),
-                         fix=rep(FALSE, nn),
-                         test=rep(FALSE, nn),
-                         initialValue=rep(0, nn),
-                         parm=parms,
-                         functionType=rep('objective', nn),
-                         period = rep(NA, nn),
-                         rateType = rep(NA, nn),
-                         stringsAsFactors=FALSE)
+        nn <- nrow(neweffects)
+
         effectFn <- vector('list', nn)
         statisticFn <- vector('list', nn)
-        tmp$effectFn <- effectFn
-        tmp$statisticFn <- statisticFn
-        tmp
+        neweffects$effectFn <- effectFn
+        neweffects$statisticFn <- statisticFn
+        neweffects
     }
-    createRateEffectList<- function(effectnames, functionnames, shortnames,
-                                    ratePeriods, rateTypes,
-                                    varname, varname2="")
+    ##@createRateEffectList internal getEffects
+    createRateEffectList<- function(effects, varname)
     {
-       # cat(ratePeriods, '\n')
-        nn <- length(effectnames)
-        tmp <- data.frame(name=rep(varname, nn),
-                          effectName=effectnames,
-                          functionName=functionnames,
-                          shortName=shortnames,
-                          interaction1=rep(varname2, nn),
-                          interaction2=rep("", nn),
-                          type=rep('rate', nn),
-                          basicRate=rep(FALSE, nn),
-                          include=rep(FALSE, nn),
-                          randomEffects=rep(FALSE, nn),
-                          fix=rep(FALSE, nn),
-                          test=rep(FALSE, nn),
-                          initialValue=rep(0, nn),
-                          parm=rep(0, nn),
-                          functionType=rep('rate', nn),
-                          period = ratePeriods,
-                          rateType = rateTypes,
-                         stringsAsFactors=FALSE)
+        nn <- nrow(effects)
+        effectsname <- rep(varname, nn)
+        effects <- data.frame(name=effectsname, effects, stringsAsFactors=FALSE)
         effectFn <- vector('list', nn)
         statisticFn <- vector('list', nn)
-        tmp$effectFn <- effectFn
-        tmp$statisticFn <- statisticFn
-        tmp
+        effects$effectFn <- effectFn
+        effects$statisticFn <- statisticFn
+        effects
     }
-#### start of function createEffects
+    ## start of function getEffects
+    if (getDocumentation)
+    {
+        tt <- getInternals()
+        return(tt)
+    }
     if (!inherits(x, 'sienaGroup') && !inherits(x, 'siena'))
     {
         stop('Not a valid siena data object or group')
@@ -698,7 +753,7 @@ getEffects<- function(x, nintn = 10)
     {
         groupx <- FALSE
     }
-### validate the object?
+    ## validate the object?
     ## find the total number of periods to be processed = local var observations
     ## then process the first or only data object. Fill in starting values
     ## for other periods from the other objects, if any.
@@ -723,6 +778,7 @@ getEffects<- function(x, nintn = 10)
    ##     require(Matrix)
     nOneModes <- sum(types == 'oneMode')
     nBehaviors <- sum(types == 'behavior')
+    nBipartites <- sum(types =='bipartite')
     effects <- vector('list',n)
     nodeSetNames <- sapply(xx$nodeSets, function(x)attr(x, 'nodeSetName'))
     names(effects) <- names(xx$depvars)
@@ -765,7 +821,15 @@ getEffects<- function(x, nintn = 10)
                effects[[i]]$effectName <- as.character(effects[[i]]$effectName)
                attr(effects[[i]], 'starts') <- tmp$starts
            },
-               bipartite = {},
+               bipartite =
+           {
+               tmp <- bipartiteNet(depvar, varname)
+               effects[[i]] <- tmp$effects
+               effects[[i]]$netType <- 'bipartite'
+               effects[[i]]$effectName <- as.character(effects[[i]]$effectName)
+               attr(effects[[i]], 'starts') <- tmp$starts
+
+           },
                stop('error type'))
         effects[[i]]$groupName <- groupNames[1]
         effects[[i]]$group <- 1
@@ -801,13 +865,11 @@ getEffects<- function(x, nintn = 10)
                                            ')',sep='')
                        use <- effects[[eff]]$effectName %in%
                                       effectname
-                       effects[[eff]][use, 'include'] <- TRUE
-                       effects[[eff]][use, 'initialValue'] <-
-                                          starts$startRate
-                       effects[[eff]][use, 'groupName'] <- groupNames[group]
-                       effects[[eff]][use, 'group' ]<- group
-                       effects[[eff]][use, 'period'] <-  period - 1 +
-                          1:noPeriods
+                       effects[[eff]][use, c('include','initialValue',
+                                             'groupName', 'group', 'period')] <-
+                                                 list(TRUE, starts$startRate,
+                                                      groupNames[group], group,
+                                                      1:noPeriods)
                        ## now sort out the tendency and update the
                        ## attribute on the effects list:
                        newdif <- c(starts$dif,
@@ -828,9 +890,10 @@ getEffects<- function(x, nintn = 10)
                                           ifelse(tendency > 3/0, 3.0, tendency))
                        use <- (effects[[eff]]$shortName == "linear" &
                                effects[[eff]]$type == "eval")
-                       effects[[eff]][use, 'include'] <- TRUE
-                       effects[[eff]][use, 'initialValue'] <- tendency
-                       effects[[eff]][use, "untrimmedValue"] <- untrimmed
+                       effects[[eff]][use, c("include", "initialValue",
+                                             "untrimmedValue")] <-
+                                                 list(TRUE, tendency,
+                                                      untrimmed)
                        attr(effects[[eff]], 'starts')$dif <- newdif
                    },
                        oneMode =
@@ -846,13 +909,12 @@ getEffects<- function(x, nintn = 10)
                                            ' rate (period ',
                                            period + 1:noPeriods,')', sep='')
                        use <- effects[[eff]]$effectName %in% effectname
-                       effects[[eff]][use, 'include'] <- TRUE
-                       effects[[eff]][use, 'initialValue'] <-
-                                               starts$startRate
-                       effects[[eff]][use, 'groupName'] <- groupNames[group]
-                       effects[[eff]][use, 'group'] <- group
-                       effects[[eff]][use, 'period'] <- 1:noPeriods
-                    ## now sort out the degree and
+                       effects[[eff]][use, c('include', 'initialValue',
+                                             "groupName", "group", "period")] <-
+                                                 list(TRUE, starts$startRate,
+                                                      groupNames[group], group,
+                                                      1:noPeriods)
+                       ## now sort out the degree and
                        ## update the attribute on the effects list
                        oldstarts <- attr(effects[[eff]], "starts")
                        alpha <- c(oldstarts$alpha, starts$alpha)
@@ -868,12 +930,9 @@ getEffects<- function(x, nintn = 10)
                            effects[[eff]][effects[[eff]]$effectName ==
                                           'degree (density)' &
                                           effects[[eff]]$type == 'eval',
-                                          'initialValue'] <- degree
-                            effects[[eff]][effects[[eff]]$effectName ==
-                                          'degree (density)' &
-                                          effects[[eff]]$type == 'eval',
-                                          'untrimmedValue'] <- untrimmed
-                      }
+                                          c('initialValue','untrimmedValue')] <-
+                                              list(degree, untrimmed)
+                       }
                        else
                        {
                            if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
@@ -881,31 +940,73 @@ getEffects<- function(x, nintn = 10)
                                effects[[eff]][effects[[eff]]$effectName ==
                                               'outdegree (density)' &
                                               effects[[eff]]$type == 'eval',
-                                              'initialValue'] <- degree
-                                effects[[eff]][effects[[eff]]$effectName ==
-                                              'outdegree (density)' &
-                                              effects[[eff]]$type == 'eval',
-                                              'untrimmedValue'] <- untrimmed
-                          }
+                                              c('initialValue',
+                                                "untrimmedValue")] <-
+                                                    list(degree, untrimmed)
+                           }
                        }
                        effects
 
                    },
-                       bipartite = {},
+                       bipartite =
+                   {
+                       starts <- getBipartiteStartingVals(depvar)
+                       ## find the appropriate set of effects
+                       eff <- match(varname, names(effects))
+                       if (is.na(eff))
+                       {
+                           stop("depvars don't match")
+                       }
+                       effectname <- paste('constant ', varname,
+                                           ' rate (period ',
+                                           period + 1:noPeriods,')', sep='')
+                       use <- effects[[eff]]$effectName %in% effectname
+                       effects[[eff]][use, c('include', 'initialValue',
+                                             'groupName', 'group',
+                                             'period')] <-
+                                                 list(TRUE, starts$startRate,
+                                                      groupNames[group],
+                                                      group, 1:noPeriods)
+                    ## now sort out the degree and
+                       ## update the attribute on the effects list
+                       oldstarts <- attr(effects[[eff]], "starts")
+                       alpha <- c(oldstarts$alpha, starts$alpha)
+                       prec <-  c(oldstarts$prec, starts$prec)
+                       degree <- sum(alpha * prec) / sum(prec)
+                       untrimmed <- degree
+                       degree <- ifelse (degree < -3, -3,
+                                         ifelse(degree > 3, 3, degree))
+                       attr(effects[[eff]], "starts")$alpha <- alpha
+                       attr(effects[[eff]], "starts")$prec <-  prec
+                       if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
+                       {
+                           effects[[eff]][effects[[eff]]$effectName ==
+                                          'outdegree (density)' &
+                                          effects[[eff]]$type == 'eval',
+                                          c('initialValue',
+                                            "untrimmedValue")] <-
+                                                list(degree, untrimmed)
+                       }
+                       effects
+
+                   },
                        stop('error type'))
             }
         }
     }
     effects <- do.call(rbind, effects)
+    effects$endowment <- NULL
+    effects$effectGroup <- NULL
     attr(effects, "starts") <- NULL
+    effects <- cbind(effects, effectNumber=1:nrow(effects))
     cl <- class(effects)
     if (groupx)
-        class(effects) <- c('groupEffects','effects', cl)
+        class(effects) <- c('sienaGroupEffects','sienaEffects', cl)
     else
-        class(effects) <- c('effects', cl)
+        class(effects) <- c('sienaEffects', cl)
     effects
 }
-
+##@getBehaviorStartingVals DataCreate
 getBehaviorStartingVals <- function(depvar)
 {
     drange <- attr(depvar, 'range')
@@ -962,7 +1063,8 @@ getBehaviorStartingVals <- function(depvar)
                        ifelse (tendency > 3, 3, tendency))
     list(startRate=startRate, tendency=tendency, untrimmed = untrimmed, dif=dif)
 }
-getNetworkStartingVals <- function(depvar, structValid=TRUE)
+##@getNetworkStartingVals DataCreate
+getNetworkStartingVals <- function(depvar)
 {
     noPeriods <- attr(depvar, "netdims")[3] - 1
     ##rate
@@ -970,15 +1072,8 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
     if (!attr(depvar,'sparse'))
     {
         nactors <- nrow(depvar)
-        if (structValid)
-        {
-            use <- !is.na(depvar) & (depvar == 10 | depvar == 11)
-            depvar[use] <- depvar[use] - 10  ## remove structural values
-        }
-        else
-        {
-            depvar[depvar==10 | depvar==11] <- NA ## remove structural values
-        }
+        use <- !is.na(depvar) & (depvar == 10 | depvar == 11)
+        depvar[use] <- depvar[use] - 10  ## remove structural values
         tmp <- sapply(1:noPeriods, function(x, z){
             diag(z[ , , x]) <- NA
             diag(z[, , x + 1]) <- NA
@@ -986,7 +1081,11 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
             matchange <- table(z[, , x + 1], z[, , x])
             matcnt <- nactors * nactors -
                 sum(is.na(z[, , x + 1]) | is.na(z[, , x]))
-            c(matcnt=matcnt, matdiff=matdiff, matchange=matchange)
+            tmp <- c(matcnt=matcnt, matdiff=matdiff, matchange=matchange)
+            names(tmp) <- c("matcnt", "matdiff", "matchangeFrom0To0",
+                            "matchangeFrom0To1",
+                            "matchangeFrom1To0", "matchangeFrom1To1")
+            tmp
         }, z=depvar)
     }
     else
@@ -999,22 +1098,12 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
         {
             mymat1 <- depvar[[i]]
             mymat2 <- depvar[[i+1]]
-            if (structValid)
-            {
-                use <- mymat1@x %in% c(10, 11)
-                mymat1@x[use] <- mymat1@x[use] - 10
-                use <- mymat2@x %in% c(10, 11)
-                mymat2@x[use] <- mymat2@x[use] - 10
-                mymat1 <- drop0(mymat1)
-                mymat2 <- drop0(mymat2)
-            }
-            else
-            {
-                mymat1@x[mymat1@x==10] <- NA
-                mymat1@x[mymat1@x==11] <- NA
-                mymat2@x[mymat2@x==10] <- NA
-                mymat2@x[mymat2@x==11] <- NA
-            }
+            use <- mymat1@x %in% c(10, 11)
+            mymat1@x[use] <- mymat1@x[use] - 10
+            use <- mymat2@x %in% c(10, 11)
+            mymat2@x[use] <- mymat2@x[use] - 10
+            mymat1 <- drop0(mymat1)
+            mymat2 <- drop0(mymat2)
             diag(mymat1) <- NA
             diag(mymat2) <- NA
             mydif <- mymat2 - mymat1
@@ -1022,18 +1111,21 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
             tmp <- table(mydif@x)
             tmp00 <- nactors * nactors - length(mydif@x)
             tmp <- c(tmp00, tmp[c(3, 1, 2)])
-            matchange[,i] <- tmp
+            matchange[, i] <- tmp
             matcnt[i] <- sum(tmp)
         }
         matchange <- data.frame(matchange)
-        tmp <-as.matrix(rbind(matcnt=matcnt, matdiff=matdiff,
+        tmp <- as.matrix(rbind(matcnt=matcnt, matdiff=matdiff,
                               matchange=matchange))
+        row.names(tmp) <- c("matcnt", "matdiff", "matchangeFrom0To0",
+                            "matchangeFrom0To1",
+                            "matchangeFrom1To0", "matchangeFrom1To1")
     }
     distance <- attr(depvar, "distance" )
     if (attr(depvar,'symmetric'))
-        startRate<- nactors * (0.2 + distance)/(tmp['matcnt',] %/% 2 +1)
+        startRate <- nactors * (0.2 + distance)/(tmp['matcnt',] %/% 2 +1)
     else
-        startRate<- nactors * (0.2 + 2 * distance)/(tmp['matcnt',]+1)
+        startRate <- nactors * (0.2 + 2 * distance)/(tmp['matcnt',] + 1)
     startRate <- pmax(0.1, startRate)
     startRate <- pmin(100, startRate)
     ##degree
@@ -1041,32 +1133,141 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
     if (attr(depvar,'symmetric'))
     {
         matchange <- matchange %/% 2
-       ## matcnt <- matcnt %/% 2
     }
-    p01 <- ifelse (matchange[1,] + matchange[2,] >=1,
-                   matchange[2,]/(matchange[1,]+matchange[2,]),0.5)
-    p10 <- ifelse (matchange[3,] + matchange[4,] >=1,
-                   matchange[3,]/(matchange[3,]+matchange[4,]),0.5)
+    p01 <- ifelse (matchange["matchangeFrom0To0", ] +
+                   matchange["matchangeFrom0To1", ] >=1,
+                   matchange["matchangeFrom0To1", ] /
+                   (matchange["matchangeFrom0To0", ] +
+                    matchange["matchangeFrom0To1", ]), 0.5)
+    p10 <- ifelse (matchange["matchangeFrom1To0", ]
+                   + matchange["matchangeFrom1To1", ] >=1,
+                   matchange["matchangeFrom1To0", ] /
+                   (matchange["matchangeFrom1To0", ] +
+                    matchange["matchangeFrom1To1", ]), 0.5)
+    p01 <- pmax(0.02, p01)
+    p10 <- pmax(0.02, p10)
+    p01 <- pmin(0.98, p01)
+    p10 <- pmin(0.98, p10)
+    alpha <- 0.5 * log(p01 / p10)
+    p00 <- ifelse (matchange["matchangeFrom0To0", ] +
+                   matchange["matchangeFrom0To1", ] >=1,
+                   matchange["matchangeFrom0To0", ] /
+                   (matchange["matchangeFrom0To0", ] +
+                    matchange["matchangeFrom0To1", ]), 0.0)
+    p11 <- ifelse (matchange["matchangeFrom1To0", ]
+                   + matchange["matchangeFrom1To1", ] >=1,
+                   matchange["matchangeFrom1To1", ] /
+                   (matchange["matchangeFrom1To0", ] +
+                    matchange["matchangeFrom1To1", ]), 0.0)
+    p00 <- pmax(0.02, p00)
+    p11 <- pmax(0.02, p11)
+    p00 <- pmin(0.98, p00)
+    p11 <- pmin(0.98, p11)
+    prec <- ifelse(matchange["matchangeFrom0To1", ] *
+                   matchange["matchangeFrom1To0", ] >= 1,
+                   4 / ((p00 / matchange["matchangeFrom0To1", ]) +
+                       (p11 / matchange["matchangeFrom1To0", ])), 1e-6)
+    alphaf1 <- sum(alpha * prec / sum(prec))
+    untrimmed <- alphaf1
+    alphaf1 <- ifelse(alphaf1 < -3, -3, ifelse(alphaf1 > 3, 3, alphaf1))
+    list(startRate=startRate, degree=alphaf1, alpha=alpha, prec=prec, tmp=tmp,
+        untrimmed = untrimmed)
+}
+##@getBipartiteStartingVals DataCreate
+getBipartiteStartingVals <- function(depvar)
+{
+    noPeriods <- attr(depvar, "netdims")[3] - 1
+    ##rate
+    ##get distance and number of valid links
+    if (!attr(depvar,'sparse'))
+    {
+        nsenders<- nrow(depvar)
+        nreceivers <- ncol(depvar)
+            use <- !is.na(depvar) & (depvar == 10 | depvar == 11)
+            depvar[use] <- depvar[use] - 10  ## remove structural values
+        tmp <- sapply(1:noPeriods, function(x, z){
+            matdiff <- sum(z[, , x + 1] != z[, , x], na.rm=TRUE)
+            matchange <- table(z[, , x + 1], z[, , x])
+            matcnt <- nsenders * nreceivers -
+                sum(is.na(z[, , x + 1]) | is.na(z[, , x]))
+            tmp <- c(matcnt=matcnt, matdiff=matdiff, matchange=matchange)
+            names(tmp) <- c("matcnt", "matdiff", "matchangeFrom0To0",
+                            "matchangeFrom0To1",
+                            "matchangeFrom1To0", "matchangeFrom1To1")
+            tmp
+        }, z=depvar)
+    }
+    else
+    {
+        nsenders <- nrow(depvar[[1]])
+        nreceivers <- ncol(depvar[[2]])
+        matdiff<- rep(NA, noPeriods)
+        matcnt<- rep(NA, noPeriods)
+        matchange<- matrix(NA, nrow=4, ncol=noPeriods)
+        for (i in 1: noPeriods)
+        {
+            mymat1 <- depvar[[i]]
+            mymat2 <- depvar[[i+1]]
+            use <- mymat1@x %in% c(10, 11)
+            mymat1@x[use] <- mymat1@x[use] - 10
+            use <- mymat2@x %in% c(10, 11)
+            mymat2@x[use] <- mymat2@x[use] - 10
+            mymat1 <- drop0(mymat1)
+            mymat2 <- drop0(mymat2)
+            mydif <- mymat2 - mymat1
+            matdiff[i] <- sum(abs(mydif), na.rm=TRUE)
+            tmp <- table(mydif@x)
+            tmp00 <- nsenders * nreceivers - length(mydif@x)
+            tmp <- c(tmp00, tmp[c(3, 1, 2)])
+            matchange[,i] <- tmp
+            matcnt[i] <- sum(tmp)
+        }
+        matchange <- data.frame(matchange)
+        tmp <-as.matrix(rbind(matcnt=matcnt, matdiff=matdiff,
+                              matchange=matchange))
+        row.names(tmp) <- c("matcnt", "matdiff", "matchangeFrom0To0",
+                            "matchangeFrom0To1",
+                            "matchangeFrom1To0", "matchangeFrom1To1")
+    }
+    distance <- attr(depvar, "distance" )
+    startRate <- nsenders * (0.2 + 2 * distance)/(tmp['matcnt',] + 1)
+    startRate <- pmax(0.1, startRate)
+    startRate <- pmin(100, startRate)
+    ##degree
+    matchange<- as.matrix(tmp[grep("matchange", rownames(tmp)),,drop=FALSE])
+    p01 <- ifelse (matchange["matchangeFrom0To0", ] +
+                   matchange["matchangeFrom0To1", ] >=1,
+                   matchange["matchangeFrom0To1", ] /
+                   (matchange["matchangeFrom0To0", ] +
+                    matchange["matchangeFrom0To1", ]), 0.5)
+    p10 <- ifelse (matchange["matchangeFrom1To0", ]
+                   + matchange["matchangeFrom1To1", ] >=1,
+                   matchange["matchangeFrom1To0", ] /
+                   (matchange["matchangeFrom1To0", ] +
+                    matchange["matchangeFrom1To1", ]), 0.5)
     p01 <- pmax(0.02,p01)
     p10 <- pmax(0.02,p10)
     p01 <- pmin(0.98,p01)
     p10 <- pmin(0.98,p10)
     alpha <- 0.5 * log(p01/p10)
-    ##  if (observations == 2) ##more observations may come later!
-    ##       alphaf1 <- alpha
-    ##  else
-    ## {
-    p00 <- ifelse (matchange[1,] + matchange[2,] >=1,
-                   matchange[1,]/(matchange[1,]+matchange[2,]),0.0)
-    p11 <- ifelse (matchange[3,] + matchange[4,] >=1,
-                   matchange[4,]/(matchange[3,]+matchange[4,]),0.0)
+    p00 <- ifelse (matchange["matchangeFrom0To0", ] +
+                   matchange["matchangeFrom0To1", ] >=1,
+                   matchange["matchangeFrom0To0", ] /
+                   (matchange["matchangeFrom0To0", ] +
+                    matchange["matchangeFrom0To1", ]), 0.0)
+    p11 <- ifelse (matchange["matchangeFrom1To0", ]
+                   + matchange["matchangeFrom1To1", ] >=1,
+                   matchange["matchangeFrom1To1", ] /
+                   (matchange["matchangeFrom1To0", ] +
+                    matchange["matchangeFrom1To1", ]), 0.0)
     p00 <- pmax(0.02,p00)
     p11 <- pmax(0.02,p11)
     p00 <- pmin(0.98,p00)
     p11 <- pmin(0.98,p11)
-    prec <- ifelse(matchange[2,] * matchange[3,] >=1,
-                   4 /((p00/matchange[2,]) +
-                       (p11/matchange[3,])),1e-6)
+    prec <- ifelse(matchange["matchangeFrom0To1", ] *
+                   matchange["matchangeFrom1To0", ] >= 1,
+                   4 / ((p00 / matchange["matchangeFrom0To1", ]) +
+                       (p11 / matchange["matchangeFrom1To0", ])), 1e-6)
     alphaf1 <- sum(alpha*prec/sum(prec))
     ## }
     untrimmed <- alphaf1
@@ -1074,3 +1275,4 @@ getNetworkStartingVals <- function(depvar, structValid=TRUE)
     list(startRate=startRate, degree=alphaf1, alpha=alpha, prec=prec, tmp=tmp,
         untrimmed = untrimmed)
 }
+

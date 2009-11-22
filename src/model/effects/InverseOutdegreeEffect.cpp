@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 #include "InverseOutdegreeEffect.h"
-#include "data/Network.h"
+#include "network/Network.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -37,16 +37,15 @@ InverseOutdegreeEffect::InverseOutdegreeEffect(
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double InverseOutdegreeEffect::calculateTieFlipContribution(int alter) const
+double InverseOutdegreeEffect::calculateContribution(int alter) const
 {
 	double sum =
-		this->pVariable()->pNetwork()->outDegree(this->pVariable()->ego()) +
-			this->lc;
+		this->pNetwork()->outDegree(this->ego()) + this->lc;
 
-	if (this->pVariable()->outTieExists(alter))
+	if (this->outTieExists(alter))
 	{
 		// Tie withdrawal
-		return 1.0 / ((sum - 1) * sum);
+		return -1.0 / ((sum - 1) * sum);
 	}
 	else
 	{
@@ -58,11 +57,12 @@ double InverseOutdegreeEffect::calculateTieFlipContribution(int alter) const
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given network.
+ * the evaluation function.
  */
-double InverseOutdegreeEffect::evaluationStatistic(Network * pNetwork) const
+double InverseOutdegreeEffect::evaluationStatistic() const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	for (int i = 0; i < n; i++)
@@ -76,13 +76,10 @@ double InverseOutdegreeEffect::evaluationStatistic(Network * pNetwork) const
 
 /**
  * Returns the statistic corresponding to this effect as part of
- * the endowment function with respect to an initial network
- * and a network of lost ties. The current network is implicit as
- * the introduced ties are not relevant for calculating
- * endowment statistics.
+ * the endowment function.
  */
-double InverseOutdegreeEffect::endowmentStatistic(Network * pInitialNetwork,
-	Network * pLostTieNetwork) const
+double InverseOutdegreeEffect::endowmentStatistic(Network * pLostTieNetwork)
+	const
 {
 	throw logic_error(
 		"InverseOutdegreeEffect: Endowment effect not supported.");

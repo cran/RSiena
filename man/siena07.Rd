@@ -1,6 +1,5 @@
 \name{siena07}
 \alias{siena07}
-\alias{sienaFit}
 \title{Function to fit a model}
 \description{
  Fits a model using method of moments, based on straightforward
@@ -49,20 +48,30 @@ tt=NULL, parallelTesting=FALSE, ...)
   \item{covtheta}{Estimated covariance matrix of theta}
   \item{dfra}{Matrix of estimated derivatives}
   \item{sf}{Matrix of deviations from target in phase 3}
+  \item{sf2}{Array of statistics from simulations in phase 3}
+  \item{targets}{Observed statistics}
+  \item{targets2}{Observed statistics for each wave}
+  \item{ssc}{Score function contributions for each wave for each
+	simulation in phase 3}
+  \item{sims}{List of simulated networks, currently just one entry for
+  the first network. Each a list of edgelists, one for each period.}
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }
-\seealso{\code{\link{model.create}}}
+\seealso{There are print, summary and xtable methods for \code{\link{sienaFit}}
+  objects
+  \code{\link{sienaModelCreate}}, \code{\link{print.sienaFit}}}
 \examples{
-mymodel <- model.create(findiff=TRUE, fn=simstats0c)
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
+mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
 
 #or for conditional estimation
+\dontrun{
 mymodel$condname <- 'mynet1'
 mymodel$cconditional <- TRUE
-ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)}
 }
 \keyword{models}

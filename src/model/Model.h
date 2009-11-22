@@ -74,14 +74,17 @@ public:
 	void conditional(bool flag);
 	bool conditional() const;
 
-	int rTargetChange(int period) const;
-	void addTargetChange(int change);
+	int targetChange(const Data * pData, int period) const;
+	void targetChange(const Data * pData, int period, int change);
 
 	string conditionalDependentVariable() const;
 	void conditionalDependentVariable(string variableName);
 
 	void needScores(bool flag);
 	bool needScores() const;
+
+	void parallelRun(bool flag);
+	bool parallelRun() const;
 
 private:
 	// Indicates if conditional simulation has to be carried out
@@ -90,8 +93,10 @@ private:
 	// name of conditional dependent variable
 	string lconditionalDependentVariable;
 
-	//targets for conditional dependent variable (index by 1:Total Observations)
-	vector<int> ltargetChange;
+	// Targets for conditional dependent variable per each data object
+	// and period.
+
+	map<const Data *, int *> ltargetChanges;
 
 	// An array of doubles per each longitudinal data object storing
 	// the basic rate parameters for all periods
@@ -117,6 +122,10 @@ private:
 
 	// indicates whether we need to accumulate scores in this iteration
 	bool lneedScores;
+
+	// indicates whether we need to match Siena3 in use of random variables
+	// and score calculations
+	bool lparallelRun;
 };
 
 }

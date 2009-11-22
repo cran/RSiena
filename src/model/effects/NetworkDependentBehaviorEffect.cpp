@@ -12,6 +12,7 @@
 #include <stdexcept>
 
 #include "NetworkDependentBehaviorEffect.h"
+#include "model/State.h"
 #include "model/EpochSimulation.h"
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
@@ -30,50 +31,26 @@ NetworkDependentBehaviorEffect::NetworkDependentBehaviorEffect(
 
 
 /**
- * Destructor.
- */
-NetworkDependentBehaviorEffect::~NetworkDependentBehaviorEffect()
-{
-}
-
-
-/**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void NetworkDependentBehaviorEffect::initialize(EpochSimulation * pSimulation)
-{
-	BehaviorEffect::initialize(pSimulation);
-
-	this->lpNetworkVariable =
-		dynamic_cast<const NetworkVariable *>(
-			pSimulation->pVariable(this->pEffectInfo()->interactionName1()));
-
-	if (!this->lpNetworkVariable)
-	{
-		throw logic_error("Network variable '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
-	}
-
-	// As long as we don't have behavior effects depending on two-mode
-	// networks, we explicitly insist on a one-mode network.
-
-	if (!this->lpNetworkVariable->oneModeNetwork())
-	{
-		throw logic_error("One-mode network expected.");
-	}
-}
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void NetworkDependentBehaviorEffect::initialize(const Data * pData, State * pState, int period)
+void NetworkDependentBehaviorEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
-	Effect::initialize(pData, pState, period);
+	BehaviorEffect::initialize(pData, pState, period, pCache);
+	string networkName = this->pEffectInfo()->interactionName1();
 
-	//TODO
+	this->lpNetwork = pState->pNetwork(networkName);
+
+	if (!this->lpNetwork)
+	{
+		throw logic_error("Network '" + networkName + "' expected.");
+	}
 }
+
 }

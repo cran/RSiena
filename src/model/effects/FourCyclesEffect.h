@@ -37,18 +37,20 @@ public:
 	FourCyclesEffect(const EffectInfo * pEffectInfo);
 	virtual ~FourCyclesEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
-	virtual void preprocessEgo();
-	virtual double calculateTieFlipContribution(int alter) const;
+	virtual void preprocessEgo(int ego);
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
-	void countThreePaths(int i, Network * pNetwork, int * counters) const;
+	void countThreePaths(int i, const Network * pNetwork, int * counters)
+		const;
 
 	// For a fixed i, this variable stores the number of three-paths
 	// i -> h <- k -> j per each j.

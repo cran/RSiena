@@ -39,10 +39,11 @@ class CovariateDependentNetworkEffect : public NetworkEffect
 {
 public:
 	CovariateDependentNetworkEffect(const EffectInfo * pEffectInfo);
-	virtual ~CovariateDependentNetworkEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
 	double value(int i) const;
@@ -52,8 +53,12 @@ protected:
 private:
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;
-	const BehaviorVariable * lpBehaviorVariable;
 	BehaviorLongitudinalData * lpBehaviorData;
+
+	// The current value of a behavior variable per each actor.
+	// This array is 0 for covariate-based effects.
+
+	const int * lvalues;
 };
 
 }

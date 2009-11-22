@@ -22,7 +22,7 @@ Fits models to longitudinal sets of networks.
   using \code{\link{getEffects}}.
 
   Control of the fitting requires a \emph{model} object, which can be
-  created by \code{\link{model.create}}.
+  created by \code{\link{sienaModelCreate}}.
 
   More detailed help is available in the manual which you can display
   using \cr
@@ -30,8 +30,8 @@ Fits models to longitudinal sets of networks.
 \tabular{ll}{
 Package: \tab RSiena\cr
 Type: \tab Package\cr
-Version: \tab 1.0.5\cr
-Date: \tab 2009-08-10\cr
+Version: \tab 1.0.8\cr
+Date: \tab 2009-11-22\cr
 License: \tab GPL-2 \cr
 LazyLoad: \tab yes\cr
 }
@@ -45,9 +45,9 @@ Maintainer: Who to complain to <ruth@stats.ox.ac.uk>
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \keyword{ package }
 \examples{
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
-mymodel <- model.create(findiff=FALSE, fn=simstats0c)
+mymodel <- sienaModelCreate(findiff=FALSE, fn=simstats0c, nsub=2, n3=100)
 ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
 }

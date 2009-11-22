@@ -26,47 +26,31 @@ namespace siena
 ChangingCovariateBehaviorEffect::ChangingCovariateBehaviorEffect(
 	const EffectInfo * pEffectInfo) : BehaviorEffect(pEffectInfo)
 {
+	this->lpCovariate = 0;
 }
 
 
 /**
- * Destructor.
- */
-ChangingCovariateBehaviorEffect::~ChangingCovariateBehaviorEffect()
-{
-}
-
-
-/**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void ChangingCovariateBehaviorEffect::initialize(EpochSimulation * pSimulation)
-{
-	BehaviorEffect::initialize(pSimulation);
-
-	this->lpCovariate =
-		dynamic_cast<const ChangingCovariate *>(
-			pSimulation->pData()->
-			pChangingCovariate(this->pEffectInfo()->interactionName1()));
-
-	if (!this->lpCovariate)
-	{
-		throw logic_error("Changing Covariate  '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
-	}
-}
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void ChangingCovariateBehaviorEffect::initialize(const Data * pData, State * pState, int period)
+void ChangingCovariateBehaviorEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
-	Effect::initialize(pData, pState, period);
+	BehaviorEffect::initialize(pData, pState, period, pCache);
+	string name = this->pEffectInfo()->interactionName1();
 
-	//TODO
+	this->lpCovariate = pData->pChangingCovariate(name);
+
+	if (!this->lpCovariate)
+	{
+		throw logic_error("Changing covariate  '" + name + "' expected.");
+	}
 }
+
 }

@@ -22,15 +22,19 @@ class State
 public:
 	State(Data * pData, int observation);
 	State(EpochSimulation * pSimulation);
+	State();
 
 	const Network * pNetwork(string name) const;
+	void pNetwork(string name, const Network * pNetwork);
+
 	const int * behaviorValues(string name) const;
-	const EpochSimulation * pSimulation() const;
+	void behaviorValues(string name, const int * values);
+
+	void deleteValues();
 
 private:
 	map<string, const Network *> lnetworks;
 	map<string, const int *> lbehaviors;
-	EpochSimulation * lpSimulation;
 };
 
 }

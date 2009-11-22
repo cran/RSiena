@@ -10,8 +10,8 @@
  *****************************************************************************/
 
 #include "HigherCovariateEffect.h"
-#include "data/Network.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -29,10 +29,10 @@ HigherCovariateEffect::HigherCovariateEffect(const EffectInfo * pEffectInfo) :
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double HigherCovariateEffect::calculateTieFlipContribution(int alter) const
+double HigherCovariateEffect::calculateContribution(int alter) const
 {
 	double change = 0;
-	double egoValue = this->value(this->pVariable()->ego());
+	double egoValue = this->value(this->ego());
 	double alterValue = this->value(alter);
 
 	if (egoValue > alterValue)
@@ -44,12 +44,6 @@ double HigherCovariateEffect::calculateTieFlipContribution(int alter) const
 		change = 0.5;
 	}
 
-	if (this->pVariable()->outTieExists(alter))
-	{
-		// The ego would loose the tie, so the change is negative.
-		change = -change;
-	}
-
 	return change;
 }
 
@@ -57,10 +51,11 @@ double HigherCovariateEffect::calculateTieFlipContribution(int alter) const
 /**
  * Detailed comment in the base class.
  */
-double HigherCovariateEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double HigherCovariateEffect::statistic(const Network * pSummationTieNetwork)
+	const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 
 	for (int i = 0; i < n; i++)

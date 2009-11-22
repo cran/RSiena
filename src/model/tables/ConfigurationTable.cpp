@@ -1,17 +1,17 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: ConfigurationTable.cpp
- * 
+ *
  * Description: This file contains the implementation of the ConfigurationTable
  * class.
  *****************************************************************************/
 
 #include "ConfigurationTable.h"
-#include "model/variables/NetworkVariable.h"
-#include "data/Network.h"
+#include "network/Network.h"
+#include "model/tables/NetworkCache.h"
 
 namespace siena
 {
@@ -21,14 +21,19 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 /**
- * Creates an empty configuration table for the given network variable, which
- * becomes the owner of the table.
+ * Creates an empty configuration table for the given network cache object.
  */
-ConfigurationTable::ConfigurationTable(NetworkVariable * pVariable)
+ConfigurationTable::ConfigurationTable(NetworkCache * pOwner)
 {
-	this->lpVariable = pVariable;
-	this->lpTable = new int[pVariable->n()];
-	this->lvalid = false;
+	this->lpOwner = pOwner;
+	this->lpNetwork = pOwner->pNetwork();
+	this->ltable = new int[this->lpNetwork->n()];
+
+	// This will make sure that the table is calculated on the first
+	// call to the get(...) method, as the network modification count
+	// starts with 0.
+
+	this->llastModificationCount = -1;
 }
 
 
@@ -37,8 +42,8 @@ ConfigurationTable::ConfigurationTable(NetworkVariable * pVariable)
  */
 ConfigurationTable::~ConfigurationTable()
 {
-	delete[] this->lpTable;
-	this->lpTable = 0;
+	delete[] this->ltable;
+	this->ltable = 0;
 }
 
 
@@ -47,30 +52,19 @@ ConfigurationTable::~ConfigurationTable()
 // ----------------------------------------------------------------------------
 
 /**
- * Calculates the table for the current network and ego of the owner variable.
+ * Returns the number of configurations corresponding to the given actor.
  */
-void ConfigurationTable::calculate()
+int ConfigurationTable::get(int i)
 {
-	// Avoid dupplicate calculation
-	
-	if (!this->lvalid)
+	// If the network has changed, recalculate the table
+
+	if (this->lpNetwork->modificationCount() != this->llastModificationCount)
 	{
-		// Let the derived classes do the actual calculation.
-		this->vCalculate();
-		
-		// Remember that the table has been calculated.
-		this->lvalid = true;
+		this->calculate();
+		this->llastModificationCount = this->lpNetwork->modificationCount();
 	}
-}
 
-
-/**
- * Marks the table to be invalid such that it is recalculated by the next call
- * to calculate().
- */
-void ConfigurationTable::invalidate()
-{
-	this->lvalid = false;
+	return this->ltable[i];
 }
 
 
@@ -79,20 +73,20 @@ void ConfigurationTable::invalidate()
 // ----------------------------------------------------------------------------
 
 /**
- * Returns the owner variable.
+ * Returns the network cache object owning this configuration table.
  */
-NetworkVariable * ConfigurationTable::pVariable() const
+NetworkCache * ConfigurationTable::pOwner() const
 {
-	return this->lpVariable;
+	return this->lpOwner;
 }
 
 
 /**
- * Stores the number of configurations corresponding to the given actor.
+ * Returns the network this configuration table is associated with.
  */
-void ConfigurationTable::set(int i, int value)
+const Network * ConfigurationTable::pNetwork() const
 {
-	this->lpTable[i] = value;
+	return this->lpNetwork;
 }
 
 
@@ -105,9 +99,9 @@ void ConfigurationTable::set(int i, int value)
  */
 void ConfigurationTable::reset()
 {
-	for (int i = 0; i < this->pVariable()->n(); i++)
+	for (int i = 0; i < this->lpNetwork->n(); i++)
 	{
-		this->lpTable[i] = 0;
+		this->ltable[i] = 0;
 	}
 }
 

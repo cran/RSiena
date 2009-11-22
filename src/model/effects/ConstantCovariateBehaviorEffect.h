@@ -37,8 +37,10 @@ public:
 	ConstantCovariateBehaviorEffect(const EffectInfo * pEffectInfo);
 	virtual ~ConstantCovariateBehaviorEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
 protected:
 	inline const ConstantCovariate * pCovariate() const;

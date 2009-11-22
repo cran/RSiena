@@ -71,10 +71,6 @@ public:
 
 	int inDegree(int i) const;
 	int outDegree(int i) const;
-	int positiveInDegree(int i) const;
-	int negativeInDegree(int i) const;
-	int positiveOutDegree(int i) const;
-	int negativeOutDegree(int i) const;
 
 	int minTieValue() const;
 	int maxTieValue() const;
@@ -83,6 +79,8 @@ public:
 
 	int outTwoStarCount(int i, int j) const;
 	int inTwoStarCount(int i, int j) const;
+
+	inline int modificationCount() const;
 
 protected:
 	virtual int changeTieValue(int i, int j, int v, ChangeType type);
@@ -112,15 +110,27 @@ private:
 
 	std::map<int, int> * lpInTies;
 
-	// The positive out-degree of each sender
-	int * lpPositiveOutDegree;
-
-	// The positive in-degree of each receiver
-	int * lpPositiveInDegree;
-
 	// The number of ties of this network
 	int ltieCount;
+
+	// This variable is initially 0 and incremented each time the network
+	// is changed.
+
+	int lmodificationCount;
 };
+
+
+// ----------------------------------------------------------------------------
+// Section: Inline methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns the number of times this network has been changed.
+ */
+int Network::modificationCount() const
+{
+	return this->lmodificationCount;
+}
 
 }
 

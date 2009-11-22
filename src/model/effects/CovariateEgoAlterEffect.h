@@ -26,11 +26,10 @@ class CovariateEgoAlterEffect : public CovariateDependentNetworkEffect
 public:
 	CovariateEgoAlterEffect(const EffectInfo * pEffectInfo, bool reciprocal);
 
-	virtual double calculateTieFlipContribution(int alter) const;
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
 	// Indicates if the reciprocal version of the effect is required

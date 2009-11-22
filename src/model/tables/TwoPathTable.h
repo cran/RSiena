@@ -11,8 +11,8 @@
 #ifndef TWOPATHTABLE_H_
 #define TWOPATHTABLE_H_
 
-#include "ConfigurationTable.h"
-#include "data/DataUtils.h"
+#include "EgocentricConfigurationTable.h"
+#include "network/NetworkUtils.h"
 
 namespace siena
 {
@@ -26,15 +26,15 @@ namespace siena
  * one outgoing tie of i, say (i,h), in the forward direction followed by the
  * incoming tie (j,h) of h in the backward direction.
  */
-class TwoPathTable : public ConfigurationTable
+class TwoPathTable : public EgocentricConfigurationTable
 {
 public:
-	TwoPathTable(NetworkVariable * pVariable,
+	TwoPathTable(NetworkCache * pOwner,
 		Direction firstStepDirection,
 		Direction secondStepDirection);
 
 protected:
-	virtual void vCalculate();
+	virtual void calculate();
 
 private:
 	template<class Iterator> void performFirstStep(Iterator iter);

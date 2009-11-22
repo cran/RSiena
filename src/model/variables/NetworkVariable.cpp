@@ -16,9 +16,9 @@
 #include "utils/Utils.h"
 #include "utils/Random.h"
 #include "data/ActorSet.h"
-#include "data/Network.h"
-#include "data/OneModeNetwork.h"
-#include "data/IncidentTieIterator.h"
+#include "network/Network.h"
+#include "network/OneModeNetwork.h"
+#include "network/IncidentTieIterator.h"
 #include "data/NetworkLongitudinalData.h"
 #include "data/OneModeNetworkLongitudinalData.h"
 #include "model/EpochSimulation.h"
@@ -26,8 +26,8 @@
 #include "model/Model.h"
 #include "model/EffectInfo.h"
 #include "model/effects/NetworkEffect.h"
-#include "model/tables/TwoPathTable.h"
-#include "model/tables/CriticalInStarTable.h"
+#include "model/tables/Cache.h"
+#include "model/tables/NetworkCache.h"
 
 namespace siena
 {
@@ -51,17 +51,18 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 	this->lpSenders = pSimulation->pSimulationActorSet(pData->pSenders());
 	this->lpReceivers = pSimulation->pSimulationActorSet(pData->pReceivers());
 	this->lpNetwork = 0;
-	this->lpPredictorNetwork = 0;
 	this->lactiveStructuralTieCount = new int[this->n()];
 
-	this->lpHasOutTie = new bool[this->m()];
 	this->lpermitted = new bool[this->m()];
 	this->lprobabilities = new double[this->m()];
-	this->lpHasInTie = 0;
 
 	if (this->oneModeNetwork())
 	{
-		this->lpHasInTie = new bool[this->n()];
+		this->lpNetwork = new OneModeNetwork(this->n(), false);
+	}
+	else
+	{
+		this->lpNetwork = new Network(this->n(), this->m());
 	}
 
 	this->levaluationEffectContribution = new double * [this->m()];
@@ -75,7 +76,8 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 			new double[pSimulation->pModel()->rEvaluationEffects(pData->name()).size()];
 	}
 
-	this->initConfigurationTables();
+	this->lpNetworkCache =
+		pSimulation->pCache()->pNetworkCache(this->lpNetwork);
 }
 
 
@@ -84,13 +86,9 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
  */
 NetworkVariable::~NetworkVariable()
 {
-	this->deleteConfigurationTables();
 	delete this->lpNetwork;
-	delete this->lpPredictorNetwork;
 
 	delete[] this->lactiveStructuralTieCount;
-	delete[] this->lpHasOutTie;
-	delete[] this->lpHasInTie;
 	delete[] this->lpermitted;
 	delete[] this->lprobabilities;
 
@@ -110,76 +108,9 @@ NetworkVariable::~NetworkVariable()
 	this->lendowmentEffectContribution = 0;
 	this->lpData = 0;
 	this->lpNetwork = 0;
-	this->lpPredictorNetwork = 0;
 	this->lactiveStructuralTieCount = 0;
-	this->lpHasOutTie = 0;
-	this->lpHasInTie = 0;
 	this->lpermitted = 0;
 	this->lprobabilities = 0;
-}
-
-
-/**
- * Creates various configuration tables, one of each of the available types.
- * These configurations are stored explicitly and also in a list.
- */
-void NetworkVariable::initConfigurationTables()
-{
-	// Many of the configurations can be seen
-	// as special cases of generalized two-paths, where one can specify
-	// the directions of the first and the second step. For instance, the
-	// number of in-stars between i and j equals the number of possible ways
-	// of reaching j, if we have to traverse one outgoing tie of actor i,
-	// say (i,h), followed by on incoming tie of actor h.
-
-	if (this->oneModeNetwork())
-	{
-		this->lpTwoPathTable = new TwoPathTable(this, FORWARD, FORWARD);
-		this->lpReverseTwoPathTable =
-			new TwoPathTable(this, BACKWARD, BACKWARD);
-		this->lpOutStarTable = new TwoPathTable(this, BACKWARD, FORWARD);
-		this->lpCriticalInStarTable = new CriticalInStarTable(this);
-		this->lpRRTable = new TwoPathTable(this, RECIPROCAL, RECIPROCAL);
-		this->lpRFTable = new TwoPathTable(this, RECIPROCAL, FORWARD);
-		this->lpRBTable = new TwoPathTable(this, RECIPROCAL, BACKWARD);
-		this->lpFRTable = new TwoPathTable(this, FORWARD, RECIPROCAL);
-		this->lpBRTable = new TwoPathTable(this, BACKWARD, RECIPROCAL);
-
-		this->lconfigurationTables.push_back(this->pTwoPathTable());
-		this->lconfigurationTables.push_back(this->pReverseTwoPathTable());
-		this->lconfigurationTables.push_back(this->pOutStarTable());
-		this->lconfigurationTables.push_back(this->pCriticalInStarTable());
-		this->lconfigurationTables.push_back(this->pRRTable());
-		this->lconfigurationTables.push_back(this->pRFTable());
-		this->lconfigurationTables.push_back(this->pRBTable());
-		this->lconfigurationTables.push_back(this->pFRTable());
-		this->lconfigurationTables.push_back(this->pBRTable());
-	}
-
-	this->lpInStarTable = new TwoPathTable(this, FORWARD, BACKWARD);
-	this->lconfigurationTables.push_back(this->pInStarTable());
-}
-
-
-/**
- * Deletes all configuration tables of this function.
- */
-void NetworkVariable::deleteConfigurationTables()
-{
-	deallocateVector(this->lconfigurationTables);
-
-	// It is a good idea to nullify the pointers.
-
-	this->lpTwoPathTable = 0;
-	this->lpReverseTwoPathTable = 0;
-	this->lpInStarTable = 0;
-	this->lpOutStarTable = 0;
-	this->lpCriticalInStarTable = 0;
-	this->lpRRTable = 0;
-	this->lpRFTable = 0;
-	this->lpRBTable = 0;
-	this->lpBRTable = 0;
-	this->lpFRTable = 0;
 }
 
 
@@ -212,7 +143,7 @@ const SimulationActorSet * NetworkVariable::pReceivers() const
  */
 int NetworkVariable::m() const
 {
-	return this->lpData->pReceivers()->n();
+	return this->lpReceivers->n();
 }
 
 
@@ -248,18 +179,20 @@ void NetworkVariable::initialize(int period)
 
 	// Copy the respective observation
 
-	delete this->lpNetwork;
-	delete this->lpPredictorNetwork;
-
 	if (this->oneModeNetwork())
 	{
-		OneModeNetwork * pOneModeNetwork =
-			(OneModeNetwork *) this->lpData->pNetwork(period);
-		this->lpNetwork = new OneModeNetwork(*pOneModeNetwork);
+		OneModeNetwork * pNetwork =
+			(OneModeNetwork *) this->lpNetwork;
+		const OneModeNetwork * pObservedNetwork =
+			(const OneModeNetwork *) this->lpData->pNetwork(period);
+
+		// Use the copy assignment operator
+		(*pNetwork) = (*pObservedNetwork);
 	}
 	else
 	{
-		this->lpNetwork = new Network(*this->lpData->pNetwork(period));
+		// Use the copy assignment operator
+		(*this->lpNetwork) = (*this->lpData->pNetwork(period));
 	}
 
 	// Initialize the counters with all structural ties, including those to
@@ -296,25 +229,6 @@ void NetworkVariable::initialize(int period)
 Network * NetworkVariable::pNetwork() const
 {
 	return this->lpNetwork;
-}
-
-
-/**
- * sets the predictor network.
- */
-void NetworkVariable::pPredictorNetwork(Network * pPredictorNetwork)
-{
-	this->lpPredictorNetwork = pPredictorNetwork;
-}
-
-
-/**
- * Returns the state of this variable at the
- * beginning of the current period, less missings.
- */
-Network * NetworkVariable::pPredictorNetwork() const
-{
-	return this->lpPredictorNetwork;
 }
 
 
@@ -429,8 +343,9 @@ void NetworkVariable::setLeaverBack(const SimulationActorSet * pActorSet,
 		{
 			if (i != actor)
 			{
-				this->lpNetwork->setTieValue(actor, i,
-				this->lpData->pNetwork(this->period())->tieValue(actor, i));
+				this->lpNetwork->setTieValue(actor,
+					i,
+					this->lpData->tieValue(actor, i, this->period()));
 			}
 		}
 	}
@@ -443,8 +358,7 @@ void NetworkVariable::setLeaverBack(const SimulationActorSet * pActorSet,
 			{
 				this->lpNetwork->setTieValue(i,
 					actor,
-					this->lpData->pNetwork(this->period())->tieValue(i,
-						actor));
+					this->lpData->tieValue(i, actor, this->period()));
 			}
 		}
 	}
@@ -521,13 +435,17 @@ void NetworkVariable::makeChange(int actor)
 
 		this->lpNetwork->setTieValue(this->lego, alter, 1 - currentValue);
 
-		const OneModeNetworkLongitudinalData * pData =
-			dynamic_cast<const OneModeNetworkLongitudinalData *>(this->pData());
-		if (pData)
+		if (this->oneModeNetwork())
 		{
+			const OneModeNetworkLongitudinalData * pData =
+				dynamic_cast<const OneModeNetworkLongitudinalData *>(
+					this->pData());
+
 			if (pData->symmetric())
 			{
-			this->lpNetwork->setTieValue(alter, this->lego, 1 - currentValue);
+				this->lpNetwork->setTieValue(alter,
+					this->lego,
+					1 - currentValue);
 			}
 		}
 	}
@@ -540,59 +458,6 @@ void NetworkVariable::makeChange(int actor)
  */
 void NetworkVariable::preprocessEgo()
 {
-	// Initialize the arrays of incoming and outgoing tie indicators.
-
-	for (int i = 0; i < this->lpNetwork->m(); i++)
-	{
-		this->lpHasOutTie[i] = false;
-
-		if (this->oneModeNetwork())
-		{
-			this->lpHasInTie[i] = false;
-		}
-	}
-
-	// Mark the actors receiving a tie from the ego.
-
-	for (IncidentTieIterator iter = this->lpNetwork->outTies(this->lego);
-		iter.valid();
-		iter.next())
-	{
-		this->lpHasOutTie[iter.actor()] = true;
-	}
-
-	if (this->oneModeNetwork())
-	{
-		// Mark the actors sending a tie to the ego.
-
-		for (IncidentTieIterator iter = this->lpNetwork->inTies(this->lego);
-			iter.valid();
-			iter.next())
-		{
-			this->lpHasInTie[iter.actor()] = true;
-		}
-	}
-
-	// Invalidate all configuration tables such that they are recalculated
-	// the first time they are queried.
-
-	std::for_each(this->lconfigurationTables.begin(),
-		this->lconfigurationTables.end(),
-		std::mem_fun(&ConfigurationTable::invalidate));
-
-	// Calculate the configuration tables that are required for calculating
-	// the selected effects.
-
-	for (unsigned i = 0; i < this->lconfigurationTables.size(); i++)
-	{
-		ConfigurationTable * pTable = this->lconfigurationTables[i];
-
-		if (this->required(pTable))
-		{
-			pTable->calculate();
-		}
-	}
-
 	// Let the effects do their preprocessing.
 
 	const Function * pFunction = this->pEvaluationFunction();
@@ -601,7 +466,7 @@ void NetworkVariable::preprocessEgo()
 	{
 		NetworkEffect * pEffect =
 			(NetworkEffect *) pFunction->rEffects()[i];
-		pEffect->preprocessEgo();
+		pEffect->preprocessEgo(this->lego);
 	}
 
 	pFunction = this->pEndowmentFunction();
@@ -610,45 +475,8 @@ void NetworkVariable::preprocessEgo()
 	{
 		NetworkEffect * pEffect =
 			(NetworkEffect *) pFunction->rEffects()[i];
-		pEffect->preprocessEgo();
+		pEffect->preprocessEgo(this->lego);
 	}
-}
-
-
-/**
- * Tests if the given configuration table is required for the calculation
- * of at least one of the selected effects.
- */
-bool NetworkVariable::required(const ConfigurationTable * pTable) const
-{
-	bool rc = false;
-	const Function * pFunction = this->pEvaluationFunction();
-
-	for (unsigned i = 0; i < pFunction->rEffects().size() && !rc; i++)
-	{
-		NetworkEffect * pEffect =
-			(NetworkEffect *) pFunction->rEffects()[i];
-
-		if (pEffect->usesTable(pTable))
-		{
-			rc = true;
-		}
-	}
-
-	pFunction = this->pEndowmentFunction();
-
-	for (unsigned i = 0; i < pFunction->rEffects().size() && !rc; i++)
-	{
-		NetworkEffect * pEffect =
-			(NetworkEffect *) pFunction->rEffects()[i];
-
-		if (pEffect->usesTable(pTable))
-		{
-			rc = true;
-		}
-	}
-
-	return rc;
 }
 
 
@@ -666,7 +494,7 @@ void NetworkVariable::calculatePermissibleChanges()
 
 	for (int i = 0; i < this->m(); i++)
 	{
-		if (this->lpHasOutTie[i])
+		if (this->lpNetworkCache->outTieExists(i))
 		{
 			this->lpermitted[i] = !pData->upOnly(this->period());
 		}
@@ -727,8 +555,17 @@ void NetworkVariable::calculateTieFlipContributions()
 			{
 				NetworkEffect * pEffect =
 					(NetworkEffect *) rEvaluationEffects[i];
-				this->levaluationEffectContribution[alter][i] =
-					pEffect->calculateTieFlipContribution(alter);
+				double contribution =
+					pEffect->calculateContribution(alter);
+
+				// Tie withdrawals contribute in the opposite way
+
+				if (this->lpNetworkCache->outTieExists(alter))
+				{
+					contribution = -contribution;
+				}
+
+				this->levaluationEffectContribution[alter][i] = contribution;
 			}
 		}
 		else
@@ -742,14 +579,15 @@ void NetworkVariable::calculateTieFlipContributions()
 		// The endowment effects have non-zero contributions on tie
 		// withdrawals only
 
-		if (this->lpHasOutTie[alter] && this->lpermitted[alter])
+		if (this->lpNetworkCache->outTieExists(alter) &&
+			this->lpermitted[alter])
 		{
 			for (int i = 0; i < endowmentEffectCount; i++)
 			{
 				NetworkEffect * pEffect =
 					(NetworkEffect *) rEndowmentEffects[i];
 				this->lendowmentEffectContribution[alter][i] =
-					pEffect->calculateTieFlipContribution(alter);
+					-pEffect->calculateContribution(alter);
 			}
 		}
 		else
@@ -786,18 +624,18 @@ void NetworkVariable::calculateTieFlipProbabilities()
 			{
 				Effect * pEffect = this->pEvaluationFunction()->rEffects()[i];
 				contribution +=
-					pEffect->weight() *
+					pEffect->parameter() *
 						this->levaluationEffectContribution[alter][i];
 			}
 
-			if (this->lpHasOutTie[alter])
+			if (this->lpNetworkCache->outTieExists(alter))
 			{
 				for (int i = 0; i < endowmentEffectCount; i++)
 				{
 					Effect * pEffect =
 						this->pEndowmentFunction()->rEffects()[i];
 					contribution +=
-						pEffect->weight() *
+						pEffect->parameter() *
 							this->lendowmentEffectContribution[alter][i];
 				}
 			}

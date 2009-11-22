@@ -12,9 +12,11 @@
 #include <stdexcept>
 
 #include "BehaviorDependentBehaviorEffect.h"
+#include "data/BehaviorLongitudinalData.h"
 #include "model/EpochSimulation.h"
 #include "model/EffectInfo.h"
 #include "model/variables/BehaviorVariable.h"
+#include "model/State.h"
 
 namespace siena
 {
@@ -26,47 +28,45 @@ namespace siena
 BehaviorDependentBehaviorEffect::BehaviorDependentBehaviorEffect(
 	const EffectInfo * pEffectInfo) : BehaviorEffect(pEffectInfo)
 {
+	this->linteractionValues = 0;
+	this->lpInteractionBehaviorData = 0;
 }
 
 
 /**
- * Destructor.
- */
-BehaviorDependentBehaviorEffect::~BehaviorDependentBehaviorEffect()
-{
-}
-
-
-/**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void BehaviorDependentBehaviorEffect::initialize(EpochSimulation * pSimulation)
-{
-	BehaviorEffect::initialize(pSimulation);
-
-	this->lpBehaviorVariable =
-		dynamic_cast<const BehaviorVariable *>(
-			pSimulation->pVariable(this->pEffectInfo()->interactionName1()));
-
-	if (!this->lpBehaviorVariable)
-	{
-		throw logic_error("Behavior variable  '" +
-			this->pEffectInfo()->interactionName1() +
-			"' expected.");
-	}
-}
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
-void BehaviorDependentBehaviorEffect::initialize(const Data * pData, State * pState, int period)
+void BehaviorDependentBehaviorEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
 {
-	Effect::initialize(pData, pState, period);
+	BehaviorEffect::initialize(pData, pState, period, pCache);
+	string name = this->pEffectInfo()->interactionName1();
 
-	//TODO
+	this->linteractionValues = pState->behaviorValues(name);
+	this->lpInteractionBehaviorData = pData->pBehaviorData(name);
+
+	if (!this->linteractionValues || !this->lpInteractionBehaviorData)
+	{
+		throw logic_error("Behavior variable  '" + name + "' expected.");
+	}
+}
+
+
+/**
+ * Returns the interaction value of the given actor
+ * centered around the overall mean of all observed values.
+ */
+double BehaviorDependentBehaviorEffect::centeredInteractionValue(int actor)
+	const
+{
+	return this->linteractionValues[actor] -
+		this->lpInteractionBehaviorData->overallMean();
 }
 
 }

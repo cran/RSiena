@@ -38,7 +38,6 @@ BehaviorVariable::BehaviorVariable(BehaviorLongitudinalData * pData,
 {
 	this->lpData = pData;
 	this->lvalues = new int[this->n()];
-	this->lpredictorValues = new int[this->n()];
 	this->levaluationEffectContribution = new double * [3];
 	this->lendowmentEffectContribution = new double * [3];
 	this->lprobabilities = new double[3];
@@ -59,11 +58,9 @@ BehaviorVariable::BehaviorVariable(BehaviorLongitudinalData * pData,
 BehaviorVariable::~BehaviorVariable()
 {
 	delete[] this->lvalues;
-	delete[] this->lpredictorValues;
 
 	this->lpData = 0;
 	this->lvalues = 0;
-	this->lpredictorValues = 0;
 	delete[] this->lprobabilities;
 	// Delete arrays of contributions
 
@@ -144,25 +141,6 @@ double BehaviorVariable::similarity(int i, int j) const
 
 
 /**
- * Returns the predictor value on this behavior for the given actor.
- */
-int BehaviorVariable::predictorValue(int actor) const
-{
-	return this->lpredictorValues[actor];
-}
-
-
-/**
- * Returns the predictor value on this behavior for the given actor, which is
- * centered around the overall mean of the observed values.
- */
-double BehaviorVariable::centeredPredictorValue(int actor) const
-{
-	return this->lpredictorValues[actor] - this->lpData->overallMean();
-}
-
-
-/**
  * Returns the array of current values for this behavior variable.
  */
 const int * BehaviorVariable::values() const
@@ -216,15 +194,6 @@ void BehaviorVariable::initialize(int period)
 	this->lmean /= this->pActorSet()->activeActorCount();
 }
 
-/**
- * Set the value of the variable for use as a predictor rather than a
- * dependent variable .
- */
-
-void BehaviorVariable::predictorValue(int actor, int value)
-{
-	this->lpredictorValues[actor] = value;
-}
 
 // ----------------------------------------------------------------------------
 // Section: Composition change
@@ -279,8 +248,7 @@ void BehaviorVariable::actOnLeaver(const SimulationActorSet * pActorSet,
 
 
 /**
- * Updates the current network and other variables when an actor becomes
- * inactive.
+ * Sets leavers values back to the value at the start of the simulation.
  */
 void BehaviorVariable::setLeaverBack(const SimulationActorSet * pActorSet,
 	int actor)
@@ -311,6 +279,8 @@ void BehaviorVariable::makeChange(int actor)
 	// change, respectivelly
 
 	double probabilities[3];
+	bool upPossible = true;
+	bool downPossible = true;
 
 	// Calculate the probability for downward change
 
@@ -318,16 +288,15 @@ void BehaviorVariable::makeChange(int actor)
 		!this->lpData->upOnly(this->period()))
 	{
 		probabilities[0] =
-			exp(this->totalEvaluationContribution(actor,
-					-1) +
-					 +
-				this->totalEndowmentContribution(actor,
-					-1));
+			exp(this->totalEvaluationContribution(actor, -1) +
+				this->totalEndowmentContribution(actor, -1));
 	}
 	else
 	{
 		probabilities[0] = 0;
+		downPossible = false;
 	}
+
 	// No change means zero contribution, but exp(0) = 1
 	probabilities[1] = 1;
 
@@ -337,12 +306,12 @@ void BehaviorVariable::makeChange(int actor)
 		!this->lpData->downOnly(this->period()))
 	{
 		probabilities[2] =
-			exp(this->totalEvaluationContribution(actor,
-				1));
+			exp(this->totalEvaluationContribution(actor, 1));
 	}
 	else
 	{
 		probabilities[2] = 0;
+		upPossible = false;
 	}
 
 	if (this->pSimulation()->pModel()->needScores())
@@ -364,7 +333,7 @@ void BehaviorVariable::makeChange(int actor)
 
 	if (this->pSimulation()->pModel()->needScores())
 	{
-		this->accumulateScores(difference + 1);
+		this->accumulateScores(difference + 1, upPossible, downPossible);
 	}
 
 	// Make the change
@@ -416,7 +385,7 @@ double BehaviorVariable::totalEvaluationContribution(int actor,
 			pEffect->calculateChangeContribution(actor, difference);
 		this->levaluationEffectContribution[difference+1][i] =
 			thisContribution;
-		contribution += pEffect->weight() * thisContribution;
+		contribution += pEffect->parameter() * thisContribution;
 	}
 	return contribution;
 }
@@ -435,7 +404,7 @@ double BehaviorVariable::totalEndowmentContribution(int actor,
 			pEffect->calculateChangeContribution(actor, difference);
 		this->lendowmentEffectContribution[difference+1][i] =
 			thisContribution;
-		contribution += pEffect->weight() * thisContribution;
+		contribution += pEffect->parameter() * thisContribution;
 	}
 
 	return contribution;
@@ -444,7 +413,8 @@ double BehaviorVariable::totalEndowmentContribution(int actor,
  * Updates the scores for evaluation and endowment function effects according
  * to the current step in the simulation.
  */
-void BehaviorVariable::accumulateScores(int difference) const
+void BehaviorVariable::accumulateScores(int difference,
+	bool upPossible, bool downPossible) const
 {
 	for (unsigned i = 0;
 		i < this->pEvaluationFunction()->rEffects().size();
@@ -457,11 +427,18 @@ void BehaviorVariable::accumulateScores(int difference) const
 		Effect * pEffect = this->pEvaluationFunction()->rEffects()[i];
 		double score = this->levaluationEffectContribution[difference][i];
 
-		for (int j = 0; j < 3; j+=2)
+		if (upPossible)
 		{
 			score -=
-				this->levaluationEffectContribution[j][i] *
-					this->lprobabilities[j];
+				this->levaluationEffectContribution[2][i] *
+				this->lprobabilities[2];
+		}
+
+		if (downPossible)
+		{
+			score -=
+				this->levaluationEffectContribution[0][i] *
+				this->lprobabilities[0];
 		}
 
 		this->pSimulation()->score(pEffect->pEffectInfo(),
@@ -483,11 +460,11 @@ void BehaviorVariable::accumulateScores(int difference) const
 		Effect * pEffect = this->pEndowmentFunction()->rEffects()[i];
 		double score = this->lendowmentEffectContribution[difference][i];
 
-		for (int j = 0; j < 2; j+=2)
+		if (downPossible)
 		{
 			score -=
-				this->lendowmentEffectContribution[j][i] *
-					this->lprobabilities[j];
+				this->lendowmentEffectContribution[0][i] *
+					this->lprobabilities[0];
 
 		}
 

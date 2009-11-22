@@ -25,10 +25,10 @@ class CovariateAlterEffect : public CovariateDependentNetworkEffect
 public:
 	CovariateAlterEffect(const EffectInfo * pEffectInfo, bool squared);
 
-	virtual double calculateTieFlipContribution(int alter) const;
-	virtual double evaluationStatistic(Network * pNetwork) const;
-	virtual double endowmentStatistic(Network * pInitialNetwork,
-		Network * pLostTieNetwork) const;
+	virtual double calculateContribution(int alter) const;
+
+protected:
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
 	bool lsquared;

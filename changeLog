@@ -1,0 +1,137 @@
+2010-01-12 R-forge revision 38
+
+	* man/RSiena-package.Rd, man/siena07.Rd, man/sienaFit.Rd,
+	man/simstats0c.Rd: reduce time for examples
+	* tests/parallel.R, tests/patallel.Rout.save: reduce tests
+
+2010-01-02 R-forge revision 34
+
+	* R/sienaprint.r: corrected layout of sienaFitThetaTable for
+	models with both behavior and network variables
+
+2010-01-01 R-forge revision 33
+
+	* inst/doc: updated changes in manual
+	* CHANGELOG: updated
+
+2010-01-01 R-forge revision 32 (copy of relevant changes from revisions 29-31 to
+	RSienaTest)
+
+	* R/simstatsc.r: bug fixes to interactions (not yet functional)
+	and name in header block
+
+	* R/print07report.r: took square root of standard errors of rate
+	estimates for conditional estimation.
+
+2009-12-14 R-forge revision 28
+
+	* R/simstatsc.r: fixed problem with multiple processors.
+
+2009-11-20 R-forge revision 25 new version 1.0.8
+
+	* R/simstatsc.r, R/siena01.r:  default method for estimation is
+	conditional if there is only one dependent variable.
+	* R/simstatsc.r: fixed bug if only one missing value: missing
+	drop=FALSE.
+	* R/simstatsc.r: fixed bug in naming of returned simulations
+	* inst/sienascript: set to LF only eol style.
+	* R/effects.r: uponly, downonly: remove	density effect and linear
+	shape effect
+	* R/sienaDataCreate.r: set the uponly, downonly flags correctly
+	for behavior variables.
+	* R/effects.r: corrected bug in creation of effects data
+	frame for changing dyadic covariates.
+	* R/effects.r: amend some matches for nodesets for bipartite nets
+	* R/effects.r, R/printInitialDescription.r: remove structValid
+	argument from getNetworkStartingVals as unused
+	* R/effects.r: Named the rows and columns of matrix of changes in
+	getNetworkStartingVals and getBipartiteStartingVals
+	* R/phase3.r, R/sienaprint.r: added t-stat to print method for
+	sienaFit objects, improved xtable method
+	* R/print01Report.r: added warning about non-integer behavior
+	variables
+	* R/siena01.r: fixed a bug in deleting rows from table: format and
+	object type were out of sync
+	* R/sienaDataCreate.r: new methods for adding attributes to
+	covariate objects
+	* R/Sienatest.r: fix bug: change sign of one-sided tests
+	* R/simstatsc.r: change to returndeps flag to avoid it in phase 2.
+	* R/simstatsc.r: Create names for interaction effects in
+	fixUpEffectNames
+	* src/model/EpochSimulation.h,
+	src/model/variables/BehaviorVariables.cpp,
+	src/model/variables/NetworkVariable.h: removed outdated comments
+	and unused variables.
+	* R/siena01.r: fixed bug in editing all effects rather than a
+	subset.
+	* R/print01Report.r: added or corrected report of uponly and downonly
+	processing.
+
+2009-11-08 R-forge revision 24
+
+	* DESCRIPTION, man/RSiena.RD: version Number 1.0.7
+
+2009-11-08 R-forge revision 23
+
+	* R/phase1.3, R/phase3.r: Created subroutine to calculate
+	derivative matrix
+	* R/effects.r: corrected possible bug in creation of effects data
+	frame for multigroup projects.
+	* R/effects.r: corrected bug in creation of effects data
+	frame for changing covariates.
+        * R/siena07.r: added effect numbers to the Estimation screen and
+	rationalised the display routines.
+        * R/sienaTest.r: altered function interface so can call the
+	scoreTest function from outside siena07 context. Corrected a
+	missing change of sign for onesided test values.
+	* R/sienaPrint.r: print methods now return their argument
+	invisibly
+	* src/siena07.cpp: altered flag for return of simulated dependent
+	variables.
+
+2009-11-08 R-forge revision 22
+
+	* R/siena01.r new option to edit effects split by dependent
+	variable. Only partially functioning...
+
+2009-11-08 R-forge revision 21
+
+	* src/model/variables/BehaviorVariable.cpp,
+	src/model/variables/BehaviorVariable.h: Uninitialised data in scores
+	causing NaN's in derivative.
+
+2009-11-05 R-forge revision 20
+
+	* man/siena07.Rd: added detail to return value description
+	* src/siena07.cpp: added functionalilty for user-specified
+	interactions
+
+2009-11-04 R-forge revision 19
+
+	* R/phase1.r, R/phase2.r, R/phase3.r, R/simstatsc.r; corrected
+	finDiff.method flag
+
+2009-10-31 R-forge revision 18
+
+	* src/model/tables/NetWorkCache.cpp, etc: New files added
+
+2009-10-31 R-forge revision 17 many minor bug-fix changes also
+
+	* DESCRIPTION, man/RSiena.RD: version Number 1.0.6
+	* NAMESPACE, DESCRIPTION, R/sienaPrint.r : xtable method
+	* R/phase1.r, R/phase2.r, R/phase3.r: stopped using ... in call to
+	FRAN, which restored speed gain of multiple processors.
+	* data/allEffects.R, data/alleffects.csv, R/effects.r: new R effects
+	system
+	* tests: directory added
+	* R/sienaDataCreate.r, R/effects.r, R/printDataReport.r,
+	R/simstatsc.r, R/sienaDataCreateFromSession.r, R/print01Report.r,
+	R/printInitialDescription: bipartite nets
+	* src/data, src/model, src/network, src/utils, src/siena07.cpp:
+	new C++ effects system
+	* src/model/statisticCalculator.cpp: structural zeros code
+	corrected
+	* src/model/EpochSimulation.cpp: revert to proper random number
+	generator unless parallel running.
+
+2009-10-31 R-forge revision 16 added eol-style properties to text files

@@ -10,9 +10,9 @@
  *****************************************************************************/
 
 #include "XWXClosureEffect.h"
-#include "data/Network.h"
+#include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
-#include "data/IncidentTieIterator.h"
+#include "network/IncidentTieIterator.h"
 #include "data/DyadicCovariateValueIterator.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -43,30 +43,26 @@ XWXClosureEffect::~XWXClosureEffect()
 
 
 /**
- * Initializes this effect for the use with the given epoch simulation.
- */
-void XWXClosureEffect::initialize(EpochSimulation * pSimulation)
-{
-	DyadicCovariateDependentNetworkEffect::initialize(pSimulation);
-
-	delete[] this->ltwoPathSums;
-	delete[] this->linStarSums;
-	this->ltwoPathSums = new double[this->pVariable()->n()];
-	this->linStarSums = new double[this->pVariable()->n()];
-}
-
-
-/**
- * Initializes this effect for calculating the corresponding statistics.
+ * Initializes this effect.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables
  * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
  */
 void XWXClosureEffect::initialize(const Data * pData,
 	State * pState,
-	int period)
+	int period,
+	Cache * pCache)
 {
-	DyadicCovariateDependentNetworkEffect::initialize(pData, pState, period);
+	DyadicCovariateDependentNetworkEffect::initialize(pData,
+		pState,
+		period,
+		pCache);
+
+	delete[] this->ltwoPathSums;
+	delete[] this->linStarSums;
+	this->ltwoPathSums = new double[this->pNetwork()->n()];
+	this->linStarSums = new double[this->pNetwork()->n()];
 }
 
 
@@ -75,14 +71,11 @@ void XWXClosureEffect::initialize(const Data * pData,
  * contributions for a specific ego. This method must be invoked before
  * calling NetworkEffect::calculateTieFlipContribution(...).
  */
-void XWXClosureEffect::preprocessEgo()
+void XWXClosureEffect::preprocessEgo(int ego)
 {
-	this->calculateTwoPathSums(this->pVariable()->ego(),
-		this->pVariable()->pNetwork(),
-		this->ltwoPathSums);
-	this->calculateInStarSums(this->pVariable()->ego(),
-		this->pVariable()->pNetwork(),
-		this->linStarSums);
+	DyadicCovariateDependentNetworkEffect::preprocessEgo(ego);
+	this->calculateTwoPathSums(ego, this->pNetwork(), this->ltwoPathSums);
+	this->calculateInStarSums(ego, this->pNetwork(), this->linStarSums);
 }
 
 
@@ -91,7 +84,7 @@ void XWXClosureEffect::preprocessEgo()
  * sum_h x_{ih} w_{hj}.
  */
 void XWXClosureEffect::calculateTwoPathSums(int i,
-	Network * pNetwork,
+	const Network * pNetwork,
 	double * sums) const
 {
 	int n = pNetwork->n();
@@ -131,7 +124,7 @@ void XWXClosureEffect::calculateTwoPathSums(int i,
  * sum_h x_{ih} w_{jh}.
  */
 void XWXClosureEffect::calculateInStarSums(int i,
-	Network * pNetwork,
+	const Network * pNetwork,
 	double * sums) const
 {
 	int n = pNetwork->n();
@@ -169,26 +162,19 @@ void XWXClosureEffect::calculateInStarSums(int i,
 /**
  * Calculates the contribution of a tie flip to the given actor.
  */
-double XWXClosureEffect::calculateTieFlipContribution(int alter) const
+double XWXClosureEffect::calculateContribution(int alter) const
 {
-	double change = this->ltwoPathSums[alter] + this->linStarSums[alter];
-
-	if (this->pVariable()->outTieExists(alter))
-	{
-		change = -change;
-	}
-
-	return change;
+	return this->ltwoPathSums[alter] + this->linStarSums[alter];
 }
 
 
 /**
  * Detailed comment in the base class.
  */
-double XWXClosureEffect::statistic(Network * pNetwork,
-	Network * pSummationTieNetwork) const
+double XWXClosureEffect::statistic(const Network * pSummationTieNetwork) const
 {
 	double statistic = 0;
+	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
 	double * sums = new double[n];
 

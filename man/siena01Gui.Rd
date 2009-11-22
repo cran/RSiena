@@ -5,7 +5,11 @@
 Gui to allow entry of the data for a siena model fit.
 }
 \usage{
-siena01Gui()
+siena01Gui(getDocumentation=FALSE)
+}
+\arguments{
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
 }
 \details{
 

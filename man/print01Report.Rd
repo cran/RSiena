@@ -7,7 +7,8 @@ Function to produce the Siena01 report from R objects}
 Prints a report of a Siena data object and its default effects.
 }
 \usage{
-print01Report(data, myeff, modelname = "Siena", session = NULL)
+print01Report(data, myeff, modelname = "Siena", session = NULL,
+getDocumentation=FALSE)
 }
 \arguments{
   \item{data}{a Siena data object
@@ -22,6 +23,8 @@ print01Report(data, myeff, modelname = "Siena", session = NULL)
   Used to pass in a Siena01Gui() style session object so that data file names
   can be printed.
 }
+  \item{getDocumentation}{Flag to allow documentation of internal
+  functions, not for use by users.}
 }
 \details{
   First deletes any file of the name "modelname.out", then prints a new one.
@@ -36,7 +39,7 @@ print01Report(data, myeff, modelname = "Siena", session = NULL)
 }
 
 \examples{
-mymodel <- model.create(findiff=TRUE, fn=simstats0c)
+mymodel <- sienaModelCreate(findiff=TRUE, fn=simstats0c)
 mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)

@@ -26,18 +26,19 @@ public:
 	WWXClosureEffect(const EffectInfo * pEffectInfo);
 	virtual ~WWXClosureEffect();
 
-	virtual void initialize(EpochSimulation * pSimulation);
-	virtual void initialize(const Data * pData, State * pState, int period);
+	virtual void initialize(const Data * pData,
+		State * pState,
+		int period,
+		Cache * pCache);
 
-	virtual void preprocessEgo();
-	virtual double calculateTieFlipContribution(int alter) const;
+	virtual void preprocessEgo(int ego);
+	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(Network * pNetwork,
-		Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork) const;
 
 private:
-	void calculateSums(int i, Network * pNetwork, double * sums) const;
+	void calculateSums(int i, const Network * pNetwork, double * sums) const;
 
 	// For a fixed i, this variable stores the value of sum_h w_{ih} w_{hj} for
 	// each j.

@@ -35,16 +35,15 @@ ChangingCovariateMainBehaviorEffect::ChangingCovariateMainBehaviorEffect(
 double ChangingCovariateMainBehaviorEffect::calculateChangeContribution(int
 	actor, int difference) const
 {
-
 	// The formula for the effect:
 	// s_i(x) = v_i *  c_i
 	// We need to calculate the change delta in s_i(x), if we changed
 	// v_i to v_i + d (d being the given amount of change in v_i).
 	// This is d * c_i.
 
-	return difference * this->pCovariate()->value(actor,
-		this->pVariable()->period());
+	return difference * this->pCovariate()->value(actor, this->period());
 }
+
 
 /**
  * Returns the statistic corresponding to this effect as part of
@@ -53,14 +52,15 @@ double ChangingCovariateMainBehaviorEffect::calculateChangeContribution(int
 double ChangingCovariateMainBehaviorEffect::evaluationStatistic(double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
 	const ChangingCovariate * pCovariate = this->pCovariate();
+
 	for (int i = 0; i < n; i++)
 	{
-		statistic += currentValues[i] * pCovariate->value(i,
-			this->pVariable()->changingCovariatePeriod());
+		statistic += currentValues[i] * pCovariate->value(i, this->period());
 	}
+
 	return statistic;
 }
 
@@ -74,7 +74,7 @@ double ChangingCovariateMainBehaviorEffect::endowmentStatistic(const int * diffe
 	double * currentValues) const
 {
 	double statistic = 0;
-	int n = this->pVariable()->n();
+	int n = this->n();
 
 	const ChangingCovariate * pCovariate = this->pCovariate();
 
@@ -82,8 +82,8 @@ double ChangingCovariateMainBehaviorEffect::endowmentStatistic(const int * diffe
 	{
 		if (difference[i] > 0)
 		{
-			statistic += currentValues[i] * pCovariate->value(i,
-				this->pVariable()->changingCovariatePeriod());
+			statistic +=
+				currentValues[i] * pCovariate->value(i, this->period());
 		}
 	}
 

@@ -1,33 +1,55 @@
+# * SIENA: Simulation Investigation for Empirical Network Analysis
+# *
+# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# *
+# * File: printDatareport.r
+# *
+# * Description: This module contains the function to produce the data
+# * report from siena07
+# *
+# *****************************************************************************/
+##@DataReport siena07 Print report
 DataReport <- function(z, x, f)
 {
     ##f could be a group, but has attributes like a group even if not!
     oneMode <- attr(f, "types") == "oneMode"
+    bipartite <- attr(f, "types") == "bipartite"
     behavior <- attr(f, "types") == "behavior"
     nOneMode <- sum(oneMode)
     nBehavior <- sum(behavior)
+    nBipartites <- sum(bipartite)
     oneModeNames <- attr(f, "netnames")[oneMode]
     behaviorNames <- attr(f, "netnames")[behavior]
+    bipartiteNames <- attr(f, "netnames")[bipartite]
     symmetric <- attr(f, "symmetric")[oneMode]
     nDepVars <- nOneMode + nBehavior
     observations <- attr(f, "observations") ##note this is total number of
     ##  periods to process
     exogenous <- attr(f, 'compositionChange')
     exoOptions <- attr(f, 'exoptions')
-    for (i in 1:nOneMode)
+    if (nOneMode > 0)
     {
-        if (nOneMode > 1)
+        for (i in 1:nOneMode)
         {
-            Report(sprintf("Network %d %s\n", i, oneModeNames[i]), outf)
+            if (nOneMode > 1)
+            {
+                Report(sprintf("Network %d %s\n", i, oneModeNames[i]), outf)
+            }
+            if (symmetric[i])
+                ModelTypeStrings <- c("Forcing model")
+            else
+                ModelTypeStrings <- c("Standard actor-oriented model")
+            Report(sprintf("Model Type %d: %s\n",
+                           x$ModelType, ModelTypeStrings[x$ModelType]), outf)
         }
-        if (symmetric[i])
-            ModelTypeStrings <- c("Forcing model")
-        else
-            ModelTypeStrings <- c("Standard actor-oriented model")
-        Report(sprintf("Model Type %d: %s\n",
-                       x$ModelType, ModelTypeStrings[x$ModelType]), outf)
+    }
+    if (x$cconditional  != z$cconditional)
+    {
+    Report("\nNB. Request for conditional estimation has been over-ridden.\n\n",
+               outf)
     }
     Report("Estimation method: ", outf)
-    if (x$cconditional)
+    if (z$cconditional)
     {
         Report("conditional moment estimation\n", outf)
         Report(c('Conditioning variable is the total number of observed',
@@ -128,7 +150,7 @@ DataReport <- function(z, x, f)
            outf)
     Report(sprintf("Number of subphases in Phase 2 is %d.\n\n", x$nsub), outf)
     Report('Initial parameter values are \n', outf)
-    if (x$cconditional)
+    if (z$cconditional)
     {
         if (observations == 1)
         {
