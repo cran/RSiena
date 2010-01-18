@@ -8,12 +8,12 @@
   variables in the input siena object.
 }
 \usage{
-getEffects(x, nintn = 10, getDocumentation=FALSE)
+getEffects(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
 }
 \arguments{
   \item{x}{an object of class `siena' or `sienaGroup'}
-  \item{nintn}{Number of lines for user defined interactions. (maybe
-    superfluous now!)}
+  \item{nintn}{Number of lines for user defined network interactions. }
+  \item{behNintn}{Number of lines for user defined behavior interactions. }
   \item{getDocumentation}{Flag to allow documentation of internal
   functions, not for use by users.}
 }

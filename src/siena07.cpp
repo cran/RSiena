@@ -1829,37 +1829,27 @@ one of values, one of missing values (boolean) */
 
 			const char * effectName =
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, effectCol), i));
-			int parm1 = INTEGER(VECTOR_ELT(EFFECTS, parmCol))[i];
-			double parm = parm1;
-			const char * interaction1 =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int1Col), i));
-			const char * interaction2 =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int2Col), i));
-            double initialValue = REAL(VECTOR_ELT(EFFECTS, initValCol))[i];
+			double initialValue = REAL(VECTOR_ELT(EFFECTS, initValCol))[i];
 			const char * effectType =
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
-			const char * rateType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, rateTypeCol), i));
-			const char * netType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
 			EffectInfo * pEffect1 = (EffectInfo *) R_ExternalPtrAddr(
  				VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr1Col), i));
  			EffectInfo * pEffect2 = (EffectInfo *) R_ExternalPtrAddr(
  				VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr2Col), i));
- 			EffectInfo * pEffect3 = (EffectInfo *) R_ExternalPtrAddr(
- 				VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i));
+			EffectInfo * pEffect3 = 0;
+			if (!isNull(VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i)))
+			{
+				 pEffect3 = (EffectInfo *) R_ExternalPtrAddr(
+					VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i));
+			}
 
-// 			pEffectInfo = pModel->addInteractionEffect(networkName,
-// 				effectName,
-// 				effectType,
-// 				initialValue,
-// 				parm,
-// 				interaction1,
-// 				interaction2,
-// 				rateType,
-// 				pEffect1,
-// 				pEffect2,
-// 				pEffect3);
+ 			pEffectInfo = pModel->addInteractionEffect(networkName,
+ 				effectName,
+ 				effectType,
+ 				initialValue,
+ 				pEffect1,
+ 				pEffect2,
+ 				pEffect3);
 
 		SET_VECTOR_ELT(effectPtrs, i,
 			R_MakeExternalPtr((void *) pEffectInfo,
@@ -1914,8 +1904,6 @@ one of values, one of missing values (boolean) */
 		/* loop over the different dependent variables */
 		for (int i = 0; i < length(EFFECTSLIST); i++)
         {
-			//Rprintf("%d %d %d\n",i, length(EFFECTSLIST),
-			//	length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i) , 0)));
 			if (length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)) > 0)
 			{
 				const char * networkName =
@@ -1934,7 +1922,9 @@ one of values, one of missing values (boolean) */
 			}
 			else
 			{
-				SET_VECTOR_ELT(pointers, i, NULL);
+				SET_VECTOR_ELT(pointers, i,
+					R_MakeExternalPtr((void *) 0,
+						R_NilValue, R_NilValue));
 			}
 		}
         /* ans will be the return value */
@@ -2288,7 +2278,6 @@ one of values, one of missing values (boolean) */
 						}
 						else
 						{
-							//	Rprintf("here\n");
 							score = 0;
 						}
 					}

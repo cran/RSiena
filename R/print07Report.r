@@ -44,9 +44,9 @@ PrintReport <- function(z, x)
                    }
                    Report(format(round(z$rate[1], digits = 4), width = 9), outf)
                    Report(format(round(z$rate[1], digits = 4), width = 9), bof)
-                   Report(c('  (', format(round(sqrt(z$vrate[1]), digits = 4),
+                   Report(c('  (', format(round(z$vrate[1], digits = 4),
                                         width = 9), ')\n'), sep = '', outf)
-                   Report(c('  (', format(round(sqrt(z$vrate[1]), digits = 4),
+                   Report(c('  (', format(round(z$vrate[1], digits = 4),
                                         width = 9), ')\n'), sep = '', bof)
                }
                else ## observations > 2
@@ -58,14 +58,14 @@ PrintReport <- function(z, x)
                        tmp <- paste(' 0.', nnstr, ' Rate parameter period ',
                                     1:nn, '              ',
                                     format(round(z$rate,4),width=9),
-                                    '  (',format(round(sqrt(z$vrate),4),width=9),
+                                    '  (',format(round(z$vrate,4),width=9),
                                     ')\n', sep = '')
                    }                   else{
                        tmp <- paste(' 0.', nnstr,
                                     'Rate parameter cond. variable period ',
                                     1:nn, '              ',
                                     format(round(z$rate,4),width=9),
-                                    '  (',format(round(sqrt(z$vrate),4),width=9),
+                                    '  (',format(round(z$vrate,4),width=9),
                                     ')\n',   sep='')
                    }
                    Report(tmp, outf, sep='')
@@ -92,7 +92,8 @@ PrintReport <- function(z, x)
                            '       ---')
            if (nBehavs > 0)
            {
-               behEffects <- z$effects[z$effects$netType == 'behavior',]
+               behEffects <-
+                   z$requestedEffects[z$requestedEffects$netType == 'behavior',]
                behNames <- unique(behEffects$name)
                if (nBehavs > 1)
                {
@@ -101,18 +102,21 @@ PrintReport <- function(z, x)
                                                                     behNames)],
                                                   '> ', behEffects$effectName,
                                                   sep='')
-                   z$effects$effectName[z$effects$netType=='behavior'] <-
+                   z$requestedEffects$effectName[z$requestedEffects$netType=='behavior'] <-
                        behEffects$effectName
                }
            }
-           typesp <- ifelse (z$effects$type== "endow", ": ", ":  ")
-           tmp <- paste(sprintf("%2d", 1:length(z$effects$effectName)),
-                        '. ',format(paste(z$effects$type,
-                        typesp, z$effects$effectName, sep = ''), width=50),
-                         theta, ses, '\n', sep='', collapse = '')
+           typesp <- ifelse (z$requestedEffects$type== "endow", ": ", ":  ")
+           tmp <- paste(sprintf("%2d", 1:length(z$requestedEffects$effectName)),
+                        '. ', format(paste(z$requestedEffects$type,
+                                           typesp,
+                                           z$requestedEffects$effectName,
+                                           sep = ''),
+                                     width=50),
+                        theta, ses, '\n', sep='', collapse = '')
            if (nBehavs > 0 && nOneModes > 0)
            {
-               nOneModeEff <- nrow(z$effects) - nrow(behEffects)
+               nOneModeEff <- nrow(z$requestedEffects) - nrow(behEffects)
                tmpstr <- paste(nOneModeEff + 1, '. ', sep='')
                tmpsub <- regexpr(tmpstr, tmp, fixed=TRUE)
                tmp1 <- substring(tmp, 1, tmpsub - 2)

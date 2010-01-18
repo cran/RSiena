@@ -52,129 +52,151 @@ double BetweennessEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double BetweennessEffect::statistic(const Network * pSummationTieNetwork) const
+double BetweennessEffect::tieStatistic(int alter)
 {
 	int statistic = 0;
 	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());
 	const Network * pEndMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period() + 1);
 
+	// Calculate the number of non-transitive two-paths through
+	// the ego i terminating at the alter j.
+
+	int i = this->ego();
+	int j = alter;
+
+	// For the start, assume that each in-neighbor of i gives one such
+	// a two-path.
+
+	statistic += pNetwork->inDegree(i);
+
+	// The actor j itself doesn't count
+
+	if (this->lmark[j] >= this->lbaseMark)
+	{
+		statistic--;
+	}
+
+	// There are three cases where an actor h shoudln't contribute:
+	// - There is a tie (h,j).
+	// - The tie (h,j) is missing at the start of the period.
+	// - The tie (h,j) is missing at the end of the period.
+	// We should decrement the statistic for each of these actors h,
+	// but we shouldn't do that more than once per actor, so we use
+	// another mark.
+
+	this->lcurrentMark++;
+
+	// Ties (h,j)
+
+	for (IncidentTieIterator iterH = pNetwork->inTies(j);
+		iterH.valid();
+		iterH.next())
+	{
+		int h = iterH.actor();
+
+		if (this->lmark[h] >= this->lbaseMark &&
+			this->lmark[h] < this->lcurrentMark)
+		{
+			statistic--;
+			this->lmark[h] = this->lcurrentMark;
+		}
+	}
+
+	// Missing ties (h,j) at the start of the period
+
+	for (IncidentTieIterator iterH = pStartMissingNetwork->inTies(j);
+		iterH.valid();
+		iterH.next())
+	{
+		int h = iterH.actor();
+
+		if (this->lmark[h] >= this->lbaseMark &&
+			this->lmark[h] < this->lcurrentMark)
+		{
+			statistic--;
+			this->lmark[h] = this->lcurrentMark;
+		}
+	}
+
+	// Missing ties (h,j) at the end of the period
+
+	for (IncidentTieIterator iterH = pEndMissingNetwork->inTies(j);
+		iterH.valid();
+		iterH.next())
+	{
+		int h = iterH.actor();
+
+		if (this->lmark[h] >= this->lbaseMark &&
+			this->lmark[h] < this->lcurrentMark)
+		{
+			statistic--;
+			this->lmark[h] = this->lcurrentMark;
+		}
+	}
+
+	return statistic;
+}
+
+
+/**
+ * This method is called at the start of the calculation of the statistic.
+ */
+void BetweennessEffect::initializeStatisticCalculation()
+{
+	int n = this->pNetwork()->n();
+
 	// A helper array of marks
 
-	int * mark = new int[n];
-	int currentMark = 0;
+	this->lmark = new int[n];
+	this->lcurrentMark = 0;
 
 	for (int i = 0; i < n; i++)
 	{
-		mark[i] = 0;
+		this->lmark[i] = 0;
 	}
+}
 
-	// Count the number of non-transitive two-paths via each actor i in turn
 
-	for (int i = 0; i < n; i++)
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void BetweennessEffect::cleanupStatisticCalculation()
+{
+	delete[] this->lmark;
+}
+
+
+/**
+ * This method is called right before summing up the contributions of the
+ * outgoing ties of the given ego in the calculation of the statistic.
+ */
+void BetweennessEffect::onNextEgo(int ego)
+{
+	const Network * pNetwork = this->pNetwork();
+
+	// Mark the in-neighbors of the ego i by ensuring the following assertion:
+	// mark[h] >= currentMark <==> the tie (h,i) exists
+
+	this->lcurrentMark++;
+
+	for (IncidentTieIterator iter = pNetwork->inTies(ego);
+		iter.valid();
+		iter.next())
 	{
-		// Mark the in-neighbors of i by ensuring the following assertion:
-		// mark[h] >= currentMark <==> the tie (h,i) exists
-
-		currentMark++;
-
-		for (IncidentTieIterator iter = pNetwork->inTies(i);
-			iter.valid();
-			iter.next())
-		{
-			mark[iter.actor()] = currentMark;
-		}
-
-		// Remember the current mark such that mark[h] >= baseMark if and only
-		// if there's a tie from h to i.
-
-		int baseMark = currentMark;
-
-		// Now go through the ties (i,j) of the summation network and sum up
-		// the numbers of non-transitive two-paths through i terminating at j.
-
-		for (IncidentTieIterator iterJ = pSummationTieNetwork->outTies(i);
-			iterJ.valid();
-			iterJ.next())
-		{
-			int j = iterJ.actor();
-
-			// For the start, assume that each in-neighbor of i gives one such
-			// a two-path.
-
-			statistic += pNetwork->inDegree(i);
-
-			// The actor j itself doesn't count
-
-			if (mark[j] >= baseMark)
-			{
-				statistic--;
-			}
-
-			// There are three cases where an actor h shoudln't contribute:
-			// - There is a tie (h,j).
-			// - The tie (h,j) is missing at the start of the period.
-			// - The tie (h,j) is missing at the end of the period.
-			// We should decrement the statistic for each of these actors h,
-			// but we shouldn't do that more than once per actor, so we use
-			// another mark.
-
-			currentMark++;
-
-			// Ties (h,j)
-
-			for (IncidentTieIterator iterH = pNetwork->inTies(j);
-				iterH.valid();
-				iterH.next())
-			{
-				int h = iterH.actor();
-
-				if (mark[h] >= baseMark && mark[h] < currentMark)
-				{
-					statistic--;
-					mark[h] = currentMark;
-				}
-			}
-
-			// Missing ties (h,j) at the start of the period
-
-			for (IncidentTieIterator iterH = pStartMissingNetwork->inTies(j);
-				iterH.valid();
-				iterH.next())
-			{
-				int h = iterH.actor();
-
-				if (mark[h] >= baseMark && mark[h] < currentMark)
-				{
-					statistic--;
-					mark[h] = currentMark;
-				}
-			}
-
-			// Missing ties (h,j) at the end of the period
-
-			for (IncidentTieIterator iterH = pEndMissingNetwork->inTies(j);
-				iterH.valid();
-				iterH.next())
-			{
-				int h = iterH.actor();
-
-				if (mark[h] >= baseMark && mark[h] < currentMark)
-				{
-					statistic--;
-					mark[h] = currentMark;
-				}
-			}
-		}
+		this->lmark[iter.actor()] = this->lcurrentMark;
 	}
 
-	delete[] mark;
-	return statistic;
+	// Remember the current mark such that mark[h] >= baseMark if and only
+	// if there's a tie from h to i.
+
+	this->lbaseMark = this->lcurrentMark;
 }
 
 }

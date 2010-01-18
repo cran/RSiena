@@ -122,6 +122,15 @@ int BehaviorVariable::value(int actor) const
 
 
 /**
+ * Stores the current value on this behavior for the given actor.
+ */
+void BehaviorVariable::value(int actor, int newValue)
+{
+	this->lvalues[actor] = newValue;
+}
+
+
+/**
  * Returns the current value on this behavior for the given actor, which is
  * centered around the overall mean of the observed values.
  */

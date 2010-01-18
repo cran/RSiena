@@ -41,23 +41,13 @@ double TransitiveMediatedTripletsEffect::calculateContribution(
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double TransitiveMediatedTripletsEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double TransitiveMediatedTripletsEffect::tieStatistic(int alter)
 {
-	OneModeNetwork * pOneModeNetwork = (OneModeNetwork *) this->pNetwork();
-	int statistic = 0;
-
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
-	{
-		statistic +=
-			pOneModeNetwork->outTwoStarCount(iter.ego(), iter.alter());
-	}
-
-	return statistic;
+	return this->pOutStarTable()->get(alter);
 }
 
 }

@@ -210,7 +210,7 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
                 mydf[1, 'text'] <- 'Rate parameter of conditioning variable'
             }
             mydf[1, 'value'] <- x$rate[1]
-            mydf[1, 'se'] <- sqrt(x$vrate[1])
+            mydf[1, 'se'] <- x$vrate[1]
         }
         else ## observations > 2
         {
@@ -303,13 +303,35 @@ xtable.sienaFit <- function(x, caption = NULL, label = NULL, align = NULL,
     tmp <- sienaFitThetaTable(x)
     mydf <- tmp$mydf
     addtorow <- tmp$addtorow
+    ## find out whether the type is html or latex
+    dots <- substitute(list(...))[-1] ##first entry is the word 'list'
+    if (!is.null(dots[["type"]]))
+    {
+        type <- dots[["type"]]
+    }
+    else
+    {
+        type <- "latex"
+    }
     if (!is.null(addtorow$command))
     {
+        if (type =="latex")
+        {
         use <- addtorow$command != 'Network Dynamics'
         addtorow$command <- paste('\\multicolumn{4}{l}{', addtorow$command,
                                   '} \\\\ \n')
         use[1] <- FALSE
         addtorow$command[use] <- paste('\\\\ ', addtorow$command[use])
+    }
+        else ##html
+        {
+           # use <- addtorow$command != 'Network Dynamics'
+            addtorow$command <- paste("<TR> <TD colspan=9 align=left>",
+                                      addtorow$command,
+                                      "</TD> </TR> <TR> </TR> \n")
+          #  use[1] <- FALSE
+          #  addtorow$command[use] <- paste('\\\\ ', addtorow$command[use])
+        }
     }
     else
     {
@@ -320,7 +342,7 @@ xtable.sienaFit <- function(x, caption = NULL, label = NULL, align = NULL,
     mydf[mydf[,'row'] >= 1, 'row'] <- paste(format(mydf[mydf$row >= 1,
              'row']), '.', sep='')
     tmp <- list(xtable(mydf, caption=caption, label=label, align=align,
-                       digits=digits, display=display), addtorow=addtorow,
+                       digits=digits, display=display), add.to.row=addtorow,
                 include.colnames=FALSE, include.rownames=FALSE, ...)
     class(tmp) <- c("xtable.sienaFit", "xtable")
     tmp
@@ -328,9 +350,10 @@ xtable.sienaFit <- function(x, caption = NULL, label = NULL, align = NULL,
 ##@print.xtable.sienaFit Methods
 print.xtable.sienaFit <- function(x, ...)
 {
-    addtorow <- x[["addtorow"]]
+    addtorow <- x[["add.to.row"]]
     if (!is.null(addtorow))
     {
+        x$add.to.row$pos <- lapply(x$add.to.row$pos, function(x)x-2)
         do.call("print", x)
     }
     else

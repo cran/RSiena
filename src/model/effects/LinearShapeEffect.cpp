@@ -31,26 +31,18 @@ LinearShapeEffect::LinearShapeEffect(const EffectInfo * pEffectInfo) :
  * the given actor would change his behavior by the given amount.
  */
 double LinearShapeEffect::calculateChangeContribution(int actor,
-	int difference) const
+	int difference)
 {
 	return difference;
 }
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given behavior variable.
+ * Returns the statistic corresponding to the given ego with respect to the
+ * given values of the behavior variable.
  */
-double LinearShapeEffect::evaluationStatistic(double * currentValues) const
+double LinearShapeEffect::egoStatistic(int ego, double * currentValues)
 {
-	double statistic = 0;
-	int n = this->n();
-
-	for (int i = 0; i < n; i++)
-	{
-		statistic += currentValues[i];
-	}
-
-	return statistic;
+	return currentValues[ego];
 }
 
 
@@ -60,7 +52,7 @@ double LinearShapeEffect::evaluationStatistic(double * currentValues) const
  * behavior variable and the current values.
  */
 double LinearShapeEffect::endowmentStatistic(const int * difference,
-	double * currentValues) const
+	double * currentValues)
 {
 	double statistic = 0;
 

@@ -57,26 +57,13 @@ double OutdegreeActivitySqrtEffect::calculateContribution(int alter)
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double OutdegreeActivitySqrtEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double OutdegreeActivitySqrtEffect::tieStatistic(int alter)
 {
-	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-
-	// Iterate over senders and sum up the square roots of their
-	// outdegrees multiplied by the number of outgoing ties in the summation
-	// network.
-
-	for (int i = 0; i < pNetwork->n(); i++)
-	{
-		statistic +=
-			this->lsqrtTable->sqrt(pNetwork->outDegree(i)) *
-				pSummationTieNetwork->outDegree(i);
-	}
-
-	return statistic;
+	return this->lsqrtTable->sqrt(this->pNetwork()->outDegree(this->ego()));
 }
 
 }

@@ -15,346 +15,53 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
-> library(RSienaTest)
+> library(RSiena)
 Loading required package: xtable
-> print(packageDescription("RSienaTest",fields="Repository/R-Forge/Revision"))
+> print(packageDescription("RSiena",fields="Repository/R-Forge/Revision"))
 [1] NA
 > 
 > ##test3
-> mynet1 <- sienaNet(array(c(tmp3, tmp4),dim=c(32, 32, 2)))
+> mynet1 <- sienaNet(array(c(tmp3,tmp4),dim=c(32,32,2)))
 > mydata <- sienaDataCreate(mynet1)
 > myeff<- getEffects(mydata)
 > mymodel<- model.create(findiff=TRUE, fn = simstats0c, projname='test3',
 +                        cond=FALSE, nsub=2, n3=100)
 > print('test3')
 [1] "test3"
-> system.time(ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, verbose=TRUE))#,dll='../siena/src/RSiena.dll')
+> ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, silent=TRUE)#,dll='../siena/src/RSiena.dll')
+> ans
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.    51.0000   2.   129.0000   3.    58.0000
-
-Start phase 0 
-theta:  4.81 -0.56  0.00 
-Current parameter values:
- 4.8094118 -0.5603907  0.0000000
-
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 1%
-Phase 1 Iteration 3 Progress: 1%
-Phase 1 Iteration 4 Progress: 2%
-Phase 1 Iteration 5 Progress: 2%
-Phase 1 Iteration 6 Progress: 3%
-Phase 1 Iteration 7 Progress: 3%
-Phase 1 Iteration 8 Progress: 3%
-Phase 1 Iteration 9 Progress: 4%
-Phase 1 Iteration 10 Progress: 4%
-Phase 1 Iteration 11 Progress: 5%
-Phase 1 Iteration 12 Progress: 5%
-Phase 1 Iteration 13 Progress: 5%
-Phase 1 Iteration 14 Progress: 6%
-Phase 1 Iteration 15 Progress: 6%
-Phase 1 Iteration 16 Progress: 7%
-Time per iteration in phase 1  = 0.0200 
-Average deviations NR generated statistics and targets
-after phase 1:
-      32.437500
-       8.687500
-     -25.875000
-
-Diagonal values of derivative matrix :
- 18.1935  90.6250  31.2500
-dfra :
-18.193493  4.375000  1.875000
- 4.938234 90.625000 34.375000
--3.638699 50.000000 31.250000
-
-inverse of dfra :
- 0.0553503550 -0.0021363295 -0.0009710589
--0.0138912725  0.0286063298 -0.0306334864
- 0.0286709404 -0.0460188784  0.0809005098
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.    -1.801994
-2.    -0.590561
-3.     1.563076 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  16  iterations.
-theta:  4.629 -0.619  0.156 
-Current parameter values:
- 4.6292124 -0.6194468  0.1563076
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 7%
-Phase 2 Subphase 1 Iteration 2 Progress: 7%
-theta  4.244 -0.648  0.310 
-ac 1.46 1.30 1.00 
-Phase 2 Subphase 1 Iteration 3 Progress: 7%
-Phase 2 Subphase 1 Iteration 4 Progress: 7%
-theta  3.772 -0.694  0.540 
-ac 1.459 1.480 0.836 
-Phase 2 Subphase 1 Iteration 5 Progress: 7%
-Phase 2 Subphase 1 Iteration 6 Progress: 7%
-theta  3.42 -0.76  0.72 
-ac 1.25 1.94 0.65 
-Phase 2 Subphase 1 Iteration 7 Progress: 7%
-Phase 2 Subphase 1 Iteration 8 Progress: 8%
-theta  3.244 -0.783  0.912 
-ac 0.799 0.794 0.653 
-Phase 2 Subphase 1 Iteration 9 Progress: 8%
-Phase 2 Subphase 1 Iteration 10 Progress: 8%
-theta  2.969 -0.838  1.040 
-ac 0.792 0.780 0.653 
-Warning: an autocorrelation is positive at the end of this subphase.
-Autocorrelations:
-0.1206780
-0.1117977
-0.1982289
-
-Time per iteration in phase 2.1 = 0.004089
-theta  3.10 -1.09  1.67 
-ac 0.121 0.112 0.198 
-Phase 2.1 ended after 225 iterations.
-Warning. Autocorrelation criterion not satisfied.
-theta:  3.10 -1.09  1.67 
-Current parameter values:
- 3.102896 -1.092006  1.668237
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 30%
-Phase 2 Subphase 2 Iteration 2 Progress: 31%
-Phase 2 Subphase 2 Iteration 3 Progress: 31%
-Phase 2 Subphase 2 Iteration 4 Progress: 31%
-Phase 2 Subphase 2 Iteration 5 Progress: 31%
-Phase 2 Subphase 2 Iteration 6 Progress: 31%
-Phase 2 Subphase 2 Iteration 7 Progress: 31%
-Phase 2 Subphase 2 Iteration 8 Progress: 31%
-Phase 2 Subphase 2 Iteration 9 Progress: 31%
-Phase 2 Subphase 2 Iteration 10 Progress: 31%
-Time per iteration in phase 2.2 = 0.004030
-theta  3.03 -1.13  1.79 
-ac  0.0471 -0.0488  0.0117 
-Phase 2.2 ended after 263 iterations.
-theta:  3.03 -1.13  1.79 
-Current parameter values:
- 3.026403 -1.134321  1.792116
-
-Start phase 3 
-Simulated values, phase 3.
-Time per iteration in phase 3   =  0.0152 
-dfrac :
-12.246820 11.600000  5.800000
- 3.555528 44.000000 10.800000
- 2.287182 16.200000 23.800000
-
-inverse of dfra :
- 0.089575512 -0.018702986 -0.013342257
--0.006153542  0.028570901 -0.011465344
--0.004419669 -0.017650062  0.051103141
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.     0.054275    3.080679
-   2.    -0.027190   -1.161511
-   3.     0.022535    1.814651 
-
-unconditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.  -0.4800   6.1521  -0.0780
-  2.   0.7600   7.0526   0.1078
-  3.  -0.2200   5.6131  -0.0392
+                                      Estimate   Standard   t statistic 
+                                                   Error                
+  1. rate basic rate parameter mynet1  3.0264  ( 0.5202   ) -0.0780     
+  2. eval outdegree (density)         -1.1343  ( 0.1653   )  0.1078     
+  3. eval reciprocity                  1.7921  ( 0.2370   ) -0.0392     
 
 Total of 604 iteration steps.
 
-@3
-Estimates and standard errors
-                             
- 1. rate:  basic rate parameter mynet1                   3.0264  (   0.5202)
- 2. eval:  outdegree (density)                          -1.1343  (   0.1653)
- 3. eval:  reciprocity                                   1.7921  (   0.2370)
-
-Derivative matrix of expected statistics X by parameters:
-
- 12.246820 11.600000  5.800000
- 3.555528 44.000000 10.800000
- 2.287182 16.200000 23.800000
-
-Covariance matrix of X (correlations below the diagonal):
-    37.848     14.469      7.914
-     0.333     49.740     22.735
-     0.229      0.574     31.507
-
-
-   user  system elapsed 
-   3.96    0.02    4.00 
 > ##test4
 > mymodel$projname <- 'test4'
 > mymodel$cconditional <- TRUE
 > mymodel$condvarno<- 1
 > print('test4')
 [1] "test4"
-> system.time(ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, verbose=TRUE))#,dll='../siena/src/RSiena.dll')
+> ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
++               parallelTesting=TRUE, silent=TRUE)
+> ##, verbose=TRUE)#,dll='../siena/src/RSiena.dll')
+> ans
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.   129.0000   2.    58.0000
+                              Estimate   Standard   t statistic 
+                                           Error                
 
-Start phase 0 
-theta: -0.56  0.00 
-Current parameter values:
--0.5603907  0.0000000
-
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 1%
-Phase 1 Iteration 3 Progress: 1%
-Phase 1 Iteration 4 Progress: 1%
-Phase 1 Iteration 5 Progress: 2%
-Phase 1 Iteration 6 Progress: 2%
-Phase 1 Iteration 7 Progress: 3%
-Phase 1 Iteration 8 Progress: 3%
-Phase 1 Iteration 9 Progress: 3%
-Phase 1 Iteration 10 Progress: 4%
-Phase 1 Iteration 11 Progress: 4%
-Phase 1 Iteration 12 Progress: 4%
-Phase 1 Iteration 13 Progress: 5%
-Time per iteration in phase 1  = 0.01167 
-Average deviations NR generated statistics and targets
-after phase 1:
-       2.461538
-     -16.923077
-
-Diagonal values of derivative matrix :
- 47.6923  23.0769
-dfra :
-47.692308 29.230769
- 3.076923 23.076923
-
-inverse of dfra :
- 0.022833724 -0.028922717
--0.003044496  0.047189696
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.    -0.545667
-2.     0.806089 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  13  iterations.
-theta: -0.6150  0.0806 
-Current parameter values:
--0.6149574  0.0806089
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 5%
-Phase 2 Subphase 1 Iteration 2 Progress: 5%
-theta -0.581  0.289 
-ac -2  1 
-Phase 2 Subphase 1 Iteration 3 Progress: 5%
-Phase 2 Subphase 1 Iteration 4 Progress: 5%
-theta -0.665  0.514 
-ac 3.333 0.882 
-Phase 2 Subphase 1 Iteration 5 Progress: 5%
-Phase 2 Subphase 1 Iteration 6 Progress: 6%
-theta -0.732  0.705 
-ac 2.500 0.812 
-Phase 2 Subphase 1 Iteration 7 Progress: 6%
-Phase 2 Subphase 1 Iteration 8 Progress: 6%
-theta -0.732  0.982 
-ac 2.526 0.825 
-Phase 2 Subphase 1 Iteration 9 Progress: 6%
-Phase 2 Subphase 1 Iteration 10 Progress: 6%
-theta -0.732  1.121 
-ac 2.350 0.802 
-Warning: an autocorrelation is positive at the end of this subphase.
-Autocorrelations:
-0.02784048
-0.20161290
-
-Time per iteration in phase 2.1 = 0.003964
-theta -1.11  1.71 
-ac 0.0278 0.2016 
-Phase 2.1 ended after 222 iterations.
-Warning. Autocorrelation criterion not satisfied.
-theta: -1.11  1.71 
-Current parameter values:
--1.108818  1.709165
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 32%
-Phase 2 Subphase 2 Iteration 2 Progress: 32%
-Phase 2 Subphase 2 Iteration 3 Progress: 32%
-Phase 2 Subphase 2 Iteration 4 Progress: 32%
-Phase 2 Subphase 2 Iteration 5 Progress: 33%
-Phase 2 Subphase 2 Iteration 6 Progress: 33%
-Phase 2 Subphase 2 Iteration 7 Progress: 33%
-Phase 2 Subphase 2 Iteration 8 Progress: 33%
-Phase 2 Subphase 2 Iteration 9 Progress: 33%
-Phase 2 Subphase 2 Iteration 10 Progress: 33%
-Time per iteration in phase 2.2 = 0.0040
-theta -1.10  1.70 
-ac -0.072 -0.128 
-Phase 2.2 ended after 55 iterations.
-theta: -1.10  1.70 
-Current parameter values:
--1.095189  1.700653
-
-Start phase 3 
-Simulated values, phase 3.
-Time per iteration in phase 3   =  0.0114 
-dfrac :
-41.0 14.0
-22.2 22.8
-
-inverse of dfra :
- 0.03653846 -0.02243590
--0.03557692  0.06570513
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.    -0.057269   -1.152458
-   2.     0.066288    1.766942 
-
-conditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.   1.4200   6.4089   0.2216
-  2.  -0.2400   5.7228  -0.0419
+Rate parameters: 
+  0       Rate parameter       3.0428  ( 0.5235   )             
+  1. eval outdegree (density) -1.0952  ( 0.1923   )  0.2216     
+  2. eval reciprocity          1.7007  ( 0.3089   ) -0.0419     
 
 Total of 390 iteration steps.
 
-@3
-Estimates and standard errors
-                             
-Rate parameters:
- 0. Rate parameter                            3.0428  (   0.7235)
- 1. eval:  outdegree (density)                          -1.0952  (   0.1923)
- 2. eval:  reciprocity                                   1.7007  (   0.3089)
-
-Derivative matrix of expected statistics X by parameters:
-
- 41.0 14.0
-22.2 22.8
-
-Covariance matrix of X (correlations below the diagonal):
-    41.074     20.950
-     0.571     32.750
-
-
-   user  system elapsed 
-   2.53    0.00    2.55 
 > ##test7
 > mynet1 <- sienaNet(array(c(tmp3,tmp4),dim=c(32,32,2)))
 > mydata <- sienaDataCreate(mynet1)
@@ -363,311 +70,43 @@ Covariance matrix of X (correlations below the diagonal):
 +                        cond=FALSE)
 > print('test7')
 [1] "test7"
-> system.time(ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, verbose=TRUE))#,dll='../siena/src/RSiena.dll')
+> ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
++               parallelTesting=TRUE, silent=TRUE)
+> ##, verbose=TRUE)#,dll='../siena/src/RSiena.dll')
+> ans
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.    51.0000   2.   129.0000   3.    58.0000
-
-Start phase 0 
-theta:  4.81 -0.56  0.00 
-Current parameter values:
- 4.8094118 -0.5603907  0.0000000
-
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 0%
-Phase 1 Iteration 3 Progress: 0%
-Phase 1 Iteration 4 Progress: 1%
-Phase 1 Iteration 5 Progress: 1%
-Phase 1 Iteration 10 Progress: 2%
-Phase 1 Iteration 15 Progress: 2%
-Time per iteration in phase 1  = 0.005333 
-Average deviations NR generated statistics and targets
-after phase 1:
-      32.437500
-       8.687500
-     -25.875000
-
-Diagonal values of derivative matrix :
- 13.8076  64.3695  10.7603
-dfra :
-13.807562 25.392227  8.668270
- 3.619206 64.369544  4.601454
--3.209852 -2.343346 10.760317
-
-inverse of dfra :
- 0.069880120 -0.029161393 -0.043823515
--0.005336113  0.017523947 -0.003195145
- 0.019683480 -0.004882671  0.079165481
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.   -3.1473302
-2.   -0.0618235
-3.    1.4523421 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  16  iterations.
-theta:  4.495 -0.567  0.145 
-Current parameter values:
- 4.4946787 -0.5665730  0.1452342
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 10%
-Phase 2 Subphase 1 Iteration 2 Progress: 10%
-theta  3.988 -0.601  0.591 
-ac 1.75 1.38 1.20 
-Phase 2 Subphase 1 Iteration 3 Progress: 10%
-Phase 2 Subphase 1 Iteration 4 Progress: 10%
-theta  3.466 -0.669  1.186 
-ac 1.79 1.03 1.20 
-Phase 2 Subphase 1 Iteration 5 Progress: 11%
-Phase 2 Subphase 1 Iteration 6 Progress: 11%
-theta  3.278 -0.753  1.112 
-ac 1.431 1.069 0.634 
-Phase 2 Subphase 1 Iteration 7 Progress: 11%
-Phase 2 Subphase 1 Iteration 8 Progress: 11%
-theta  2.988 -0.859  1.186 
-ac 1.18 1.64 0.69 
-Phase 2 Subphase 1 Iteration 9 Progress: 11%
-Phase 2 Subphase 1 Iteration 10 Progress: 11%
-theta  2.90 -0.92  1.19 
-ac 1.182 1.643 0.689 
-Warning: an autocorrelation is positive at the end of this subphase.
-Autocorrelations:
- 0.14682200
- 0.03195180
--0.00410509
-
-Time per iteration in phase 2.1 = 0.004044
-theta  3.12 -1.11  1.73 
-ac  0.14682  0.03195 -0.00411 
-Phase 2.1 ended after 225 iterations.
-Warning. Autocorrelation criterion not satisfied.
-theta:  3.12 -1.11  1.73 
-Current parameter values:
- 3.118108 -1.109539  1.728403
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 44%
-Phase 2 Subphase 2 Iteration 2 Progress: 45%
-Phase 2 Subphase 2 Iteration 3 Progress: 45%
-Phase 2 Subphase 2 Iteration 4 Progress: 45%
-Phase 2 Subphase 2 Iteration 5 Progress: 45%
-Phase 2 Subphase 2 Iteration 6 Progress: 45%
-Phase 2 Subphase 2 Iteration 7 Progress: 45%
-Phase 2 Subphase 2 Iteration 8 Progress: 46%
-Phase 2 Subphase 2 Iteration 9 Progress: 46%
-Phase 2 Subphase 2 Iteration 10 Progress: 46%
-Time per iteration in phase 2.2 = 0.003968
-theta  3.11 -1.13  1.75 
-ac -0.112 -0.219 -0.157 
-Phase 2.2 ended after 63 iterations.
-theta:  3.11 -1.13  1.75 
-Current parameter values:
- 3.112224 -1.128763  1.748732
-
-Start phase 3 
-Simulated values, phase 3.
-Time per iteration in phase 3   =  0.0043 
-dfrac :
-18.4056484  3.7142613 -0.3794248
- 2.1526407 49.1035790 18.8351756
- 0.8324594 30.4016978 22.7488175
-
-inverse of dfra :
- 0.055061810 -0.009712224  0.008959730
--0.003366908  0.042378759 -0.035144194
- 0.002484657 -0.056279901  0.090597437
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.    -0.063242    3.048982
-   2.    -0.023482   -1.152245
-   3.    -0.003230    1.745503 
-
-unconditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.   1.2500   7.4201   0.1685
-  2.   1.3500   6.8584   0.1968
-  3.   0.8400   5.9573   0.1410
+                                      Estimate   Standard   t statistic 
+                                                   Error                
+  1. rate basic rate parameter mynet1  3.1122  ( 0.4077   ) 0.1685      
+  2. eval outdegree (density)         -1.1288  ( 0.2181   ) 0.1968      
+  3. eval reciprocity                  1.7487  ( 0.4069   ) 0.1410      
 
 Total of 404 iteration steps.
 
-@3
-Estimates and standard errors
-                             
- 1. rate:  basic rate parameter mynet1                   3.1122  (   0.4077)
- 2. eval:  outdegree (density)                          -1.1288  (   0.2181)
- 3. eval:  reciprocity                                   1.7487  (   0.4069)
-
-Derivative matrix of expected statistics X by parameters:
-
- 18.4056484  3.7142613 -0.3794248
- 2.1526407 49.1035790 18.8351756
- 0.8324594 30.4016978 22.7488175
-
-Covariance matrix of X (correlations below the diagonal):
-    55.058      7.194      4.475
-     0.141     47.038     26.976
-     0.101      0.660     35.489
-
-
-   user  system elapsed 
-   1.81    0.01    1.83 
 > ##test8
 > mymodel$projname <- 'test8'
 > mymodel$cconditional <- TRUE
-> mymodel$condvarno<- 1
+> mymodel$condvarno <- 1
 > print('test8')
 [1] "test8"
-> system.time(ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, verbose=TRUE))#,dll='../siena/src/RSiena.dll')
+> ans <- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
++               parallelTesting=TRUE, silent=TRUE)
+> ##, verbose=TRUE)#,dll='../siena/src/RSiena.dll')
+> ans
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.   129.0000   2.    58.0000
+                              Estimate   Standard   t statistic 
+                                           Error                
 
-Start phase 0 
-theta: -0.56  0.00 
-Current parameter values:
--0.5603907  0.0000000
-
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 0%
-Phase 1 Iteration 3 Progress: 0%
-Phase 1 Iteration 4 Progress: 1%
-Phase 1 Iteration 5 Progress: 1%
-Phase 1 Iteration 10 Progress: 2%
-Time per iteration in phase 1  = 0.004167 
-Average deviations NR generated statistics and targets
-after phase 1:
-       2.461538
-     -18.461538
-
-Diagonal values of derivative matrix :
- 37.9097  17.1918
-dfra :
-37.90974 14.52753
-28.35958 17.19178
-
-inverse of dfra :
- 0.07170969 -0.06059666
--0.11829240  0.15812767
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.    -1.295224
-2.     3.210461 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  13  iterations.
-theta: -0.690  0.321 
-Current parameter values:
--0.6899131  0.3210461
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 6%
-Phase 2 Subphase 1 Iteration 2 Progress: 7%
-theta -0.679  0.577 
-ac -0.25  1.38 
-Phase 2 Subphase 1 Iteration 3 Progress: 7%
-Phase 2 Subphase 1 Iteration 4 Progress: 7%
-theta -0.785  0.763 
-ac -0.800  0.607 
-Phase 2 Subphase 1 Iteration 5 Progress: 7%
-Phase 2 Subphase 1 Iteration 6 Progress: 7%
-theta -0.817  1.135 
-ac 0.111 0.718 
-Phase 2 Subphase 1 Iteration 7 Progress: 7%
-Phase 2 Subphase 1 Iteration 8 Progress: 8%
-theta -0.87  1.25 
-ac 0.156 0.571 
-Phase 2 Subphase 1 Iteration 9 Progress: 8%
-Phase 2 Subphase 1 Iteration 10 Progress: 8%
-theta -0.922  1.368 
-ac 0.109 0.535 
-Time per iteration in phase 2.1 = 0.004043
-theta -1.11  1.66 
-ac -0.0414  0.0000 
-Phase 2.1 ended after 94 iterations.
-theta: -1.11  1.66 
-Current parameter values:
--1.109191  1.657303
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 43%
-Phase 2 Subphase 2 Iteration 2 Progress: 43%
-Phase 2 Subphase 2 Iteration 3 Progress: 43%
-Phase 2 Subphase 2 Iteration 4 Progress: 43%
-Phase 2 Subphase 2 Iteration 5 Progress: 43%
-Phase 2 Subphase 2 Iteration 6 Progress: 43%
-Phase 2 Subphase 2 Iteration 7 Progress: 44%
-Phase 2 Subphase 2 Iteration 8 Progress: 44%
-Phase 2 Subphase 2 Iteration 9 Progress: 44%
-Phase 2 Subphase 2 Iteration 10 Progress: 44%
-Time per iteration in phase 2.2 = 0.004032
-theta -1.12  1.74 
-ac -0.0299 -0.3052 
-Phase 2.2 ended after 62 iterations.
-theta: -1.12  1.74 
-Current parameter values:
--1.122423  1.739476
-
-Start phase 3 
-Simulated values, phase 3.
-Time per iteration in phase 3   =  0.0040 
-dfrac :
-33.189028  8.787036
-15.949957 19.294151
-
-inverse of dfra :
- 0.03857277 -0.01756700
--0.03188708  0.06635135
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.    -0.013756   -1.136179
-   2.     0.026921    1.766396 
-
-conditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.   0.2200   6.3494   0.0346
-  2.  -0.3000   5.4781  -0.0548
+Rate parameters: 
+  0       Rate parameter       3.1368  ( 0.4867   )             
+  1. eval outdegree (density) -1.1224  ( 0.2040   )  0.0346     
+  2. eval reciprocity          1.7395  ( 0.2947   ) -0.0548     
 
 Total of 269 iteration steps.
 
-@3
-Estimates and standard errors
-                             
-Rate parameters:
- 0. Rate parameter                            3.1368  (   0.6976)
- 1. eval:  outdegree (density)                          -1.1224  (   0.2040)
- 2. eval:  reciprocity                                   1.7395  (   0.2947)
-
-Derivative matrix of expected statistics X by parameters:
-
- 33.189028  8.787036
-15.949957 19.294151
-
-Covariance matrix of X (correlations below the diagonal):
-    40.315     20.390
-     0.586     30.010
-
-
-   user  system elapsed 
-   1.24    0.00    1.25 
+> ##test9
 > 
 > mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 > mynet2 <- sienaNet(s50a,type='behavior')
@@ -680,212 +119,41 @@ Covariance matrix of X (correlations below the diagonal):
 > mymodel$projname <- 'test10'
 > mymodel$cconditional <- TRUE
 > mymodel$condvarno<- 1
-> system.time(ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, verbose=TRUE))
+> ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE,
++                parallelTesting=TRUE, silent=TRUE)
+> ##, verbose=TRUE)
+> ans
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.  238.00000   2.  160.00000   3.   27.00000   4.   33.00000   5.   11.66667 
-  6.  121.07111
+                                           Estimate   Standard   t statistic 
+                                                        Error                
 
-Start phase 0 
-theta: -1.468  0.000  0.150  0.196  0.347  0.000 
-Current parameter values:
--1.4677046  0.0000000  0.1502785  0.1962158  0.3469993  0.0000000
+Rate parameters: 
+  0.1      Rate parameter period 1          5.7677  ( 0.8719   )             
+  0.2      Rate parameter period 2          4.5201  ( 0.6091   )             
 
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 0%
-Phase 1 Iteration 3 Progress: 0%
-Phase 1 Iteration 4 Progress: 1%
-Phase 1 Iteration 5 Progress: 1%
-Phase 1 Iteration 10 Progress: 1%
-Phase 1 Iteration 15 Progress: 2%
-Phase 1 Iteration 20 Progress: 3%
-Phase 1 Iteration 25 Progress: 3%
-Time per iteration in phase 1  = 0.01083 
-Average deviations NR generated statistics and targets
-after phase 1:
-      11.760000
-    -109.520000
-     -14.240000
-     -18.040000
-     -15.400000
-      19.210667
+Other parameters: 
+Network Dynamics 
+  1.  eval outdegree (density)             -2.3554  ( 0.1091   )  0.0029     
+  2.  eval reciprocity                      2.8153  ( 0.1977   ) -0.1256     
 
-Diagonal values of derivative matrix :
-184.1470  41.2023 130.8936  56.9510  17.8468  65.4993
-dfra :
-184.1469860  33.7901540 -55.2718152 -87.6656728  -8.6492102  -0.8484742
- 71.5353970  41.2023497 -85.3876923 -15.8453356  -5.3931674   0.4452829
--10.4182899  -1.8666885 130.8936185   0.0000000  -1.2121271 -11.7894165
--17.1952963  -1.7312880   0.0000000  56.9510154  -0.9785957  -8.3938226
--20.3796807 -11.0092783  37.5315279  19.3423699  17.8467508  -7.0803547
--15.8582504   1.8407313 -23.1128153 -29.1206022   1.7265029  65.4993016
-
-inverse of dfra :
- 0.0097471595 -0.0067280929 -0.0008168317  0.0131062002  0.0031559329  0.0020457072
--0.0138770754  0.0371631474  0.0172862934 -0.0118096551  0.0048679310  0.0016917950
- 0.0009758352 -0.0001930769  0.0079895533  0.0020720409  0.0008953170  0.0018143342
- 0.0031700032 -0.0011771922  0.0005407109  0.0230843148  0.0021601393  0.0033381839
--0.0011193332  0.0154670271 -0.0066450197 -0.0157777957  0.0585582149  0.0029923843
- 0.0045331185 -0.0036725600  0.0025512730  0.0149152745  0.0003600641  0.0177605731
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.   -0.6173812
-2.    4.3088786
-3.    0.0974626
-4.    0.2270728
-5.    2.1721665
-6.   -0.4857740 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  25  iterations.
-theta: -1.5294  0.4309  0.1600  0.2189  0.5642 -0.0486 
-Current parameter values:
--1.5294427  0.4308879  0.1600248  0.2189231  0.5642159 -0.0485774
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 22%
-Phase 2 Subphase 1 Iteration 2 Progress: 22%
-theta -1.573  0.897  0.175  0.282  0.519 -0.156 
-ac 1.11 1.71 2.00 2.25 4.00 1.31 
-Phase 2 Subphase 1 Iteration 3 Progress: 23%
-Phase 2 Subphase 1 Iteration 4 Progress: 23%
-theta -1.679  1.343  0.204  0.366  0.710 -0.189 
-ac  1.48  1.34  2.20  2.63 -1.59  1.30 
-Phase 2 Subphase 1 Iteration 5 Progress: 23%
-Phase 2 Subphase 1 Iteration 6 Progress: 23%
-theta -1.760  1.790  0.217  0.402  0.598 -0.212 
-ac  1.15  1.41  2.12  1.60 -1.50  0.85 
-Phase 2 Subphase 1 Iteration 7 Progress: 23%
-Phase 2 Subphase 1 Iteration 8 Progress: 23%
-theta -1.853  1.955  0.214  0.363  0.452 -0.207 
-ac  1.142  1.196  0.822  0.903 -0.829  0.851 
-Phase 2 Subphase 1 Iteration 9 Progress: 23%
-Phase 2 Subphase 1 Iteration 10 Progress: 24%
-theta -1.964  1.965  0.230  0.412  0.665 -0.217 
-ac  1.298  0.971  0.332  0.228 -0.775  0.825 
-Time per iteration in phase 2.1 = 0.01440
-theta -2.312  2.722  0.202  0.350  0.407 -0.212 
-ac -0.0102 -0.0819 -0.1969 -0.1784 -0.3442 -0.3264 
-Phase 2.1 ended after 166 iterations.
-theta: -2.312  2.722  0.202  0.350  0.407 -0.212 
-Current parameter values:
--2.3120901  2.7220193  0.2019384  0.3498897  0.4073918 -0.2120985
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 52%
-Phase 2 Subphase 2 Iteration 2 Progress: 52%
-Phase 2 Subphase 2 Iteration 3 Progress: 52%
-Phase 2 Subphase 2 Iteration 4 Progress: 52%
-Phase 2 Subphase 2 Iteration 5 Progress: 52%
-Phase 2 Subphase 2 Iteration 6 Progress: 52%
-Phase 2 Subphase 2 Iteration 7 Progress: 53%
-Phase 2 Subphase 2 Iteration 8 Progress: 53%
-Phase 2 Subphase 2 Iteration 9 Progress: 53%
-Phase 2 Subphase 2 Iteration 10 Progress: 53%
-Time per iteration in phase 2.2 = 0.01475
-theta -2.355  2.815  0.200  0.367  0.356 -0.200 
-ac -0.1972 -0.3500 -0.0972 -0.3752 -0.3719 -0.1077 
-Phase 2.2 ended after 80 iterations.
-theta: -2.355  2.815  0.200  0.367  0.356 -0.200 
-Current parameter values:
--2.3554264  2.8152658  0.1996182  0.3673619  0.3562015 -0.1997765
-
-Start phase 3 
-Simulated values, phase 3.
-Phase 3 Iteration 100 Progress 100%
-Time per iteration in phase 3   =  0.0169 
-dfrac :
-198.7730468  87.7900813 -28.0652717  -6.5802604  11.4180195  12.2382586
-145.6055398 103.8763360  -0.4775313  -6.5941940  13.6390143   8.8744044
- -8.9160089  -3.4317391  97.2360075   0.0000000   7.8159477  -6.0420607
- -3.4939403   1.6355567   0.0000000  37.4332370   9.7932971  -5.8477980
- -3.7770672  -1.4719926  41.6409168  13.2991012  73.6486099  13.8892976
- -4.5996584   9.0217545 -48.6752317 -19.8913311  32.7729554 174.6715767
-
-inverse of dfra :
- 1.339762e-02 -1.119013e-02  3.882428e-03  4.201346e-04 -3.876843e-04 -1.909779e-04
--1.865236e-02  2.518617e-02 -4.576246e-03  1.730853e-03 -1.538921e-03  4.927182e-05
- 7.742221e-04 -3.584901e-04  1.146257e-02  9.270053e-04 -1.625090e-03  5.207263e-04
- 2.636753e-03 -2.763658e-03  3.514030e-03  2.915247e-02 -4.784370e-03  1.433650e-03
--9.797827e-04  1.047394e-03 -8.033826e-03 -6.626706e-03  1.605323e-02 -1.760818e-03
- 2.016045e-03 -2.206671e-03  5.440368e-03  4.743173e-03 -3.940426e-03  6.356203e-03
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.    -0.015838   -2.371264
-   2.     0.035037    2.850303
-   3.     0.006670    0.206289
-   4.    -0.007175    0.360187
-   5.     0.029394    0.385596
-   6.    -0.013352   -0.213128 
-
-conditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.   0.0400  13.9869   0.0029
-  2.  -1.6600  13.2209  -0.1256
-  3.  -0.9800   5.5795  -0.1756
-  4.  -0.2100   5.7160  -0.0367
-  5.  -2.1700  11.4319  -0.1898
-  6.   1.1619  16.0527   0.0724
+Behavior Dynamics
+  3.  rate rate mynet2 (period 1)           1.1513  ( 0.3424   ) -0.1756     
+  4.  rate rate mynet2 (period 2)           1.6605  ( 0.7096   ) -0.0367     
+  5.  eval behavior mynet2 linear shape     0.3562  ( 0.1611   ) -0.1898     
+  6.  eval behavior mynet2 quadratic shape -0.1998  ( 0.1005   )  0.0724     
 
 Total of 371 iteration steps.
 
-@3
-Estimates and standard errors
-                             
-Rate parameters:
- 0.1  Rate parameter period 1                 5.7677  (   0.9338)
- 0.2  Rate parameter period 2                 4.5201  (   0.7804)
-
-Other parameters:
- 1. eval:  outdegree (density)                          -2.3554  (   0.1091)
- 2. eval:  reciprocity                                   2.8153  (   0.1977)
- 3. rate:  rate mynet2 (period 1)                        1.1513  (   0.3424)
- 4. rate:  rate mynet2 (period 2)                        1.6605  (   0.7096)
- 5. eval:  behavior mynet2 linear shape                  0.3562  (   0.1611)
- 6. eval:  behavior mynet2 quadratic shape              -0.1998  (   0.1005)
-
-Derivative matrix of expected statistics X by parameters:
-
- 198.7730468  87.7900813 -28.0652717  -6.5802604  11.4180195  12.2382586
-145.6055398 103.8763360  -0.4775313  -6.5941940  13.6390143   8.8744044
- -8.9160089  -3.4317391  97.2360075   0.0000000   7.8159477  -6.0420607
- -3.4939403   1.6355567   0.0000000  37.4332370   9.7932971  -5.8477980
- -3.7770672  -1.4719926  41.6409168  13.2991012  73.6486099  13.8892976
- -4.5996584   9.0217545 -48.6752317 -19.8913311  32.7729554 174.6715767
-
-Covariance matrix of X (correlations below the diagonal):
-   195.635    149.562    -12.688    -11.891    -10.114     -1.351
-     0.809    174.792     -6.431      3.749      2.907      7.414
-    -0.163     -0.087     31.131     15.893     25.670    -12.994
-    -0.149      0.050      0.498     32.673     23.893     -5.647
-    -0.063      0.019      0.402      0.366    130.688     28.523
-    -0.006      0.035     -0.145     -0.062      0.155    257.690
-
-
-   user  system elapsed 
-   5.95    0.00    5.97 
 > ##test11
 > print('test11')
 [1] "test11"
-> system.time(data501 <- sienaDataCreateFromSession("s50.csv", modelName="s50"))
-   user  system elapsed 
-   0.54    0.00    0.56 
-> system.time(data501e <- sienaDataCreateFromSession("s50e.csv", modelName="s50e"))
+> data501 <- sienaDataCreateFromSession("s50.csv", modelName="s50")
+> data501e <- sienaDataCreateFromSession("s50e.csv", modelName="s50e")
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
-   user  system elapsed 
-   0.81    0.02    0.83 
-> system.time(data501paj <- sienaDataCreateFromSession("s50paj.csv", modelName="s50paj"))
+> data501paj <- sienaDataCreateFromSession("s50paj.csv", modelName="s50paj")
 Loading required package: network
 Classes for Relational Data
 Version 1.4-1 created on July 26, 2008.
@@ -898,188 +166,22 @@ Type help("network-package") to get started.
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
-   user  system elapsed 
-   0.72    0.00    0.73 
 > 
 > model501e <- model.create( projname="s50e", cond=FALSE, nsub=2, n3=100 )
-> system.time(ans501e <- siena07(model501e, data=data501e$mydata, effects=data501e$myeff,
-+                    parallelTesting=TRUE, batch=TRUE, verbose=TRUE))
+> ans501e <- siena07(model501e, data=data501e$mydata, effects=data501e$myeff,
++                    parallelTesting=TRUE, batch=TRUE, silent=TRUE)
+> ##, verbose=TRUE)
+> ans501e
+Estimates, standard errors and t-statistics for convergence
 
-Stochastic approximation algorithm.
-Initial value for gain parameter = 0.2.
-Start of the algorithm.
-Target function values are 
-  1.   114.0000   2.   106.0000   3.   241.0000   4.   160.0000
-
-Start phase 0 
-theta:  4.66  4.33 -1.47  0.00 
-Current parameter values:
- 4.662852  4.332381 -1.465129  0.000000
-
-Start phase 1 
-Phase 1 Iteration 1 Progress: 0%
-Phase 1 Iteration 2 Progress: 0%
-Phase 1 Iteration 3 Progress: 0%
-Phase 1 Iteration 4 Progress: 1%
-Phase 1 Iteration 5 Progress: 1%
-Phase 1 Iteration 10 Progress: 1%
-Phase 1 Iteration 15 Progress: 2%
-Time per iteration in phase 1  = 0.01389 
-Average deviations NR generated statistics and targets
-after phase 1:
-      27.894737
-      30.421053
-      22.421053
-    -123.473684
-
-Diagonal values of derivative matrix :
- 26.8777  27.4848 244.4884  60.8681
-dfra :
- 26.8777257   0.0000000  76.1915061 -18.5284448
-  0.0000000  27.4848413  34.4645124 -21.1222286
- 16.6679564   4.2672924 244.4884209  27.5008415
- -0.9148752  -5.0537427  49.1054144  60.8680569
-
-inverse of dfra :
- 0.053049075  0.009254354 -0.023893181  0.030154931
- 0.009366141  0.042933357 -0.013787108  0.023978838
--0.004352194 -0.001976216  0.006740562 -0.005056061
- 0.005086143  0.005298077 -0.006941800  0.022952118
-
-Full Quasi-Newton-Raphson step after phase 1:
-1.     2.497733
-2.     1.702533
-3.    -0.593899
-4.     2.686575 
-This step is multiplied by the factor  0.10000.
-Phase 1 achieved after  19  iterations.
-theta:  4.913  4.503 -1.525  0.269 
-Current parameter values:
- 4.9126258  4.5026339 -1.5245185  0.2686575
-
-Phase 2 has 2 subphases.
-Each subphase can be repeated up to 4 times
-
-Start phase 2.1
-Phase 2 Subphase 1 Iteration 1 Progress: 14%
-Phase 2 Subphase 1 Iteration 2 Progress: 14%
-theta  4.71  4.27 -1.54  0.58 
-ac 2.31 2.15 0.75 1.34 
-Phase 2 Subphase 1 Iteration 3 Progress: 14%
-Phase 2 Subphase 1 Iteration 4 Progress: 14%
-theta  4.49  4.01 -1.58  1.12 
-ac 2.381 1.561 0.577 1.403 
-Phase 2 Subphase 1 Iteration 5 Progress: 14%
-Phase 2 Subphase 1 Iteration 6 Progress: 15%
-theta  4.43  3.75 -1.69  1.40 
-ac 2.262 1.534 0.862 1.380 
-Phase 2 Subphase 1 Iteration 7 Progress: 15%
-Phase 2 Subphase 1 Iteration 8 Progress: 15%
-theta  4.40  3.78 -1.76  1.63 
-ac 1.569 1.438 0.751 1.393 
-Phase 2 Subphase 1 Iteration 9 Progress: 15%
-Phase 2 Subphase 1 Iteration 10 Progress: 15%
-theta  4.38  3.79 -1.82  1.77 
-ac 1.165 1.448 0.699 1.389 
-Phase 2 Subphase 1 Iteration 200 Progress: 44%
-theta  5.89  4.41 -2.30  2.81 
-ac 0.041 0.135 0.218 0.285 
-Intervention 2.1.1: changes truncated, iterations: 1
-Warning: an autocorrelation is positive at the end of this subphase.
-Autocorrelations:
-0.0352055
-0.1297121
-0.1923869
-0.2436313
-
-Time per iteration in phase 2.1 = 0.01326
-theta  5.55  4.35 -2.27  2.65 
-ac 0.0352 0.1297 0.1924 0.2436 
-Phase 2.1 ended after 227 iterations.
-Warning. Autocorrelation criterion not satisfied.
-theta:  5.55  4.35 -2.27  2.65 
-Current parameter values:
- 5.550206  4.349922 -2.270796  2.645408
-
-Start phase 2.2
-Phase 2 Subphase 2 Iteration 1 Progress: 47%
-Phase 2 Subphase 2 Iteration 2 Progress: 47%
-Phase 2 Subphase 2 Iteration 3 Progress: 47%
-Phase 2 Subphase 2 Iteration 4 Progress: 47%
-Phase 2 Subphase 2 Iteration 5 Progress: 47%
-Phase 2 Subphase 2 Iteration 6 Progress: 48%
-Phase 2 Subphase 2 Iteration 7 Progress: 48%
-Phase 2 Subphase 2 Iteration 8 Progress: 48%
-Phase 2 Subphase 2 Iteration 9 Progress: 48%
-Phase 2 Subphase 2 Iteration 10 Progress: 48%
-Phase 2 Subphase 2 Iteration 200 Progress: 77%
-theta  5.54  4.51 -2.36  2.69 
-ac -0.1015  0.0533 -0.1115  0.0278 
-Time per iteration in phase 2.2 = 0.01366
-theta  5.77  4.53 -2.33  2.75 
-ac -0.0641  0.0195 -0.1176 -0.0246 
-Phase 2.2 ended after 268 iterations.
-theta:  5.77  4.53 -2.33  2.75 
-Current parameter values:
- 5.772512  4.525213 -2.325478  2.748416
-
-Start phase 3 
-Simulated values, phase 3.
-Phase 3 Iteration 100 Progress 100%
-Time per iteration in phase 3   =  0.0142 
-dfrac :
-  8.1662885   0.0000000  38.2604466   5.4507366
-  0.0000000   7.5602624  25.5047375   0.3465663
-  1.4408978   1.2053796 199.7484214  85.9052193
- -1.1476459   1.6170288 157.0076344 104.3470118
-
-inverse of dfra :
- 0.1387831553  0.0005624055 -0.0593806916  0.0416345990
- 0.0153720712  0.1316498834 -0.0532151396  0.0425699178
--0.0046696580  0.0002160338  0.0161012132 -0.0130123520
- 0.0083144576 -0.0023590054 -0.0240554180  0.0289609021
-
-A full Quasi-Newton-Raphson step after phase 3
-would add the following numbers to the parameters, yielding the following results:
-         change     new value 
-   1.    -0.001231    5.771282
-   2.    -0.025346    4.499868
-   3.    -0.010971   -2.336449
-   4.     0.032987    2.781403 
-
-unconditional moment estimation.
-Information for convergence diagnosis.
-Averages, standard deviations, and t-ratios for deviations from targets:
-  1.   0.2500   8.0959   0.0309
-  2.   0.4600   8.7829   0.0524
-  3.  -0.6100  15.6714  -0.0389
-  4.  -1.6800  13.9602  -0.1203
+                                        Estimate   Standard   t statistic 
+                                                     Error                
+  1. rate constant Var1 rate (period 1)  5.7725  ( 0.9854   )  0.0309     
+  2. rate constant Var1 rate (period 2)  4.5252  ( 1.2071   )  0.0524     
+  3. eval outdegree (density)           -2.3255  ( 0.1206   ) -0.0389     
+  4. eval reciprocity                    2.7484  ( 0.1998   ) -0.1203     
 
 Total of 614 iteration steps.
 
-@3
-Estimates and standard errors
-                             
- 1. rate:  constant Var1 rate (period 1)                 5.7725  (   0.9854)
- 2. rate:  constant Var1 rate (period 2)                 4.5252  (   1.2071)
- 3. eval:  outdegree (density)                          -2.3255  (   0.1206)
- 4. eval:  reciprocity                                   2.7484  (   0.1998)
-
-Derivative matrix of expected statistics X by parameters:
-
-   8.1662885   0.0000000  38.2604466   5.4507366
-  0.0000000   7.5602624  25.5047375   0.3465663
-  1.4408978   1.2053796 199.7484214  85.9052193
- -1.1476459   1.6170288 157.0076344 104.3470118
-
-Covariance matrix of X (correlations below the diagonal):
-    65.543     17.348     54.841     29.192
-     0.244     77.140     19.061     14.033
-     0.432      0.138    245.594    188.258
-     0.258      0.114      0.861    194.886
-
-
-   user  system elapsed 
-   8.64    0.05    8.71 
 > ## compare with outputs in parallelchecked/
 > 

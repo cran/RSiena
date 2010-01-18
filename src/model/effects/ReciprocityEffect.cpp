@@ -46,43 +46,20 @@ double ReciprocityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double ReciprocityEffect::statistic(const Network * pSummationTieNetwork) const
+double ReciprocityEffect::tieStatistic(int alter)
 {
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
-	int * marks = new int[n];
+	int statistic = 0;
 
-	for (int i = 0; i < n; i++)
+	if (this->inTieExists(alter))
 	{
-		marks[i] = -1;
+		statistic = 1;
 	}
 
-	int counter = 0;
-
-	for (int i = 0; i < n; i++)
-	{
-		for (IncidentTieIterator iter = pNetwork->inTies(i);
-			iter.valid();
-			iter.next())
-		{
-			marks[iter.actor()] = i;
-		}
-
-		for (IncidentTieIterator iter = pSummationTieNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			if (marks[iter.actor()] == i)
-			{
-				counter++;
-			}
-		}
-	}
-
-	delete[] marks;
-	return counter;
+	return statistic;
 }
 
 }

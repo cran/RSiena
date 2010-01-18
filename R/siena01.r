@@ -512,9 +512,9 @@ siena01Gui <- function(getDocumentation=FALSE)
             if (is.null(myeffcopy$effectNumber))
             {
                 myeffcopy <- cbind(effectNumber=1:nrow(myeff), myeff,
-                               effect1=rep(NA, nrow(myeff)),
-                               effect2=rep(NA, nrow(myeff)),
-                               effect3=rep(NA,nrow(myeff)))
+                               effect1=rep(0, nrow(myeff)),
+                               effect2=rep(0, nrow(myeff)),
+                               effect3=rep(0,nrow(myeff)))
             }
             editCols <- c("name", "effectName", "type", "include", "fix",
                           "test", "initialValue", "parm", "effectNumber",

@@ -37,11 +37,14 @@ double DensityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class for a detailed comment.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double DensityEffect::statistic(const Network * pSummationTieNetwork) const
+double DensityEffect::tieStatistic(int alter)
 {
-	double statistic = pSummationTieNetwork->tieCount();
+	double statistic = 1;
+
 	const OneModeNetworkLongitudinalData * pData =
 		dynamic_cast<const OneModeNetworkLongitudinalData *>(this->pData());
 
@@ -49,11 +52,20 @@ double DensityEffect::statistic(const Network * pSummationTieNetwork) const
 	{
 		if (pData->symmetric())
 		{
-			statistic /= 2;
+			statistic = 0.5;
 		}
 	}
 
 	return statistic;
+}
+
+
+/**
+ * Returns if this effect is an ego effect.
+ */
+bool DensityEffect::egoEffect() const
+{
+	return true;
 }
 
 }

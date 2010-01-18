@@ -27,13 +27,20 @@ class EffectInfo
 {
 public:
 	EffectInfo(string variableName,
-			   string effectName,
-			   string effectType,
-			   double parameter,
-			   double internalEffectParameter,
-			   string interactionName1,
-			   string interactionName2,
-			   string rateType);
+		string effectName,
+		string effectType,
+		double parameter,
+		double internalEffectParameter,
+		string interactionName1,
+		string interactionName2,
+		string rateType);
+	EffectInfo(string variableName,
+		string effectName,
+		string effectType,
+		double parameter,
+		const EffectInfo * pEffect1,
+		const EffectInfo * pEffect2,
+		const EffectInfo * pEffect3);
 
 	void parameter(double value);
 
@@ -42,7 +49,11 @@ public:
 	double parameter() const;
 	double internalEffectParameter() const;
 	string interactionName1() const;
+	string interactionName2() const;
 	string rateType() const;
+	const EffectInfo * pEffectInfo1() const;
+	const EffectInfo * pEffectInfo2() const;
+	const EffectInfo * pEffectInfo3() const;
 
 private:
 	// The name of the variable this effect is associated with
@@ -74,6 +85,14 @@ private:
 
 	// Distinguishes between structural rate effects and covariate rate effects
 	string lrateType;
+
+	// The interacting effect descriptions.
+	// Undefined for non-interaction effects.
+	// The third effect is undefined for two-way interactions.
+
+	const EffectInfo * lpEffectInfo1;
+	const EffectInfo * lpEffectInfo2;
+	const EffectInfo * lpEffectInfo3;
 };
 
 }

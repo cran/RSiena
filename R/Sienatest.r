@@ -83,12 +83,13 @@ TestOutput <- function(z, x)
             if (z$test[k])
             {
                 j<- j+1
-                Report(c(' (',j,')   ',format(paste(z$effects$type[k],':  ',
-                                                   z$effects$effectName[k],
-                                                   sep=''),
-                                             width=50),' = ',
-                         sprintf("%8.4f",z$theta[k]),'\n'),
-                       sep = '', outf)
+                Report(c(" (",j,")   ",
+                         format(paste(z$requestedEffects$type[k], ":  ",
+                                      z$requestedEffects$effectName[k],
+                                                   sep=""),
+                                             width=50), " = ",
+                         sprintf("%8.4f",z$theta[k]),"\n"),
+                       sep = "", outf)
             }
         Report('_________________________________________________\n',outf)
         Report('                ',outf)
@@ -132,8 +133,8 @@ TestOutput <- function(z, x)
         for (i in 1 : z$pp)
         {
             onestepest<- z$oneStep[i]+z$theta[i]
-            Report(c(format(paste(z$effects$type[i],':  ',
-                                  z$effects$effectName[i], sep = ''),
+            Report(c(format(paste(z$requestedEffects$type[i],':  ',
+                                  z$requestedEffects$effectName[i], sep = ''),
                             width=50),
                      sprintf("%8.4f", onestepest), '\n'), sep = '', outf)
         }

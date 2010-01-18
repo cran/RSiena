@@ -52,6 +52,7 @@ public:
 
 	bool missingStartValue(int actor) const;
 	int value(int actor) const;
+	void value(int actor, int newValue);
 	double centeredValue(int actor) const;
 	double similarity(int i, int j) const;
 	const int * values() const;

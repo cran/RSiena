@@ -124,31 +124,26 @@ double OutOutDegreeAssortativityEffect::calculateContribution(int alter)
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double OutOutDegreeAssortativityEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double OutOutDegreeAssortativityEffect::tieStatistic(int alter)
 {
-	double statistic = 0;
+	double statistic;
 	const Network * pNetwork = this->pNetwork();
+	int egoDegree = pNetwork->outDegree(this->ego());
+	int alterDegree = pNetwork->outDegree(alter);
 
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
+	if (this->lroot)
 	{
-		int egoDegree = pNetwork->outDegree(iter.ego());
-		int alterDegree = pNetwork->outDegree(iter.alter());
-
-		if (this->lroot)
-		{
-			statistic +=
-				this->lsqrtTable->sqrt(egoDegree) *
-					this->lsqrtTable->sqrt(alterDegree);
-		}
-		else
-		{
-			statistic += egoDegree * alterDegree;
-		}
+		statistic =
+			this->lsqrtTable->sqrt(egoDegree) *
+				this->lsqrtTable->sqrt(alterDegree);
+	}
+	else
+	{
+		statistic = egoDegree * alterDegree;
 	}
 
 	return statistic;

@@ -46,26 +46,21 @@ double CovariateAlterEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double CovariateAlterEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double CovariateAlterEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
 
-	for (int i = 0; i < pNetwork->m(); i++)
+	if (!this->missing(alter))
 	{
-		if (!this->missing(i))
+		statistic = this->value(alter);
+
+		if (this->lsquared)
 		{
-			double value = this->value(i);
-
-			if (this->lsquared)
-			{
-				value *= value;
-			}
-
-			statistic += pSummationTieNetwork->inDegree(i) * value;
+			statistic *= statistic;
 		}
 	}
 

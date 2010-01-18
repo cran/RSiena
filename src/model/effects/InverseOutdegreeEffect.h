@@ -28,8 +28,11 @@ public:
 	InverseOutdegreeEffect(const EffectInfo * pEffectInfo);
 
 	virtual double calculateContribution(int alter) const;
-	virtual double evaluationStatistic() const;
-	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
+
+protected:
+	virtual double egoStatistic(int ego,
+		const Network * pSummationTieNetwork);
 
 private:
 	double lc;

@@ -112,9 +112,11 @@ double DenseTriadsEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double DenseTriadsEffect::statistic(const Network * pSummationTieNetwork) const
+double DenseTriadsEffect::tieStatistic(int j)
 {
 	int statistic = 0;
 	const Network * pNetwork = this->pNetwork();
@@ -122,152 +124,166 @@ double DenseTriadsEffect::statistic(const Network * pSummationTieNetwork) const
 	const OneModeNetwork * pOneModeNetwork =
 		dynamic_cast<const OneModeNetwork *>(pNetwork);
 
-	// A helper array of marks
+	// Get the number of dense triads involving the tie (i,j).
 
-	int * mark = new int[n];
-
-	for (int i = 0; i < n; i++)
+	if (this->ldensity == 6 && this->lmark[j] == this->lbaseMark + 2 ||
+		this->ldensity == 5 && this->lmark[j] == this->lbaseMark + 1)
 	{
-		mark[i] = 0;
-	}
+		// We need complete dyads (j,h) and (i,h) to have
+		// a dense triad.
 
-	// Count the number of dense triads contributed by each actor i
+		// Iterate over complete dyads (j,h)
 
-	for (int i = 0; i < n; i++)
-	{
-		int baseMark = 2 * i;
-
-		// Count for each actor h the number of ties between i and h
-		// (0, 1, or 2). We represent these number as:
-		// mark[h] = baseMark + 2 if there are mutual ties between i and h,
-		// mark[h] = baseMark + 1 if only one of the mutual ties is present,
-		// mark[h] <= baseMark otherwise.
-
-		for (IncidentTieIterator iter = pNetwork->inTies(i);
-			iter.valid();
-			iter.next())
+		for (CommonNeighborIterator iterH =
+				pOneModeNetwork->reciprocatedTies(j);
+			iterH.valid();
+			iterH.next())
 		{
-			mark[iter.actor()] = baseMark + 1;
-		}
+			int h = iterH.actor();
 
-		for (IncidentTieIterator iter = pNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			if (mark[iter.actor()] <= baseMark)
+			// Test if the dyad (i,h) is complete
+
+			if (this->lmark[h] == this->lbaseMark + 2)
 			{
-				mark[iter.actor()] = baseMark + 1;
+				statistic++;
+			}
+		}
+	}
+	else if (this->ldensity == 5)
+	{
+		// The dyad (i,j) is complete, because the previous
+		// condition would hold otherwise.
+
+		// Iterate over outgoing and incoming ties of j simultaneously.
+
+		IncidentTieIterator outIter = pNetwork->outTies(j);
+		IncidentTieIterator inIter = pNetwork->inTies(j);
+
+		while (outIter.valid() || inIter.valid())
+		{
+			// Get the current out- or in-neighbor (or n, if we
+			// have run out of ties).
+
+			int h1 = n;
+			int h2 = n;
+
+			if (outIter.valid())
+			{
+				h1 = outIter.actor();
+			}
+
+			if (inIter.valid())
+			{
+				h2 = inIter.actor();
+			}
+
+			if (h1 == h2)
+			{
+				// The dyad (j,h1) is complete, so we need just
+				// one tie between i and h1.
+
+				if (this->lmark[h1] > this->lbaseMark)
+				{
+					statistic++;
+				}
+
+				outIter.next();
+				inIter.next();
+			}
+			else if (h1 < h2)
+			{
+				// The dyad (j,h1) has only one tie, so we need
+				// a complete dyad (i,h1).
+
+				if (this->lmark[h1] == this->lbaseMark + 2)
+				{
+					statistic++;
+				}
+
+				outIter.next();
 			}
 			else
 			{
-				mark[iter.actor()]++;
-			}
-		}
+				// The dyad (j,h2) has only one tie, so we need
+				// a complete dyad (i,h2).
 
-		// Now go through the ties (i,j) of the summation network and sum up
-		// the numbers of dense triads involving the tie (i,j).
-
-		for (IncidentTieIterator iterJ = pSummationTieNetwork->outTies(i);
-			iterJ.valid();
-			iterJ.next())
-		{
-			int j = iterJ.actor();
-
-			if (this->ldensity == 6 && mark[j] == baseMark + 2 ||
-				this->ldensity == 5 && mark[j] == baseMark + 1)
-			{
-				// We need complete dyads (j,h) and (i,h) to have
-				// a dense triad.
-
-				// Iterate over complete dyads (j,h)
-
-				for (CommonNeighborIterator iterH =
-						pOneModeNetwork->reciprocatedTies(j);
-					iterH.valid();
-					iterH.next())
+				if (this->lmark[h2] == this->lbaseMark + 2)
 				{
-					int h = iterH.actor();
-
-					// Test if the dyad (i,h) is complete
-
-					if (mark[h] == baseMark + 2)
-					{
-						statistic++;
-					}
+					statistic++;
 				}
-			}
-			else if (this->ldensity == 5)
-			{
-				// The dyad (i,j) is complete, because the previous
-				// condition would hold otherwise.
 
-				// Iterate over outgoing and incoming ties of j simultaneously.
-
-				IncidentTieIterator outIter = pNetwork->outTies(j);
-				IncidentTieIterator inIter = pNetwork->inTies(j);
-
-				while (outIter.valid() || inIter.valid())
-				{
-					// Get the current out- or in-neighbor (or n, if we
-					// have run out of ties).
-
-					int h1 = n;
-					int h2 = n;
-
-					if (outIter.valid())
-					{
-						h1 = outIter.actor();
-					}
-
-					if (inIter.valid())
-					{
-						h2 = inIter.actor();
-					}
-
-					if (h1 == h2)
-					{
-						// The dyad (j,h1) is complete, so we need just
-						// one tie between i and h1.
-
-						if (mark[h1] > baseMark)
-						{
-							statistic++;
-						}
-
-						outIter.next();
-						inIter.next();
-					}
-					else if (h1 < h2)
-					{
-						// The dyad (j,h1) has only one tie, so we need
-						// a complete dyad (i,h1).
-
-						if (mark[h1] == baseMark + 2)
-						{
-							statistic++;
-						}
-
-						outIter.next();
-					}
-					else
-					{
-						// The dyad (j,h2) has only one tie, so we need
-						// a complete dyad (i,h2).
-
-						if (mark[h2] == baseMark + 2)
-						{
-							statistic++;
-						}
-
-						inIter.next();
-					}
-				}
+				inIter.next();
 			}
 		}
 	}
 
-	delete[] mark;
 	return statistic;
+}
+
+
+/**
+ * This method is called at the start of the calculation of the statistic.
+ */
+void DenseTriadsEffect::initializeStatisticCalculation()
+{
+	const Network * pNetwork = this->pNetwork();
+	int n = pNetwork->n();
+
+	// Allocate the helper array of marks
+
+	this->lmark = new int[n];
+
+	for (int i = 0; i < n; i++)
+	{
+		this->lmark[i] = 0;
+	}
+}
+
+
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void DenseTriadsEffect::cleanupStatisticCalculation()
+{
+	delete[] this->lmark;
+}
+
+
+/**
+ * This method is called right before summing up the contributions of the
+ * outgoing ties of the given ego in the calculation of the statistic.
+ */
+void DenseTriadsEffect::onNextEgo(int i)
+{
+	const Network * pNetwork = this->pNetwork();
+	this->lbaseMark = 2 * i;
+
+	// Count for each actor h the number of ties between i and h
+	// (0, 1, or 2). We represent these number as:
+	// mark[h] = baseMark + 2 if there are mutual ties between i and h,
+	// mark[h] = baseMark + 1 if only one of the mutual ties is present,
+	// mark[h] <= baseMark otherwise.
+
+	for (IncidentTieIterator iter = pNetwork->inTies(i);
+		iter.valid();
+		iter.next())
+	{
+		this->lmark[iter.actor()] = this->lbaseMark + 1;
+	}
+
+	for (IncidentTieIterator iter = pNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		if (this->lmark[iter.actor()] <= this->lbaseMark)
+		{
+			this->lmark[iter.actor()] = this->lbaseMark + 1;
+		}
+		else
+		{
+			this->lmark[iter.actor()]++;
+		}
+	}
 }
 
 }

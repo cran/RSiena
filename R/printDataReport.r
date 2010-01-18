@@ -190,21 +190,23 @@ DataReport <- function(z, x, f)
     }
 
     fixed <- ifelse(z$fixed, '  (fixed) ', '')
-    tmp <- paste(sprintf("%3d",1:length(z$effects$effectName)), '. ',
-                 format(paste(z$effects$type, ':  ', z$effects$effectName,
+    tmp <- paste(sprintf("%3d",1:length(z$requestedEffects$effectName)), '. ',
+                 format(paste(z$requestedEffects$type, ':  ',
+                              z$requestedEffects$effectName,
                               sep = ''), width = 52),
-                 sprintf("%9.4f", z$effects$initialValue), fixed, '\n',
+                 sprintf("%9.4f", z$requestedEffects$initialValue), fixed, '\n',
                  sep = '', collapse = '')
     Report(tmp, outf)
     ## targets:
     Report("\n\nObserved values of target statistics are\n", outf)
-    tmp <- paste(sprintf("%3d",1:length(z$effects$effectName)), '. ',
-                 format(z$effects$functionName, width = 66),
+    tmp <- paste(sprintf("%3d",1:length(z$requestedEffects$effectName)), '. ',
+                 format(z$requestedEffects$functionName, width = 66),
                  sprintf("%9.4f",
-                         ifelse(z$effects$type=='endow', -z$targets,
+                         ifelse(z$requestedEffects$type=='endow', -z$targets,
                                 z$targets)),
                  '\n', sep = '', collapse = '')
     Report(tmp, outf)
-    Report(c('\n', nrow(z$effects), 'parameters,', nrow(z$effects),
+    Report(c('\n', nrow(z$requestedEffects), 'parameters,',
+             nrow(z$requestedEffects),
              'statistics\n'),outf)
 }

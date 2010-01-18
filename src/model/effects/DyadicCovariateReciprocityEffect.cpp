@@ -46,36 +46,17 @@ double DyadicCovariateReciprocityEffect::calculateContribution(
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double DyadicCovariateReciprocityEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double DyadicCovariateReciprocityEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
 
-	// The summation network is a subnetwork of the (main) network.
-	// So essentially, we are iterating over ties of the summation network
-	// that are reciprocated in the main network, and add up the (non-missing)
-	// covariate values for these ties.
-
-	for (int i = 0; i < n; i++)
+	if (this->inTieExists(alter) && !this->missing(this->ego(), alter))
 	{
-		CommonNeighborIterator iter(pSummationTieNetwork->outTies(i),
-			pNetwork->inTies(i));
-
-		while (iter.valid())
-		{
-			int j = iter.actor();
-
-			if (!this->missing(i, j))
-			{
-				statistic += this->value(i, j);
-			}
-
-			iter.next();
-		}
+		statistic = this->value(this->ego(), alter);
 	}
 
 	return statistic;

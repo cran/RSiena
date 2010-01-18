@@ -126,9 +126,11 @@ double BalanceEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double BalanceEffect::statistic(const Network * pSummationTieNetwork) const
+double BalanceEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
 	const Network * pNetwork = this->pNetwork();
@@ -138,126 +140,123 @@ double BalanceEffect::statistic(const Network * pSummationTieNetwork) const
 	const Network * pEndMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period() + 1);
 
-	// An indicator array for invalid actors.
-	// Invariants:
-	// A: flag[i] <= round for all actors
-	// B: flag[i] == round for invalid actors
+	// Initially all actors are valid
 
-	int * flag = new int[n];
-	int round = 0;
+	this->lround++;
+	int validActorCount = n;
+
+	// Mark as invalid the actors h that have a missing tie from the ego or
+	// the alter of the current tie at either end of the period.
+
+	this->markInvalidActors(pStartMissingNetwork->outTies(this->ego()),
+		validActorCount);
+	this->markInvalidActors(pStartMissingNetwork->outTies(alter),
+		validActorCount);
+	this->markInvalidActors(pEndMissingNetwork->outTies(this->ego()),
+		validActorCount);
+	this->markInvalidActors(pEndMissingNetwork->outTies(alter),
+		validActorCount);
+
+	// Mark the ego and alter invalid as well.
+
+	if (this->lflag[this->ego()] < this->lround)
+	{
+		this->lflag[this->ego()] = this->lround;
+		validActorCount--;
+	}
+
+	if (this->lflag[alter] < this->lround)
+	{
+		this->lflag[alter] = this->lround;
+		validActorCount--;
+	}
+
+	// Now we add the expression
+	//   sum_h (b_0 - |x_{ih} - x_{jh}|)
+	// to the statistic, where the sum extends over all valid actors h.
+
+	// First add sum_h b_0
+	statistic += validActorCount * this->lbalanceMean;
+
+	// Now subtract sum_h |x_{ih} - x_{jh}|
+
+	IncidentTieIterator egoIter = pNetwork->outTies(this->ego());
+	IncidentTieIterator alterIter = pNetwork->outTies(alter);
+
+	while (egoIter.valid() || alterIter.valid())
+	{
+		if (egoIter.valid() &&
+			(!alterIter.valid() || egoIter.actor() < alterIter.actor()))
+		{
+			if (this->lflag[egoIter.actor()] < this->lround)
+			{
+				statistic--;
+			}
+
+			egoIter.next();
+		}
+		else if (alterIter.valid() &&
+			(!egoIter.valid() || alterIter.actor() < egoIter.actor()))
+		{
+			if (this->lflag[alterIter.actor()] < this->lround)
+			{
+				statistic--;
+			}
+
+			alterIter.next();
+		}
+		else
+		{
+			egoIter.next();
+			alterIter.next();
+		}
+	}
+
+	return statistic;
+}
+
+
+/**
+ * This method is called at the start of the calculation of the statistic.
+ */
+void BalanceEffect::initializeStatisticCalculation()
+{
+	int n = this->pNetwork()->n();
+
+	this->lflag = new int[n];
+	this->lround = 0;
 
 	for (int i = 0; i < n; i++)
 	{
-		flag[i] = 0;
+		this->lflag[i] = 0;
 	}
+}
 
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
-	{
-		// Initially all actors are valid
 
-		round++;
-		int validActorCount = n;
-
-		// Mark as invalid the actors h that have a missing tie from the ego or
-		// the alter of the current tie at either end of the period.
-
-		this->markInvalidActors(pStartMissingNetwork->outTies(iter.ego()),
-			flag,
-			round,
-			validActorCount);
-		this->markInvalidActors(pStartMissingNetwork->outTies(iter.alter()),
-			flag,
-			round,
-			validActorCount);
-		this->markInvalidActors(pEndMissingNetwork->outTies(iter.ego()),
-			flag,
-			round,
-			validActorCount);
-		this->markInvalidActors(pEndMissingNetwork->outTies(iter.alter()),
-			flag,
-			round,
-			validActorCount);
-
-		// Mark the ego and alter invalid as well.
-
-		if (flag[iter.ego()] < round)
-		{
-			flag[iter.ego()] = round;
-			validActorCount--;
-		}
-
-		if (flag[iter.alter()] < round)
-		{
-			flag[iter.alter()] = round;
-			validActorCount--;
-		}
-
-		// Now we add the expression
-		//   sum_h (b_0 - |x_{ih} - x_{jh}|)
-		// to the statistic, where the sum extends over all valid actors h.
-
-		// First add sum_h b_0
-		statistic += validActorCount * this->lbalanceMean;
-
-		// Now subtract sum_h |x_{ih} - x_{jh}|
-
-		IncidentTieIterator egoIter = pNetwork->outTies(iter.ego());
-		IncidentTieIterator alterIter = pNetwork->outTies(iter.alter());
-
-		while (egoIter.valid() || alterIter.valid())
-		{
-			if (egoIter.valid() &&
-				(!alterIter.valid() || egoIter.actor() < alterIter.actor()))
-			{
-				if (flag[egoIter.actor()] < round)
-				{
-					statistic--;
-				}
-
-				egoIter.next();
-			}
-			else if (alterIter.valid() &&
-				(!egoIter.valid() || alterIter.actor() < egoIter.actor()))
-			{
-				if (flag[alterIter.actor()] < round)
-				{
-					statistic--;
-				}
-
-				alterIter.next();
-			}
-			else
-			{
-				egoIter.next();
-				alterIter.next();
-			}
-		}
-	}
-
-	delete[] flag;
-	return statistic;
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void BalanceEffect::cleanupStatisticCalculation()
+{
+	delete[] this->lflag;
 }
 
 
 /**
  * This method marks as invalid all actors that are iterated over by the given
  * iterator. The fact that an actor i is invalid is represented by setting
- * flag[i] = markValue. It is assumed that flag[i] <= markValue for all actors,
- * meaning that flag[i] < markValue holds for valid actors. The variable
+ * lflag[i] = lround. It is assumed that lflag[i] <= lround for all actors,
+ * meaning that lflag[i] < lround holds for valid actors. The variable
  * validActorCount keeps track of the still valid actors.
  */
 void BalanceEffect::markInvalidActors(IncidentTieIterator iter,
-	int * flag,
-	int markValue,
-	int & validActorCount) const
+	int & validActorCount)
 {
 	while (iter.valid())
 	{
-		if (flag[iter.actor()] < markValue)
+		if (this->lflag[iter.actor()] < this->lround)
 		{
-			flag[iter.actor()] = markValue;
+			this->lflag[iter.actor()] = this->lround;
 			validActorCount--;
 		}
 

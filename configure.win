@@ -1,5 +1,6 @@
 #!/bin/sh
 
+if test "$R_ARCH" != "/x64";  then
 echo "  getting gui installer"
 allok=yes
 echo 'download.file("http://www.stats.ox.ac.uk/~ruth/sienaversion.txt",
@@ -9,6 +10,7 @@ if [ ! -e inst/sienaversion.txt ]; then
 	allok=no
 else
 	echo '{version <- scan("inst/sienaversion.txt", what="character"); file1 <- paste("sienaguisetup", version, ".exe", sep="", collapse=""); file2 <- paste("http://www.stats.ox.ac.uk/~ruth/", file1, sep="", collapse=""); file3 <- paste("inst/",file1, sep="", collapse="");download.file(file2,file3,mode="wb")}' | ${R_HOME}/bin/R --vanilla  --slave
+fi
 fi
 
 exit 0

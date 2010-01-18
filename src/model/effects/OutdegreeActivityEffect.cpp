@@ -57,24 +57,13 @@ double OutdegreeActivityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double OutdegreeActivityEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double OutdegreeActivityEffect::tieStatistic(int alter)
 {
-	int statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-
-	// Iterate over senders and sum up their outdegrees multiplied by
-	// the number of outgoing ties in the summation network.
-
-	for (int i = 0; i < pNetwork->n(); i++)
-	{
-		statistic +=
-			pNetwork->outDegree(i) * pSummationTieNetwork->outDegree(i);
-	}
-
-	return statistic;
+	return this->pNetwork()->outDegree(this->ego());
 }
 
 }

@@ -35,7 +35,7 @@ IndegreeEffect::IndegreeEffect(
  * the given actor would change his behavior by the given amount.
  */
 double IndegreeEffect::calculateChangeContribution(int actor,
-	int difference) const
+	int difference)
 {
 	// The formula for the effect:
 	// s_i(x) = v_i * indegree of i.
@@ -46,21 +46,14 @@ double IndegreeEffect::calculateChangeContribution(int actor,
 	return difference * this->pNetwork()->inDegree(actor);
 }
 
+
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given behavior variable.
+ * Returns the statistic corresponding to the given ego with respect to the
+ * given values of the behavior variable.
  */
-double IndegreeEffect::evaluationStatistic(double * currentValues) const
+double IndegreeEffect::egoStatistic(int ego, double * currentValues)
 {
-	double statistic = 0;
-	int n = this->n();
-
-	for (int i = 0; i < n; i++)
-	{
-		statistic += currentValues[i] * this->pNetwork()->inDegree(i);
-	}
-
-	return statistic;
+	return currentValues[ego] * this->pNetwork()->inDegree(ego);
 }
 
 
@@ -70,7 +63,7 @@ double IndegreeEffect::evaluationStatistic(double * currentValues) const
  * behavior variable and the current values.
  */
 double IndegreeEffect::endowmentStatistic(const int * difference,
-	double * currentValues) const
+	double * currentValues)
 {
 	double statistic = 0;
 	int n = this->n();

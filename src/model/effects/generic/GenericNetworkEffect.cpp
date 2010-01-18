@@ -72,29 +72,13 @@ double GenericNetworkEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double GenericNetworkEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double GenericNetworkEffect::tieStatistic(int alter)
 {
-	int n = pSummationTieNetwork->n();
-	Cache * pCache = this->pCache();
-	double statistic = 0;
-
-	for (int i = 0; i < n; i++)
-	{
-		pCache->initialize(i);
-		this->lpFunction->preprocessEgo(i);
-
-		for (IncidentTieIterator iter = pSummationTieNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			statistic += this->lpFunction->value(iter.actor());
-		}
-	}
-
-	return statistic;
+	return this->lpFunction->value(alter);
 }
 
 }

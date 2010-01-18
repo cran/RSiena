@@ -50,24 +50,45 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                 }
                 effects$initialValue <- defaultEffects$initialValue
             }
+            ## find any effects not included which are needed for interactions
+            interactionNos <- unique(c(effects$effect1, effects$effect2,
+                                       effects$effect3))
+            interactionNos <- interactionNos[interactionNos > 0]
+            interactionMainEffects <- effects[interactionNos, ]
+            effects$requested <- effects$include
+            requestedEffects <- effects[effects$include, ]
+
+            effects$include[interactionNos] <- TRUE
             effects <- effects[effects$include,]
-            ## should split and rejoin before continuing
-            effects1 <- split(effects, effects$name)
+
+            ## split and rejoin both versions before continuing
+            effects1 <- split(requestedEffects, requestedEffects$name)
             if (inherits(data, "sienaGroup"))
                 depvarnames <- names(data[[1]]$depvars)
             else
                 depvarnames <- names(data$depvars)
-            effects1order <- match(names(effects1), depvarnames)
+            effects1order <- match(depvarnames, names(effects1))
+            requestedEffects <- do.call(rbind, effects1[effects1order])
+            row.names(requestedEffects) <- 1:nrow(requestedEffects)
+            effects1 <- split(effects, effects$name)
+            effects1order <- match(depvarnames, names(effects1))
             effects <- do.call(rbind, effects1[effects1order])
             row.names(effects) <- 1:nrow(effects)
-            z$theta <- effects$initialValue
-            z$fixed <- effects$fix
-            z$test <- effects$test
+            z$theta <- requestedEffects$initialValue
+            z$fixed <- requestedEffects$fix
+            z$test <- requestedEffects$test
             z$pp <- length(z$test)
             z$posj <- rep(FALSE,z$pp)
-            z$posj[effects$basicRate] <- TRUE
+            z$posj[requestedEffects$basicRate] <- TRUE
             z$BasicRateFunction <- z$posj
             effects <- fixUpEffectNames(effects)
+
+            ## copy interaction names to the requested effects
+            requestedEffects$effectName <- effects[effects$requested,
+                                                   "effectName"]
+            requestedEffects$functionName <- effects[effects$requested,
+                                                   "functionName"]
+
             if (inherits(data, 'sienaGroup'))
             {
                 nGroup <- length(data)
@@ -111,8 +132,9 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                     else
                         z$symmetric <- FALSE
                     ## find the positions of basic rate effects for this network
-                    z$condvar <- (1:nrow(effects))[effects$name==z$condname][1:
-                                                   observations]
+                    z$condvar <-
+                        (1:nrow(requestedEffects))[requestedEffects$name==
+                                                   z$condname][1:observations]
                     z$theta<- z$theta[-z$condvar]
                     z$fixed<- z$fixed[-z$condvar]
                     z$test<- z$test[-z$condvar]
@@ -121,7 +143,8 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                     z$BasicRateFunction <- z$posj[-z$condvar]
                     z$posj <- z$posj[-z$condvar]
                     z$theta[z$posj] <-
-                        z$theta[z$posj] / effects$initialValue[z$condvar]
+                        z$theta[z$posj] /
+                            requestedEffects$initialValue[z$condvar]
                     z$ntim<- matrix(NA, nrow=x$n3, ncol=observations)
                 }
             }
@@ -150,13 +173,17 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                 attr(f, "change") <-
                     sapply(f, function(xx)attr(xx$depvars[[z$condname]],
                                                'distance'))
-                attr(f,"condEffects") <- effects[z$condvar,]
-                effects <- effects[-z$condvar, ]
+                attr(f,"condEffects") <- requestedEffects[z$condvar,]
+                effcondvar <-
+                    (1:nrow(effects))[effects$name==
+                                      z$condname][1:observations]
+                effects <- effects[-effcondvar, ]
+                requestedEffects <- requestedEffects[-z$condvar,]
             }
             ## see if we can use the original dfra
             if (!is.null(prevAns) && inherits(prevAns, "sienaFit"))
             {
-                if (all(rownames(prevAns$dfra) == effects$shortName)
+                if (all(rownames(prevAns$dfra) == requestedEffects$shortName)
                     && !is.null(prevAns$sf))
                 {
                     z$haveDfra <- TRUE
@@ -165,21 +192,23 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                     ## use thetas too, unless use standard values
                     if (!x$useStdInits)
                     {
-                        effects$initialValue <- prevAns$theta
+                        requestedEffects$initialValue <- prevAns$theta
                         if (!is.null(prevAns$condvar))
                         {
                             ## z$condvar has the subscripts of included
                             ## parameters
                             ## that correspond to the conditional variable
                             ## need to scale the other rates again
-                            effects$initialValue[z$posj] <-
-                                effects$initialValue[z$posj] / prevAns$rate
+                            requestedEffects$initialValue[z$posj] <-
+                                requestedEffects$initialValue[z$posj] /
+                                    prevAns$rate
                         }
-                        z$theta <- effects$initialValue
+                        z$theta <- requestedEffects$initialValue
                     }
                 }
             }
             z$effects <- effects
+            z$requestedEffects <- requestedEffects
         }
         else
         {
@@ -270,7 +299,7 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
         }
         ans <- .Call('interactionEffects', PACKAGE="RSiena",
                      pData, pModel, interactionEffects)
-        ## copy these pointer to the interaction effects and then rejoin
+        ## copy these pointers to the interaction effects and then rejoin
         for (i in 1:length(ans[[1]])) ## ans is a list of lists of
             ## pointers to effects. Each list corresponds to one
             ## dependent variable
@@ -282,6 +311,13 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             }
             myeffects[[i]] <- rbind(basicEffects[[i]], interactionEffects[[i]])
         }
+        ## remove the effects only created as underlying effects
+        ## for interaction effects
+        myeffects <- lapply(myeffects, function(x)
+                        {
+                            x[x$requested, ]
+                        }
+                            )
         if (!initC)
         {
             ans <- .Call('getTargets', PACKAGE="RSiena",
@@ -369,7 +405,7 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             z <- c(z, ans)
             TestOutput(z, x)
         }
-        dimnames(z$dfra)[[1]] <- as.list(z$effects$shortName)
+        dimnames(z$dfra)[[1]] <- as.list(z$requestedEffects$shortName)
         return(z)
     }
     ## iteration entry point
@@ -1259,13 +1295,13 @@ fixUpEffectNames <- function(effects)
 
     ##validate user-specified network interactions
     interactions <- effects[effects$shortName == "unspInt" &
-                            !is.na(effects$effect1), ]
+                            effects$effect1 > 0, ]
     if (nrow(interactions) > 0)
     {
         unspIntNames <- sapply(1:nrow(interactions), function(x, y, z)
            {
                y <- y[x, ] ## get the interaction effect
-               twoway <- is.na(y$effect3)
+               twoway <- y$effect3 == 0
                ## now get the rows which are to interact
                inter1 <- z[z$effectNumber == y$effect1, ]
                if (nrow(inter1) != 1 )
@@ -1296,6 +1332,11 @@ fixUpEffectNames <- function(effects)
                        stop("invalid interaction specification: ",
                             "must be same network")
                    }
+                   if (inter1$type != inter2$type)
+                   {
+                       stop("invalid interaction specification: ",
+                            "must be same type: evaluation or endowment")
+                   }
                }
                else
                {
@@ -1304,6 +1345,12 @@ fixUpEffectNames <- function(effects)
                    {
                        stop("invalid interaction specification:",
                             "must all be same network")
+                   }
+                   if (inter1$type != inter2$type ||
+                       inter1$type != inter3$type)
+                   {
+                       stop("invalid interaction specification:",
+                            "must all be same type: evaluation or endowment")
                    }
                }
                ## check types

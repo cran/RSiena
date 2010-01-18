@@ -37,23 +37,13 @@ double TransitiveTriadsEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double TransitiveTriadsEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double TransitiveTriadsEffect::tieStatistic(int alter)
 {
-	OneModeNetwork * pOneModeNetwork = (OneModeNetwork *) this->pNetwork();
-	int counter = 0;
-
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
-	{
-		counter +=
-			pOneModeNetwork->twoPathCount(iter.ego(), iter.alter());
-	}
-
-	return counter / 6.0;
+	return this->pTwoPathTable()->get(alter) / 6.0;
 }
 
 }

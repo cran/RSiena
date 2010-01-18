@@ -91,6 +91,16 @@ double BehaviorEffect::centeredValue(int actor) const
 
 
 /**
+ * Returns if the value of the behavioral variable is missing for the given
+ * actor at the specified observation.
+ */
+bool BehaviorEffect::missing(int observation, int actor) const
+{
+	return this->lpBehaviorData->missing(observation, actor);
+}
+
+
+/**
  * Returns the observed range of the respective behavior variable.
  */
 double BehaviorEffect::range() const
@@ -100,11 +110,68 @@ double BehaviorEffect::range() const
 
 
 /**
+ * Returns the centered similarity for the given values defined as
+ * 1 - |a - b| / range - similarityMean.
+ */
+double BehaviorEffect::similarity(double a, double b) const
+{
+	return this->lpBehaviorData->similarity(a, b);
+}
+
+
+/**
  * Returns the similarity mean value over all observations.
  */
 double BehaviorEffect::similarityMean() const
 {
 	return this->lpBehaviorData->similarityMean();
+}
+
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the evaluation function with respect to the given values of
+ * the behavior variable.
+ */
+double BehaviorEffect::evaluationStatistic(double * currentValues)
+{
+	double statistic = 0;
+	int n = this->n();
+
+	for (int i = 0; i < n; i++)
+	{
+		if (!this->missing(this->period(), i) &&
+			!this->missing(this->period() + 1, i))
+		{
+			statistic += this->egoStatistic(i, currentValues);
+		}
+	}
+
+	return statistic;
+}
+
+
+/**
+ * Returns the statistic corresponding to the given ego with respect to the
+ * given values of the behavior variable.
+ */
+double BehaviorEffect::egoStatistic(int ego, double * currentValues)
+{
+	throw runtime_error("egoStatistic not implemented for " +
+		this->pEffectInfo()->effectName());
+}
+
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function with respect to an initial behavior
+ * variable and the current state.
+ */
+double BehaviorEffect::endowmentStatistic(const int * difference,
+	double *currentValues)
+{
+	throw runtime_error("endowmentStatistic not implemented for " +
+		this->pEffectInfo()->effectName());
 }
 
 }

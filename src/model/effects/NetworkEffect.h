@@ -37,6 +37,8 @@ class Cache;
  */
 class NetworkEffect : public Effect
 {
+	friend class NetworkInteractionEffect;
+
 public:
 	NetworkEffect(const EffectInfo * pEffectInfo);
 
@@ -59,11 +61,19 @@ public:
 	 */
 	virtual double calculateContribution(int alter) const = 0;
 
-	virtual double evaluationStatistic() const;
-	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
+	virtual double evaluationStatistic();
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
+
+	virtual bool egoEffect() const;
 
 protected:
-	virtual double statistic(const Network * pSummationTieNetwork) const;
+	virtual double statistic(const Network * pSummationTieNetwork);
+	virtual void initializeStatisticCalculation();
+	virtual void onNextEgo(int ego);
+	virtual double egoStatistic(int ego,
+		const Network * pSummationTieNetwork);
+	virtual double tieStatistic(int alter);
+	virtual void cleanupStatisticCalculation();
 
 	inline ConfigurationTable * pTwoPathTable() const;
 	inline ConfigurationTable * pReverseTwoPathTable() const;

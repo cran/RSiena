@@ -49,6 +49,38 @@ EffectInfo::EffectInfo(string variableName,
 	this->linteractionName1 = interactionName1;
 	this->linteractionName2 = interactionName2;
 	this->lrateType = rateType;
+	this->lpEffectInfo1 = 0;
+	this->lpEffectInfo2 = 0;
+	this->lpEffectInfo3 = 0;
+}
+
+
+/**
+ * Creates a new interaction effect between two or three other effects.
+ * @param[in] variableName the name of the variable this effect is associated
+ * with
+ * @param[in] effectName the name of the effect
+ * @param[in] effectType the type of the effect ("rate", "eval", or "endow")
+ * @param[in] parameter the multiplicative weight of the effect
+ * @param[in] pEffect1 the first of the interacting effects
+ * @param[in] pEffect2 the second of the interacting effects
+ * @param[in] pEffect3 the third of the interacting effects (may be undefined)
+ */
+EffectInfo::EffectInfo(string variableName,
+	string effectName,
+	string effectType,
+	double parameter,
+	const EffectInfo * pEffect1,
+	const EffectInfo * pEffect2,
+	const EffectInfo * pEffect3)
+{
+	this->lvariableName = variableName;
+	this->leffectName = effectName;
+	this->leffectType = effectType;
+	this->lparameter = parameter;
+	this->lpEffectInfo1 = pEffect1;
+	this->lpEffectInfo2 = pEffect2;
+	this->lpEffectInfo3 = pEffect3;
 }
 
 
@@ -114,12 +146,52 @@ string EffectInfo::interactionName1() const
 
 
 /**
+ * Returns the name of the other variable or covariate this effect interacts with,
+ * if the effect has two such interactions.
+ */
+string EffectInfo::interactionName2() const
+{
+	return this->linteractionName2;
+}
+
+
+/**
  * Returns the type of rate effect of this effect. Blank if not a rate effect,
  * values "structural" or "covariate".
  */
 string EffectInfo::rateType() const
 {
 	return this->lrateType;
+}
+
+
+/**
+ * Returns the first of the interacting effects for a user-defined interaction
+ * effect.
+ */
+const EffectInfo * EffectInfo::pEffectInfo1() const
+{
+	return this->lpEffectInfo1;
+}
+
+
+/**
+ * Returns the second of the interacting effects for a user-defined interaction
+ * effect.
+ */
+const EffectInfo * EffectInfo::pEffectInfo2() const
+{
+	return this->lpEffectInfo2;
+}
+
+
+/**
+ * Returns the third of the interacting effects for a user-defined interaction
+ * effect.
+ */
+const EffectInfo * EffectInfo::pEffectInfo3() const
+{
+	return this->lpEffectInfo3;
 }
 
 }

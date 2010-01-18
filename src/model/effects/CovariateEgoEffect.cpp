@@ -35,23 +35,29 @@ double CovariateEgoEffect::calculateContribution(int alter) const
 
 
 /**
- * See the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double CovariateEgoEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double CovariateEgoEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
 
-	for (int i = 0; i < pSummationTieNetwork->n(); i++)
+	if (!this->missing(this->ego()))
 	{
-		if (!this->missing(i))
-		{
-			statistic +=
-				pSummationTieNetwork->outDegree(i) * this->value(i);
-		}
+		statistic = this->value(this->ego());
 	}
 
 	return statistic;
+}
+
+
+/**
+ * Returns if this effect is an ego effect.
+ */
+bool CovariateEgoEffect::egoEffect() const
+{
+	return true;
 }
 
 }

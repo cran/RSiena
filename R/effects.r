@@ -9,7 +9,7 @@
 # * effects object to go with a Siena data object or group object.
 # *****************************************************************************/
 ##@getEffects DataCreate
-getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
+getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
 {
     ##@duplicateDataFrameRow internal getEffects Put period numbers in
     duplicateDataFrameRow <- function(x, n)
@@ -259,7 +259,6 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
 
         ## get starting values
         starts <- getNetworkStartingVals(depvar)
-
         ##set defaults
         rateEffects[1:noPeriods, "include"] <- TRUE
         rateEffects[1:noPeriods, "initialValue"] <-  starts$startRate
@@ -268,18 +267,18 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
         objEffects$untrimmedValue <- rep(0, nrow(objEffects))
         if (attr(depvar,'symmetric'))
         {
-            objEffects[objEffects$effectName == "degree (density)" &
+            objEffects[objEffects$shortName == "density" &
                        objEffects$type == "eval",
                        c('include', "initialValue", "untrimmedValue")] <-
                            list(TRUE, starts$degree, starts$untrimmed)
-            objEffects[objEffects$effectName=='transitive triads' &
+            objEffects[objEffects$shortName=='transTriads' &
                        objEffects$type=='eval','include'] <- TRUE
         }
         else
         {
             if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
             {
-                objEffects[objEffects$effectName =='outdegree (density)'&
+                objEffects[objEffects$shortName == "density" &
                            objEffects$type == 'eval',
                            c('include', "initialValue", "untrimmedValue")] <-
                                list(TRUE, starts$degree, starts$untrimmed)
@@ -289,8 +288,8 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
                 objEffects <-
                     objEffects[!objEffects$shortName == "density", ]
             }
-            objEffects[objEffects$effectName == 'reciprocity'&
-                       objEffects$type == 'eval','include'] <- TRUE
+            objEffects[objEffects$shortName == 'recip'&
+                       objEffects$type == 'eval', 'include'] <- TRUE
         }
         rateEffects$basicRate[1:observations] <- TRUE
         list(effects=rbind(rateEffects = rateEffects, objEffects = objEffects),
@@ -391,7 +390,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
         }
         interaction <- createEffects("unspecifiedBehaviorInteraction",
                                      varname)
-        objEffects <- rbind(objEffects, interaction[rep(1, 4),])
+        objEffects <- rbind(objEffects, interaction[rep(1, behNintn),])
 
         ## now create the real effects, extra rows for endowment effects etc
         objEffects <- createObjEffectList(objEffects, varname)
@@ -442,7 +441,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
 
         objEffects <- createEffects("bipartiteObjective", varname)
 
-       for (j in seq(along = xx$dycCovars))
+        for (j in seq(along = xx$dycCovars))
         {
             if (all(nodeSets == attr(xx$dycCovars[[j]], 'nodeSet')))
             {
@@ -464,7 +463,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
         {
             covNodeset <- match(attr(xx$cCovars[[j]], "nodeSet"),
                                 nodeSets)
-            if (covNodeset > 0)
+            if (!is.na(covNodeset))
             {
                 tmp <- covarBipartiteEff(names(xx$cCovars)[j],
                                       attr(xx$cCovars[[j]],
@@ -482,7 +481,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
             {
                 covNodeset <- match(attr(xx$depvars[[j]], "nodeSet"),
                                     nodeSets)
-                if (covNodeset > 0)
+                if (!is.na(covNodeset))
                 {
                     tmp <- covarBipartiteEff(names(xx$depvars)[j],
                                            poszvar=TRUE,
@@ -498,7 +497,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
         {
             covNodeset <- match(attr(xx$vCovars[[j]], "nodeSet"),
                                 nodeSets)
-            if (covNodeset > 0)
+            if (!is.na(covNodeset))
             {
                 tmp <- covarBipartiteEff(names(xx$vCovars)[j],
                                         attr(xx$vCovars[[j]],
@@ -574,7 +573,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
 
         if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
         {
-            objEffects[objEffects$effectName =='outdegree (density)' &
+            objEffects[objEffects$shortName =='density' &
                        objEffects$type == 'eval',
                        c('include', 'initialValue', 'untrimmedValue')] <-
                            list(TRUE, starts$degree, starts$untrimmed)
@@ -633,6 +632,7 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
     ##@covarBipartiteEff internal getEffects
     covarBipartiteEff<- function(covarname, poszvar, moreThan2, nodesetNbr)
     {
+        covRateEffects  <-  NULL
         if (nodesetNbr == 1)
         {
             covObjEffects <-
@@ -686,12 +686,12 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
                 }
             }
         }
-        if (!is.null(covObjEffects))
-        {
-            usestr <- paste("effFrom", type, sep="")
-            covObjEffects$shortName <-
-                sub("effFrom", usestr, covObjEffects$shortName)
-        }
+     #   if (!is.null(covObjEffects))
+     #   {
+     #       usestr <- paste("effFrom", type, sep="")
+     #       covObjEffects$shortName <-
+     #           sub("effFrom", usestr, covObjEffects$shortName)
+     #   }
 
         list(objEff=covObjEffects, rateEff=covRateEffects)
     }
@@ -927,8 +927,8 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
                        attr(effects[[eff]], "starts")$prec <-  prec
                        if (attr(depvar, 'symmetric'))
                        {
-                           effects[[eff]][effects[[eff]]$effectName ==
-                                          'degree (density)' &
+                           effects[[eff]][effects[[eff]]$shortName ==
+                                          'density' &
                                           effects[[eff]]$type == 'eval',
                                           c('initialValue','untrimmedValue')] <-
                                               list(degree, untrimmed)
@@ -937,8 +937,8 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
                        {
                            if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
                            {
-                               effects[[eff]][effects[[eff]]$effectName ==
-                                              'outdegree (density)' &
+                               effects[[eff]][effects[[eff]]$shortName ==
+                                              'density' &
                                               effects[[eff]]$type == 'eval',
                                               c('initialValue',
                                                 "untrimmedValue")] <-
@@ -980,8 +980,8 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
                        attr(effects[[eff]], "starts")$prec <-  prec
                        if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
                        {
-                           effects[[eff]][effects[[eff]]$effectName ==
-                                          'outdegree (density)' &
+                           effects[[eff]][effects[[eff]]$shortName ==
+                                          'density' &
                                           effects[[eff]]$type == 'eval',
                                           c('initialValue',
                                             "untrimmedValue")] <-
@@ -1004,6 +1004,14 @@ getEffects<- function(x, nintn = 10, getDocumentation=FALSE)
         class(effects) <- c('sienaGroupEffects','sienaEffects', cl)
     else
         class(effects) <- c('sienaEffects', cl)
+    myrownames <- paste(sapply(strsplit(row.names(effects), ".", fixed=TRUE),
+                               function(x)paste(x[1:2], collapse='.')),
+                        effects$type, sep='.')
+    myrownames <- paste(myrownames,
+                         as.vector(unlist(sapply(table(myrownames),
+                                                 function(x)1:x))), sep=".")
+    myrownames <- sub("Effects", "", myrownames)
+
     effects
 }
 ##@getBehaviorStartingVals DataCreate

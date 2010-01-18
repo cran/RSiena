@@ -35,7 +35,7 @@ AverageAlterEffect::AverageAlterEffect(
  * the given actor would change his behavior by the given amount.
  */
 double AverageAlterEffect::calculateChangeContribution(int actor,
-	int difference) const
+	int difference)
 {
 	double contribution = 0;
 	const Network * pNetwork = this->pNetwork();
@@ -49,17 +49,17 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 		// This is d * avg(v_j), the average being taken over all neighbors
 		// of i. This is what is calculated below.
 
-		double averageAlterChange = 0;
+		double totalAlterValue = 0;
 
 		for (IncidentTieIterator iter = pNetwork->outTies(actor);
 			iter.valid();
 			iter.next())
 		{
 			double alterValue = this->centeredValue(iter.actor());
-			averageAlterChange += alterValue;
+			totalAlterValue += alterValue;
 		}
 
-		contribution = difference * averageAlterChange /
+		contribution = difference * totalAlterValue /
 			pNetwork->outDegree(actor);
 	}
 
@@ -68,36 +68,37 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function with respect to the given behavior variable.
+ * Returns the statistic corresponding to the given ego with respect to the
+ * given values of the behavior variable.
  */
-double AverageAlterEffect::evaluationStatistic(double * currentValues) const
+double AverageAlterEffect::egoStatistic(int i, double * currentValues)
 {
 	double statistic = 0;
-	int n = this->n();
 	const Network * pNetwork = this->pNetwork();
+	int neighborCount = 0;
 
-	for (int i = 0; i < n; i++)
+	for (IncidentTieIterator iter = pNetwork->outTies(i);
+		 iter.valid();
+		 iter.next())
 	{
-		if (pNetwork->outDegree(i))
+		int j = iter.actor();
+
+		if (!this->missing(this->period(), j) &&
+			!this->missing(this->period() + 1, j))
 		{
-			double thisStatistic = 0;
-
-			for (IncidentTieIterator iter = pNetwork->outTies(i);
-				 iter.valid();
-				 iter.next())
-			{
-				double alterValue = currentValues[iter.actor()];
-				thisStatistic += iter.value() *	alterValue;
-			}
-
-			thisStatistic *= currentValues[i] / pNetwork->outDegree(i);
-			statistic += thisStatistic;
+			statistic += currentValues[j];
+			neighborCount++;
 		}
+	}
+
+	if (neighborCount > 0)
+	{
+		statistic *= currentValues[i] / neighborCount;
 	}
 
 	return statistic;
 }
+
 
 
 /**
@@ -106,7 +107,7 @@ double AverageAlterEffect::evaluationStatistic(double * currentValues) const
  * behavior variable and the current values.
  */
 double AverageAlterEffect::endowmentStatistic(const int * difference,
-	double * currentValues) const
+	double * currentValues)
 {
 	double statistic = 0;
 	int n = this->n();

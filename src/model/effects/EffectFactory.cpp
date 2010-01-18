@@ -39,7 +39,34 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	Effect * pEffect = 0;
 	string effectName = pEffectInfo->effectName();
 
-	if (effectName == "density")
+	// Handle the user-defined interaction effects first.
+
+	if (pEffectInfo->pEffectInfo1())
+	{
+		// The info object of the first interacting effect is defined,
+		// which means that we have a user-defined interaction effect.
+
+		NetworkEffect * pEffect1 =
+			dynamic_cast<NetworkEffect *>(
+				this->createEffect(pEffectInfo->pEffectInfo1()));
+		NetworkEffect * pEffect2 =
+			dynamic_cast<NetworkEffect *>(
+				this->createEffect(pEffectInfo->pEffectInfo2()));
+		NetworkEffect * pEffect3 = 0;
+
+		if (pEffectInfo->pEffectInfo3())
+		{
+			pEffect3 =
+				dynamic_cast<NetworkEffect *>(
+					this->createEffect(pEffectInfo->pEffectInfo3()));
+		}
+
+		pEffect = new NetworkInteractionEffect(pEffectInfo,
+			pEffect1,
+			pEffect2,
+			pEffect3);
+	}
+	else if (effectName == "density")
 	{
 		pEffect = new DensityEffect(pEffectInfo);
 	}
@@ -83,10 +110,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new DistanceTwoEffect(pEffectInfo, 2);
 	}
-//	else if (effectName == "denseTriads")
-//	{
-//		pEffect = new DenseTriadsEffect(pEffectInfo);
-//	}
+	else if (effectName == "denseTriads")
+	{
+		pEffect = new DenseTriadsEffect(pEffectInfo);
+	}
 	else if (effectName == "inPop")
 	{
 		pEffect = new IndegreePopularityEffect(pEffectInfo, false);
@@ -187,6 +214,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new SameCovariateEffect(pEffectInfo, false);
 	}
+	else if (effectName == "higher")
+	{
+		pEffect = new HigherCovariateEffect(pEffectInfo);
+	}
 	else if (effectName == "sameXRecip")
 	{
 		pEffect = new SameCovariateEffect(pEffectInfo, true);
@@ -199,10 +230,14 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new CovariateEgoAlterEffect(pEffectInfo, true);
 	}
-//	else if (effectName == "IndTies")
-//	{
-//		pEffect = new CovariateIndirectTiesEffect(pEffectInfo);
-//	}
+	else if (effectName == "IndTies")
+	{
+		pEffect = new CovariateIndirectTiesEffect(pEffectInfo);
+	}
+	else if (effectName == "4-cycles")
+	{
+		pEffect = new FourCyclesEffect(pEffectInfo);
+	}
 	else if (effectName == "linear")
 	{
 		pEffect = new LinearShapeEffect(pEffectInfo);
@@ -213,15 +248,11 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "avSim")
 	{
-		pEffect = new AverageSimilarityEffect(pEffectInfo);
+		pEffect = new SimilarityEffect(pEffectInfo, true, false, false);
 	}
 	else if (effectName == "totSim")
 	{
-		pEffect = new TotalSimilarityEffect(pEffectInfo);
-	}
-	else if (effectName == "avAlt")
-	{
-		pEffect = new AverageAlterEffect(pEffectInfo);
+		pEffect = new SimilarityEffect(pEffectInfo, false, false, false);
 	}
 	else if (effectName == "indeg")
 	{
@@ -231,21 +262,69 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new OutdegreeEffect(pEffectInfo);
 	}
+	else if (effectName == "isolate")
+	{
+		pEffect = new IsolateEffect(pEffectInfo);
+	}
+	else if (effectName == "avSimRecip")
+	{
+		pEffect = new ReciprocatedSimilarityEffect(pEffectInfo, true, false);
+	}
+	else if (effectName == "totSimRecip")
+	{
+		pEffect = new ReciprocatedSimilarityEffect(pEffectInfo, false, false);
+	}
+	else if (effectName == "avSimPopAlt")
+	{
+		pEffect = new SimilarityEffect(pEffectInfo, true, true, false);
+	}
+	else if (effectName == "totSimPopAlt")
+	{
+		pEffect = new SimilarityEffect(pEffectInfo, false, true, false);
+	}
+	else if (effectName == "popAlt")
+	{
+		pEffect = new PopularityAlterEffect(pEffectInfo);
+	}
+	else if (effectName == "avSimRecPop")
+	{
+		pEffect = new ReciprocatedSimilarityEffect(pEffectInfo, true, true);
+	}
+	else if (effectName == "totSimRecPop")
+	{
+		pEffect = new ReciprocatedSimilarityEffect(pEffectInfo, false, true);
+	}
+	else if (effectName == "avAlt")
+	{
+		pEffect = new AverageAlterEffect(pEffectInfo);
+	}
+	else if (effectName == "avRecAlt")
+	{
+		pEffect = new AverageReciprocatedAlterEffect(pEffectInfo);
+	}
+	else if (effectName == "behDenseTriads")
+	{
+		pEffect = new DenseTriadsBehaviorEffect(pEffectInfo);
+	}
+	else if (effectName == "simDenseTriads")
+	{
+		pEffect = new DenseTriadsSimilarityEffect(pEffectInfo);
+	}
+	else if (effectName == "recipDeg")
+	{
+		pEffect = new ReciprocalDegreeBehaviorEffect(pEffectInfo);
+	}
+	else if (effectName == "avSimPopEgo")
+	{
+		pEffect = new SimilarityEffect(pEffectInfo, true, false, true);
+	}
 	else if (effectName == "effFrom")
 	{
-		pEffect = new ConstantCovariateMainBehaviorEffect(pEffectInfo);
+		pEffect = new MainCovariateEffect(pEffectInfo);
 	}
-	else if (effectName == "effFromVar")
+	else if (effectName == "inflIntX")
 	{
-		pEffect = new ChangingCovariateMainBehaviorEffect(pEffectInfo);
-	}
-	else if (effectName == "effFromBeh")
-	{
-		pEffect = new BehaviorMainBehaviorEffect(pEffectInfo);
-	}
-	else if (effectName == "4-cycles")
-	{
-		pEffect = new FourCyclesEffect(pEffectInfo);
+		pEffect = new InteractionCovariateEffect(pEffectInfo);
 	}
 	else
 	{

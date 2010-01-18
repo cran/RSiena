@@ -45,21 +45,17 @@ double DyadicCovariateMainEffect::calculateContribution(int alter) const
 
 
 /**
- * See the base class for a detailed comment.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double DyadicCovariateMainEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double DyadicCovariateMainEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
 
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
+	if (!this->missing(this->ego(), alter))
 	{
-		if (!this->missing(iter.ego(), iter.alter()))
-		{
-			statistic += this->value(iter.ego(), iter.alter());
-		}
+		statistic = this->value(this->ego(), alter);
 	}
 
 	return statistic;

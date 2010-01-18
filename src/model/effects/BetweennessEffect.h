@@ -28,7 +28,17 @@ public:
 	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(const Network * pSummationTieNetwork) const;
+	virtual void initializeStatisticCalculation();
+	virtual void onNextEgo(int ego);
+	virtual double tieStatistic(int alter);
+	virtual void cleanupStatisticCalculation();
+
+private:
+	// Helper array of marks for statistic calculations
+
+	int * lmark;
+	int lcurrentMark;
+	int lbaseMark;
 };
 
 }

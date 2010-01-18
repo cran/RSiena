@@ -26,8 +26,17 @@ public:
 	CovariateIndirectTiesEffect(const EffectInfo * pEffectInfo);
 
 	virtual double calculateContribution(int alter) const;
-	virtual double evaluationStatistic() const;
-	virtual double endowmentStatistic(Network * pLostTieNetwork) const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
+
+protected:
+	virtual void initializeStatisticCalculation();
+	virtual double egoStatistic(int ego,
+		const Network * pSummationTieNetwork);
+	virtual void cleanupStatisticCalculation();
+
+private:
+	// A helper array of marks for statistic calculation
+	int * lmark;
 };
 
 }

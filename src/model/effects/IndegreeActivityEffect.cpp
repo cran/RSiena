@@ -48,31 +48,19 @@ double IndegreeActivityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class for a detailed comment.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double IndegreeActivityEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double IndegreeActivityEffect::tieStatistic(int alter)
 {
-	// A one-mode network is assumed
-
-	double statistic = 0;
 	const Network * pNetwork = this->pNetwork();
+	int inDegree = pNetwork->inDegree(this->ego());
+	double statistic = inDegree;
 
-	// Iterate over all actors and sum up their indegrees x outdegree
-	// products (the outdegrees should be taken from the summation network
-	// to support endowment effects).
-
-	for (int i = 0; i < pNetwork->n(); i++)
+	if (this->lroot)
 	{
-		double indegreeContribution = pNetwork->inDegree(i);
-
-		if (this->lroot)
-		{
-			indegreeContribution =
-				this->lsqrtTable->sqrt(indegreeContribution);
-		}
-
-		statistic += indegreeContribution * pSummationTieNetwork->outDegree(i);
+		statistic = this->lsqrtTable->sqrt(inDegree);
 	}
 
 	return statistic;

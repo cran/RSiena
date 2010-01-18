@@ -55,62 +55,19 @@ double SameCovariateEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double SameCovariateEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double SameCovariateEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
 
-	for (int i = 0; i < n; i++)
+	if (!this->missing(this->ego()) && !this->missing(alter) &&
+		(!this->lreciprocal || this->inTieExists(alter)) &&
+		fabs(this->value(alter) - this->value(this->ego())) < EPSILON)
 	{
-		if (!this->missing(i))
-		{
-			double egoValue = this->value(i);
-
-			// TODO: This is not very elegant. If CommonNeighborIterator and
-			// IncidentTieIterator had a common base class, we could join the
-			// cycles below.
-
-			if (this->lreciprocal)
-			{
-				CommonNeighborIterator iter(pSummationTieNetwork->outTies(i),
-					pNetwork->inTies(i));
-
-				while (iter.valid())
-				{
-					if (!this->missing(iter.actor()))
-					{
-						if (fabs(this->value(iter.actor()) - egoValue) <
-							EPSILON)
-						{
-							statistic++;
-						}
-					}
-
-					iter.next();
-				}
-			}
-			else
-			{
-				for (IncidentTieIterator iter =
-						pSummationTieNetwork->outTies(i);
-					iter.valid();
-					iter.next())
-				{
-					if (!this->missing(iter.actor()))
-					{
-						if (fabs(this->value(iter.actor()) - egoValue) <
-							EPSILON)
-						{
-							statistic++;
-						}
-					}
-				}
-			}
-		}
+		statistic = 1;
 	}
 
 	return statistic;

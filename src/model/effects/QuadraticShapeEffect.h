@@ -26,10 +26,10 @@ public:
 	QuadraticShapeEffect(const EffectInfo * pEffectInfo);
 
 	virtual double calculateChangeContribution(int actor,
-		int difference) const;
-	virtual double evaluationStatistic(double * currentValues) const;
+		int difference);
 	virtual double endowmentStatistic(const int * difference,
-		double * currentValues) const;
+		double * currentValues);
+	virtual double egoStatistic(int ego, double * currentValues);
 };
 
 }

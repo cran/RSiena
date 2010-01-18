@@ -29,7 +29,7 @@ public:
 	virtual double calculateContribution(int alter) const;
 
 protected:
-	virtual double statistic(const Network * pSummationTieNetwork) const;
+	virtual double tieStatistic(int alter);
 };
 
 }

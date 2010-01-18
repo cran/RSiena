@@ -53,37 +53,24 @@ double IndegreePopularityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class for a detailed comment.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double IndegreePopularityEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double IndegreePopularityEffect::tieStatistic(int alter)
 {
-	double statistic = 0;
 	const Network * pNetwork = this->pNetwork();
+	int degree = pNetwork->inDegree(alter);
+	double statistic;
 
-	// Iterate over receivers and sum up their indegrees (or roots of
-	// indegrees) multiplied by the number of incoming summation ties.
-
-	for (int i = 0; i < pNetwork->m(); i++)
+	if (this->lroot)
 	{
-		int degree = pNetwork->inDegree(i);
-
-		if (this->lroot)
-		{
-			statistic +=
-				pSummationTieNetwork->inDegree(i) *
-					this->lsqrtTable->sqrt(degree);
-		}
-		else
-		{
-			statistic += pSummationTieNetwork->inDegree(i) * degree;
-		}
+		statistic = this->lsqrtTable->sqrt(degree);
 	}
-
-	if (!this->lroot)
+	else
 	{
 		// TODO: Why do we multiply by the number of senders? Ask Tom.
-		statistic *= pNetwork->n();
+		statistic = degree * pNetwork->n();
 	}
 
 	return statistic;

@@ -18,18 +18,20 @@ bof <- NULL
 cf <- NULL
 
 ##@Reportfun Reporting Part of global mechanism
-Reportfun<- function(x, verbose = FALSE)
+Reportfun<- function(x, verbose = FALSE, silent=FALSE)
 {
     x <- x
     beverbose <- verbose
+    besilent <- silent
     function(txt, dest, fill=FALSE, sep=" ", hdest,
              open=FALSE, close=FALSE,
-             type=c("a", "w"),  projname="Siena" , verbose=FALSE)
+             type=c("a", "w"),  projname="Siena" , verbose=FALSE, silent=FALSE)
     {
         if (open)
         {
             type <- match.arg(type)
             beverbose <<- verbose
+            besilent <<- silent
             if (type =='w')
             {
                 x$outf <<- file(paste(projname, ".out", sep=""), open="w")
@@ -48,7 +50,10 @@ Reportfun<- function(x, verbose = FALSE)
         {
             if (missing(dest) && missing(hdest))
             {
-                cat(txt, fill = fill, sep = sep)
+                if (!besilent)
+                {
+                    cat(txt, fill = fill, sep = sep)
+                }
             }
             else
             {
@@ -87,8 +92,9 @@ Reportfun<- function(x, verbose = FALSE)
 }
 
 ##@Report Globals
-Report <- local({verbose <-  NULL;
-                 Reportfun(list(outf=outf, lf=lf, cf=cf, bof=bof), verbose)})
+Report <- local({verbose <-  NULL; silent <- NULL;
+                 Reportfun(list(outf=outf, lf=lf, cf=cf, bof=bof), verbose,
+                           silent)})
 ##@UserInterrupt Siena07/GlobalFunctions Global (within siena07)
 UserInterrupt <- local({A <-  FALSE;function(x){if (!missing(x))A<<-x;A}})
 ##@EarlyEndPhase2 siena07/GlobalFunctions

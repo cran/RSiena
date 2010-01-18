@@ -11,8 +11,8 @@
 ## ****************************************************************************/
 
 ##@siena07 siena07
-siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
-                   nbrNodes = 2, initC=FALSE,
+siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
+                   useCluster = FALSE, nbrNodes = 2, initC=FALSE,
                    clusterString=rep("localhost", nbrNodes), tt=NULL,
                    parallelTesting=FALSE, ...)
 {
@@ -81,7 +81,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, useCluster = FALSE,
     is.batch(batch)
 
     ## open the output file
-    Report(open=TRUE, projname=x$projname, verbose=verbose)
+    Report(open=TRUE, projname=x$projname, verbose=verbose, silent=silent)
     InitReports(seed, newseed)
 
     ## reset the globals for interrupts

@@ -54,22 +54,17 @@ double TransitiveTiesEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double TransitiveTiesEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double TransitiveTiesEffect::tieStatistic(int alter)
 {
-	OneModeNetwork * pOneModeNetwork = (OneModeNetwork *) this->pNetwork();
 	int statistic = 0;
 
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
+	if (this->pTwoPathTable()->get(alter) > 0)
 	{
-		if (pOneModeNetwork->twoPathCount(iter.ego(), iter.alter()) > 0)
-		{
-			statistic++;
-		}
+		statistic = 1;
 	}
 
 	// TODO: Shouldn't we divide by 2 for symmetric networks?

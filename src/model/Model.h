@@ -64,6 +64,13 @@ public:
 		string interactionName1 = "",
 		string interactionName2 = "",
 		string rateType = "");
+	EffectInfo * addInteractionEffect(string variableName,
+		string effectName,
+		string effectType,
+		double parameter,
+		const EffectInfo * pEffect1,
+		const EffectInfo * pEffect2,
+		const EffectInfo * pEffect3 = 0);
 
 	const vector<EffectInfo *> & rRateEffects(string variableName) const;
 	const vector<EffectInfo *> & rEvaluationEffects(string variableName) const;

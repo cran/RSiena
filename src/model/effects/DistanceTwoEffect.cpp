@@ -83,128 +83,144 @@ double DistanceTwoEffect::calculateContribution(int alter) const
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function.
+ * This method is called at the start of the calculation of the statistic.
  */
-double DistanceTwoEffect::evaluationStatistic() const
+void DistanceTwoEffect::initializeStatisticCalculation()
 {
-	int statistic = 0;
 	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
+
+	// A helper array of marks
+
+	this->lmark = new int[n];
+
+	for (int i = 0; i < n; i++)
+	{
+		this->lmark[i] = 0;
+	}
+}
+
+
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void DistanceTwoEffect::cleanupStatisticCalculation()
+{
+	delete[] this->lmark;
+}
+
+
+/**
+ * Calculates the statistic corresponding to the given ego. The parameter
+ * pNetwork is always the current network as there are no endowment effects
+ * of this kind.
+ */
+double DistanceTwoEffect::egoStatistic(int ego,
+	const Network * pNetwork)
+{
+	double statistic = 0;
+	int n = pNetwork->n();
+
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());
 	const Network * pEndMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period() + 1);
 
-	// A helper array of marks
+	int i = ego;
 
-	int * mark = new int[n];
+	// Invariant: mark[h] <= baseMark for all h.
+	int baseMark = n * i;
 
-	for (int i = 0; i < n; i++)
+	// Count the number of two-paths from i to each h by setting
+	// mark[h] = baseMark + <number of two-paths from i to h>.
+	// If there are no two-paths from i to h, we leave mark[h] <= baseMark.
+
+	for (IncidentTieIterator iterI = pNetwork->outTies(i);
+		iterI.valid();
+		iterI.next())
 	{
-		mark[i] = 0;
+		int j = iterI.actor();
+
+		for (IncidentTieIterator iterJ = pNetwork->outTies(j);
+			iterJ.valid();
+			iterJ.next())
+		{
+			int h = iterJ.actor();
+
+			if (this->lmark[h] <= baseMark)
+			{
+				// We have encountered this actor for the first time.
+				this->lmark[h] = baseMark + 1;
+			}
+			else
+			{
+				// We've found yet another two-path from i to h.
+				this->lmark[h]++;
+			}
+
+			if (this->lmark[h] == baseMark + this->lrequiredTwoPathCount)
+			{
+				// We've reached the necessary minimum of two-paths, hence
+				// a new candidate for a distance-two pair is found.
+
+				statistic++;
+			}
+		}
 	}
 
-	// Count the number of distance two pairs <i,h> for each i.
+	// Okay, if there's a tie (i,h) then <i,h> cannot possibly be a
+	// distance two pair. Hence we iterate over outgoing ties (i,h) of i,
+	// and if the actor h has enough two-paths, we unmark it and decrement
+	// the statistic.
 
-	for (int i = 0; i < n; i++)
+	for (IncidentTieIterator iter = pNetwork->outTies(i);
+		iter.valid();
+		iter.next())
 	{
-		// Invariant: mark[h] <= baseMark for all h.
-		int baseMark = n * i;
+		int h = iter.actor();
 
-		// Count the number of two-paths from i to each h by setting
-		// mark[h] = baseMark + <number of two-paths from i to h>.
-		// If there are no two-paths from i to h, we leave mark[h] <= baseMark.
-
-		for (IncidentTieIterator iterI = pNetwork->outTies(i);
-			iterI.valid();
-			iterI.next())
+		if (this->lmark[h] >= baseMark + this->lrequiredTwoPathCount)
 		{
-			int j = iterI.actor();
-
-			for (IncidentTieIterator iterJ = pNetwork->outTies(j);
-				iterJ.valid();
-				iterJ.next())
-			{
-				int h = iterJ.actor();
-
-				if (mark[h] <= baseMark)
-				{
-					// We have encountered this actor for the first time.
-					mark[h] = baseMark + 1;
-				}
-				else
-				{
-					// We've found yet another two-path from i to h.
-					mark[h]++;
-				}
-
-				if (mark[h] == baseMark + this->lrequiredTwoPathCount)
-				{
-					// We've reached the necessary minimum of two-paths, hence
-					// a new candidate for a distance-two pair is found.
-
-					statistic++;
-				}
-			}
-		}
-
-		// Okay, if there's a tie (i,h) then <i,h> cannot possibly be a
-		// distance two pair. Hence we iterate over outgoing ties (i,h) of i,
-		// and if the actor h has enough two-paths, we unmark it and decrement
-		// the statistic.
-
-		for (IncidentTieIterator iter = pNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] >= baseMark + this->lrequiredTwoPathCount)
-			{
-				mark[h] = 0;
-				statistic--;
-			}
-		}
-
-		// We do a similar fix for missing ties (i,h) at either end of
-		// the period.
-
-		for (IncidentTieIterator iter = pStartMissingNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] >= baseMark + this->lrequiredTwoPathCount)
-			{
-				mark[h] = 0;
-				statistic--;
-			}
-		}
-
-		for (IncidentTieIterator iter = pEndMissingNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] >= baseMark + this->lrequiredTwoPathCount)
-			{
-				mark[h] = 0;
-				statistic--;
-			}
-		}
-
-		// Ignore the trivial pair <i,i>.
-
-		if (mark[i] >= baseMark + this->lrequiredTwoPathCount)
-		{
+			this->lmark[h] = 0;
 			statistic--;
 		}
 	}
 
-	delete[] mark;
+	// We do a similar fix for missing ties (i,h) at either end of
+	// the period.
+
+	for (IncidentTieIterator iter = pStartMissingNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		int h = iter.actor();
+
+		if (this->lmark[h] >= baseMark + this->lrequiredTwoPathCount)
+		{
+			this->lmark[h] = 0;
+			statistic--;
+		}
+	}
+
+	for (IncidentTieIterator iter = pEndMissingNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		int h = iter.actor();
+
+		if (this->lmark[h] >= baseMark + this->lrequiredTwoPathCount)
+		{
+			this->lmark[h] = 0;
+			statistic--;
+		}
+	}
+
+	// Ignore the trivial pair <i,i>.
+
+	if (this->lmark[i] >= baseMark + this->lrequiredTwoPathCount)
+	{
+		statistic--;
+	}
 
 	// For symmetric networks, we don't want to count each distance 2
 	// pair twice.
@@ -231,7 +247,7 @@ double DistanceTwoEffect::evaluationStatistic() const
  * Returns the statistic corresponding to this effect as part of
  * the endowment function.
  */
-double DistanceTwoEffect::endowmentStatistic(Network * pLostTieNetwork) const
+double DistanceTwoEffect::endowmentStatistic(Network * pLostTieNetwork)
 {
 	throw logic_error(
 		"Endowment effect not supported for distance 2 effects.");

@@ -9,7 +9,7 @@
  data for the model must be passed in using named arguments as the \code{...}.
 (See examples)}
 \usage{
-siena07(x, batch=FALSE, verbose=FALSE, useCluster=FALSE,
+siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE, useCluster=FALSE,
 nbrNodes=2, initC=FALSE, clusterString=rep("localhost", nbrNodes),
 tt=NULL, parallelTesting=FALSE, ...)
 }
@@ -18,6 +18,8 @@ tt=NULL, parallelTesting=FALSE, ...)
   \item{batch}{ Desired interface: 'batch' is a small amount of printout
 	to the  console}
   \item{verbose}{Produces various output to the console if TRUE}
+  \item{silent}{Produces no output to the console if TRUE, even if batch
+  mode}
   \item{useCluster}{Boolean: whether to use a cluster of processes}
   \item{nbrNodes}{Number of processes to use if useCluster is TRUE}
   \item{initC}{Boolean: set to TRUE if the simulation will use C

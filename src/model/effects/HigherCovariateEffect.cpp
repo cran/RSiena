@@ -49,43 +49,21 @@ double HigherCovariateEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double HigherCovariateEffect::statistic(const Network * pSummationTieNetwork)
-	const
+double HigherCovariateEffect::tieStatistic(int alter)
 {
 	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
 
-	for (int i = 0; i < n; i++)
+	if (this->missing(this->ego()) || this->missing(alter))
 	{
-		if (this->missing(i))
-		{
-			// A contribution of 0.5 per each tie.
-			statistic += pSummationTieNetwork->outDegree(i) * 0.5;
-		}
-		else
-		{
-			double egoValue = this->value(i);
-
-			for (IncidentTieIterator iter = pSummationTieNetwork->outTies(i);
-				iter.valid();
-				iter.next())
-			{
-				if (this->missing(iter.actor()))
-				{
-					statistic += 0.5;
-				}
-				else
-				{
-					if (egoValue > this->value(iter.actor()))
-					{
-						statistic++;
-					}
-				}
-			}
-		}
+		statistic = 0.5;
+	}
+	else if (this->value(this->ego()) > this->value(alter))
+	{
+		statistic = 1;
 	}
 
 	return statistic;

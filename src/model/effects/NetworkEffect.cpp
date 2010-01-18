@@ -12,6 +12,8 @@
 #include <stdexcept>
 
 #include "NetworkEffect.h"
+#include "network/Network.h"
+#include "network/IncidentTieIterator.h"
 #include "data/NetworkLongitudinalData.h"
 #include "model/State.h"
 #include "model/EpochSimulation.h"
@@ -119,7 +121,7 @@ bool NetworkEffect::inTieExists(int alter) const
  * Returns the statistic corresponding to this effect as part of
  * the evaluation function.
  */
-double NetworkEffect::evaluationStatistic() const
+double NetworkEffect::evaluationStatistic()
 {
 	return this->statistic(this->pNetwork());
 }
@@ -129,9 +131,19 @@ double NetworkEffect::evaluationStatistic() const
  * Returns the statistic corresponding to this effect as part of
  * the endowment function.
  */
-double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork) const
+double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork)
 {
 	return this->statistic(pLostTieNetwork);
+}
+
+
+/**
+ * Returns if this effect is an ego effect.
+ */
+bool NetworkEffect::egoEffect() const
+{
+	// Not an ego effect by default.
+	return false;
 }
 
 
@@ -145,10 +157,83 @@ double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork) const
  * For endowment function, X is the initial network of the period, and Y is the
  * network of ties that have been lost during the network evolution.
  */
-double NetworkEffect::statistic(const Network * pSummationTieNetwork) const
+double NetworkEffect::statistic(const Network * pSummationTieNetwork)
 {
-	// Nothing in the base class.
-	return 0;
+	this->initializeStatisticCalculation();
+
+	int n = pSummationTieNetwork->n();
+	Cache * pCache = this->pCache();
+	double statistic = 0;
+
+	for (int i = 0; i < n; i++)
+	{
+		pCache->initialize(i);
+		this->preprocessEgo(i);
+		this->onNextEgo(i);
+		statistic += this->egoStatistic(i, pSummationTieNetwork);
+	}
+
+	this->cleanupStatisticCalculation();
+
+	return statistic;
+}
+
+
+/**
+ * Calculates the statistic corresponding to the given ego. The variable
+ * pSummationTieNetwork is the current network in the case of an evaluation
+ * effect and the network of lost ties in the case of an endowment effect.
+ */
+double NetworkEffect::egoStatistic(int ego,
+	const Network * pSummationTieNetwork)
+{
+	double statistic = 0;
+
+	for (IncidentTieIterator iter = pSummationTieNetwork->outTies(ego);
+		iter.valid();
+		iter.next())
+	{
+		statistic += this->tieStatistic(iter.actor());
+	}
+
+	return statistic;
+}
+
+
+/**
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
+ */
+double NetworkEffect::tieStatistic(int alter)
+{
+	throw runtime_error("tieStatistic not implemented for " +
+		this->pEffectInfo()->effectName());
+}
+
+
+/**
+ * This method is called at the start of the calculation of the statistic.
+ */
+void NetworkEffect::initializeStatisticCalculation()
+{
+}
+
+
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void NetworkEffect::cleanupStatisticCalculation()
+{
+}
+
+
+/**
+ * This method is called right before summing up the contributions of the
+ * outgoing ties of the given ego in the calculation of the statistic.
+ */
+void NetworkEffect::onNextEgo(int ego)
+{
 }
 
 }

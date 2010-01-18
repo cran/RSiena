@@ -1,4 +1,4 @@
-SOURCES=$(wildcard data/*.cpp network/*.cpp utils/*.cpp model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp)
+SOURCES=$(wildcard data/*.cpp network/*.cpp utils/*.cpp model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp model/effects/generic/*.cpp model/ml/*.cpp model/filters/*.cpp)
 OBJECTS = siena07.o $(foreach i,$(SOURCES),$(basename $i).o)
 PKG_CPPFLAGS=-I.
 # PKG_CXXFLAGS=-fno-omit-frame-pointer

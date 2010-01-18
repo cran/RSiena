@@ -46,27 +46,20 @@ public:
 	 * the given actor would change his behavior by the given amount.
 	 */
 	virtual double calculateChangeContribution(int actor,
-		int difference) const = 0;
+		int difference) = 0;
 
-	/**
-	 * Returns the statistic corresponding to this effect as part of
-	 * the evaluation function with respect to the behavior variable.
-	 */
-	virtual double evaluationStatistic(double * currentValues) const = 0;
-
-	/**
-	 * Returns the statistic corresponding to this effect as part of
-	 * the endowment function with respect to an initial behavior
-	 * variable and the current state.
-	 */
+	virtual double evaluationStatistic(double * currentValues);
 	virtual double endowmentStatistic(const int * difference,
-		double *currentValues) const = 0;
+		double * currentValues);
+	virtual double egoStatistic(int ego, double * currentValues);
 
 protected:
 	int n() const;
 	int value(int actor) const;
 	double centeredValue(int actor) const;
+	bool missing(int observation, int actor) const;
 	double range() const;
+	double similarity(double a, double b) const;
 	double similarityMean() const;
 
 private:

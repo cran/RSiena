@@ -56,21 +56,14 @@ double InverseOutdegreeEffect::calculateContribution(int alter) const
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function.
+ * Calculates the statistic corresponding to the given ego. The parameter
+ * pNetwork is always the current network as there are no endowment effects
+ * of this kind.
  */
-double InverseOutdegreeEffect::evaluationStatistic() const
+double InverseOutdegreeEffect::egoStatistic(int ego,
+	const Network * pNetwork)
 {
-	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
-
-	for (int i = 0; i < n; i++)
-	{
-		statistic += 1.0 / (pNetwork->outDegree(i) + this->lc);
-	}
-
-	return statistic;
+	return 1.0 / (pNetwork->outDegree(ego) + this->lc);
 }
 
 
@@ -79,7 +72,6 @@ double InverseOutdegreeEffect::evaluationStatistic() const
  * the endowment function.
  */
 double InverseOutdegreeEffect::endowmentStatistic(Network * pLostTieNetwork)
-	const
 {
 	throw logic_error(
 		"InverseOutdegreeEffect: Endowment effect not supported.");

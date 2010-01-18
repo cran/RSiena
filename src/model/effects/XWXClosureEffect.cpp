@@ -169,29 +169,13 @@ double XWXClosureEffect::calculateContribution(int alter) const
 
 
 /**
- * Detailed comment in the base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double XWXClosureEffect::statistic(const Network * pSummationTieNetwork) const
+double XWXClosureEffect::tieStatistic(int alter)
 {
-	double statistic = 0;
-	const Network * pNetwork = this->pNetwork();
-	int n = pNetwork->n();
-	double * sums = new double[n];
-
-	for (int i = 0; i < n; i++)
-	{
-		this->calculateTwoPathSums(i, pNetwork, sums);
-
-		for (IncidentTieIterator iter = pSummationTieNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			statistic += sums[iter.actor()];
-		}
-	}
-
-	delete[] sums;
-	return statistic;
+	return this->ltwoPathSums[alter];
 }
 
 }

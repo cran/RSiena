@@ -248,6 +248,58 @@ EffectInfo * Model::addEffect(string variableName,
 
 
 /**
+ * Adds a new interaction effect between two or three other effects to this model.
+ * The parameters are wrapped into an EffectInfo object and returned for future
+ * reference.
+ * @param[in] variableName the name of the variable this effect is associated
+ * with
+ * @param[in] effectName the name of the effect
+ * @param[in] effectType the type of the effect ("rate", "eval", or "endow")
+ * @param[in] parameter the multiplicative weight of the effect
+ * @param[in] pEffect1 the first of the interacting effects
+ * @param[in] pEffect2 the second of the interacting effects
+ * @param[in] pEffect3 the third of the interacting effects (may be undefined)
+ */
+EffectInfo * Model::addInteractionEffect(string variableName,
+	string effectName,
+	string effectType,
+	double parameter,
+	const EffectInfo * pEffect1,
+	const EffectInfo * pEffect2,
+	const EffectInfo * pEffect3)
+{
+	EffectInfo * pInfo = new EffectInfo(variableName,
+		effectName,
+		effectType,
+		parameter,
+		pEffect1,
+		pEffect2,
+		pEffect3);
+
+	this->leffects.push_back(pInfo);
+
+	if (effectType == "rate")
+	{
+		this->lrateEffects[variableName].push_back(pInfo);
+	}
+	else if (effectType == "eval")
+	{
+		this->levaluationEffects[variableName].push_back(pInfo);
+	}
+	else if (effectType == "endow")
+	{
+		this->lendowmentEffects[variableName].push_back(pInfo);
+	}
+	else
+	{
+		throw invalid_argument("Unexpected effect type '" + effectType + "'.");
+	}
+
+	return pInfo;
+}
+
+
+/**
  * Returns the rate effects for the given dependent variable (excluding the
  * basic rate effects, which are treated differently).
  */

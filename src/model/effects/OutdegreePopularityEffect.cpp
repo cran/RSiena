@@ -49,38 +49,24 @@ double OutdegreePopularityEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double OutdegreePopularityEffect::statistic(
-	const Network * pSummationTieNetwork) const
+double OutdegreePopularityEffect::tieStatistic(int alter)
 {
-	// We assume a one-mode network because this effect doesn't make sense
-	// for two-mode networks.
-
-	double statistic = 0;
+	double statistic;
 	const Network * pNetwork = this->pNetwork();
+	int degree = pNetwork->outDegree(alter);
 
-	// Iterate over all actors and sum up their outdegrees
-	// (or square roots of outdegrees) multiplied by
-	// the number of incoming ties in the summation network.
-
-	for (int i = 0; i < pNetwork->n(); i++)
+	if (this->lroot)
 	{
-		int degree = pNetwork->outDegree(i);
-		double outDegreeContribution = degree;
-
-		if (this->lroot)
-		{
-			outDegreeContribution = this->lsqrtTable->sqrt(degree);
-		}
-
-		statistic += outDegreeContribution * pSummationTieNetwork->inDegree(i);
+		statistic = this->lsqrtTable->sqrt(degree);
 	}
-
-	if (!this->lroot)
+	else
 	{
 		// TODO: Why do we multiply by the number of senders? Ask Tom.
-		statistic *= pNetwork->n();
+		statistic = degree * pNetwork->n();
 	}
 
 	return statistic;

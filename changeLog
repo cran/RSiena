@@ -1,8 +1,68 @@
+2010-02-07 R-forge revision 52
+
+	* R/globals.r, R/siena07.r, man/siena07.Rd: 
+	new silent option with no output.
+	* tests/parallel.R, tests/parallel.Rout.save: suppress progress
+	message output and include prints of results.
+	
+2010-02-04 R-forge revision 51
+
+	* data/allEffects/csv: Bug in covariate behavior effects
+	* configure.win, src/Makefile.win, src/Makevars, src/win32/Makefile:
+	changes for Win64
+	* r/effects.r: minor fixes to getEffects function (default effects
+	for multiple dependent networks.)
+	
+2010-01-28 R-forge revision 48
+
+	* R/simstatsc.r: fixed bug in sort order of effects
+
+2010-01-26 R-forge revision 46
+
+	* man/RSiena-package.Rd: new version number
+
+2010-01-19 R-forge revision 45
+
+	* NAMESPACE, R/effectsDocumentation.r,
+	man/effectsDocumentation.Rd: new documentation function
+	* inst/doc/effects.pdf: output from the documentation function/
+
+2010-01-18 R-forge revision 44
+
+	* src/model/effects/various.cpp, .h: removed superfluous files
+
+2010-01-18 R-forge revision 43
+
+	* DESCRIPTION: new version 1.0.9
+	* NAMESPACE: new utility functions
+	* data/alleffects.csv : new behavior effects, user-specified
+	interactions.
+	* R/sienaeffects.r, man/includeEffects.Rd,
+	man/includeInteractions.Rd, man/setEffect.Rd: utilities to update
+	effects object.
+	* R/effects.r, man/getEffects.Rd: new parameter for number of
+	behavior interaction effects.
+	* src/model/effects/many: new behavior effects, user-specified
+	interactions.
+
+2010-01-15 R-forge revision 40
+
+	* R/print01report.r, R/sienaprint.r: remove extra sqrt roots in
+	standard error of rates for conditional estimation (see revision 32)
+	* src/Makefile.win, src/win32/Makefile: Changes to makefile for 64 bit
+	windows
+	* tests/parallel.R, tests/parallel.R.save: remove timers from
+	tests to reduce differences with output.
+
+2010-01-12 R-forge revision 39
+
+	* tests/parallel.r: fix bug: use library RSiena not RSienaTest
+
 2010-01-12 R-forge revision 38
 
 	* man/RSiena-package.Rd, man/siena07.Rd, man/sienaFit.Rd,
 	man/simstats0c.Rd: reduce time for examples
-	* tests/parallel.R, tests/patallel.Rout.save: reduce tests
+	* tests/parallel.R, tests/parallel.Rout.save: reduce tests
 
 2010-01-02 R-forge revision 34
 

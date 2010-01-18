@@ -84,115 +84,129 @@ double CovariateIndirectTiesEffect::calculateContribution(int alter)
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
- * the evaluation function.
+ * This method is called at the start of the calculation of the statistic.
  */
-double CovariateIndirectTiesEffect::evaluationStatistic() const
+void CovariateIndirectTiesEffect::initializeStatisticCalculation()
 {
-	double statistic = 0;
 	const Network * pNetwork = this->pNetwork();
 	int n = pNetwork->n();
+
+	// A helper array of marks
+
+	this->lmark = new int[n];
+
+	for (int i = 0; i < n; i++)
+	{
+		this->lmark[i] = -1;
+	}
+}
+
+
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void CovariateIndirectTiesEffect::cleanupStatisticCalculation()
+{
+	delete[] this->lmark;
+}
+
+
+/**
+ * Calculates the statistic corresponding to the given ego. The parameter
+ * pNetwork is always the current network as there are no endowment effects
+ * of this kind.
+ */
+double CovariateIndirectTiesEffect::egoStatistic(int ego,
+	const Network * pNetwork)
+{
+	double statistic = 0;
 
 	const Network * pStartMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period());
 	const Network * pEndMissingNetwork =
 		this->pData()->pMissingTieNetwork(this->period() + 1);
 
-	// A helper array of marks
+	int i = ego;
 
-	int * mark = new int[n];
+	// Invariant: mark[h] = i if and only if a two-path from i
+	// to h has been found.
 
-	for (int i = 0; i < n; i++)
+	// Traverse all two-paths from i
+
+	for (IncidentTieIterator iterI = pNetwork->outTies(i);
+		iterI.valid();
+		iterI.next())
 	{
-		mark[i] = -1;
-	}
+		int j = iterI.actor();
 
-	// Treat the distance-two pairs <i,h> for each i separately.
-
-	for (int i = 0; i < n; i++)
-	{
-		// Invariant: mark[h] = i if and only if a two-path from i
-		// to h has been found.
-
-		// Traverse all two-paths from i
-
-		for (IncidentTieIterator iterI = pNetwork->outTies(i);
-			iterI.valid();
-			iterI.next())
+		for (IncidentTieIterator iterJ = pNetwork->outTies(j);
+			iterJ.valid();
+			iterJ.next())
 		{
-			int j = iterI.actor();
+			int h = iterJ.actor();
 
-			for (IncidentTieIterator iterJ = pNetwork->outTies(j);
-				iterJ.valid();
-				iterJ.next())
+			if (this->lmark[h] < i)
 			{
-				int h = iterJ.actor();
+				// The first two-path from i to h is found.
 
-				if (mark[h] < i)
-				{
-					// The first two-path from i to h is found.
-
-					mark[h] = i;
-					statistic += this->value(h);
-				}
+				this->lmark[h] = i;
+				statistic += this->value(h);
 			}
-		}
-
-		// Okay, if there's a tie (i,h) then <i,h> cannot possibly be a
-		// distance-two pair. Hence we iterate over outgoing ties (i,h) of i,
-		// and if value(h) has been added to the statistic, we subtract it.
-
-		for (IncidentTieIterator iter = pNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] == i)
-			{
-				mark[h] = -1;
-				statistic -= this->value(h);
-			}
-		}
-
-		// We do a similar fix for missing ties (i,h) at either end of
-		// the period.
-
-		for (IncidentTieIterator iter = pStartMissingNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] == i)
-			{
-				mark[h] = -1;
-				statistic -= this->value(h);
-			}
-		}
-
-		for (IncidentTieIterator iter = pEndMissingNetwork->outTies(i);
-			iter.valid();
-			iter.next())
-		{
-			int h = iter.actor();
-
-			if (mark[h] == i)
-			{
-				mark[h] = -1;
-				statistic -= this->value(h);
-			}
-		}
-
-		// Ignore the trivial pair <i,i>.
-
-		if (mark[i] == i)
-		{
-			statistic -= this->value(i);
 		}
 	}
 
-	delete[] mark;
+	// Okay, if there's a tie (i,h) then <i,h> cannot possibly be a
+	// distance-two pair. Hence we iterate over outgoing ties (i,h) of i,
+	// and if value(h) has been added to the statistic, we subtract it.
+
+	for (IncidentTieIterator iter = pNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		int h = iter.actor();
+
+		if (this->lmark[h] == i)
+		{
+			this->lmark[h] = -1;
+			statistic -= this->value(h);
+		}
+	}
+
+	// We do a similar fix for missing ties (i,h) at either end of
+	// the period.
+
+	for (IncidentTieIterator iter = pStartMissingNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		int h = iter.actor();
+
+		if (this->lmark[h] == i)
+		{
+			this->lmark[h] = -1;
+			statistic -= this->value(h);
+		}
+	}
+
+	for (IncidentTieIterator iter = pEndMissingNetwork->outTies(i);
+		iter.valid();
+		iter.next())
+	{
+		int h = iter.actor();
+
+		if (this->lmark[h] == i)
+		{
+			this->lmark[h] = -1;
+			statistic -= this->value(h);
+		}
+	}
+
+	// Ignore the trivial pair <i,i>.
+
+	if (this->lmark[i] == i)
+	{
+		statistic -= this->value(i);
+	}
 
 	return statistic;
 }
@@ -203,7 +217,7 @@ double CovariateIndirectTiesEffect::evaluationStatistic() const
  * the endowment function.
  */
 double CovariateIndirectTiesEffect::endowmentStatistic(
-	Network * pLostTieNetwork) const
+	Network * pLostTieNetwork)
 {
 	throw logic_error(
 		"CovariateIndirectTiesEffect: Endowment effect not supported");

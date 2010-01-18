@@ -41,22 +41,13 @@ double ThreeCyclesEffect::calculateContribution(int alter) const
 
 
 /**
- * See base class.
+ * The contribution of the tie from the implicit ego to the given alter
+ * to the statistic. It is assumed that preprocessEgo(ego) has been
+ * called before.
  */
-double ThreeCyclesEffect::statistic(const Network * pSummationTieNetwork) const
+double ThreeCyclesEffect::tieStatistic(int alter)
 {
-	OneModeNetwork * pOneModeNetwork = (OneModeNetwork *) this->pNetwork();
-	int statistic = 0;
-
-	for (TieIterator iter = pSummationTieNetwork->ties();
-		iter.valid();
-		iter.next())
-	{
-		statistic +=
-			pOneModeNetwork->twoPathCount(iter.alter(), iter.ego());
-	}
-
-	return statistic / 3.0;
+	return this->pReverseTwoPathTable()->get(alter) / 3.0;
 }
 
 }

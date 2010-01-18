@@ -1,21 +1,29 @@
 #-*- Makefile -*-
 #
 
+include $(R_HOME)/etc$(R_ARCH)/Makeconf
+
 #RHOME = d:/R/R-2.9.0/
 #RHOME = c:/progra~1/R/R-2.9.0/
 #RHOME = c:/R/R-2.9.0/
 .PHONY: all libs execs
 
-SOURCES=$(wildcard data/*.cpp utils/*.cpp utils/random.h model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp network/*.cpp)
+SOURCES=$(wildcard data/*.cpp utils/*.cpp utils/random.h model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp network/*.cpp model/effects/generic/*.cpp model/ml/*.cpp model/filters/*.cpp)
 EXTRAS=$(foreach i,$(SOURCES),$(basename $i).o)
 
 PKG_LIBS=-L. -lSn
 PKG_CPPFLAGS=-I.
 
 SHLIB = RSiena.dll
+SHLIB_LD = $(CXX)
 
+ifeq ($(strip $(WIN)),64)
+EXECS =
+else
+EXECS = execs
+endif
 
-all: libs $(SHLIB) execs
+all: libs $(SHLIB) $(EXECS)
 libs: libSn.a
 
 libSn.a: $(EXTRAS)
@@ -33,22 +41,3 @@ execs:
 clean:
 	@rm -f RSiena.dll libSn.a $(EXTRAS) siena07.o
 	@(cd win32; make clean)
-
-CPPFLAGS = $(PKG_CPPFLAGS) -I$(R_HOME)/include
-CFLAGS = -O2 -Wall -pedantic
-CXXFLAGS = -O2 -Wall -pedantic
-DLLLIBS = $(PKG_LIBS) -L$(R_HOME)/bin -lR
-
-.cpp.o:
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-ECHO = echo
-NM = nm
-DLL = g++
-SED = sed
-
-%.dll:
-	@$(ECHO) EXPORTS > $*.def
-	@$(NM) $^ | $(SED) -n 's/^.* [BCDRT] _/ /p' >> $*.def
-	$(DLL) -shared $(DLLFLAGS) $($*-DLLFLAGS) -o $@ $*.def $^ $(DLLLIBS)
-	@$(RM) $*.def

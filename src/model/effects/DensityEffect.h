@@ -25,9 +25,10 @@ public:
 	DensityEffect(const EffectInfo * pEffectInfo);
 
 	virtual double calculateContribution(int alter) const;
+	virtual bool egoEffect() const;
 
 protected:
-	virtual double statistic(const Network * pSummationTieNetwork) const;
+	virtual double tieStatistic(int alter);
 };
 
 }
