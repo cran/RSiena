@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: Data.h
- * 
+ *
  * Description: This file contains the definition of the Data class.
  *****************************************************************************/
 
@@ -15,6 +15,9 @@
 #include <set>
 #include <map>
 #include <string>
+#include "data/NetworkConstraint.h"
+
+using namespace std;
 
 namespace siena
 {
@@ -63,16 +66,16 @@ typedef std::set<ExogenousEvent *, EventComparator> EventSet;
 
 /**
  * This class acts as a storage of the whole data set subject to actor-based
- * modeling. 
+ * modeling.
  */
 class Data
 {
 public:
 	Data(int observationCount);
 	virtual ~Data();
-	
+
 	inline int observationCount() const;
-	
+
 	const ActorSet * createActorSet(std::string name, int n);
 	NetworkLongitudinalData * createNetworkData(std::string name,
 		const ActorSet * pSenders,
@@ -91,7 +94,7 @@ public:
 	ChangingDyadicCovariate * createChangingDyadicCovariate(std::string name,
 		const ActorSet * pFirstActorSet,
 		const ActorSet * pSecondActorSet);
-	
+
 	const ActorSet * pActorSet(std::string name) const;
 	NetworkLongitudinalData * pNetworkData(std::string name) const;
 	OneModeNetworkLongitudinalData * pOneModeNetworkData(std::string name)
@@ -101,7 +104,7 @@ public:
 	ChangingCovariate * pChangingCovariate(std::string name) const;
 	ConstantDyadicCovariate * pConstantDyadicCovariate(std::string name) const;
 	ChangingDyadicCovariate * pChangingDyadicCovariate(std::string name) const;
-	
+
 	const std::vector<const ActorSet *> & rActorSets() const;
 	const std::vector<LongitudinalData *> & rDependentVariableData() const;
 	const std::vector<ConstantCovariate *> & rConstantCovariates() const;
@@ -110,7 +113,7 @@ public:
 		rConstantDyadicCovariates() const;
 	const std::vector<ChangingDyadicCovariate *> &
 		rChangingDyadicCovariates() const;
-	
+
 	void active(const ActorSet * pActorSet,
 		int actor,
 		int observation,
@@ -125,38 +128,50 @@ public:
 		int actor,
 		double time);
 	const EventSet * pEventSet(int period) const;
-	
+
+	// Network constraints
+
+	const NetworkConstraint * addNetworkConstraint(string networkName1,
+		string networkName2,
+		NetworkConstraintType type);
+	const vector<const NetworkConstraint *> & rNetworkConstraints() const;
+
 private:
 	// The number of observations
 	int lobservationCount;
-	
+
 	// A collection of actor sets
 	std::vector<const ActorSet *> lactorSets;
 
 	// A collection of longitudinal data objects for all kinds of
 	// dependent variables
-	
+
 	std::vector<LongitudinalData *> ldependentVariableData;
-	
+
 	// A collection of constant covariates
 	std::vector<ConstantCovariate *> lconstantCovariates;
-	
+
 	// A collection of changing covariates
 	std::vector<ChangingCovariate *> lchangingCovariates;
-	
+
 	// A collection of constant dyadic covariates
 	std::vector<ConstantDyadicCovariate *> lconstantDyadicCovariates;
-	
+
 	// A collection of changing dyadic covariates
 	std::vector<ChangingDyadicCovariate *> lchangingDyadicCovariates;
-	
+
 	// lactive[s][i][k] indicates if actor i of the actor set s is active at
 	// the observation k
-	
+
 	std::map<const ActorSet *, bool **> lactive;
-	
+
 	// A sorted set of exogenous events per each period
 	std::vector<EventSet *> lexogenousEvents;
+
+	// Network constraints like higher(network1,network2),
+	// disjoint(network1,network2), etc.
+
+	vector<const NetworkConstraint *> lnetworkConstraints;
 };
 
 

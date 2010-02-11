@@ -40,6 +40,7 @@ class NetworkLongitudinalData;
 class Network;
 class EffectInfo;
 class StructuralRateEffect;
+class MiniStep;
 
 
 // ----------------------------------------------------------------------------
@@ -57,7 +58,6 @@ class DependentVariable : public NamedObject
 public:
 	DependentVariable(string name,
 		const ActorSet * pActorSet,
-		int observationCount,
 		EpochSimulation * pSimulation);
 	virtual ~DependentVariable();
 
@@ -79,9 +79,9 @@ public:
 	virtual void makeChange(int actor) = 0;
 
 	virtual void actOnJoiner(const SimulationActorSet * pActorSet,
-		int actor) = 0;
+		int actor);
 	virtual void actOnLeaver(const SimulationActorSet * pActorSet,
-		int actor) = 0;
+		int actor);
 	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
 		int actor) = 0;
 
@@ -102,6 +102,12 @@ public:
 	double inDegreeScore(const NetworkVariable * pNetwork) const;
 	double reciprocalDegreeScore(const NetworkVariable * pNetwork) const;
 	double inverseOutDegreeScore(const NetworkVariable * pNetwork) const;
+
+	/**
+	 * Calculates the probability of the given ministep assuming that the
+	 * ego of the ministep will change this variable.
+	 */
+	virtual double probability(MiniStep * pMiniStep) = 0;
 
 protected:
 	inline EpochSimulation * pSimulation() const;

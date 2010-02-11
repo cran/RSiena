@@ -102,17 +102,16 @@ PrintReport <- function(z, x)
                                                                     behNames)],
                                                   '> ', behEffects$effectName,
                                                   sep='')
-                   z$requestedEffects$effectName[z$requestedEffects$netType=='behavior'] <-
-                       behEffects$effectName
+                   z$requestedEffects$effectName[z$requestedEffects$netType==
+                                                 'behavior'] <-
+                                                     behEffects$effectName
                }
            }
            typesp <- ifelse (z$requestedEffects$type== "endow", ": ", ":  ")
+           tmp <- paste(z$requestedEffects$type, typesp,
+                        z$requestedEffects$effectName, sep = '')
            tmp <- paste(sprintf("%2d", 1:length(z$requestedEffects$effectName)),
-                        '. ', format(paste(z$requestedEffects$type,
-                                           typesp,
-                                           z$requestedEffects$effectName,
-                                           sep = ''),
-                                     width=50),
+                        '. ', format(substr(tmp, 1, 50), width=50),
                         theta, ses, '\n', sep='', collapse = '')
            if (nBehavs > 0 && nOneModes > 0)
            {

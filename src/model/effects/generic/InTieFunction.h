@@ -9,11 +9,10 @@
  * InTieFunction class.
  *****************************************************************************/
 
-
 #ifndef INTIEFUNCTION_H_
 #define INTIEFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 
 namespace siena
 {
@@ -22,7 +21,7 @@ namespace siena
  * Defines a function that returns the values of ties to the ego
  * from alters in a network with the given name.
  */
-class InTieFunction: public NetworkAlterFunction
+class InTieFunction: public OneModeNetworkAlterFunction
 {
 public:
 	InTieFunction(string networkName);

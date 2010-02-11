@@ -509,16 +509,32 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
             Heading(2, outf, "Reading exogenous changing actor covariates.")
             if (!is.null(session))
             {
+                if (nData > 1)
+                {
+                    covarssession <-
+                        session[session$Type == "constant covariate", ]
+                    for (i in 1:nrow(covarssession))
+                    {
+                        names <- strsplit(covarssession$Name[i],
+                                          " ", fixed=TRUE)[[1]]
+                        ncases <- length(x$vCovars[[match(names[1], covars)]])
+                        Report(c("Covariate data file",
+                                 covarssession$Filename[i],
+                                 "with", length(names), "variables,", ncases,
+                                 "cases, named:\n"), outf)
+                        Report(paste(names, "\n"), outf, sep="")
+                    }
+                }
                 covarssession <- session[session$Type == "changing covariate", ]
-                for (i in 1:nrow(covarssession))
+                for (i in seq(along=covarssession[,1]))
                 {
                     ncases <- nrow(x$vCovars[[match(covarssession$Name[i],
-                                                      covars)]])
+                                                    covars)]])
                     Report(c("Exogenous changing covariate ",
                              covarssession$name[i], " read from file ",
                              covarssession$Filename[i], ".\n"), sep="", outf)
                     Report(c("Number of cases is ", ncases, ".\n"), sep="",
-                              outf)
+                           outf)
                 }
             }
             else
@@ -826,12 +842,12 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                 Report(c("All network changes are upward for the following",
                          "periods:\n"), outf)
                 periodsUp <-
-                    sapply(data, function(x)
+                    unlist(lapply(data, function(x)
                        {
                            attr(x$depvars[[match(netnames[i],
                                                  names(x$depvars))]],
                                 "uponly")
-                       })
+                       }))
                 periods <- periodNos[c(1:length(periodsUp))[periodsUp]]
                 Report(paste(periods, " => ", periods + 1, ";",
                              sep=""), fill=80, outf)
@@ -863,12 +879,12 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
             else
             {
                 periodsDown <-
-                    sapply(data, function(x)
+                    unlist(lapply(data, function(x)
                        {
                            attr(x$depvars[[match(netnames[i],
                                                  names(x$depvars))]],
                                 "downonly")
-                       })
+                       }))
                 Report(c("All network changes are downward for the",
                          "following periods:\n"), outf)
                 periods <- periodNos[c(1:length(periodsDown))[periodsDown]]
@@ -980,27 +996,69 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 
     if (sum(atts$types == 'oneMode') > 0)
     {
-        balmean <- atts$"balmean"
-
-        Report(c("The mean structural dissimilarity value subtracted",
-                 "in the\n"), outf)
-        Report("balance calculations is ", outf)
+        netnames <- atts$netnames[nets]
+        if (nData > 1)
+        {
+            balmean <-
+                lapply(data, function(x)
+                       sapply(x$depvars, function(y) attr(y, "balmean")))
+        }
+        else
+        {
+            balmean <- atts$"balmean"
+        }
+        if (nData > 1 || sum(atts$types == "oneMode") > 1)
+        {
+            Report(c("The mean structural dissimilarity values subtracted",
+                     "in the\n"), outf)
+            Report("balance calculations are\n", outf)
+        }
+        else
+        {
+            Report(c("The mean structural dissimilarity value subtracted",
+                     "in the\n"), outf)
+            Report("balance calculations is ", outf)
+        }
         for (i in seq(along=atts$types))
         {
             if (atts$types[i] == "oneMode")
             {
-                if (sum(atts$types == "oneMode") > 1)
+                if (nData > 1)
                 {
-                    Report(c("Network name:", netnames[i],
-                             format(round(balmean[i], 4), nsmall=4, width=14),
-                             '.\n'),
-                           sep="", outf)
+                    thisbalmean <- sapply(balmean, function(x)x[[netnames[i]]])
+                    ##  if (sum(atts$types == "oneMode") > 1)
+                    if (sum(atts$types != "behavior") > 1)
+                    {
+                        Report(c("for network ", netnames[i],":"), sep="",
+                               outf)
+                    }
+                    Report("\n", outf)
+                    mystr <- format(paste("Subproject ", 1:nData, " <",
+                                  atts$names, "> ", sep=""))
+                    for (j in seq(along=thisbalmean))
+                    {
+                        Report(c(mystr[j], ": ",
+                                 format(round(thisbalmean[j], 4), nsmall=4,
+                                        width=14), "\n"), sep="", outf)
+                    }
                 }
                 else
                 {
-                    Report(c(format(round(balmean[i], 4), nsmall=4, width=14),
-                             '.\n'),
-                           sep="", outf)
+                    ##  if (sum(atts$types == "oneMode") > 1)
+                    if (sum(atts$types != "behavior") > 1)
+                    {
+                        Report(c("for network ", format(netnames[i], width=12),
+                                 format(round(balmean[i], 4),
+                                        nsmall=4, width=14),
+                                 '.\n'),
+                               sep="", outf)
+                    }
+                    else
+                    {
+                        Report(c(format(round(balmean[i], 4), nsmall=4, width=14),
+                                 '.\n'),
+                               sep="", outf)
+                    }
                 }
             }
         }
@@ -1009,10 +1067,25 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
         (nData ==1 && length(atts$cCovars) > 0) ||
         length(atts$vCovars) > 0)
     {
+        netnames <- atts$netnames
+        if (nData > 1)
+        {
+            vCovarSim <-
+                lapply(data, function(x)
+                       sapply(x$vCovars, function(y) attr(y, "simMean")))
+            behSim <-
+                lapply(data, function(x)
+                       sapply(x$depvars, function(y) attr(y, "simMean")))
+        }
+        else
+        {
+            vCovarSim <- atts$"vCovarSim"
+            behSim <- atts$"bSim"
+        }
         Report(c("\nFor the similarity variable calculated from each actor",
                  "covariate,\nthe mean is subtracted.\nThese means are:\n"),
                outf)
-        if (nData == 1)
+        if (nData == 1) ## ie we may have constant covariates
         {
             for (i in seq(along=atts$cCovars))
             {
@@ -1029,20 +1102,57 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
         {
             if (atts$types[i] == "behavior" && atts$bPoszvar[i])
             {
-                Report(c("Similarity", format(atts$netnames[i], width=12),
-                          ':', format(round(atts$bSim[i], 4), nsmall=4,
-                                      width=12),
-                         '\n'), outf)
+                if (nData > 1)
+                {
+                    thisSim <- sapply(behSim, function(x)x[[netnames[i]]])
+                    Report(c("Similarity ", format(atts$netnames[i], width=12),
+                             ":\n"), sep="", outf)
+                    mystr <- format(paste("  Subproject ", 1:nData, " <",
+                                  atts$names, "> ", sep=""))
+                    for (j in seq(along=thisSim))
+                    {
+                        Report(c(mystr[j], format(round(thisSim[j], 4),
+                                                  nsmall=4, width=12), "\n"),
+                               sep="", outf)
+                    }
+                    Report("\n", outf)
+                }
+                else
+                {
+                    Report(c("Similarity", format(atts$netnames[i], width=12),
+                             ':', format(round(atts$bSim[i], 4), nsmall=4,
+                                         width=12),
+                             '\n'), outf)
+                }
             }
         }
         for (i in seq(along=atts$vCovars))
         {
+            covarnames <- atts$vCovars
             if (atts$vCovarPoszvar[i])
             {
-                Report(c("Similarity", format(atts$vCovars[i], width=12),
-                         ':', format(round(atts$vCovarSim[i], 4), width=12,
-                                     nsmall=4),
-                         '\n'), outf)
+                if (nData > 1)
+                {
+                    thisSim <- sapply(vCovarSim, function(x)x[[covarnames[i]]])
+                    Report(c("Similarity ", format(covarnames[i], width=12),
+                             ":\n"), sep="", outf)
+                    mystr <- format(paste("  Subproject ", 1:nData, " <",
+                                          atts$names, "> ", sep=""))
+                    for (j in seq(along=thisSim))
+                    {
+                        Report(c(mystr[j], format(round(thisSim[j], 4),
+                                                  nsmall=4, width=12), "\n"),
+                               sep="", outf)
+                    }
+                    Report("\n", outf)
+                }
+                else
+                {
+                    Report(c("Similarity", format(atts$vCovars[i], width=12),
+                             ':', format(round(atts$vCovarSim[i], 4), width=12,
+                                         nsmall=4),
+                             '\n'), outf)
+                }
             }
         }
     }

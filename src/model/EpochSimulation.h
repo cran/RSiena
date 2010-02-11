@@ -33,6 +33,8 @@ class EffectInfo;
 class SimulationActorSet;
 class State;
 class Cache;
+class Chain;
+class MiniStep;
 
 
 // ----------------------------------------------------------------------------
@@ -51,7 +53,16 @@ public:
 
     void initialize(int period);
 
+    // Method of moments related
     void runEpoch(int period);
+
+    // Maximum likelihood related
+
+    void updateProbabilities(Chain * pChain,
+    	MiniStep * pFirstMiniStep,
+    	MiniStep * pLastMiniStep);
+
+    // Accessors
 
     const Data * pData() const;
     const Model * pModel() const;
@@ -60,13 +71,13 @@ public:
     const SimulationActorSet * pSimulationActorSet(
     	const ActorSet * pOriginalActorSet) const;
     int period() const;
-
     double time() const;
+    Cache * pCache() const;
+
+    // Scores
 
     double score(const EffectInfo * pEffect) const;
     void score(const EffectInfo * pEffect, double value);
-
-    Cache * pCache() const;
 
 private:
     void runStep();
@@ -93,8 +104,11 @@ private:
     // Stores the wrappers of each original actor set
     map<const ActorSet *, SimulationActorSet *> lactorSetMap;
 
-    // A list of dependent variables with their current values
+    // A vector of dependent variables with their current values
     vector<DependentVariable *> lvariables;
+
+    // The dependent variable for look-ups by name
+    map<string, DependentVariable *> lvariableMap;
 
     // The current period to be simulated
     int lperiod;
@@ -103,6 +117,9 @@ private:
     // the dependent variable to change and the actor to make the change.
 
     double * lcummulativeRates;
+
+    // The total rate over all dependent variables
+    double ltotalRate;
 
     // The current time of the simmulation
     double ltime;

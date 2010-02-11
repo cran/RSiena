@@ -12,7 +12,7 @@
 #ifndef TWOPATHFUNCTION_H_
 #define TWOPATHFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
 
 namespace siena
@@ -26,7 +26,7 @@ class ConfigurationTable;
  * the ego and alters in a network of the given name.
  */
 class TwoPathFunction:
-	public NetworkAlterFunction, IntAlterFunction
+	public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
 	TwoPathFunction(string networkName);

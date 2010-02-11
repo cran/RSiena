@@ -530,7 +530,14 @@ siena01Gui <- function(getDocumentation=FALSE)
                 effEdit[,i] <- as.logical(effEdit[,i])
             }
             myeffcopy[, editCols] <- effEdit
+            if (theseEffects != "")
+            {
             myeff[myeff$name == theseEffects, ] <<- myeffcopy
+            }
+            else
+            {
+                myeff <<- myeffcopy
+            }
             ##  browser()
             ## make sure this window is top with a global grab,
             ##but only for a second
@@ -570,7 +577,7 @@ siena01Gui <- function(getDocumentation=FALSE)
                     use <- which(myeff$include)
                     initValues <- rep(0, length(use))
                     initValues[estimAns$condvar] <- estimAns$rate
-                    initValues[!estimAns$condvar] <- estimAns$theta
+                    initValues[-estimAns$condvar] <- estimAns$theta
                     myeff$initialValue[myeff$include] <<- initValues
                 }
                 else

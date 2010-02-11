@@ -12,7 +12,7 @@
 #ifndef RECIPROCATEDTWOPATHFUNCTION_H_
 #define RECIPROCATEDTWOPATHFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
 
 namespace siena
@@ -27,7 +27,7 @@ class ConfigurationTable;
  * reciprocated if there exists the two-path h -> j -> i.
  */
 class ReciprocatedTwoPathFunction:
-	public NetworkAlterFunction, IntAlterFunction
+	public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
 	ReciprocatedTwoPathFunction(string networkName);

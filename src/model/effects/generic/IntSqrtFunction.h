@@ -25,6 +25,7 @@ class IntSqrtFunction: public AlterFunction
 {
 public:
 	IntSqrtFunction(AlterFunction * pFunction);
+	virtual ~IntSqrtFunction();
 
 	virtual void initialize(const Data * pData,
 		State * pState,

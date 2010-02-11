@@ -26,6 +26,7 @@ namespace siena
 class Network;
 class NetworkLongitudinalData;
 class NetworkCache;
+class PermittedChangeFilter;
 
 
 // ----------------------------------------------------------------------------
@@ -43,6 +44,8 @@ public:
 		EpochSimulation * pSimulation);
 	virtual ~NetworkVariable();
 
+	void addPermittedChangeFilter(PermittedChangeFilter * pFilter);
+
 	const SimulationActorSet * pSenders() const;
 	const SimulationActorSet * pReceivers() const;
 	virtual int m() const;
@@ -59,6 +62,8 @@ public:
 	Network * pNetwork() const;
 
 	int ego() const;
+
+	virtual double probability(MiniStep * pMiniStep);
 
 private:
 	void preprocessEgo();
@@ -107,6 +112,11 @@ private:
 	// of this network during the simulation.
 
 	NetworkCache * lpNetworkCache;
+
+	// A vector of filters that may decide that some tie flips from an
+	// ego are not permitted.
+
+	vector<PermittedChangeFilter *> lpermittedChangeFilters;
 };
 
 

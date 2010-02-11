@@ -516,6 +516,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
             ##  attr(depvars[[i]], 'simCnt') <- rr$simCnt
             attr(depvars[[i]], 'simMean') <- rr$simMean
             attr(depvars[[i]], 'structural') <- FALSE
+            attr(depvars[[i]], 'balmean') <- NA
        }
         else
         {
@@ -571,6 +572,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
             if (type == 'oneMode')
             {
                 attr(depvars[[i]], 'balmean') <- calcBalmean(depvars[[i]])
+                attr(depvars[[i]], 'simMean') <- NA
                 attr(depvars[[i]], 'symmetric') <- TRUE
                 attr(depvars[[i]], 'missing') <- FALSE
                 attr(depvars[[i]], 'structural') <- FALSE
@@ -637,6 +639,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
             else #type=='bipartite' not sure what we need here,
                 #### but include diagonal
             {
+                attr(depvars[[i]], 'balmean') <- NA
+                attr(depvars[[i]], 'simMean') <- NA
                 attr(depvars[[i]], 'symmetric') <- FALSE
                 attr(depvars[[i]], 'missing') <- FALSE
                 attr(depvars[[i]], 'structural') <- FALSE
@@ -693,18 +697,124 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         attr(depvars[[i]], 'name') <- names(depvars)[i]
     }
     ## create the object
-    z<- NULL
+    z <- NULL
     z$nodeSets <- nodeSets
-    z$observations <-observations
+    z$observations <- observations
     z$depvars <- depvars
     z$cCovars <- cCovars
     z$vCovars <- vCovars
     z$dycCovars <- dycCovars
     z$dyvCovars <- dyvCovars
     z$compositionChange <- compositionChange
+ #   types <- sapply(z$depvars, function(x)attr(x, "type"))
+ #   if (sum(types != "behavior" ) > 1)
+ #   {
+        z <- checkConstraints(z)
+ #   }
     class(z) <- 'siena'
     z
 }
+##@checkConstraints DataCreate
+checkConstraints <- function(z)
+{
+    types <- sapply(z$depvars, function(x)attr(x, "type"))
+    sparse <- sapply(z$depvars, function(x)attr(x, "sparse"))
+    nodeSets <- sapply(z$depvars, function(x)attr(x, "nodeSet"))
+    nNets <- length(z$depvars)
+    pairsOfNets <- as.matrix(expand.grid(names(z$depvars), names(z$depvars)))
+    ## maybe remove some as don't want pairs with self, but may want all there
+    ##pairsOfNets <- pairsOfNets[pairsOfNets[, 1] != pairsOfNets[, 2], ]
+    pairsNames <- paste(pairsOfNets[, 1], pairsOfNets[,2], sep=",")
+
+    higher <- namedVector(FALSE, pairsNames )
+    atLeastOne <- namedVector(FALSE, pairsNames )
+    disjoint <- namedVector(FALSE, pairsNames )
+
+    ## identify any nets which may relate
+    relates <- data.frame(name=names(z$depvars), type=types,
+                          nodeSets=sapply(nodeSets, paste, collapse=","),
+                          tn=paste(types, sapply(nodeSets, paste,
+                          collapse=",")) , stringsAsFactors=FALSE)
+    use <- relates$tn %in% relates$tn[duplicated(relates$tn)]
+    nets <- namedVector(NA, names(z$depvars), listType=TRUE)
+    for (net in names(z$depvars)[use])
+    {
+        if (types[[net]] != "behavior")
+        {
+            nets[[net]] <- z$depvars[[net]]
+        ##    nets[[net]] <- replaceMissingsAndStructurals(z$depvars[[net]])
+        }
+    }
+
+   ## relSplits <- split(relates, relates$tn)
+   ## relSplits <- relSplits[sapply(relSplits, nrow) > 1]
+
+    for (i in 1:nrow(pairsOfNets))
+    {
+        if (pairsOfNets[i, 1] != pairsOfNets[i, 2])
+        {
+            net1 <- pairsOfNets[i, 1]
+            net2 <- pairsOfNets[i, 2]
+
+            type1 <- types[net1]
+            type2 <- types[net2]
+            nodes1 <- relates[net1, "nodeSets"]
+            nodes2 <- relates[net2, "nodeSets"]
+
+            if (type1 == type2 && type1 != "behavior" & nodes1 == nodes2)
+            {
+                higher[i] <- TRUE
+                disjoint[i] <- TRUE
+                atLeastOne[i] <- TRUE
+                depvar1 <- nets[[pairsOfNets[i, 1]]]
+                depvar2 <- nets[[pairsOfNets[i, 2]]]
+                for (obs in 1:z$observations)
+                {
+                    if (sparse[net1])
+                    {
+                        var1 <- depvar1[[obs]]
+                    }
+                    else
+                    {
+                        var1 <- depvar1[,, obs]
+                    }
+                    if (sparse[net2])
+                    {
+                        var2 <- depvar2[[obs]]
+                    }
+                    else
+                    {
+                        var2 <- depvar2[,, obs]
+                    }
+                    var1[var1 %in% c(10, 11)] <- var1[var1 %in% c(10, 11)] - 10
+                    var2[var2 %in% c(10, 11)] <- var2[var2 %in% c(10, 11)] - 10
+                    ## higher
+                    if (any(var1 - var2 < 0, na.rm=TRUE))
+                    {
+                        higher[i] <- FALSE
+                    }
+                    ## disjoint
+                    if (sum(var1 * var2, na.rm=TRUE) > 0)
+                    {
+                        disjoint[i] <- FALSE
+                    }
+                    ##atleastone
+                    if (any(var1 + var2 == 0, na.rm=TRUE))
+                    {
+                        atLeastOne[i] <- FALSE
+                    }
+                }
+
+            }
+        }
+    }
+
+    attr(z, "higher") <- higher
+    attr(z, "disjoint") <- disjoint
+    attr(z, "atLeastOne") <- atLeastOne
+    z
+}
+
 ##@rangeAndSimilarity DataCreate
 rangeAndSimilarity<- function(vals, rvals=NULL)
 {
@@ -749,12 +859,13 @@ groupRangeAndSimilarityAndMean <- function(group)
     atts <- attributes(group)
     behavs <- atts$types == "behavior"
     netnames <- atts$netnames
-    bRange <- rep(NA, length(netnames))
+    bRange <- namedVector(NA, netnames)
     behRange <- matrix(NA, ncol=length(netnames), nrow=2)
-    bSim <- rep(NA, length(netnames))
-    bPoszvar <- rep(NA, length(netnames))
-    bMoreThan2 <- rep(NA, length(netnames))
-    bAnyMissing <- rep(FALSE, length(netnames))
+    colnames(behRange) <- netnames
+    bSim <- namedVector(NA, netnames)
+    bPoszvar <- namedVector(NA, netnames)
+    bMoreThan2 <- namedVector(NA, netnames)
+    bAnyMissing <- namedVector(FALSE, netnames)
     for (net in which(atts$types == "behavior"))
     {
         simTotal <- 0
@@ -796,17 +907,18 @@ groupRangeAndSimilarityAndMean <- function(group)
         }
         simMean <- simTotal/simCnt
         bSim[net] <- simMean
-        bMoreThan2 <- length(unique(values)) > 2
+        bMoreThan2[net] <- length(unique(values)) > 2
         if (anyMissing)
             bAnyMissing[net] <- TRUE
     }
     ## constant ones will not exist unless there is only one data object
-    cCovarRange <- rep(NA, length(atts$cCovars))
-    cCovarSim <- rep(NA, length(atts$cCovars))
-    cCovarPoszvar <- rep(TRUE, length(atts$cCovars))
-    cCovarMoreThan2 <- rep(FALSE, length(atts$cCovars))
-    cCovarMean <- rep(NA, length(atts$cCovars))
-    cCovarRange2 <- matrix(NA, nrow=length(atts$cCovars), ncol=2)
+    cCovarRange <- namedVector(NA, atts$cCovars)
+    cCovarSim <- namedVector(NA, atts$cCovars)
+    cCovarPoszvar <- namedVector(TRUE, atts$cCovars)
+    cCovarMoreThan2 <- namedVector(FALSE, atts$cCovars)
+    cCovarMean <- namedVector(NA, atts$cCovars)
+    cCovarRange2 <- matrix(NA, ncol=length(atts$cCovars), nrow=2)
+    colnames(cCovarRange2) <- atts$cCovars
     for (covar in seq(along=atts$cCovars))
     {
         if (length(group) > 1)
@@ -849,14 +961,14 @@ groupRangeAndSimilarityAndMean <- function(group)
         cCovarSim[covar] <- simMean
         cCovarMoreThan2[covar] <- attr(group[[i]]$cCovars[[covar]], "moreThan2")
         cCovarMean[covar] <- attr(group[[i]]$cCovars[[covar]], "mean")
-        cCovarRange2[covar, ] <- attr(group[[i]]$cCovars[[covar]], "range2")
+        cCovarRange2[, covar] <- attr(group[[i]]$cCovars[[covar]], "range2")
    }
 
-    vCovarRange <- rep(NA, length(atts$vCovar))
-    vCovarSim <- rep(NA, length(atts$vCovar))
-    vCovarPoszvar <- rep(TRUE, length(atts$vCovar))
-    vCovarMoreThan2 <- rep(FALSE, length(atts$vCovar))
-    vCovarMean <- rep(NA, length(atts$vCovar))
+    vCovarRange <- namedVector(NA, atts$vCovar)
+    vCovarSim <- namedVector(NA, atts$vCovar)
+    vCovarPoszvar <- namedVector(TRUE, atts$vCovar)
+    vCovarMoreThan2 <- namedVector(FALSE, atts$vCovar)
+    vCovarMean <- namedVector(NA, atts$vCovar)
     for (covar in seq(along=atts$vCovars))
     {
         vartotal <- 0
@@ -932,9 +1044,10 @@ groupRangeAndSimilarityAndMean <- function(group)
         vCovarMean[covar] <- varmean
         vCovarMoreThan2[covar] <- length(unique(values)) > 2
     }
-    dycCovarMean <- rep(NA, length(atts$dycCovar))
-    dycCovarRange <- rep(NA, length(atts$dycCovar))
-    dycCovarRange2 <- matrix(NA, length(atts$dycCovar), 2)
+    dycCovarMean <- namedVector(NA, atts$dycCovar)
+    dycCovarRange <- namedVector(NA, atts$dycCovar)
+    dycCovarRange2 <- matrix(NA, 2, length(atts$dycCovar))
+    colnames(dycCovarRange2) <- atts$dycCovar
     for (covar in seq(along=atts$dycCovar))
     {
         if (length(group) > 1)
@@ -946,10 +1059,10 @@ groupRangeAndSimilarityAndMean <- function(group)
         }
         dycCovarMean[covar] <- attr(group[[1]]$dycCovars[[j]], "mean")
         dycCovarRange[covar] <- attr(group[[1]]$dycCovars[[j]], "range")
-        dycCovarRange2[covar, ] <- attr(group[[1]]$dycCovars[[j]], "range2")
+        dycCovarRange2[, covar] <- attr(group[[1]]$dycCovars[[j]], "range2")
     }
-    dyvCovarMean <- rep(NA, length(atts$dyvCovar))
-    dyvCovarRange <- rep(NA, length(atts$dyvCovar))
+    dyvCovarMean <- namedVector(NA, atts$dyvCovar)
+    dyvCovarRange <- namedVector(NA, atts$dyvCovar)
     for (covar in seq(along=atts$dyvCovar))
     {
         vartotal <- 0
@@ -972,18 +1085,11 @@ groupRangeAndSimilarityAndMean <- function(group)
         rr <- range(thisrange, na.rm=TRUE)
         dyvCovarRange[covar] <- rr[2] - rr[1]
    }
-    names(bSim) <- netnames
-    names(bRange) <- netnames
-    colnames(behRange) <- netnames
-    names(vCovarRange) <- names(vCovarSim) <- atts$vCovars
-    names(cCovarRange) <- names(cCovarSim) <- atts$cCovars
-    names(dycCovarMean) <- atts$dycCovars
-    names(dyvCovarMean) <- atts$dyvCovars
     attr(group, "bRange") <- bRange
     attr(group, "behRange") <- behRange
     attr(group, "bSim") <- bSim
     attr(group, "bPoszvar") <- bPoszvar
-    attr(group, "bMorethan2") <- bMoreThan2
+    attr(group, "bMoreThan2") <- bMoreThan2
     attr(group, "bAnyMissing") <- bAnyMissing
     attr(group, "cCovarPoszvar") <- cCovarPoszvar
     attr(group, "cCovarMoreThan2") <- cCovarMoreThan2
@@ -1002,6 +1108,20 @@ groupRangeAndSimilarityAndMean <- function(group)
     attr(group, "dyvCovarRange") <- dyvCovarRange
     attr(group, "dyvCovarMean") <- dyvCovarMean
     group
+}
+##@namedVector DataCreate
+namedVector <- function(vectorValue, vectorNames, listType=FALSE)
+{
+    if (listType)
+    {
+        tmp <- vector("list", length(vectorNames))
+    }
+    else
+    {
+        tmp <- rep(vectorValue, length(vectorNames))
+    }
+    names(tmp) <- vectorNames
+    tmp
 }
 ##@sienaGroupCreate DataCreate
 sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
@@ -1046,6 +1166,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     ## get the names of the nets and other objects
 
     netnames <-  names(objlist[[1]]$depvars)
+    pairsnames <- names(attr(objlist[[1]], "higher"))
     cCovars <- names(objlist[[1]]$cCovars)
     if (is.null(cCovars))
     {
@@ -1067,19 +1188,25 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
         dyvCovars <- character(0)
     }
     nNetnames <- length(netnames)
-    anyMissing <- rep(FALSE, nNetnames)
-    symmetric <- rep(TRUE, nNetnames)
-    structural <- rep(FALSE, nNetnames)
-    allUpOnly <- rep(TRUE, nNetnames)
-    allDownOnly <- rep(TRUE, nNetnames)
-    anyUpOnly <- rep(FALSE, nNetnames)
-    anyDownOnly <- rep(FALSE, nNetnames)
-    types <- rep(NA, nNetnames)
-    nodeSets <- vector('list', nNetnames)
-    ccnodeSets <- rep(NA, length(cCovars))
-    cvnodeSets <- rep(NA, length(vCovars))
-    dycnodeSets <- vector("list", length(dycCovars))
-    dyvnodeSets <- vector("list", length(dyvCovars))
+    anyMissing <- namedVector(FALSE, netnames)
+    symmetric <- namedVector(TRUE, netnames)
+    structural <- namedVector(FALSE, netnames)
+    allUpOnly <- namedVector(TRUE, netnames)
+    allDownOnly <- namedVector(TRUE, netnames)
+    anyUpOnly <- namedVector(FALSE, netnames)
+    anyDownOnly <- namedVector(FALSE, netnames)
+    allHigher <- namedVector(TRUE,pairsnames )
+    allDisjoint <- namedVector(TRUE, pairsnames)
+    allAtLeastOne <- namedVector(TRUE, pairsnames)
+    anyHigher <- namedVector(FALSE, pairsnames)
+    anyDisjoint <- namedVector(FALSE, pairsnames)
+    anyAtLeastOne <- namedVector(FALSE, pairsnames)
+    types <- namedVector(NA, netnames)
+    nodeSets <- namedVector(NA, netnames, listType=TRUE)
+    ccnodeSets <- namedVector(NA, cCovars)
+    cvnodeSets <- namedVector(NA, vCovars)
+    dycnodeSets <- namedVector(NA, dycCovars, listType=TRUE)
+    dyvnodeSets <- namedVector(NA, dyvCovars, listType=TRUE)
     observations <- 0
     periodNos <- rep(NA, 2)
     for (i in 1:length(objlist))
@@ -1138,7 +1265,17 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             {
                 structural[netnamesub] <- TRUE
             }
-       }
+        }
+        thisHigher <- attr(objlist[[i]], "higher")
+        thisDisjoint <- attr(objlist[[i]], "disjoint")
+        thisAtLeastOne <- attr(objlist[[i]], "atLeastOne")
+
+        anyHigher[names(thisHigher)[thisHigher]] <- TRUE
+        anyDisjoint[names(thisDisjoint)[thisDisjoint]] <- TRUE
+        anyAtLeastOne[names(thisAtLeastOne)[thisAtLeastOne]] <- TRUE
+        allHigher[names(thisHigher)[!thisHigher]] <- FALSE
+        allDisjoint[names(thisDisjoint)[!thisDisjoint]] <- FALSE
+        allAtLeastOne[names(thisAtLeastOne)[!thisAtLeastOne]] <- FALSE
         for (j in seq(along=objlist[[i]]$cCovars))
         {
             varname <- names(objlist[[i]]$cCovars)[j]
@@ -1281,7 +1418,6 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     }
     symmetric[types=='behavior'] <- NA
     symmetric[types=='bipartite'] <- FALSE
-    names(symmetric) <- netnames
     group <-  objlist
     attr(group, 'netnames') <- netnames
     attr(group, 'symmetric') <- symmetric
@@ -1290,6 +1426,12 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     attr(group, 'allDownOnly') <- allDownOnly
     attr(group, 'anyUpOnly') <- anyUpOnly
     attr(group, 'anyDownOnly') <- anyDownOnly
+    attr(group, 'allHigher') <- allHigher
+    attr(group, 'allDisjoint') <- allDisjoint
+    attr(group, 'allAtLeastOne') <- allAtLeastOne
+    attr(group, 'anyHigher') <- anyHigher
+    attr(group, 'anyDisjoint') <- anyDisjoint
+    attr(group, 'anyAtLeastOne') <- anyAtLeastOne
     attr(group, 'types') <- types
     attr(group, 'observations') <- observations
     attr(group, 'periodNos') <- periodNos
@@ -1333,25 +1475,28 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     colnames(tmp) <- netnames
     attr(group, "netRanges") <- tmp
     ## copy the global attributes down to individual level where appropriate
-    copyGroupAttributes(group, "depvars", "balmean", "balmean")
-    copyGroupAttributes(group, "depvars", "symmetric", "symmetric")
-    copyGroupAttributes(group, "depvars", "bSim", "simMean")
-    copyGroupAttributes(group, "depvars", "bposzvar", "poszvar")
-    copyGroupAttributes(group, "depvars", "brange", "range")
-    copyGroupAttributes(group, "depvars", "behRange", "behRange")
-    copyGroupAttributes(group, "depvars", "MoreThan2", "moreThan2")
-    copyGroupAttributes(group, "depvars", "missing", "missing")
-    copyGroupAttributes(group, "depvars", "structural", "structural")
+    ##group <- copyGroupAttributes(group, "depvars", "balmean", "balmean")
+    group <- copyGroupAttributes(group, "depvars", "symmetric", "symmetric")
+    ##group <- copyGroupAttributes(group, "depvars", "bSim", "simMean")
+    group <- copyGroupAttributes(group, "depvars", "bposzvar", "poszvar")
+    group <- copyGroupAttributes(group, "depvars", "bRange", "range")
+    group <- copyGroupAttributes(group, "depvars", "behRange", "behRange")
+    group <- copyGroupAttributes(group, "depvars", "bMoreThan2", "moreThan2")
+    group <- copyGroupAttributes(group, "depvars", "anyMissing", "missing")
+    group <- copyGroupAttributes(group, "depvars", "structural", "structural")
 
-    copyGroupAttributes(group, "vCovars", "vCovarSim", "simMean")
-    copyGroupAttributes(group, "vCovars", "vCovarRange", "range", TRUE)
-    copyGroupAttributes(group, "vCovars", "vCovarMean", "mean", TRUE)
-    copyGroupAttributes(group, "vCovars", "vCovarPoszvar", "poszvar")
-    copyGroupAttributes(group, "vCovars", "vCovarMoreThan2", "moreThan2")
-    copyGroupAttributes(group, "dycCovars", "dycCovarMean", "mean")
-    copyGroupAttributes(group, "dycCovars", "dycCovarRange2", "range2", TRUE)
-    copyGroupAttributes(group, "dyvCovars", "dyvCovarMean", "mean")
-    copyGroupAttributes(group, "dyvCovars", "dyvCovarRange", "range", TRUE)
+    ##group <- copyGroupAttributes(group, "vCovars", "vCovarSim", "simMean")
+    group <- copyGroupAttributes(group, "vCovars", "vCovarRange", "range", TRUE)
+    ##group <- copyGroupAttributes(group, "vCovars", "vCovarMean", "mean", TRUE)
+    group <- copyGroupAttributes(group, "vCovars", "vCovarPoszvar", "poszvar")
+    group <- copyGroupAttributes(group, "vCovars", "vCovarMoreThan2",
+                                 "moreThan2")
+    ##group <- copyGroupAttributes(group, "dycCovars", "dycCovarMean", "mean")
+    group <- copyGroupAttributes(group, "dycCovars", "dycCovarRange2",
+                                 "range2", TRUE)
+    ##group <- copyGroupAttributes(group, "dyvCovars", "dyvCovarMean", "mean")
+    group <- copyGroupAttributes(group, "dyvCovars", "dyvCovarRange",
+                                 "range", TRUE)
     group
 }
 ##@copyGroupAttributes DataCreate
@@ -1363,8 +1508,16 @@ copyGroupAttributes <- function(group, vartype, groupattrname, attrname,
     {
         for (j in names(group[[i]][[vartype]]))
         {
-            attr(group[[i]][[vartype]][[j]], attrname) <-
-                as.vector(attributeValue[j])
+            if (is.matrix(attributeValue))
+            {
+                attr(group[[i]][[vartype]][[j]], attrname) <-
+                    as.vector(attributeValue[, j])
+            }
+            else
+            {
+                attr(group[[i]][[vartype]][[j]], attrname) <-
+                    as.vector(attributeValue[j])
+            }
             if (storage.mode)
                  storage.mode(attr(group[[i]][[vartype]][[j]], attrname)) <-
                      "double"

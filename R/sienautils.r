@@ -256,11 +256,41 @@ sienaNet<- function(netarray, type=c('oneMode','bipartite','behavior'),
     attr(obj, 'netdims') <- netdims
     obj
 }
-##@vallidateSienaNet Miscellaneous not used yet
+##@validateSienaNet Miscellaneous not used yet
 validateSienaNet <- function(net)
 {
     if (!inherits(net,'sienaNet'))
         stop ('Not a siena Net')
     if (!attr(net, 'type') %in% c('oneMode', 'bipartite', 'behavior'))
         stop ('invalid type in net')
+}
+
+##@sienaDataConstraint DataCreate
+sienaDataConstraint <- function(x, net1, net2, type=c("higher",
+                                                "disjoint", "atLeastOne"),
+                                 value=FALSE)
+{
+    type <- match.arg(type)
+    net1 <- deparse(substitute(net1))
+    net2 <- deparse(substitute(net2))
+    pairname <- paste(net1, net2, sep=",")
+    atts <- attr(x, type)
+    if (is.null(atts))
+    {
+        stop("No constraints calculated: Need to recreate data object")
+    }
+    if (!pairname %in% names(atts))
+    {
+        stop("No such constraint found")
+    }
+
+    if (value == attr(x, type)[pairname])
+    {
+        cat("No change in constraint\n")
+    }
+    else
+    {
+        attr(x, type)[pairname] <- value
+    }
+    x
 }

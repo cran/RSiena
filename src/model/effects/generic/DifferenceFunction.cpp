@@ -14,11 +14,25 @@
 namespace siena
 {
 
+/**
+ * Creates a new function as a difference between the value of the two
+ * give functions.
+ */
 DifferenceFunction::DifferenceFunction(AlterFunction * pFirstFunction,
 	AlterFunction * pSecondFunction)
 {
 	this->lpFirstFunction = pFirstFunction;
 	this->lpSecondFunction = pSecondFunction;
+}
+
+
+/**
+ * Deallocates this function.
+ */
+DifferenceFunction::~DifferenceFunction()
+{
+	delete this->lpFirstFunction;
+	delete this->lpSecondFunction;
 }
 
 

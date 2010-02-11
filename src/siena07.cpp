@@ -1397,6 +1397,89 @@ void setupExogenousEventGroup(SEXP EXOGEVENTGROUP, Data *pData)
 	}
 
 }
+/**
+ *  Creates all the basic effects for one network
+ */
+	SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
+					   const char *networkName, int effectCol,
+					   int parmCol, int int1Col, int int2Col,
+					   int initValCol, int typeCol, int groupCol,
+					   int periodCol, int pointerCol, int rateTypeCol,
+					   int netTypeCol)
+    {
+        // find out how many effects there are
+        int nEffects = length(VECTOR_ELT(EFFECTS, 0));
+
+        // create the effects
+
+		/* set up a vector to return the pointers in */
+		SEXP effectPtrs;
+		PROTECT(effectPtrs = allocVector(VECSXP, nEffects));
+
+		for (int i = 0; i < nEffects; i++)
+		{
+			EffectInfo * pEffectInfo = 0;
+
+			const char * effectName =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, effectCol), i));
+			int parm1 = INTEGER(VECTOR_ELT(EFFECTS, parmCol))[i];
+			double parm = parm1;
+			const char * interaction1 =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int1Col), i));
+			const char * interaction2 =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int2Col), i));
+            double initialValue = REAL(VECTOR_ELT(EFFECTS, initValCol))[i];
+			const char * effectType =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
+			const char * rateType =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, rateTypeCol), i));
+			const char * netType =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
+
+			if (strcmp(effectType, "rate") == 0 &&
+				strcmp(effectName, "Rate") == 0)
+			{
+				/* find the network */
+				int group = INTEGER(VECTOR_ELT(EFFECTS, groupCol))[i] - 1;
+				int period = INTEGER(VECTOR_ELT(EFFECTS, periodCol))[i] - 1;
+
+				Data * pData = (*pGroupData)[group];
+
+				if (strcmp(netType, "oneMode") == 0)
+				{
+					NetworkLongitudinalData * pNetwork =
+						pData->pNetworkData(networkName);
+					pModel->basicRateParameter(pNetwork, period, initialValue);
+				}
+				else if (strcmp(netType, "Behavior") == 0)
+				{
+					BehaviorLongitudinalData * pNetwork =
+						pData->pBehaviorData(networkName);
+					pModel->basicRateParameter(pNetwork, period, initialValue);
+				}
+			}
+			else
+			{
+				pEffectInfo = pModel->addEffect(networkName,
+					effectName,
+					effectType,
+					initialValue,
+					parm,
+					interaction1,
+					interaction2,
+					rateType);
+			}
+
+			SET_VECTOR_ELT(effectPtrs, i,
+				R_MakeExternalPtr((void *) pEffectInfo,
+					R_NilValue, R_NilValue));
+		}
+
+		UNPROTECT(1);
+		return effectPtrs;
+	}
+
+
 extern "C"
 {
 
@@ -1632,87 +1715,47 @@ one of values, one of missing values (boolean) */
 		return R_NilValue;
 
     }
+
 /**
- *  Creates all the basic effects for one network
+ *  Sets the pairwise constraints for the data
  */
-	SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
-					   const char *networkName, int effectCol,
-					   int parmCol, int int1Col, int int2Col,
-					   int initValCol, int typeCol, int groupCol,
-					   int periodCol, int pointerCol, int rateTypeCol,
-					   int netTypeCol)
+    SEXP Constraints(SEXP RpData, SEXP FROMHIGHERLIST, SEXP TOHIGHERLIST,
+		SEXP FROMDISJOINTLIST, SEXP TODISJOINTLIST,
+		SEXP FROMATLEASTONELIST, SEXP TOATLEASTONELIST)
     {
-        // find out how many effects there are
-        int nEffects = length(VECTOR_ELT(EFFECTS, 0));
+		vector<Data *> * pGroupData = (vector<Data *> *)
+			R_ExternalPtrAddr(RpData);
+		int nGroups = pGroupData->size();
 
-        // create the effects
-
-		/* set up a vector to return the pointers in */
-		SEXP effectPtrs;
-		PROTECT(effectPtrs = allocVector(VECSXP, nEffects));
-
-		for (int i = 0; i < nEffects; i++)
+		for (int group = 0; group < nGroups; group++)
 		{
-			EffectInfo * pEffectInfo = 0;
+			Data * pData = (*pGroupData)[group];
 
-			const char * effectName =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, effectCol), i));
-			int parm1 = INTEGER(VECTOR_ELT(EFFECTS, parmCol))[i];
-			double parm = parm1;
-			const char * interaction1 =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int1Col), i));
-			const char * interaction2 =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, int2Col), i));
-            double initialValue = REAL(VECTOR_ELT(EFFECTS, initValCol))[i];
-			const char * effectType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
-			const char * rateType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, rateTypeCol), i));
-			const char * netType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
-
-			if (strcmp(effectType, "rate") == 0 &&
-				strcmp(effectName, "Rate") == 0)
+			/* higher */
+			for (int i = 0; i < length(FROMHIGHERLIST); i++)
 			{
-				/* find the network */
-				int group = INTEGER(VECTOR_ELT(EFFECTS, groupCol))[i] - 1;
-				int period = INTEGER(VECTOR_ELT(EFFECTS, periodCol))[i] - 1;
-
-				Data * pData = (*pGroupData)[group];
-
-				if (strcmp(netType, "oneMode") == 0)
-				{
-					NetworkLongitudinalData * pNetwork =
-						pData->pNetworkData(networkName);
-					pModel->basicRateParameter(pNetwork, period, initialValue);
-				}
-				else if (strcmp(netType, "Behavior") == 0)
-				{
-					BehaviorLongitudinalData * pNetwork =
-						pData->pBehaviorData(networkName);
-					pModel->basicRateParameter(pNetwork, period, initialValue);
-				}
+				pData->
+					addNetworkConstraint(CHAR(STRING_ELT(FROMHIGHERLIST, i)),
+						CHAR(STRING_ELT(TOHIGHERLIST, i)), HIGHER);
 			}
-			else
+			/* disjoint */
+			for (int i = 0; i < length(FROMDISJOINTLIST); i++)
 			{
-				pEffectInfo = pModel->addEffect(networkName,
-					effectName,
-					effectType,
-					initialValue,
-					parm,
-					interaction1,
-					interaction2,
-					rateType);
+				pData->
+					addNetworkConstraint(CHAR(STRING_ELT(FROMDISJOINTLIST, i)),
+						CHAR(STRING_ELT(TODISJOINTLIST, i)), DISJOINT);
 			}
-
-			SET_VECTOR_ELT(effectPtrs, i,
-				R_MakeExternalPtr((void *) pEffectInfo,
-					R_NilValue, R_NilValue));
+			/* at least one */
+			for (int i = 0; i < length(FROMATLEASTONELIST); i++)
+			{
+				pData->
+					addNetworkConstraint(CHAR(STRING_ELT(FROMATLEASTONELIST,
+								i)),
+						CHAR(STRING_ELT(TOATLEASTONELIST, i)), AT_LEAST_ONE);
+			}
 		}
-
-		UNPROTECT(1);
-		return effectPtrs;
-	}
+		return R_NilValue;
+    }
 
 
 /**

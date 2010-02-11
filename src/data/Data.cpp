@@ -75,6 +75,7 @@ Data::~Data()
 	deallocateVector(this->lconstantDyadicCovariates);
 	deallocateVector(this->lchangingDyadicCovariates);
 	deallocateVector(this->lactorSets);
+	deallocateVector(this->lnetworkConstraints);
 
 	// Delete the exogenous events.
 
@@ -497,6 +498,34 @@ bool EventComparator::operator()(const ExogenousEvent * pFirstEvent,
 	}
 
 	return rc;
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Constraints
+// ----------------------------------------------------------------------------
+
+/**
+ * Adds a new network constraint of the given type between two network
+ * variables with the given names.
+ */
+const NetworkConstraint * Data::addNetworkConstraint(string networkName1,
+	string networkName2,
+	NetworkConstraintType type)
+{
+	NetworkConstraint * pConstraint =
+		new NetworkConstraint(networkName1, networkName2, type);
+	this->lnetworkConstraints.push_back(pConstraint);
+	return pConstraint;
+}
+
+
+/**
+ * Returns the vector of network constraints.
+ */
+const vector<const NetworkConstraint *> & Data::rNetworkConstraints() const
+{
+	return this->lnetworkConstraints;
 }
 
 }

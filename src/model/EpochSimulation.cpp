@@ -28,6 +28,12 @@
 #include "model/State.h"
 #include "model/effects/Effect.h"
 #include "model/tables/Cache.h"
+#include "model/ml/Chain.h"
+#include "model/ml/MiniStep.h"
+#include "model/filters/AtLeastOneFilter.h"
+#include "model/filters/DisjointFilter.h"
+#include "model/filters/HigherFilter.h"
+#include "model/filters/LowerFilter.h"
 
 namespace siena
 {
@@ -94,6 +100,7 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     	}
 
         this->lvariables.push_back(pVariable);
+        this->lvariableMap[pVariable->name()] = pVariable;
 
         if (pModel->conditional() &&
         	pModel->conditionalDependentVariable() == pVariable->name())
@@ -110,6 +117,63 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     	this->lvariables[i]->initializeRateFunction();
     	this->lvariables[i]->initializeEvaluationFunction();
     	this->lvariables[i]->initializeEndowmentFunction();
+    }
+
+    // Add network constraints to network variables.
+
+    for (unsigned i = 0; i < pData->rNetworkConstraints().size(); i++)
+    {
+    	const NetworkConstraint * pConstraint =
+    		pData->rNetworkConstraints()[i];
+    	NetworkVariable * pVariable1 =
+    		dynamic_cast<NetworkVariable *>(
+    			this->lvariableMap[pConstraint->networkName1()]);
+		NetworkVariable * pVariable2 =
+			dynamic_cast<NetworkVariable *>(
+				this->lvariableMap[pConstraint->networkName2()]);
+
+		if (!pVariable1)
+		{
+			throw logic_error(
+				"Network variable " +
+				pConstraint->networkName1() +
+				" expected.");
+		}
+
+		if (!pVariable2)
+		{
+			throw logic_error(
+				"Network variable " +
+				pConstraint->networkName2() +
+				" expected.");
+		}
+
+		if (pConstraint->type() == HIGHER)
+		{
+			pVariable1->addPermittedChangeFilter(
+				new HigherFilter(pVariable1, pVariable2));
+			pVariable2->addPermittedChangeFilter(
+				new LowerFilter(pVariable2, pVariable1));
+		}
+		else if (pConstraint->type() == DISJOINT)
+		{
+			pVariable1->addPermittedChangeFilter(
+				new DisjointFilter(pVariable1, pVariable2));
+			pVariable2->addPermittedChangeFilter(
+				new DisjointFilter(pVariable2, pVariable1));
+		}
+		else if (pConstraint->type() == AT_LEAST_ONE)
+		{
+			pVariable1->addPermittedChangeFilter(
+				new AtLeastOneFilter(pVariable1, pVariable2));
+			pVariable2->addPermittedChangeFilter(
+				new AtLeastOneFilter(pVariable2, pVariable1));
+		}
+		else
+		{
+			throw logic_error(
+				"Unexpected constraint type " + pConstraint->type());
+		}
     }
 
     // Allocate a helper array
@@ -140,6 +204,8 @@ EpochSimulation::~EpochSimulation()
 
     deallocateVector(this->lvariables);
 	deallocateVector(this->lsimulationActorSets);
+
+	this->lvariableMap.clear();
 }
 
 
@@ -336,9 +402,12 @@ void EpochSimulation::runStep()
  */
 void EpochSimulation::calculateRates()
 {
+	this->ltotalRate = 0;
+
     for (unsigned i = 0; i < this->lvariables.size(); i++)
     {
         this->lvariables[i]->calculateRates();
+        this->ltotalRate += this->lvariables[i]->totalRate();
     }
 }
 
@@ -350,13 +419,6 @@ void EpochSimulation::calculateRates()
  */
 void EpochSimulation::drawTimeIncrement()
 {
-    double totalRate = 0;
-
-    for (unsigned i = 0; i < this->lvariables.size(); i++)
-    {
-        totalRate += this->lvariables[i]->totalRate();
-    }
-
     // use QAD if parallel running as other one uses 2 random numbers
 	// also use QAD if STANDALONE (SienaProfile.cpp)
 	double tau;
@@ -365,12 +427,12 @@ void EpochSimulation::drawTimeIncrement()
 	if (this->lpModel->parallelRun())
 	{
 #endif
-		tau = nextExponentialQAD(totalRate);
+		tau = nextExponentialQAD(this->ltotalRate);
 #ifndef STANDALONE
 	}
 	else
 	{
-		tau = nextExponential(totalRate);
+		tau = nextExponential(this->ltotalRate);
 	}
 #endif
 
@@ -558,14 +620,13 @@ const Model * EpochSimulation::pModel() const
  */
 const DependentVariable * EpochSimulation::pVariable(string name) const
 {
-	DependentVariable * pVariable = 0;
+	map<string, DependentVariable *>::const_iterator iter =
+		this->lvariableMap.find(name);
+	const DependentVariable * pVariable = 0;
 
-	for (unsigned i = 0; i < this->lvariables.size() && !pVariable; i++)
+	if (iter != this->lvariableMap.end())
 	{
-		if (this->lvariables[i]->name() == name)
-		{
-			pVariable = this->lvariables[i];
-		}
+		pVariable = iter->second;
 	}
 
 	return pVariable;
@@ -653,6 +714,62 @@ void EpochSimulation::score(const EffectInfo * pEffect, double value)
 Cache * EpochSimulation::pCache() const
 {
 	return this->lpCache;
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Maximum likelihood related methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Updates the probabilities for a range of ministeps of the given chain
+ * (including the end-points of the range).
+ */
+void EpochSimulation::updateProbabilities(Chain * pChain,
+	MiniStep * pFirstMiniStep,
+	MiniStep * pLastMiniStep)
+{
+	// Initialize the variables as of the beginning of the period
+    this->initialize(pChain->period());
+
+    // Apply the ministeps before the first ministep of the required range
+    // to derive the correct state before that ministep.
+
+    MiniStep * pMiniStep = pChain->pFirst()->pNext();
+
+    while (pMiniStep != pFirstMiniStep)
+    {
+    	DependentVariable * pVariable =
+    		this->lvariableMap[pMiniStep->variableName()];
+    	pMiniStep->makeChange(pVariable);
+
+    	pMiniStep = pMiniStep->pNext();
+    }
+
+    bool done = false;
+
+    while (!done)
+    {
+    	DependentVariable * pVariable =
+    		this->lvariableMap[pMiniStep->variableName()];
+    	this->calculateRates();
+    	double rate = pVariable->rate(pMiniStep->ego());
+    	double probability = pVariable->probability(pMiniStep);
+    	double reciprocalTotalRate = 1 / this->ltotalRate;
+
+    	pMiniStep->reciprocalRate(reciprocalTotalRate);
+    	pMiniStep->logProbability(log(probability * rate * reciprocalTotalRate));
+    	pMiniStep->makeChange(pVariable);
+
+    	if (pMiniStep == pLastMiniStep)
+    	{
+    		done = true;
+    	}
+    	else
+    	{
+    		pMiniStep = pMiniStep->pNext();
+    	}
+    }
 }
 
 }

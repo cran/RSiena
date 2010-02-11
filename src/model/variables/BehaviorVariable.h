@@ -43,8 +43,6 @@ public:
 	virtual int m() const;
 	virtual LongitudinalData * pData() const;
 	virtual void initialize(int period);
-	virtual void actOnJoiner(const SimulationActorSet * pActorSet, int actor);
-	virtual void actOnLeaver(const SimulationActorSet * pActorSet, int actor);
 	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
 		int actor);
 
@@ -59,6 +57,8 @@ public:
 	int range() const;
 	double similarityMean() const;
 
+	virtual double probability(MiniStep * pMiniStep);
+
 private:
 	double totalEvaluationContribution(int actor,
 		int difference) const;
@@ -66,15 +66,13 @@ private:
 		int difference) const;
 	void accumulateScores(int difference, bool UpPossible,
 		bool downPossible) const;
+	void calculateProbabilities(int actor);
 
 	// The observed data for this behavioral variable
 	BehaviorLongitudinalData * lpData;
 
 	// The current value of the variable per each actor
 	int * lvalues;
-
-	// The mean value of the variable over all active actors
-	double lmean;
 
 	// A two-dimensional array of change contributions to effects, where
 	// rows correspond to differences and columns correspond to effects in the
@@ -88,9 +86,18 @@ private:
 
 	double ** lendowmentEffectContribution;
 
-	// Selection probability per each difference
+	// Selection probability per each difference:
+	// lprobabilities[0] - probability for a downward change
+	// lprobabilities[1] - probability of no change
+	// lprobabilities[2] - probability of an upward change
 
 	double * lprobabilities;
+
+	// Indicates if upward change is possible in the current situation
+	bool lupPossible;
+
+	// Indicates if downward change is possible in the current situation
+	bool ldownPossible;
 };
 
 }

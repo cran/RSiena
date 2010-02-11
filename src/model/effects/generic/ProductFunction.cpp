@@ -12,6 +12,16 @@ ProductFunction::ProductFunction(AlterFunction * pFirstFunction,
 
 
 /**
+ * Deallocates this function.
+ */
+ProductFunction::~ProductFunction()
+{
+	delete this->lpFirstFunction;
+	delete this->lpSecondFunction;
+}
+
+
+/**
  * Initializes this function.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables

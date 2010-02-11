@@ -9,11 +9,10 @@
  * BetweennessFunction class.
  *****************************************************************************/
 
-
 #ifndef BETWEENNESSFUNCTION_H_
 #define BETWEENNESSFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
 
 namespace siena
@@ -26,7 +25,7 @@ class ConfigurationTable;
  * Defines a function that returns the number of non-transitive two-paths
  * in a network of the given name.
  */
-class BetweennessFunction: public NetworkAlterFunction, IntAlterFunction
+class BetweennessFunction: public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
 	BetweennessFunction(string networkName);

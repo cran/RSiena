@@ -41,14 +41,12 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 /**
- * Creates a dependent variable for the given set of actors and the given
- * number of observations.
+ * Creates a dependent variable for the given set of actors.
  * @param pSimulation the model simulation, which becomes the owner of
  * this variable
  */
 DependentVariable::DependentVariable(string name,
 	const ActorSet * pActorSet,
-	int observationCount,
 	EpochSimulation * pSimulation) : NamedObject(name)
 {
 	this->lpActorSet = pSimulation->pSimulationActorSet(pActorSet);
@@ -819,6 +817,28 @@ double DependentVariable::inverseOutDegreeScore(
 	}
 
 	return iter->second;
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Composition change
+// ----------------------------------------------------------------------------
+
+/**
+ * Updates this variable when an actor becomes active.
+ */
+void DependentVariable::actOnJoiner(const SimulationActorSet * pActorSet,
+	int actor)
+{
+}
+
+
+/**
+ * Updates this variable when an actor becomes inactive.
+ */
+void DependentVariable::actOnLeaver(const SimulationActorSet * pActorSet,
+	int actor)
+{
 }
 
 }

@@ -21,7 +21,7 @@ namespace siena
  * associated with
  */
 InTieFunction::InTieFunction(string networkName) :
-	NetworkAlterFunction(networkName)
+	OneModeNetworkAlterFunction(networkName)
 {
 }
 

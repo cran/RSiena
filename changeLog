@@ -1,10 +1,48 @@
+2010-02-27 R-forge revision 61
+
+	* R/robmon.r: change to random number seed for lecuyer random
+	numbers. previously every sequence started with same seed. Now
+	random based on the R seed.
+	* man/siena07.Rd: brought example in line with current choice between
+	conditional and unconditional estimation
+
+2010-02-12 R-forge revision 59
+	* inst/doc/s_man400.pdf: updated manual
+
+2010-02-11 R-forge revision 58
+
+	* src/data/NetworkConstraint.cpp, src/data/NetworkConstraint.h,
+	src/model/efefcts/generic/many, src/model/filters, src/model/ml:
+	forgotten additions in revision 56
+
+2010-02-11 R-forge revision 57
+
+	* R/siena01.r: fix bug which stopped Siena update of effects
+	initial values after conditional estimation.
+
+2010-02-11 R-forge revision 56
+
+	* DESCRIPTION, man/RSiena-package.Rd: new version number 1.0.10
+	* src/model/effects/generic/*, src/model/effects/effectfactory.cpp:
+	multiple networks
+	* src/model/EpochSimulation.cpp, src/model/variables/*,
+	src/data/Data.cpp, R/sienaDataCreate.r, R/sienautils.r,
+	R/simstatsc.r, NAMESPACE: constraints between pairs of networks.
+	* src/Makefile, Makefile.win: add new directories
+	* R/sienaDataCreate.r, R/print01Report.r: separate balance means
+	etc. for groups
+
+2010-02-11 R-forge revision 53
+
+	* R/siena01.r: fixed bug in editing all effects
+
 2010-02-07 R-forge revision 52
 
-	* R/globals.r, R/siena07.r, man/siena07.Rd: 
+	* R/globals.r, R/siena07.r, man/siena07.Rd:
 	new silent option with no output.
 	* tests/parallel.R, tests/parallel.Rout.save: suppress progress
 	message output and include prints of results.
-	
+
 2010-02-04 R-forge revision 51
 
 	* data/allEffects/csv: Bug in covariate behavior effects
@@ -12,7 +50,7 @@
 	changes for Win64
 	* r/effects.r: minor fixes to getEffects function (default effects
 	for multiple dependent networks.)
-	
+
 2010-01-28 R-forge revision 48
 
 	* R/simstatsc.r: fixed bug in sort order of effects

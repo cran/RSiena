@@ -26,6 +26,9 @@ class GenericNetworkEffect: public NetworkEffect
 public:
 	GenericNetworkEffect(const EffectInfo * pEffectInfo,
 		AlterFunction * pFunction);
+	GenericNetworkEffect(const EffectInfo * pEffectInfo,
+		AlterFunction * pEffectFunction,
+		AlterFunction * pStatisticFunction);
 	virtual ~GenericNetworkEffect();
 
 	virtual void initialize(const Data * pData,
@@ -40,7 +43,8 @@ protected:
 	virtual double tieStatistic(int alter);
 
 private:
-	AlterFunction * lpFunction;
+	AlterFunction * lpEffectFunction;
+	AlterFunction * lpStatisticFunction;
 };
 
 }

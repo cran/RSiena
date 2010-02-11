@@ -12,7 +12,7 @@
 #ifndef OUTDEGREEFUNCTION_H_
 #define OUTDEGREEFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
 
 namespace siena
@@ -22,7 +22,7 @@ namespace siena
  * Defines a function that returns the out-degrees of alters in a network
  * with the given name.
  */
-class OutDegreeFunction: public NetworkAlterFunction, IntAlterFunction
+class OutDegreeFunction: public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
 	OutDegreeFunction(string networkName);

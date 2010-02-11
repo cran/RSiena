@@ -28,6 +28,8 @@
 #include "model/effects/NetworkEffect.h"
 #include "model/tables/Cache.h"
 #include "model/tables/NetworkCache.h"
+#include "model/ml/NetworkChange.h"
+#include "model/filters/PermittedChangeFilter.h"
 
 namespace siena
 {
@@ -44,7 +46,6 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 	EpochSimulation * pSimulation) :
 		DependentVariable(pData->name(),
 			pData->pActorSet(),
-			pData->observationCount(),
 			pSimulation)
 {
 	this->lpData = pData;
@@ -111,7 +112,21 @@ NetworkVariable::~NetworkVariable()
 	this->lactiveStructuralTieCount = 0;
 	this->lpermitted = 0;
 	this->lprobabilities = 0;
+
+	deallocateVector(this->lpermittedChangeFilters);
 }
+
+
+/**
+ * Adds the given filter of permissible changes to the filters of this
+ * variable. This variable becomes the owner of the filter, which means that
+ * the filter will be deleted as soon as this variable is deleted.
+ */
+void NetworkVariable::addPermittedChangeFilter(PermittedChangeFilter * pFilter)
+{
+	this->lpermittedChangeFilters.push_back(pFilter);
+}
+
 
 
 // ----------------------------------------------------------------------------
@@ -243,6 +258,8 @@ Network * NetworkVariable::pNetwork() const
 void NetworkVariable::actOnJoiner(const SimulationActorSet * pActorSet,
 	int actor)
 {
+	DependentVariable::actOnJoiner(pActorSet, actor);
+
 	const Network * pStartNetwork = this->lpData->pNetwork(this->period());
 
 	if (pActorSet == this->pSenders())
@@ -302,6 +319,8 @@ void NetworkVariable::actOnJoiner(const SimulationActorSet * pActorSet,
 void NetworkVariable::actOnLeaver(const SimulationActorSet * pActorSet,
 	int actor)
 {
+	DependentVariable::actOnLeaver(pActorSet, actor);
+
 	if (pActorSet == this->pSenders())
 	{
 		// Remove the ties from the given actor.
@@ -398,9 +417,6 @@ bool NetworkVariable::canMakeChange(int actor) const
 void NetworkVariable::makeChange(int actor)
 {
 	this->lego = actor;
-	this->preprocessEgo();
-	this->calculatePermissibleChanges();
-	this->calculateTieFlipContributions();
 	this->calculateTieFlipProbabilities();
 	int alter = nextIntWithProbabilities(this->m(), this->lprobabilities);
 
@@ -522,6 +538,14 @@ void NetworkVariable::calculatePermissibleChanges()
 	{
 		this->lpermitted[iter.actor()] = false;
 	}
+
+	// Run the filters that may forbid some more changes
+
+	for (unsigned i = 0; i < this->lpermittedChangeFilters.size(); i++)
+	{
+		PermittedChangeFilter * pFilter = this->lpermittedChangeFilters[i];
+		pFilter->filterPermittedChanges(this->lego, this->lpermitted);
+	}
 }
 
 
@@ -607,6 +631,10 @@ void NetworkVariable::calculateTieFlipContributions()
  */
 void NetworkVariable::calculateTieFlipProbabilities()
 {
+	this->preprocessEgo();
+	this->calculatePermissibleChanges();
+	this->calculateTieFlipContributions();
+
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
 
@@ -711,6 +739,24 @@ void NetworkVariable::accumulateScores(int alter) const
 			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 //	Rprintf(" endow score %f\n", score);
 	}
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Maximum likelihood related methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Calculates the probability of the given ministep assuming that the
+ * ego of the ministep will change this variable.
+ */
+double NetworkVariable::probability(MiniStep * pMiniStep)
+{
+	NetworkChange * pNetworkChange =
+		dynamic_cast<NetworkChange *>(pMiniStep);
+	this->lego = pNetworkChange->ego();
+	this->calculateTieFlipProbabilities();
+	return this->lprobabilities[pNetworkChange->alter()];
 }
 
 }

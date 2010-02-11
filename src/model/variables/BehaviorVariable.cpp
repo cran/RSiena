@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <string>
+#include <stdexcept>
 #include "data/ActorSet.h"
 #include "utils/Random.h"
 #include "BehaviorVariable.h"
@@ -21,6 +22,7 @@
 #include "model/effects/BehaviorEffect.h"
 #include "model/EffectInfo.h"
 #include "model/SimulationActorSet.h"
+#include "model/ml/MiniStep.h"
 
 namespace siena
 {
@@ -33,7 +35,6 @@ BehaviorVariable::BehaviorVariable(BehaviorLongitudinalData * pData,
 	EpochSimulation * pSimulation) :
 		DependentVariable(pData->name(),
 			pData->pActorSet(),
-			pData->observationCount(),
 			pSimulation)
 {
 	this->lpData = pData;
@@ -186,75 +187,17 @@ void BehaviorVariable::initialize(int period)
 	DependentVariable::initialize(period);
 
 	// Copy the values from the corresponding observation.
-	// Calculate the mean over active actors.
-
-	this->lmean = 0;
 
 	for (int i = 0; i < this->n(); i++)
 	{
 		this->lvalues[i] = this->lpData->value(period, i);
-
-		if (this->pActorSet()->active(i))
-		{
-			this->lmean += this->lvalues[i];
-		}
 	}
-
-	this->lmean /= this->pActorSet()->activeActorCount();
 }
 
 
 // ----------------------------------------------------------------------------
 // Section: Composition change
 // ----------------------------------------------------------------------------
-
-/**
- * Updates the state of this variable when an actor becomes active.
- */
-void BehaviorVariable::actOnJoiner(const SimulationActorSet * pActorSet,
-	int actor)
-{
-	if (pActorSet == this->pActorSet())
-	{
-		// Update the mean value of this variable over all active actors.
-
-		// First calculate the sum over previously active actors (all active
-		// actors except for the joiner itself).
-
-		this->lmean *= pActorSet->activeActorCount() - 1;
-
-		// Add the value of the joiner to the sum.
-		this->lmean += this->lvalues[actor];
-
-		// Divide by the number of active actors, so we get the average.
-		this->lmean /= pActorSet->activeActorCount();
-	}
-}
-
-
-/**
- * Updates the state of this variable when an actor becomes inactive.
- */
-void BehaviorVariable::actOnLeaver(const SimulationActorSet * pActorSet,
-	int actor)
-{
-	if (pActorSet == this->pActorSet())
-	{
-		// Update the mean value of this variable over all active actors.
-
-		// First calculate the sum over previously active actors (all active
-		// actors plus the leaver, who is inactive now).
-
-		this->lmean *= pActorSet->activeActorCount() + 1;
-
-		// Subtract the value of the leaver from the sum.
-		this->lmean -= this->lvalues[actor];
-
-		// Divide by the number of active actors, so we get the average.
-		this->lmean /= pActorSet->activeActorCount();
-	}
-}
-
 
 /**
  * Sets leavers values back to the value at the start of the simulation.
@@ -284,65 +227,16 @@ void BehaviorVariable::setLeaverBack(const SimulationActorSet * pActorSet,
  */
 void BehaviorVariable::makeChange(int actor)
 {
-	// The array of probabilities for downward change, no change, and upward
-	// change, respectivelly
-
-	double probabilities[3];
-	bool upPossible = true;
-	bool downPossible = true;
-
-	// Calculate the probability for downward change
-
-	if (this->lvalues[actor] > this->lpData->min() &&
-		!this->lpData->upOnly(this->period()))
-	{
-		probabilities[0] =
-			exp(this->totalEvaluationContribution(actor, -1) +
-				this->totalEndowmentContribution(actor, -1));
-	}
-	else
-	{
-		probabilities[0] = 0;
-		downPossible = false;
-	}
-
-	// No change means zero contribution, but exp(0) = 1
-	probabilities[1] = 1;
-
-	// Calculate the probability for upward change
-
-	if (this->lvalues[actor] < this->lpData->max() &&
-		!this->lpData->downOnly(this->period()))
-	{
-		probabilities[2] =
-			exp(this->totalEvaluationContribution(actor, 1));
-	}
-	else
-	{
-		probabilities[2] = 0;
-		upPossible = false;
-	}
-
-	if (this->pSimulation()->pModel()->needScores())
-	{
-		double sum = 0;
-		sum = probabilities[0] + 1 + probabilities[2];
-		this->lprobabilities[0] =  probabilities[0] / sum;
-		this->lprobabilities[1] =  probabilities[1] / sum;
-		this->lprobabilities[2] =  probabilities[2] / sum;
-	}
-
-	// Transform to cumulative probabilities
-
-	probabilities[1] += probabilities[0];
-	probabilities[2] += probabilities[1];
+	this->calculateProbabilities(actor);
 
 	// Choose the change
-	int difference = nextIntWithCumulativeProbabilities(3, probabilities) - 1;
+	int difference = nextIntWithProbabilities(3, this->lprobabilities) - 1;
 
 	if (this->pSimulation()->pModel()->needScores())
 	{
-		this->accumulateScores(difference + 1, upPossible, downPossible);
+		this->accumulateScores(difference + 1,
+			this->lupPossible,
+			this->ldownPossible);
 	}
 
 	// Make the change
@@ -353,12 +247,6 @@ void BehaviorVariable::makeChange(int actor)
 
 		// Make the change
 		this->lvalues[actor] += difference;
-
-		// Update the mean over active actors
-
-		this->lmean +=
-			((double) difference) /
-				this->pActorSet()->activeActorCount();
 
 		// Update the distance from the observed data at the beginning of the
 		// period. Actors with missing values at any of the endpoints of the
@@ -373,6 +261,55 @@ void BehaviorVariable::makeChange(int actor)
 				abs(oldValue - observedValue));
 		}
 	}
+}
+
+
+/**
+ * Calculates the probabilities of each possible change.
+ */
+void BehaviorVariable::calculateProbabilities(int actor)
+{
+	this->lupPossible = true;
+	this->ldownPossible = true;
+
+	// Calculate the probability for downward change
+
+	if (this->lvalues[actor] > this->lpData->min() &&
+		!this->lpData->upOnly(this->period()))
+	{
+		this->lprobabilities[0] =
+			exp(this->totalEvaluationContribution(actor, -1) +
+				this->totalEndowmentContribution(actor, -1));
+	}
+	else
+	{
+		this->lprobabilities[0] = 0;
+		this->ldownPossible = false;
+	}
+
+	// No change means zero contribution, but exp(0) = 1
+	this->lprobabilities[1] = 1;
+
+	// Calculate the probability for upward change
+
+	if (this->lvalues[actor] < this->lpData->max() &&
+		!this->lpData->downOnly(this->period()))
+	{
+		this->lprobabilities[2] =
+			exp(this->totalEvaluationContribution(actor, 1));
+	}
+	else
+	{
+		this->lprobabilities[2] = 0;
+		this->lupPossible = false;
+	}
+
+	double sum = this->lprobabilities[0] +
+		this->lprobabilities[1] +
+		this->lprobabilities[2];
+	this->lprobabilities[0] /= sum;
+	this->lprobabilities[1] /= sum;
+	this->lprobabilities[2] /= sum;
 }
 
 
@@ -482,5 +419,24 @@ void BehaviorVariable::accumulateScores(int difference,
 	}
 }
 
+
+// ----------------------------------------------------------------------------
+// Section: Maximum likelihood related methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Calculates the probability of the given ministep assuming that the
+ * ego of the ministep will change this variable.
+ */
+double BehaviorVariable::probability(MiniStep * pMiniStep)
+{
+	if (pMiniStep->difference() < -1 || pMiniStep->difference() > 1)
+	{
+		throw invalid_argument("MiniStep difference out of range [-1,1].");
+	}
+
+	this->calculateProbabilities(pMiniStep->ego());
+	return this->lprobabilities[pMiniStep->difference() + 1];
+}
 
 }

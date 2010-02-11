@@ -22,7 +22,7 @@ namespace siena
  * associated with
  */
 TwoPathFunction::TwoPathFunction(string networkName) :
-	NetworkAlterFunction(networkName)
+	OneModeNetworkAlterFunction(networkName)
 {
 	this->lpTable = 0;
 }
@@ -40,7 +40,7 @@ void TwoPathFunction::initialize(const Data * pData,
 	int period,
 	Cache * pCache)
 {
-	NetworkAlterFunction::initialize(pData, pState, period, pCache);
+	OneModeNetworkAlterFunction::initialize(pData, pState, period, pCache);
 	this->lpTable = this->pNetworkCache()->pTwoPathTable();
 }
 

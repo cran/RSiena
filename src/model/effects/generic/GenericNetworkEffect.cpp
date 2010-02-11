@@ -18,15 +18,48 @@
 namespace siena
 {
 
+/**
+ * Creates a new effect with the same function calculating the effect
+ * and the statistic.
+ */
 GenericNetworkEffect::GenericNetworkEffect(const EffectInfo * pEffectInfo,
 	AlterFunction * pFunction) : NetworkEffect(pEffectInfo)
 {
-	this->lpFunction = pFunction;
+	this->lpEffectFunction = pFunction;
+	this->lpStatisticFunction = pFunction;
 }
 
 
+/**
+ * Creates a new effect with different functions calculating the effect
+ * and the statistic.
+ */
+GenericNetworkEffect::GenericNetworkEffect(const EffectInfo * pEffectInfo,
+	AlterFunction * pEffectFunction,
+	AlterFunction * pStatisticFunction) : NetworkEffect(pEffectInfo)
+{
+	this->lpEffectFunction = pEffectFunction;
+	this->lpStatisticFunction = pStatisticFunction;
+}
+
+
+/**
+ * Deallocates this effect.
+ */
 GenericNetworkEffect::~GenericNetworkEffect()
 {
+	if (this->lpEffectFunction == this->lpStatisticFunction)
+	{
+		delete this->lpEffectFunction;
+	}
+	else
+	{
+		delete this->lpEffectFunction;
+		delete this->lpStatisticFunction;
+	}
+
+	this->lpEffectFunction = 0;
+	this->lpStatisticFunction = 0;
 }
 
 
@@ -43,7 +76,12 @@ void GenericNetworkEffect::initialize(const Data * pData,
 	Cache * pCache)
 {
 	NetworkEffect::initialize(pData, pState, period, pCache);
-	this->lpFunction->initialize(pData, pState, period, pCache);
+	this->lpEffectFunction->initialize(pData, pState, period, pCache);
+
+	if (this->lpStatisticFunction != this->lpEffectFunction)
+	{
+		this->lpStatisticFunction->initialize(pData, pState, period, pCache);
+	}
 }
 
 
@@ -55,7 +93,12 @@ void GenericNetworkEffect::initialize(const Data * pData,
 void GenericNetworkEffect::preprocessEgo(int ego)
 {
 	NetworkEffect::preprocessEgo(ego);
-	this->lpFunction->preprocessEgo(ego);
+	this->lpEffectFunction->preprocessEgo(ego);
+
+	if (this->lpStatisticFunction != this->lpEffectFunction)
+	{
+		this->lpStatisticFunction->preprocessEgo(ego);
+	}
 }
 
 
@@ -67,7 +110,7 @@ void GenericNetworkEffect::preprocessEgo(int ego)
  */
 double GenericNetworkEffect::calculateContribution(int alter) const
 {
-	return this->lpFunction->value(alter);
+	return this->lpEffectFunction->value(alter);
 }
 
 
@@ -78,7 +121,7 @@ double GenericNetworkEffect::calculateContribution(int alter) const
  */
 double GenericNetworkEffect::tieStatistic(int alter)
 {
-	return this->lpFunction->value(alter);
+	return this->lpStatisticFunction->value(alter);
 }
 
 }

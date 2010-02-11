@@ -12,7 +12,7 @@
 #ifndef EGOINDEGREEFUNCTION_H_
 #define EGOINDEGREEFUNCTION_H_
 
-#include "NetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
 
 namespace siena
@@ -22,7 +22,7 @@ namespace siena
  * Defines a function that returns the in-degree of the ego regardless
  * of the alter.
  */
-class EgoInDegreeFunction: public NetworkAlterFunction, IntAlterFunction
+class EgoInDegreeFunction: public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
 	EgoInDegreeFunction(string networkName);

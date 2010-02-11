@@ -154,8 +154,14 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             attr(f, "symmetric") <- attr(data, "symmetric")
             attr(f, "allUpOnly") <- attr(data, "allUpOnly")
             attr(f, "allDownOnly") <- attr(data, "allDownOnly")
+            attr(f, "allHigher") <- attr(data, "allHigher")
+            attr(f, "allDisjoint") <- attr(data, "allDisjoint")
+            attr(f, "allAtLeastOne") <- attr(data, "allAtLeastOne")
             attr(f, "anyUpOnly") <- attr(data, "anyUpOnly")
             attr(f, "anyDownOnly") <- attr(data, "anyDownOnly")
+            attr(f, "anyHigher") <- attr(data, "anyHigher")
+            attr(f, "anyDisjoint") <- attr(data, "anyDisjoint")
+            attr(f, "anyAtLeastOne") <- attr(data, "anyAtLeastOne")
             attr(f, "types") <- attr(data, "types")
             attr(f, "observations") <- attr(data, "observations")
             attr(f, "compositionChange") <- attr(data, "compositionChange")
@@ -247,6 +253,16 @@ simstats0c <-function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                    pData, lapply(f, function(x)x$dyvCovars))
         ans <-.Call('ExogEvent', PACKAGE="RSiena",
                    pData, lapply(f, function(x)x$exog))
+        ## split the names of the constraints
+        higher <- attr(f, "allHigher")
+        disjoint <- attr(f, "allDisjoint")
+        atLeastOne <- attr(f, "allAtLeastOne")
+        froms <- sapply(strsplit(names(higher), ","), function(x)x[1])
+        tos <- sapply(strsplit(names(higher), ","), function(x)x[2])
+        ans <- .Call("Constraints", PACKAGE="RSiena",
+                     pData, froms[higher], tos[higher],
+                     froms[disjoint], tos[disjoint],
+                     froms[atLeastOne], tos[atLeastOne])
         ##store the address
         f$pData <- pData
         ## register a finalizer

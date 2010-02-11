@@ -10,12 +10,31 @@
  *****************************************************************************/
 
 #include <stdexcept>
+#include <cmath>
 
 #include "EffectFactory.h"
 #include "data/Data.h"
 #include "data/NetworkLongitudinalData.h"
 #include "model/EffectInfo.h"
 #include "model/effects/AllEffects.h"
+#include "model/effects/generic/GenericNetworkEffect.h"
+#include "model/effects/generic/OutTieFunction.h"
+#include "model/effects/generic/InTieFunction.h"
+#include "model/effects/generic/ProductFunction.h"
+#include "model/effects/generic/ConstantFunction.h"
+#include "model/effects/generic/InDegreeFunction.h"
+#include "model/effects/generic/IntSqrtFunction.h"
+#include "model/effects/generic/DifferenceFunction.h"
+#include "model/effects/generic/EgoInDegreeFunction.h"
+#include "model/effects/generic/OutDegreeFunction.h"
+#include "model/effects/generic/EgoOutDegreeFunction.h"
+#include "model/effects/generic/BetweennessFunction.h"
+#include "model/effects/generic/InStarFunction.h"
+#include "model/effects/generic/ReciprocatedTwoPathFunction.h"
+#include "model/effects/generic/TwoPathFunction.h"
+#include "model/effects/generic/ConditionalFunction.h"
+#include "model/effects/generic/EqualCovariatePredicate.h"
+#include "model/effects/generic/MissingCovariatePredicate.h"
 
 namespace siena
 {
@@ -237,6 +256,164 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "4-cycles")
 	{
 		pEffect = new FourCyclesEffect(pEffectInfo);
+	}
+	else if (effectName == "crprod")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new OutTieFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "crprodRecip")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new InTieFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "crprodMutual")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ProductFunction(
+				new OutTieFunction(pEffectInfo->interactionName1()),
+				new InTieFunction(pEffectInfo->interactionName1())));
+	}
+	else if (effectName == "inPopIntn")
+	{
+		AlterFunction * pFirstFunction =
+			new InDegreeFunction(pEffectInfo->interactionName1());
+		ConstantFunction * pSecondFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_IN_DEGREE);
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pFirstFunction = new IntSqrtFunction(pFirstFunction);
+			pSecondFunction->pFunction(sqrt);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new DifferenceFunction(pFirstFunction, pSecondFunction));
+	}
+	else if (effectName == "inActIntn")
+	{
+		AlterFunction * pFirstFunction =
+			new EgoInDegreeFunction(pEffectInfo->interactionName1());
+		ConstantFunction * pSecondFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_IN_DEGREE);
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pFirstFunction = new IntSqrtFunction(pFirstFunction);
+			pSecondFunction->pFunction(sqrt);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new DifferenceFunction(pFirstFunction, pSecondFunction));
+	}
+	else if (effectName == "outPopIntn")
+	{
+		AlterFunction * pFirstFunction =
+			new OutDegreeFunction(pEffectInfo->interactionName1());
+		ConstantFunction * pSecondFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_OUT_DEGREE);
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pFirstFunction = new IntSqrtFunction(pFirstFunction);
+			pSecondFunction->pFunction(sqrt);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new DifferenceFunction(pFirstFunction, pSecondFunction));
+	}
+	else if (effectName == "outActIntn")
+	{
+		AlterFunction * pFirstFunction =
+			new EgoOutDegreeFunction(pEffectInfo->interactionName1());
+		ConstantFunction * pSecondFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_OUT_DEGREE);
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pFirstFunction = new IntSqrtFunction(pFirstFunction);
+			pSecondFunction->pFunction(sqrt);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new DifferenceFunction(pFirstFunction, pSecondFunction));
+	}
+	else if (effectName == "both")
+	{
+		AlterFunction * pAlterIndegreeFunction =
+			new InDegreeFunction(pEffectInfo->interactionName1());
+		AlterFunction * pEgoIndegreeFunction =
+			new EgoInDegreeFunction(pEffectInfo->interactionName1());
+		ConstantFunction * pFirstConstantFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_IN_DEGREE);
+		ConstantFunction * pSecondConstantFunction =
+			new ConstantFunction(pEffectInfo->interactionName1(),
+				AVERAGE_IN_DEGREE);
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pAlterIndegreeFunction =
+				new IntSqrtFunction(pAlterIndegreeFunction);
+			pEgoIndegreeFunction =
+				new IntSqrtFunction(pEgoIndegreeFunction);
+			pFirstConstantFunction->pFunction(sqrt);
+			pSecondConstantFunction->pFunction(sqrt);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ProductFunction(
+				new DifferenceFunction(pAlterIndegreeFunction,
+					pFirstConstantFunction),
+				new DifferenceFunction(pEgoIndegreeFunction,
+					pSecondConstantFunction)));
+	}
+	else if (effectName == "betweenPop")
+	{
+		AlterFunction * pFunction =
+			new BetweennessFunction(pEffectInfo->interactionName1());
+
+		if (pEffectInfo->internalEffectParameter() == 2)
+		{
+			pFunction = new IntSqrtFunction(pFunction);
+		}
+
+		pEffect = new GenericNetworkEffect(pEffectInfo, pFunction);
+	}
+	else if (effectName == "from")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new InStarFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "fromMutual")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ReciprocatedTwoPathFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "covNetNet")
+	{
+		string networkName = pEffectInfo->interactionName1();
+		string covariateName = pEffectInfo->interactionName2();
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ConditionalFunction(new EqualCovariatePredicate(covariateName),
+				new InStarFunction(networkName),
+				0),
+			new ConditionalFunction(
+				new MissingCovariatePredicate(covariateName),
+				0,
+				new ConditionalFunction(
+					new EqualCovariatePredicate(covariateName),
+					new InStarFunction(networkName),
+					0)));
+	}
+	else if (effectName == "closure")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new TwoPathFunction(pEffectInfo->interactionName1()));
 	}
 	else if (effectName == "linear")
 	{

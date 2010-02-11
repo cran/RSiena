@@ -11,6 +11,7 @@ class ProductFunction: public AlterFunction
 public:
 	ProductFunction(AlterFunction * pFirstFunction,
 		AlterFunction * pSecondFunction);
+	virtual ~ProductFunction();
 
 	virtual void initialize(const Data * pData,
 		State * pState,

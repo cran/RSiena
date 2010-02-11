@@ -22,6 +22,7 @@ class DifferenceFunction: public AlterFunction
 public:
 	DifferenceFunction(AlterFunction * pFirstFunction,
 		AlterFunction * pSecondFunction);
+	virtual ~DifferenceFunction();
 
 	virtual void initialize(const Data * pData,
 		State * pState,

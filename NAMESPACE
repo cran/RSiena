@@ -4,7 +4,7 @@ siena01Gui, siena07, sienaCompositionChange,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
 sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, simstats0c,
        varCovar, varDyadCovar, setEffect, includeEffects, includeInteraction,
-       effectsDocumentation,
+       effectsDocumentation, sienaDataConstraint,
        installGui)#, sienaTimeTest)
 
 import(Matrix)

@@ -23,6 +23,15 @@ IntSqrtFunction::IntSqrtFunction(AlterFunction * pFunction)
 
 
 /**
+ * Deallocates this function.
+ */
+IntSqrtFunction::~IntSqrtFunction()
+{
+	delete this->lpFunction;
+}
+
+
+/**
  * Initializes this function.
  * @param[in] pData the observed data
  * @param[in] pState the current state of the dependent variables

@@ -21,7 +21,7 @@ namespace siena
  * associated with
  */
 EgoInDegreeFunction::EgoInDegreeFunction(string networkName) :
-	NetworkAlterFunction(networkName)
+	OneModeNetworkAlterFunction(networkName)
 {
 }
 
