@@ -11,25 +11,27 @@
 
 #include "NetworkChange.h"
 #include "network/Network.h"
+#include "data/NetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
+#include "model/ml/Option.h"
 
 namespace siena
 {
 
 /**
  * Constructs a new network ministep.
+ * @param[in] pData the longitudinal data object for the
+ * corresponding network variable
  * @param[in] ego the actor making the change
  * @param[in] alter the alter whose incoming tie is changed
- * @param[in] variableName the name of the dependent variable to be changed
- * @param[in] difference the amount of change
- * (-1,0,+1 for dichotomous variables)
  */
-NetworkChange::NetworkChange(int ego,
-	int alter,
-	string variableName,
-	int difference) : MiniStep(ego, variableName, difference)
+NetworkChange::NetworkChange(NetworkLongitudinalData * pData,
+	int ego,
+	int alter) : MiniStep(pData, ego)
 {
+	this->lpData = pData;
 	this->lalter = alter;
+	this->pOption(new Option(pData->id(), ego, alter));
 }
 
 
@@ -42,14 +44,22 @@ NetworkChange::~NetworkChange()
 
 
 /**
+ * Returns if this ministep is changing a network variable.
+ */
+bool NetworkChange::networkMiniStep() const
+{
+	return true;
+}
+
+
+/**
  * Changes the given network variable according to this ministep.
  */
 void NetworkChange::makeChange(DependentVariable * pVariable)
 {
 	MiniStep::makeChange(pVariable);
 
-	if (this->ego() != this->lalter &&
-		this->difference() != 0)
+	if (this->ego() != this->lalter)
 	{
 		NetworkVariable * pNetworkVariable =
 			dynamic_cast<NetworkVariable *>(pVariable);
@@ -57,8 +67,102 @@ void NetworkChange::makeChange(DependentVariable * pVariable)
 			this->lalter);
 		pNetworkVariable->pNetwork()->setTieValue(this->ego(),
 			this->lalter,
-			oldValue + this->difference());
+			1 - oldValue);
 	}
+}
+
+
+/**
+ * Returns if this ministep is diagonal, namely, it does not change
+ * the dependent variables.
+ */
+bool NetworkChange::diagonal() const
+{
+	return this->ego() == this->lalter;
+}
+
+
+/**
+ * Returns if the observed data for this ministep is missing at
+ * either end of the given period.
+ */
+bool NetworkChange::missing(int period) const
+{
+	return this->lpData->missing(this->ego(), this->lalter, period) ||
+		this->lpData->missing(this->ego(), this->lalter, period + 1);
+}
+
+
+/**
+ * Returns a new ministep that reverses the effect of this ministep.
+ */
+MiniStep * NetworkChange::createReverseMiniStep() const
+{
+	return new NetworkChange(this->lpData,
+		this->ego(),
+		this->lalter);
+}
+/**
+ * Returns a new ministep that is a copy of this ministep.
+ */
+MiniStep * NetworkChange::createCopyMiniStep() const
+{
+	NetworkChange * pNetworkChange =  new NetworkChange(this->lpData,
+		this->ego(), this->lalter);
+	// copy the contribution changes
+	pNetworkChange->levaluationEffectContribution =
+		this->levaluationEffectContribution;
+	return pNetworkChange;
+}
+
+/**
+ * Returns the evaluationEffectContribution for this effect and alter for
+ * this ministep.
+ */
+double NetworkChange::evaluationEffectContribution(int alter, int effect) const
+{
+	return this->levaluationEffectContribution[alter][effect];
+}
+
+/**
+ * Returns the endowmentEffectContribution for this effect and alter for
+ * this ministep.
+ */
+double NetworkChange::endowmentEffectContribution(int alter, int effect) const
+{
+	return this->lendowmentEffectContribution[alter][effect];
+}
+
+/**
+ * Stores the evaluationEffectContribution in the next spot for this alter for
+ * this ministep.
+ */
+void NetworkChange::evaluationEffectContribution(double value, int alter, 
+	int effect) 
+{
+	this->levaluationEffectContribution[alter][effect] = value;
+}
+
+/**
+ * Stores the endowmentEffectContribution for this effect and alter for
+ * this ministep.
+ */
+void NetworkChange::endowmentEffectContribution(double value, int alter, 
+	int effect) 
+{
+	this->lendowmentEffectContribution[alter][effect] = value;
+}
+/**
+ * Creates arrays for the evaluation and endowment Effect Contributions for
+ * this ministep.
+ */
+void NetworkChange::allocateEffectContributionArrays(int nEvaluationEffects, 
+	int nEndowmentEffects, int m) 
+{
+	this->levaluationEffectContribution.resize(m, 
+		vector <double> (nEvaluationEffects));
+	this->lendowmentEffectContribution.resize(m, 
+		vector <double> (nEvaluationEffects));
 }
 
 }

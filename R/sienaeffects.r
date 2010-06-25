@@ -10,32 +10,55 @@
 
 ##@includeEffect DataCreate
 includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
-                        type="eval", interaction1="", interaction2="")
+                           type="eval", interaction1="", interaction2="",
+                           character=FALSE)
 {
-    dots <- substitute(list(...))[-1] ##first entry is the word 'list'
+
+    if (character)
+    {
+        dots <- sapply(list(...), function(x)x)
+    }
+    else
+    {
+        dots <- substitute(list(...))[-1] ##first entry is the word 'list'
+    }
     if (length(dots) == 0)
     {
         stop("need some effect short names")
     }
-    effectNames <- sapply(dots, function(x)deparse(x))
+    if (!character)
+    {
+        effectNames <- sapply(dots, function(x)deparse(x))
+    }
+    else
+    {
+        effectNames <- dots
+    }
     use <- myeff$shortName %in% effectNames &
     myeff$type==type &
     myeff$name==name &
     myeff$interaction1 == interaction1 &
     myeff$interaction2 == interaction2
     myeff[use, "include"] <- include
-    print(myeff[use, c("name", "shortName", "type", "interaction1",
-                     "interaction2", "include")])
+    print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
+                       "interaction2", "include")])
     myeff
 }
 ##@includeInteraction DataCreate
 includeInteraction <- function(myeff, ...,
                                include=TRUE, name=myeff$name[1],
                         type="eval", interaction1=rep("", 3),
-                               interaction2=rep("", 3))
+                               interaction2=rep("", 3), character=FALSE)
 {
-    ## check we have 2 or 3 short names
-    dots <- substitute(list(...))[-1] ##first entry is the word 'list'
+    if (character)
+    {
+        dots <- sapply(list(...), function(x)x)
+    }
+    else
+    {
+        ## check we have 2 or 3 short names
+        dots <- substitute(list(...))[-1] ##first entry is the word 'list'
+    }
     if (length(dots) == 0)
     {
         stop("need some effect short names")
@@ -44,18 +67,28 @@ includeInteraction <- function(myeff, ...,
     {
          stop("need exactly two or three effect short names")
     }
-    shortNames <- sapply(dots, function(x)deparse(x))
-    ## check that we have a spare row
-    ints <- myeff[myeff$name == name & myeff$shortName  %in%
-                  c("unspInt", "behUnspInt") &
-                  (is.na(myeff$effect1) | myeff$effect1 == 0)&
-                  myeff$type == type, ]
-    if (nrow(ints) == 0)
+    if (!character)
     {
-        stop("No more interactions available:",
-             "recreate the effects object requesting more interactions")
+        shortNames <- sapply(dots, function(x)deparse(x))
     }
-    ints <- ints[1, ]
+    else
+    {
+        shortNames <- dots
+    }
+    ## if want to include, check that we have a spare row
+    if (include)
+    {
+        ints <- myeff[myeff$name == name & myeff$shortName  %in%
+                      c("unspInt", "behUnspInt") &
+                      (is.na(myeff$effect1) | myeff$effect1 == 0)&
+                      myeff$type == type, ]
+        if (nrow(ints) == 0)
+        {
+            stop("No more interactions available:",
+                 "recreate the effects object requesting more interactions")
+        }
+        ints <- ints[1, ]
+    }
     ## find the first underlying effect
     shortName <- shortNames[1]
     interact1 <- interaction1[1]
@@ -92,7 +125,7 @@ includeInteraction <- function(myeff, ...,
         stop("Second effect not unique")
     }
     effect2 <- myeff[use, "effectNumber"]
-     ## find the third underlying effect, if any
+    ## find the third underlying effect, if any
 
     if (length(shortNames) > 2)
     {
@@ -118,12 +151,23 @@ includeInteraction <- function(myeff, ...,
     {
         effect3 <- 0
     }
-    intn <- myeff$effectNumber == ints$effectNumber
-    myeff[intn, "include"] <- include
-    myeff[intn, c("effect1", "effect2", "effect3")] <-
-        c(effect1, effect2, effect3)
-
-    print(myeff[intn, c("name", "shortName", "type", "interaction1",
+    if (include)
+    {
+        intn <- myeff$effectNumber == ints$effectNumber
+        myeff[intn, "include"] <- include
+        myeff[intn, c("effect1", "effect2", "effect3")] <-
+            c(effect1, effect2, effect3)
+    }
+    else
+    {
+        intn <- (myeff$effect1 == effect1) & (myeff$effect2 == effect2)
+        if (effect3 > 0)
+        {
+            intn <- intn & (myeff$effect3 == effect3)
+        }
+        myeff[intn, "include"] <- FALSE
+    }
+    print.data.frame(myeff[intn, c("name", "shortName", "type", "interaction1",
                      "interaction2", "include", "effect1", "effect2",
                         "effect3")])
     myeff
@@ -132,10 +176,15 @@ includeInteraction <- function(myeff, ...,
 ##@setEffect DataCreate
 setEffect <- function(myeff, shortName, parameter=0,
                       fix=FALSE, test=FALSE, initialValue=0,
-                        include=TRUE, name=myeff$name[1],
-                        type="eval", interaction1="", interaction2="")
+                      timeDummy=",",
+                      include=TRUE, name=myeff$name[1],
+                      type="eval", interaction1="", interaction2="",
+                      character=FALSE)
 {
-    shortName <- deparse(substitute(shortName))
+    if (!character)
+    {
+        shortName <- deparse(substitute(shortName))
+    }
     use <- myeff$shortName == shortName &
     myeff$name == name &
     myeff$type == type &
@@ -154,8 +203,9 @@ setEffect <- function(myeff, shortName, parameter=0,
     myeff[use, "fix"] <- fix
     myeff[use, "test"] <- test
     myeff[use, "initialValue"] <- initialValue
-    print(myeff[use, c("name", "shortName", "type", "interaction1",
+    myeff[use, "timeDummy"] <- timeDummy
+    print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
                        "interaction2", "include", "parm", "fix", "test",
-                       "initialValue")])
+                       "initialValue", "timeDummy")])
     myeff
 }

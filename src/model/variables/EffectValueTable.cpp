@@ -1,14 +1,14 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: EffectValueTable.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * EffectValueTable class.
  *****************************************************************************/
-
+using namespace std;
 #include <cmath>
 
 #include "EffectValueTable.h"
@@ -24,15 +24,15 @@ EffectValueTable::EffectValueTable(int n, double (* pFunction)(int))
 	this->lpFunction = pFunction;
 	this->lvalues = new double[n];
 	this->lparameterValues = new double[n];
-	
+
 	// Calculate the table for parameter 0
-	
+
 	this->lparameter = 0;
-	
+
 	for (int i = 0; i < n; i++)
 	{
 		// exp(0) = 1
-		
+
 		this->lvalues[i] = 1;
 		this->lparameterValues[i] = 0;
 	}
@@ -46,7 +46,7 @@ EffectValueTable::~EffectValueTable()
 {
 	delete[] this->lvalues;
 	delete[] this->lparameterValues;
-	
+
 	this->lvalues = 0;
 	this->lparameterValues = 0;
 	this->lpFunction = 0;
@@ -80,11 +80,11 @@ double EffectValueTable::value(int i)
 	{
 		// The value stored in the table was calculated for a different
 		// parameter, hence we must recalculate the value.
-		
+
 		this->lvalues[i] = exp(this->lparameter * this->lpFunction(i));
 		this->lparameterValues[i] = this->lparameter;
 	}
-	
+
 	return this->lvalues[i];
 }
 

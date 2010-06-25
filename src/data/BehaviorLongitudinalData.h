@@ -11,6 +11,8 @@
 #ifndef BEHAVIORLONGITUDINALDATA_H_
 #define BEHAVIORLONGITUDINALDATA_H_
 
+#include <map>
+
 #include "data/LongitudinalData.h"
 
 namespace siena
@@ -23,7 +25,8 @@ namespace siena
 class BehaviorLongitudinalData : public LongitudinalData
 {
 public:
-	BehaviorLongitudinalData(std::string name,
+	BehaviorLongitudinalData(int id,
+		std::string name,
 		const ActorSet * pActorSet,
 		int observationCount);
 	virtual ~BehaviorLongitudinalData();
@@ -32,6 +35,8 @@ public:
 	void value(int observation, int actor, int value);
 	bool missing(int observation, int actor) const;
 	void missing(int observation, int actor, bool missing);
+	bool structural(int observation, int actor) const;
+	void structural(int observation, int actor, bool flag);
 	const int * values(int observation) const;
 
 	int min() const;
@@ -39,8 +44,10 @@ public:
 	double overallMean() const;
 	int range() const;
 	double similarity(double a, double b) const;
+	double similarityNetwork(double a, double b, std::string networkName) const;
 	double similarityMean() const;
 	void similarityMean(double similarityMean);
+	void similarityMeans(double similarityMean, std::string networkName);
 	void calculateProperties();
 
 private:
@@ -49,6 +56,9 @@ private:
 
 	// Missingness indicators
 	bool ** lmissing;
+
+	// Structural value indicators
+	bool ** lstructural;
 
 	// The smallest non-missing value
 	int lmin;
@@ -64,6 +74,9 @@ private:
 
 	// The similarity mean
 	double lsimilarityMean;
+
+	// The alter similarity means for each network (to be passed from outside)
+	std::map<std::string, double> lsimilarityMeans;
 };
 
 }

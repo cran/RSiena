@@ -70,4 +70,8 @@ void Effect::initialize(const Data * pData,
 	this->lpCache = pCache;
 }
 
+void Effect::parameter(double value)
+{
+	this->lparameter = value;
+}
 }

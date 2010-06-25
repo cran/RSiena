@@ -13,7 +13,9 @@
 effectsDocumentation <- function(type="html", display=type=="html",
                                  filename="effects")
 {
-    x <- allEffects[, c(1:2,4:7, 15, 23)]
+    x <- allEffects[, c("effectGroup", "effectName", "shortName",
+                        "endowment", "interaction1", "interaction2",
+                        "parm", "interactionType")]
     storage.mode(x$parm) <- "integer"
     names(x)[4] <- "endow?"
     names(x)[5] <- "inter1"

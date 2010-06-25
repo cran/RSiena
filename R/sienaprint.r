@@ -115,9 +115,9 @@ print.sienaFit <- function(x, tstat=TRUE, ...)
                {
                    for (j in 1:length(addtorow$command))
                    {
-                       ii <- grep(i-1, addtorow$pos[[j]])
-                       if (length(ii))
-                           if (i == 1 | addtorow$command[j] == 'Network Dynamics')
+                       ii <- match(i-1, addtorow$pos[[j]])
+                       if (!is.na(ii))
+                           if (i == 2 | addtorow$command[j] == 'Network Dynamics')
                                cat( addtorow$command[j], '\n')
                            else
                                cat('\n', addtorow$command[j], '\n', sep='')
@@ -148,6 +148,79 @@ print.summary.sienaFit <- function(x, ...)
    if (!inherits(x, "summary.sienaFit"))
         stop("not a legitimate summary of a Siena model fit")
    print.sienaFit(x)
+   if (sum(x$test) > 0) ## we have some score tests
+   {
+       testn <- sum(x$test)
+       if (x$maxlike)
+       {
+           cat("Score test <c>\n\n")
+       }
+       else
+       {
+           cat("Generalised score test <c>\n\n")
+       }
+       cat("Testing the goodness-of-fit of the model restricted by\n")
+       j <- 0
+       for (k in 1:x$pp)
+           if (x$test[k])
+           {
+               j <- j+1
+               cat(c(" (",j,")   ",
+                     format(paste(x$requestedEffects$type[k], ":  ",
+                                  x$requestedEffects$effectName[k],
+                                  sep=""),
+                            width=50), " = ",
+                     sprintf("%8.4f", x$theta[k]),"\n"),
+                   sep = "")
+           }
+       cat("_________________________________________________\n")
+       cat("                ")
+       cat("   \n")
+       if (testn > 1)
+           cat('Joint test:\n-----------\n')
+       cat(c('   c = ',sprintf("%8.4f", x$testresOverall),
+                '   d.f. = ',j,'   p-value '), sep='')
+       pvalue <- 1 - pchisq(x$testresOverall, j)
+        if (pvalue < 0.0001)
+            cat('< 0.0001\n')
+        else
+            cat(c('= ', sprintf("%8.4f\n", pvalue)), sep = '')
+        if (testn==1)
+            cat(c('\n   one-sided (normal variate): ',
+                     sprintf("%8.4f",x$testresulto[1])), sep = '')
+        if (testn> 1)
+        {
+            cat('\n\n')
+            for (k in 1:j)
+            {
+                cat(c('(',k,') tested separately:\n'),sep='')
+                cat('-----------------------\n')
+                cat(' - two-sided:\n')
+                cat(c('  c = ', sprintf("%8.4f", x$testresult[k]),
+                         '   d.f. = 1  p-value '), sep = '')
+                pvalue<- 1-pchisq(x$testresult[k],1)
+                if (pvalue < 0.0001)
+                    cat('< 0.0001\n')
+                else
+                    cat(c('= ', sprintf("%8.4f", pvalue), '\n'), sep = '')
+                cat(c(' - one-sided (normal variate): ',
+                         sprintf("%8.4f", x$testresulto[k])), sep = '')
+                if (k<j)
+                    cat('\n\n')
+            }
+        }
+        cat('    \n_________________________________________________\n\n')
+        cat('One-step estimates: \n\n')
+        for (i in 1 : x$pp)
+        {
+            onestepest<- x$oneStep[i]+x$theta[i]
+            cat(c(format(paste(x$requestedEffects$type[i],':  ',
+                                  x$requestedEffects$effectName[i], sep = ''),
+                            width=50),
+                     sprintf("%8.4f", onestepest), '\n'), sep = "")
+        }
+        cat('\n')
+   }
    if (x$OK)
    {
        cat("Covariance matrix of estimates (correlations below diagonal)\n\n")
@@ -189,7 +262,7 @@ print.sienaModel <- function(x, ...)
         '\n')
     cat(' Number of subphases in phase 2:', x$nsub, '\n')
     cat(' Number of iterations in phase 3:', x$n3, '\n')
-    if (!x$cconditional)
+    if (is.na(x$cconditional) || !x$cconditional)
     {
         cat('Unconditional simulation\n')
     }
@@ -208,8 +281,16 @@ print.sienaModel <- function(x, ...)
 ##@sienaFitThetaTable Miscellaneous
 sienaFitThetaTable <- function(x, tstat=FALSE)
 {
+    effects <- x$requestedEffects
     pp <- x$pp
-    nrates <- length(x$rate)
+    if (x$cconditional)
+    {
+        nrates <- length(x$rate)
+    }
+    else
+    {
+        nrates <- 0
+    }
     pp <- pp + nrates
     ## mydf stores the data before formatting
     mydf <- data.frame(dummy=rep(" ", pp),
@@ -253,7 +334,7 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
             mydf[1:nn, 'row'] <- nnstr
             mydf[1:nn, 'value'] <- x$rate
             mydf[1:nn, 'se'] <- x$vrate
-            if (x$f$nDepvars == 1 || is.null(x$f$nDepvars))
+            if (is.null(x$f[[1]]$nDepvars) || x$f[[1]]$nDepvars == 1)
             {
                 mydf[1:nn, 'text'] <- paste('Rate parameter period', 1:nn)
             }
@@ -285,7 +366,7 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
 
     if (nBehavs > 0)
     {
-        behEffects <- x$effects[x$effects$netType == 'behavior',]
+        behEffects <- effects[effects$netType == 'behavior',]
         behNames <- unique(behEffects$name)
     }
     if (nBehavs > 1)
@@ -295,12 +376,12 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
                                                          behNames)],
                                        '> ', behEffects$effectName,
                                        sep='')
-        x$effects$effectName[x$effects$netType=='behavior'] <-
+        effects$effectName[effects$netType=='behavior'] <-
             behEffects$effectName
     }
     mydf[nrates + (1:x$pp), 'row'] <-  1:x$pp
-    mydf[nrates + (1:x$pp), 'type' ] <- x$effects$type
-    mydf[nrates + (1:x$pp), 'text' ] <- x$effects$effectName
+    mydf[nrates + (1:x$pp), 'type' ] <- effects$type
+    mydf[nrates + (1:x$pp), 'text' ] <- effects$effectName
     mydf[nrates + (1:x$pp), 'value' ] <- theta
     mydf[nrates + (1:x$pp), 'se' ] <- ses
     if (!is.null(x$tstat))
@@ -311,7 +392,7 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
 
     if (nBehavs > 0 && nOneModes > 0)
     {
-        nOneModeEff <- nrow(x$effects) - nrow(behEffects)
+        nOneModeEff <- nrow(effects) - nrow(behEffects)
         addtorow$command[addsub] <-
             'Behavior Dynamics'
         addtorow$pos[[addsub]] <- nrates + 2 + nOneModeEff

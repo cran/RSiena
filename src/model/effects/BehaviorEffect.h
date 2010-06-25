@@ -41,6 +41,8 @@ public:
 		int period,
 		Cache * pCache);
 
+	virtual void preprocessEgo(int ego);
+
 	/**
 	 * Calculates the change in the statistic corresponding to this effect if
 	 * the given actor would change his behavior by the given amount.
@@ -65,6 +67,7 @@ protected:
 private:
 	BehaviorLongitudinalData * lpBehaviorData;
 	const int * lvalues;
+	 int lego;
 };
 
 }

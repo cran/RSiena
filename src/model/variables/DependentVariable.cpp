@@ -11,11 +11,11 @@
 
 #include <cmath>
 #include <stdexcept>
-#include <R.h>
 
 #include "BehaviorVariable.h"
 #include "DependentVariable.h"
 #include "utils/Utils.h"
+#include "utils/Random.h"
 #include "data/ActorSet.h"
 #include "data/ConstantCovariate.h"
 #include "data/ChangingCovariate.h"
@@ -26,6 +26,7 @@
 #include "model/Model.h"
 #include "model/EffectInfo.h"
 #include "model/EpochSimulation.h"
+#include "model/ml/MLSimulation.h"
 #include "model/SimulationActorSet.h"
 #include "model/effects/AllEffects.h"
 #include "model/effects/EffectFactory.h"
@@ -288,6 +289,7 @@ DependentVariable::~DependentVariable()
 	this->lcovariateRates = 0;
 	this->lpEvaluationFunction = 0;
 	this->lpEndowmentFunction = 0;
+
 }
 
 
@@ -301,6 +303,16 @@ DependentVariable::~DependentVariable()
 int DependentVariable::n() const
 {
 	return this->lpActorSet->n();
+}
+
+
+/**
+ * Returns the ID of this dependent variable, which is the same as the ID
+ * of the underlying observed data object.
+ */
+int DependentVariable::id() const
+{
+	return this->pData()->id();
 }
 
 
@@ -336,6 +348,7 @@ void DependentVariable::initialize(int period)
 	this->lperiod = period;
 	this->lsimulatedDistance = 0;
 	this->lbasicRateScore = 0;
+	this->lbasicRateDerivative = 0;
 	this->lbasicRate =
 		this->lpSimulation->pModel()->basicRateParameter(this->pData(),
 			period);
@@ -352,6 +365,11 @@ void DependentVariable::initialize(int period)
 
 		this->updateCovariateRates();
 	}
+
+	// Make sure the rates will be calculated whenever calculateRates()
+	// is called next time.
+
+	this->lvalidRates = false;
 }
 
 
@@ -364,25 +382,40 @@ void DependentVariable::initialize(int period)
  */
 void DependentVariable::calculateRates()
 {
-	this->ltotalRate = 0;
-	int n = this->n();
-
-	for (int i = 0; i < n; i++)
+	if (!this->constantRates() || !this->lvalidRates)
 	{
-		// If an actor cannot make a change with respect to this variable,
-		// then its rate is 0.
+		this->ltotalRate = 0;
+		int n = this->n();
 
-		if (this->canMakeChange(i))
+		for (int i = 0; i < n; i++)
 		{
-			this->lrate[i] = this->calculateRate(i);
-		}
-		else
-		{
-			this->lrate[i] = 0;
+			// If an actor cannot make a change with respect to this variable,
+			// then its rate is 0.
+
+			if (this->canMakeChange(i))
+			{
+				this->lrate[i] = this->calculateRate(i);
+			}
+			else
+			{
+				this->lrate[i] = 0;
+			}
+
+			this->ltotalRate += this->lrate[i];
 		}
 
-		this->ltotalRate += this->lrate[i];
+		this->lvalidRates = true;
 	}
+}
+
+
+/**
+ * Ensures that the rates will be recalculated when the method
+ * calculateRates() is called next time.
+ */
+void DependentVariable::invalidateRates()
+{
+	this->lvalidRates = false;
 }
 
 
@@ -392,6 +425,17 @@ void DependentVariable::calculateRates()
 bool DependentVariable::canMakeChange(int actor) const
 {
 	return this->lpActorSet->active(actor);
+}
+
+
+/**
+ * Returns if the rates are constant over the current period, and can be
+ * thus calculated just once.
+ */
+bool DependentVariable::constantRates() const
+{
+	return this->lstructuralRateEffects.empty() &&
+		this->lbehaviorVariableParameters.empty();
 }
 
 
@@ -531,6 +575,10 @@ double DependentVariable::structuralRate(int i) const
 	return rate;
 }
 
+
+// ----------------------------------------------------------------------------
+// Section: Scores
+// ----------------------------------------------------------------------------
 
 /**
  * Updates the rate score functions for this event for this variable.
@@ -691,12 +739,43 @@ void DependentVariable::accumulateRateScores(double tau,
 	}
 }
 
+/**
+ * Calculates the rate score functions for this chain for this variable.
+ * @param[in] activeMiniStepCount the number of non-structurally determined
+ * links in the current chain for this variable.
+ */
+
+void DependentVariable::calculateMaximumLikelihoodRateScores(int
+	activeMiniStepCount)
+{
+//	Rprintf("%d %d %f\n", this->n(), activeMiniStepCount, this->basicRate());
+	this->lbasicRateScore =
+		- this->n() + activeMiniStepCount / this->basicRate();
+}
+
+/**
+ * Calculates the rate derivative functions for this chain for this variable.
+ * @param[in] activeMiniStepCount the number of non-structurally determined
+ * links in the current chain for this variable.
+ */
+
+void DependentVariable::calculateMaximumLikelihoodRateDerivatives(int
+	activeMiniStepCount)
+{
+//	Rprintf("%d %d %f\n", this->n(), activeMiniStepCount, this->basicRate());
+	this->lbasicRateDerivative =
+		- activeMiniStepCount / this->basicRate()/ this->basicRate();
+}
 
 double DependentVariable::basicRateScore() const
 {
 	return this->lbasicRateScore;
 }
 
+double DependentVariable::basicRateDerivative() const
+{
+	return this->lbasicRateDerivative;
+}
 
 double DependentVariable::constantCovariateScore(
 	const ConstantCovariate * pCovariate) const
@@ -830,6 +909,10 @@ double DependentVariable::inverseOutDegreeScore(
 void DependentVariable::actOnJoiner(const SimulationActorSet * pActorSet,
 	int actor)
 {
+	if (pActorSet == this->lpActorSet)
+	{
+		this->invalidateRates();
+	}
 }
 
 
@@ -839,6 +922,164 @@ void DependentVariable::actOnJoiner(const SimulationActorSet * pActorSet,
 void DependentVariable::actOnLeaver(const SimulationActorSet * pActorSet,
 	int actor)
 {
+	if (pActorSet == this->lpActorSet)
+	{
+		this->invalidateRates();
+	}
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Maximum likelihood related methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns whether applying the given ministep on the current state of this
+ * variable would be valid with respect to all constraints.
+ */
+bool DependentVariable::validMiniStep(const MiniStep * pMiniStep) const
+{
+	return true;
+}
+
+
+/**
+ * Updates effect parameters
+ */
+
+void DependentVariable::updateEffectParameters()
+{
+	// find the Evaluation effectInfos
+	const vector<EffectInfo *>  rEffects=
+		this->lpSimulation->pModel()->rEvaluationEffects(this->name());
+
+	const Function * pFunction = this->pEvaluationFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect = pFunction->rEffects()[i];
+		pEffect->parameter(rEffects[i]->parameter());
+	}
+	// find the Endowment effectInfos
+	const vector<EffectInfo *>  rEffects2=
+	 this->lpSimulation->pModel()->rEndowmentEffects(this->name());
+
+	pFunction = this->pEndowmentFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect = pFunction->rEffects()[i];
+		pEffect->parameter(rEffects2[i]->parameter());
+	}
+}
+/**
+ * Updates effect info parameters from the effects (used if accepted)
+ */
+
+void DependentVariable::updateEffectInfoParameters()
+{
+	// find the Evaluation effectInfos
+	const vector<EffectInfo *>  rEffects=
+		this->lpSimulation->pModel()->rEvaluationEffects(this->name());
+
+	const Function * pFunction = this->pEvaluationFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect = pFunction->rEffects()[i];
+		rEffects[i]->parameter(pEffect->parameter());
+	}
+	// find the Endowment effectInfos
+	const vector<EffectInfo *>  rEffects2=
+	 this->lpSimulation->pModel()->rEndowmentEffects(this->name());
+
+	pFunction = this->pEndowmentFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect =	pFunction->rEffects()[i];
+		rEffects2[i]->parameter(pEffect->parameter());
+	}
+}
+
+/**
+ * Samples from distribution for basic rate parameters
+ *
+ */
+void DependentVariable::sampleBasicRate(int miniStepCount)
+{
+	this->lbasicRate = nextGamma(miniStepCount + 1, 1.0 / this->n());
+	MLSimulation * pMLSimulation =
+		dynamic_cast<MLSimulation * >(this->pSimulation());
+	pMLSimulation->sampledBasicRates(this->lbasicRate);
+	pMLSimulation->sampledBasicRatesDistributions(miniStepCount + 1);
+	this->lvalidRates = false;
+}
+/**
+ * Samples from distribution for non basic rate parameters
+ *
+ */
+double DependentVariable::sampleParameters(double scaleFactor)
+{
+	double priorSD = 10000;
+	double priornew = 0;
+	double priorold = 0;
+
+	// need to access this later
+	MLSimulation * pMLSimulation =
+		dynamic_cast<MLSimulation * >(this->pSimulation());
+
+	// create candidate set of parameters and copy them to the effects
+
+	const Function * pFunction = this->pEvaluationFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect = pFunction->rEffects()[i];
+		double candidate = pEffect->parameter() + nextNormal(0, scaleFactor);
+		priornew += normalDensity(candidate, 0, priorSD, true);
+
+		pMLSimulation->candidates(pEffect->pEffectInfo(), candidate);
+		priorold += normalDensity(pEffect->parameter(), 0, priorSD, true);
+		pEffect->parameter(candidate);
+
+	}
+
+	pFunction = this->pEndowmentFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		Effect * pEffect = pFunction->rEffects()[i];
+		double candidate = pEffect->parameter() + nextNormal(0, scaleFactor);
+		priornew += normalDensity(candidate, 0, priorSD, true);
+		pMLSimulation->candidates(pEffect->pEffectInfo(), candidate);
+		priorold += normalDensity(pEffect->parameter(), 0, priorSD,	true);
+		pEffect->parameter(candidate);
+	}
+	return priornew - priorold;
+}
+
+// ----------------------------------------------------------------------------
+// Section: Properties
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns if this is a network variable.
+ */
+bool DependentVariable::networkVariable() const
+{
+	// This method is overriden in NetworkVariable. Here we return false.
+	return false;
+}
+
+
+/**
+ * Returns if this is a behavior variable.
+ */
+bool DependentVariable::behaviorVariable() const
+{
+	// This method is overriden in BehaviorVariable. Here we return false.
+	return false;
 }
 
 }

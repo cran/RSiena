@@ -193,7 +193,7 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new DyadicCovariateMainEffect(pEffectInfo);
 	}
-	else if (effectName == "Xrecip")
+	else if (effectName == "XRecip")
 	{
 		pEffect = new DyadicCovariateReciprocityEffect(pEffectInfo);
 	}
@@ -253,7 +253,7 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new CovariateIndirectTiesEffect(pEffectInfo);
 	}
-	else if (effectName == "4-cycles")
+	else if (effectName == "cycle4")
 	{
 		pEffect = new FourCyclesEffect(pEffectInfo);
 	}
@@ -502,6 +502,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "inflIntX")
 	{
 		pEffect = new InteractionCovariateEffect(pEffectInfo);
+	}
+	else if (effectName == "AltsAvAlt")
+	{
+		pEffect = new AltersCovariateAverageEffect(pEffectInfo);
+	}
+	else if (effectName == "altDist2")
+	{
+		pEffect = new CovariateDistance2AlterEffect(pEffectInfo);
+	}
+	else if (effectName == "simDist2")
+	{
+		pEffect = new CovariateDistance2SimilarityEffect(pEffectInfo);
 	}
 	else
 	{

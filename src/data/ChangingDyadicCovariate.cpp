@@ -9,6 +9,7 @@
  * ChangingDyadicCovariate class.
  *****************************************************************************/
 
+#include <R_ext/Print.h>
 #include "ChangingDyadicCovariate.h"
 #include "data/ActorSet.h"
 #include "data/DyadicCovariateValueIterator.h"
@@ -42,6 +43,7 @@ ChangingDyadicCovariate::ChangingDyadicCovariate(std::string name,
 		this->lpRowMissings[k] = new set<int>[pFirstActorSet->n()];
 		this->lpColumnMissings[k] = new set<int>[pSecondActorSet->n()];
 	}
+	this->lpEmptySet = new set<int>;
 }
 
 
@@ -66,6 +68,8 @@ ChangingDyadicCovariate::~ChangingDyadicCovariate()
 	this->lpColumnValues = 0;
 	this->lpRowMissings = 0;
 	this->lpColumnMissings = 0;
+	delete this->lpEmptySet;
+	this->lpEmptySet = 0;
 }
 
 
@@ -151,26 +155,48 @@ bool ChangingDyadicCovariate::missing(int i, int j, int observation) const
 
 
 /**
- * Returns an iterator over non-zero non-missing values of the given row
+ * Returns an iterator over non-zero values of the given row
  * at the given observation.
+ * @param[in] excludeMissings indicates if missing values should be
+ * excluded from the iteration
  */
 DyadicCovariateValueIterator ChangingDyadicCovariate::rowValues(int i,
-	int observation) const
+	int observation,
+	bool excludeMissings) const
 {
-	return DyadicCovariateValueIterator(this->lpRowValues[observation][i],
-		this->lpRowMissings[observation][i]);
+	set<int> * excludedActorSet = this->lpEmptySet;
+
+    if (excludeMissings)
+    {
+        excludedActorSet = &(this->lpRowMissings[observation][i]);
+    }
+
+    return DyadicCovariateValueIterator(this->lpRowValues[observation][i],
+        *excludedActorSet);
 }
 
 
 /**
- * Returns an iterator over non-zero non-missing values of the given column
+ * Returns an iterator over non-zero values of the given column
  * at the given observation.
+ * @param[in] excludeMissings indicates if missing values should be
+ * excluded from the iteration
  */
 DyadicCovariateValueIterator ChangingDyadicCovariate::columnValues(int j,
-	int observation) const
+	int observation,
+	bool excludeMissings) const
 {
-	return DyadicCovariateValueIterator(this->lpColumnValues[observation][j],
-		this->lpColumnMissings[observation][j]);
+	set<int> * excludedActorSet = this->lpEmptySet;
+//	Rprintf("%d exclude\n", excludeMissings);
+
+    if (excludeMissings)
+    {
+		//	Rprintf("exclude\n");
+        excludedActorSet = &(this->lpColumnMissings[observation][j]);
+    }
+
+    return DyadicCovariateValueIterator(this->lpColumnValues[observation][j],
+        *excludedActorSet);
 }
 
 }

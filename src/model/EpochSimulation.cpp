@@ -10,8 +10,10 @@
  *****************************************************************************/
 
 #include <algorithm>
-#include <R.h>
-
+#include <cmath>
+#include <R_ext/Error.h>
+#include <R_ext/Print.h>
+#include <Rinternals.h>
 #include "EpochSimulation.h"
 #include "utils/Random.h"
 #include "utils/Utils.h"
@@ -28,15 +30,17 @@
 #include "model/State.h"
 #include "model/effects/Effect.h"
 #include "model/tables/Cache.h"
-#include "model/ml/Chain.h"
-#include "model/ml/MiniStep.h"
 #include "model/filters/AtLeastOneFilter.h"
 #include "model/filters/DisjointFilter.h"
 #include "model/filters/HigherFilter.h"
 #include "model/filters/LowerFilter.h"
+#include "model/ml/Chain.h"
+#include "model/ml/MiniStep.h"
 
 namespace siena
 {
+SEXP getMiniStepList(const MiniStep& miniStep, int period,
+	const EpochSimulation& epochSimulation);
 
 // ----------------------------------------------------------------------------
 // Section: Constructors and destructors
@@ -186,6 +190,7 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     // dependent variables during the simulation.
 
     this->lpState = new State(this);
+	this->lpChain = new Chain(pData);
 }
 
 
@@ -197,6 +202,7 @@ EpochSimulation::~EpochSimulation()
     delete[] this->lcummulativeRates;
 	delete this->lpState;
 	delete this->lpCache;
+	delete this->lpChain;
 
     this->lcummulativeRates = 0;
     this->lpState = 0;
@@ -289,6 +295,11 @@ void EpochSimulation::initialize(int period)
 
     // Reset scores
     this->lscores.clear();
+    // Reset derivatives
+    this->lderivatives.clear();
+	// reset chain
+	this->lpChain->clear();
+	this->lpChain->period(period);
 }
 
 
@@ -298,10 +309,9 @@ void EpochSimulation::initialize(int period)
 void EpochSimulation::runEpoch(int period)
 {
     this->initialize(period);
-
     for(int nIter = 0; ; nIter++)
     {
-        this->runStep();
+       this->runStep();
 
         if (this->lpModel->conditional())
         {
@@ -310,7 +320,17 @@ void EpochSimulation::runEpoch(int period)
             {
                 break;
             }
-        }
+			else if (nIter > 1000000)
+            {
+#ifdef STANDALONE
+				exit(1);
+#endif
+#ifndef STANDALONE
+				error("%s %s","Unlikely to terminate this epoch:",
+					" more than 1000000 steps");
+#endif
+            }
+       }
         else
         {
             if (this->ltime >= 1)
@@ -323,7 +343,7 @@ void EpochSimulation::runEpoch(int period)
 				exit(1);
 #endif
 #ifndef STANDALONE
-				error("Unlikely to terminate this epoch:",
+				error("%s %s", "Unlikely to terminate this epoch:",
 					" more than 1000000 steps");
 #endif
             }
@@ -342,8 +362,8 @@ void EpochSimulation::runEpoch(int period)
 void EpochSimulation::runStep()
 {
     this->calculateRates();
-    this->drawTimeIncrement();
-    double nextTime = this->ltime + this->ltau;
+	this->drawTimeIncrement();
+	double nextTime = this->ltime + this->ltau;
 
     DependentVariable * pSelectedVariable = 0;
     int selectedActor = 0;
@@ -378,6 +398,17 @@ void EpochSimulation::runStep()
 
 			this->lpCache->initialize(selectedActor);
 			pSelectedVariable->makeChange(selectedActor);
+
+			if (this->pModel()->needChain())
+			{
+				// update rate probabilities on the final ministep
+				this->lpChain->pLast()->pPrevious()->
+					logOptionSetProbability(log(pSelectedVariable->
+							rate(selectedActor)
+							/ this->totalRate()));
+				this->lpChain->pLast()->pPrevious()->
+					reciprocalRate(1.0 / this->totalRate());
+			}
 		}
 	}
 	else
@@ -613,6 +644,13 @@ const Model * EpochSimulation::pModel() const
     return this->lpModel;
 }
 
+/**
+ * Returns the chain repesenting the events simulated by this simulation object.
+ */
+Chain * EpochSimulation::pChain()
+{
+    return this->lpChain;
+}
 
 /**
  * Returns the dependent variable with the given name if it exists;
@@ -707,6 +745,96 @@ void EpochSimulation::score(const EffectInfo * pEffect, double value)
 	this->lscores[pEffect] = value;
 }
 
+/**
+ * Returns the current derivatives for the given pair of effects.
+ * The derivatives are updated for each ministep of a chain.
+ */
+double EpochSimulation::derivative(const EffectInfo * pEffect1,
+	const EffectInfo * pEffect2) const
+{
+	map<const EffectInfo *, map<const EffectInfo *, double> >::const_iterator
+		iter = this->lderivatives.find(pEffect1);
+	double derivative = 0;
+
+	if (iter != this->lderivatives.end())
+	{
+		const map<const EffectInfo *, double> effect1Map = iter->second;
+		map<const EffectInfo *, double> ::const_iterator iter2 =
+			effect1Map.find(pEffect2);
+		if (iter2 != effect1Map.end())
+		{
+			derivative = iter2->second;
+		}
+	}
+
+	return derivative;
+}
+/**
+ * Returns the sum of the logChoiceProb for the chain.
+ */
+double EpochSimulation::calculateChainProbabilities(Chain * pChain)
+{
+//	Rprintf("  %x\n", pChain);
+	MiniStep *pMiniStep = pChain->pFirst()->pNext();
+	double logprob=0;
+
+//	Rprintf("%d %x %x\n", pChain->ministepCount(), pMiniStep, pChain->pLast());
+	int i = 0;
+	while(pMiniStep != pChain->pLast())
+	{
+		i ++;
+		DependentVariable * pVariable =
+    		this->lvariables[pMiniStep->variableId()];
+
+		logprob +=
+			pVariable->calculateChoiceProbability(pMiniStep);
+		//	Rprintf(" i epoch %d %f %x\n", i, logprob, pMiniStep);
+		//const EpochSimulation *xx = this;
+		//	PrintValue(getMiniStepList(*pMiniStep,this->lperiod, *xx ));
+		//	if (i > 1) error("what now");
+		pMiniStep = pMiniStep->pNext();
+	}
+//	Rprintf("%f\n", logprob);
+	return logprob;
+}
+void EpochSimulation::updateParameters()
+{
+	for (unsigned i = 0; i < this->lvariables.size(); i++)
+	{
+     	this->lvariables[i]->initializeRateFunction();
+		this->lvariables[i]->updateEffectParameters();
+	}
+
+}
+/**
+ * Returns the current map of derivatives for the given effect.
+ * The derivatives are updated for each ministep of a chain.
+ */
+map<const EffectInfo*, double> EpochSimulation::derivative(const
+	EffectInfo * pEffect) const
+{
+	map<const EffectInfo *, map<const EffectInfo *, double> >::const_iterator
+		iter = this->lderivatives.find(pEffect);
+
+	map<const EffectInfo *, double>	effectMap;
+	if (iter != this->lderivatives.end())
+	{
+		const map<const EffectInfo *, double> effectMap = iter->second;
+	}
+
+	return effectMap;
+}
+
+/**
+ * Sets the derivative for the given effects to the given value.
+ */
+void EpochSimulation::derivative(const EffectInfo * pEffect1,
+	const EffectInfo * pEffect2,
+	double value)
+{
+	this->lderivatives[pEffect1][pEffect2] = value;
+}
+
 
 /**
  * Returns the cache object used to speed up the simulations.
@@ -717,59 +845,12 @@ Cache * EpochSimulation::pCache() const
 }
 
 
-// ----------------------------------------------------------------------------
-// Section: Maximum likelihood related methods
-// ----------------------------------------------------------------------------
-
 /**
- * Updates the probabilities for a range of ministeps of the given chain
- * (including the end-points of the range).
+ * Returns the total rate over all dependent variables.
  */
-void EpochSimulation::updateProbabilities(Chain * pChain,
-	MiniStep * pFirstMiniStep,
-	MiniStep * pLastMiniStep)
+double EpochSimulation::totalRate() const
 {
-	// Initialize the variables as of the beginning of the period
-    this->initialize(pChain->period());
-
-    // Apply the ministeps before the first ministep of the required range
-    // to derive the correct state before that ministep.
-
-    MiniStep * pMiniStep = pChain->pFirst()->pNext();
-
-    while (pMiniStep != pFirstMiniStep)
-    {
-    	DependentVariable * pVariable =
-    		this->lvariableMap[pMiniStep->variableName()];
-    	pMiniStep->makeChange(pVariable);
-
-    	pMiniStep = pMiniStep->pNext();
-    }
-
-    bool done = false;
-
-    while (!done)
-    {
-    	DependentVariable * pVariable =
-    		this->lvariableMap[pMiniStep->variableName()];
-    	this->calculateRates();
-    	double rate = pVariable->rate(pMiniStep->ego());
-    	double probability = pVariable->probability(pMiniStep);
-    	double reciprocalTotalRate = 1 / this->ltotalRate;
-
-    	pMiniStep->reciprocalRate(reciprocalTotalRate);
-    	pMiniStep->logProbability(log(probability * rate * reciprocalTotalRate));
-    	pMiniStep->makeChange(pVariable);
-
-    	if (pMiniStep == pLastMiniStep)
-    	{
-    		done = true;
-    	}
-    	else
-    	{
-    		pMiniStep = pMiniStep->pNext();
-    	}
-    }
+	return this->ltotalRate;
 }
 
 }

@@ -10,7 +10,6 @@
  *****************************************************************************/
 
 #include <stdexcept>
-#include <R.h>
 
 #include "BehaviorEffect.h"
 #include "data/Data.h"
@@ -140,6 +139,7 @@ double BehaviorEffect::evaluationStatistic(double * currentValues)
 
 	for (int i = 0; i < n; i++)
 	{
+		this->preprocessEgo(i);
 		if (!this->missing(this->period(), i) &&
 			!this->missing(this->period() + 1, i))
 		{
@@ -174,4 +174,13 @@ double BehaviorEffect::endowmentStatistic(const int * difference,
 		this->pEffectInfo()->effectName());
 }
 
+/**
+ * Does the necessary preprocessing work for calculating the probabilities
+ * for a specific ego. This method must be invoked before
+ * calling BehaviorEffect::calculateChangeContribution(...).
+ */
+void BehaviorEffect::preprocessEgo(int ego)
+{
+	this->lego = ego;
+}
 }

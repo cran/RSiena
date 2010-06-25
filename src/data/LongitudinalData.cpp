@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: LongitudinalData.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * LongitudinalData class.
  *****************************************************************************/
@@ -22,18 +22,22 @@ namespace siena
 /**
  * Creates a new longitudinal data object for the given set of actors and
  * number of observations.
+ * @param[in] id the ID that is unique among all longitudinal data object
+ * of the parent Data instance
  * @param[in] name the name of the corresponding dependent variable
  */
-LongitudinalData::LongitudinalData(std::string name,
+LongitudinalData::LongitudinalData(int id,
+	std::string name,
 	const ActorSet * pActorSet,
 	int observationCount) : NamedObject(name)
 {
+	this->lid = id;
 	this->lpActorSet = pActorSet;
 	this->lobservationCount = observationCount;
-	
+
 	this->lupOnly = new bool[observationCount - 1];
 	this->ldownOnly = new bool[observationCount - 1];
-	
+
 	for (int i = 0; i < observationCount - 1; i++)
 	{
 		this->lupOnly[i] = false;

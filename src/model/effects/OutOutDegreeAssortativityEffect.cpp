@@ -10,7 +10,6 @@
  *****************************************************************************/
 
 #include <cmath>
-#include <R.h>
 
 #include "OutOutDegreeAssortativityEffect.h"
 #include "utils/SqrtTable.h"

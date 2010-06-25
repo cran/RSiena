@@ -48,8 +48,10 @@ public:
 	void value(int i, int j, int observation, double value);
 	bool missing(int i, int j, int observation) const;
 	void missing(int i, int j, int observation, bool flag);
-	DyadicCovariateValueIterator rowValues(int i, int observation) const;
-	DyadicCovariateValueIterator columnValues(int j, int observation) const;
+	DyadicCovariateValueIterator rowValues(int i, int observation,
+		bool excludeMissings) const;
+	DyadicCovariateValueIterator columnValues(int j, int observation,
+		bool excludeMissings) const;
 
 private:
 	// A row based representation of non-zero values of the covariate.
@@ -78,6 +80,9 @@ private:
 
 	// The number of observations
 	int lobservationCount;
+
+	// empty set
+	set <int> * lpEmptySet;
 };
 
 }

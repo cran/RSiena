@@ -23,11 +23,12 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
     x <- x
     beverbose <- verbose
     besilent <- silent
-    function(txt, dest, fill=FALSE, sep=" ", hdest,
-             open=FALSE, close=FALSE,
-             type=c("a", "w"),  projname="Siena" , verbose=FALSE, silent=FALSE)
+    noReportFile <- FALSE
+    function(txt, dest, fill=FALSE, sep=" ", hdest, openfiles=FALSE,
+             closefiles=FALSE, type=c("a", "w", "n"),  projname="Siena" ,
+             verbose=FALSE, silent=FALSE)
     {
-        if (open)
+        if (openfiles)
         {
             type <- match.arg(type)
             beverbose <<- verbose
@@ -36,15 +37,20 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
             {
                 x$outf <<- file(paste(projname, ".out", sep=""), open="w")
             }
-            else
+            else if (type =="a")
             {
                 x$outf <<- file(paste(projname, ".out", sep=""), open="a")
             }
+            else if (type == "n")
+            {
+                noReportFile <<- TRUE
+            }
 
         }
-        else if (close)
+        else if (closefiles)
         {
             close(x[["outf"]])
+            x$outf <<- NULL
         }
         else
         {
@@ -68,7 +74,10 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
                     }
                     else
                     {
-                        cat(txt, file = x[[hdest]], fill = fill, sep = sep)
+                        if (!noReportFile)
+                        {
+                            cat(txt, file = x[[hdest]], fill = fill, sep = sep)
+                        }
                     }
                 }
                 else
@@ -82,14 +91,28 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
                     }
                     else
                     {
-                        cat(txt, file=x[[deparse(substitute(dest))]],
-                            fill=fill, sep=sep)
+                        if (is.null(x[[deparse(substitute(dest))]]))
+                        {
+                            if (!besilent)
+                            {
+                                cat(txt, fill=fill, sep=sep)
+                            }
+                        }
+                        else
+                        {
+                            if (!noReportFile)
+                            {
+                                cat(txt, file=x[[deparse(substitute(dest))]],
+                                    fill=fill, sep=sep)
+                            }
+                        }
                     }
                 }
             }
-       }
+        }
     }
 }
+
 
 ##@Report Globals
 Report <- local({verbose <-  NULL; silent <- NULL;
@@ -130,9 +153,13 @@ Heading<- function(level=1, dest, text, fill=FALSE)
         Report(c("@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
         Report(rep(ch, sum(nchar(text))), hdest=dest, sep="", fill=fill)
         if (level < 3)
+        {
             Report("\n\n", hdest = dest)
+        }
         else
+        {
             Report("\n", hdest = dest)
+        }
     }
 }
 
@@ -140,10 +167,14 @@ Heading<- function(level=1, dest, text, fill=FALSE)
 PrtOutMat<- function(mat, dest)
 {
     if (missing(dest))
-        Report(format(t(mat)), sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
+    {
+        Report(format(t(mat), scientific=FALSE),
+               sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
+    }
     else
     {
-        Report(format(t(mat)), sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
+        Report(format(t(mat), scientific=FALSE),
+               sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
                hdest=deparse(substitute(dest)))
         Report("\n", hdest=deparse(substitute(dest)))
     }

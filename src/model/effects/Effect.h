@@ -42,6 +42,7 @@ public:
 	virtual ~Effect();
 
 	inline double parameter() const;
+	void parameter(double value) ;
 
 	inline int period() const;
 	inline Cache * pCache() const;

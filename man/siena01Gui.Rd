@@ -51,7 +51,7 @@ siena01Gui(getDocumentation=FALSE)
   None, although various objects made will still be in the directory if you
   are using this within an R session.
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snidjers/siena/}}
+\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
 \seealso{    \code{\link{sienaDataCreateFromSession}} }
 \examples{

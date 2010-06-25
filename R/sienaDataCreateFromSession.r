@@ -167,17 +167,19 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                     network.size(namefiles[[1]])))
                    stop("Dimensions must be the same for one object")
             }
-            else ## siena nets
+        }
+        if (namesession$Format[1] == "Siena net")
+        {
+            nodeSetsSize <-
+                as.matrix(sapply(namesession$NbrOfActors,
+                                 function(x)
+                                 as.numeric(strsplit(x, " ")[[1]])))
+            if (any(nodeSetsSize != nodeSetsSize[, 1]))
             {
-                 nodeSetsSize <- as.matrix(sapply(namesession$NbrOfActors,
-                                        function(x)
-                                        as.numeric(strsplit(x, " ")[[1]])))
-                 if (any(nodeSetsSize != nodeSetsSize[, 1]))
-                 {
-                      stop("Dimensions must be the same for one object")
+                stop("Dimensions must be the same for one object")
 
-                  }
             }
+            nodeSetsSize <- nodeSetsSize[, 1]
         }
         nodeSets <- unlist(strsplit(namesession$ActorSet[1], ' '))
         if (length(nodeSets) > 2)
@@ -197,7 +199,9 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                 else if (namesession$Format[1] == "pajek net")
                     ActorSetsSize[k] <<- network.size(namefiles[[1]])
                 else
-                    ActorSetsSize[k] <<- as.numeric(strsplit(namesession$NbrOfActors[1], " ")[[1]][i])
+                    ActorSetsSize[k] <<-
+                        as.numeric(strsplit(namesession$NbrOfActors[1],
+                                            " ")[[1]][i])
             }
             else if (namesession$Format[1] == "matrix")
             {
@@ -209,7 +213,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
             }
             else if (namesession$Format[1] == "Siena net")
             {
-                  if (nodeSetsSize[i] != ActorSetsSize[mymatch])
+                if (nodeSetsSize[i] != ActorSetsSize[mymatch])
                 {
                     stop(paste("Conflicting sizes for actor set",
                                nodeSets[i]))
@@ -254,7 +258,8 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
         gpsession <- session[session$Group == gps[i], ]
         ops <- turnoffwarn()
         gpsessionperiods <- unlist(strsplit(gpsession$Period, " "))
-        observations <- max(as.numeric(gpsessionperiods), na.rm=TRUE)
+      ##  observations <- max(as.numeric(gpsessionperiods), na.rm=TRUE)
+        observations <- length(unique(gpsessionperiods))
         turnonwarn(ops)
         gpfiles <- files[session$Group == gps[i]]
         objnames <- unique(gpsession$Name)
@@ -399,9 +404,9 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                                 observations))
                            for (x in 1:observations)
                            {
-                               if (miss[x] != '')
-                                   namefiles[[x]][namefiles[[x]] %in%
-                                                  miss[x]] <- NA
+                               miss <- miss1[[x]]
+                               namefiles[[x]][namefiles[[x]] %in%
+                                              miss] <- NA
                                namefiles[[x]][!(is.na(namefiles[[x]]))
                                               & !(namefiles[[x]] %in%
                                                   c(nonzero[[x]], 10, 11))] <- 0
@@ -454,7 +459,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                                   c(nonzero[[x]], 10, 11)), 3] <- 0
                                    myedgelist[myedgelist[,3] %in%
                                               nonzero[[x]], 3] <- 1
-       if (any(as.numeric(strsplit(namesession$NbrOfActors[1], " ")[[1]]) != nActors))
+       if (any(as.numeric(strsplit(namesession$NbrOfActors[x], " ")[[1]]) != nActors))
                                        stop("number of actors inconsistent")
                                    mylist[[x]] <- myedgelist
                                }
@@ -467,7 +472,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                            } )
                            tmp <- sienaNet(mylist, nodeSet=nodesets)
 
-                      }
+                       }
                        else
                        {
                            stop("Two-mode pajek nets not supported")
@@ -479,6 +484,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                        ##             namesession$MissingValues[1],
                        ##              fixed=TRUE)
                        miss <- namesession$MissingValues
+                       miss <- strsplit(miss, " ")[[1]]
                        if (!is.na(miss) && miss != '')
                            namefiles[[1]][namefiles[[1]] %in% miss] <-  NA
                        ##  namefiles[[1]][grep(miss, namefiles[[1]])] <-  NA
@@ -493,6 +499,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                        ##              fixed=TRUE)
                        ##   namefiles[[1]][grep(miss, namefiles[[1]])] <-  NA
                        miss <- namesession$MissingValues
+                       miss <- strsplit(miss, " ")[[1]]
                        namefiles[[1]][namefiles[[1]] %in% miss] <-  NA
                        varnames <- strsplit(objnames[j], ' ')[[1]]
                        tmp <- sapply(1: ncol(namefiles[[1]]), function(x){
@@ -508,6 +515,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                      ##               fixed=TRUE)
                      ##  namefiles[[1]][grep(miss, namefiles[[1]])] <-  NA
                        miss <- namesession$MissingValues
+                       miss <- strsplit(miss, " ")[[1]]
                        namefiles[[1]][namefiles[[1]] %in% miss] <-  NA
                        assign(objnames[j],
                               varCovar (namefiles[[1]],
@@ -515,41 +523,120 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                               .GlobalEnv)
                    },
                    'constant dyadic covariate' = {
-                     ##  miss <- gsub(" ", "|",
-                     ##               namesession$MissingValues[1],
-                     ##               fixed=TRUE)
-                     ##  namefiles[[1]][grep(miss, namefiles[[1]])] <-  NA
                        miss <- namesession$MissingValues
-                       namefiles[[1]][namefiles[[1]] %in% miss] <-  NA
+                       miss <- strsplit(miss, " ")[[1]]
                        if (namesession[1, "ActorSet"] == "Actors")
                        {
                            namesession[1, "ActorSet"]<- "Actors Actors"
                        }
-                       nodesets <- strsplit(namesession[1, "ActorSet"], ' ')
-                       assign(objnames[j],
-                              coDyadCovar (namefiles[[1]],
-                                           nodeSets=nodesets[[1]]),
-                              .GlobalEnv)
+                       nodesets <- strsplit(namesession[1,
+                                                        "ActorSet"], " ")[[1]]
+                       if (namesession$Format[1] == "matrix")
+                       {
+                           namefiles[[1]][namefiles[[1]] %in% miss] <-  NA
+                           tmp <- coDyadCovar(namefiles[[1]],
+                                              nodeSets=nodesets)
+                       }
+                       else
+                       {
+                           myedgelist <- namefiles[[1]]
+                           myedgelist[myedgelist[, 3] %in% miss, 3] <- NA
+                           if (ncol(myedgelist) == 4 &&
+                               any(myedgelist[, 4] != myedgelist[1, 4]))
+                           {
+                               stop("Only one wave possible for constant",
+                                    "dyadic covariates")
+                           }
+                           nActors <-
+                               as.numeric(strsplit(namesession$
+                                                   NbrOfActors[1],
+                                                   " ")[[1]])
+                           myval <- spMatrix(nrow = nActors[1],
+                                             ncol=nActors[2],
+                                             i=myedgelist[, 1],
+                                             j=myedgelist[, 2],
+                                             x=myedgelist[, 3])
+                           tmp <- coDyadCovar(myval, nodeSet=nodesets)
+                       }
+                       assign(objnames[j], tmp, .GlobalEnv)
                    },
                    'changing dyadic covariate' = {
                        if (namesession[1, "ActorSet"] == "Actors")
                        {
                            namesession[1, "ActorSet"]<- "Actors Actors"
                        }
-                       nodesets <- strsplit(namesession[1, "ActorSet"], ' ')
-                       myarray <- array(NA, dim=c(dim(namefiles[[1]]),
-                                             observations - 1))
+                       nodesets <- strsplit(namesession[1,
+                                                        "ActorSet"], " ")[[1]]
                        miss <- namesession$MissingValues
-                       for (x in 1:nrow(namesession))
+                       miss <- strsplit(miss, " ")
+                       if (namesession$Format[1] == "matrix")
                        {
-                           if (miss[x] != '')
+                           myarray <- array(NA, dim=c(dim(namefiles[[1]]),
+                                                observations - 1))
+                           for (x in 1:nrow(namesession))
                            {
-                               namefiles[[x]][namefiles[[x]] %in% miss[x]] <- NA
+                               namefiles[[x]][namefiles[[x]] %in%
+                                              miss[[x]]] <- NA
+                               myarray[ , ,
+                                       as.numeric(namesession$Period[x])] <-
+                                           namefiles[[x]]
                            }
-                           myarray[ , ,as.numeric(namesession$Period[x])] <-
-                               namefiles[[x]]
+                           tmp <- varDyadCovar(myarray, nodeSets=nodesets)
                        }
-                       tmp <- varDyadCovar(myarray, nodeSets=nodesets[[1]])
+                       else
+                       {
+                           if (nrow(namesession) > 1)
+                           {
+                               if (observations - 1 != nrow(namesession))
+                               {
+                                   stop("observations and periods don't match",
+                                        "for dyadic covariate")
+                               }
+                               mylist <- vector("list", observations - 1)
+                               nActors <-
+                                   as.numeric(strsplit(namesession$
+                                                       NbrOfActors[1],
+                                                       " ")[[1]])
+                               for (x in 1:nrow(namesession))
+                               {
+                                   myedgelist <- namefiles[[x]][ ,1:3]
+                                   myedgelist[myedgelist[, 3] %in% miss[[x]],
+                                              3] <-  NA
+                                   if (any(as.numeric(strsplit(namesession$
+                                                               NbrOfActors[x],
+                                                               " ")[[1]])
+                                           != nActors))
+                                       stop("number of actors inconsistent")
+                                   mylist[[x]] <- myedgelist
+                               }
+                           }
+                           else
+                           {
+                               myedgelist <- namefiles[[1]]
+                               myedgelist[myedgelist[, 3] %in% miss[[1]],
+                                          3] <- NA
+                               mylist <- split.data.frame(myedgelist[, 1:3],
+                                                          myedgelist[, 4])
+                               if (!is.na(observations) && (observations - 1) !=
+                                   length(mylist))
+                                   stop("Differing numbers of observations ",
+                                        observations, " ", length(mylist))
+                               nActors <-
+                                   as.numeric(strsplit(namesession$
+                                                       NbrOfActors[1],
+                                                       " ")[[1]])
+                           }
+                           mylist <-  lapply(mylist, function(y)
+                                  {
+                                      spMatrix(nrow = nActors[1],
+                                               ncol=nActors[2],
+                                               i=y[, 1],
+                                               j=y[, 2],
+                                               x=y[, 3])
+                                  }
+                                      )
+                         tmp <- varDyadCovar(mylist, nodeSets=nodesets)
+                       }
                        assign(objnames[j], tmp, .GlobalEnv)
                    },
                    'exogenous event' = {

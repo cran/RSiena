@@ -1,7 +1,7 @@
 ##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://stat.gamma.rug.nl/siena.html
+## * Web: http://www.stats.ox.ac.uk/~snijders/siena
 ## *
 ## * File: siena07.r
 ## *
@@ -14,7 +14,7 @@
 siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
                    useCluster = FALSE, nbrNodes = 2, initC=FALSE,
                    clusterString=rep("localhost", nbrNodes), tt=NULL,
-                   parallelTesting=FALSE, ...)
+                   parallelTesting=FALSE, clusterIter=TRUE, ...)
 {
     exitfn <- function()
     {
@@ -23,7 +23,7 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
            tkdestroy(tkvars$tt)
        }
        ## close the report file
-       Report(close=TRUE)
+       Report(closefiles=TRUE)
     }
     on.exit(exitfn())
 
@@ -31,17 +31,32 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
     time0 <-  proc.time()['elapsed']
     z <- NULL ## z is the object for all control information which may change.
     ## x is designed to be readonly. Only z is returned.
+    z$x <- x
 
     if (useCluster)
     {
+        if (parallelTesting)
+        {
+            stop("cannot parallel test with multiple processes")
+        }
         require(snow)
         require(rlecuyer)
-        x$firstg <- x$firstg * sqrt(nbrNodes)
-        z$int <- nbrNodes
+        if (clusterIter)
+        {
+            x$firstg <- x$firstg * sqrt(nbrNodes)
+            z$int <- nbrNodes
+            z$int2 <- 1
+        }
+        else
+        {
+            z$int <- 1
+            z$int2 <- nbrNodes
+        }
     }
     else
     {
         z$int <- 1
+        z$int2 <- 1
     }
     if (parallelTesting)
     {
@@ -81,8 +96,8 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
     is.batch(batch)
 
     ## open the output file
-    Report(open=TRUE, projname=x$projname, verbose=verbose, silent=silent)
-    InitReports(seed, newseed)
+    Report(openfiles=TRUE, projname=x$projname, verbose=verbose, silent=silent)
+    z <- InitReports(z, seed, newseed)
 
     ## reset the globals for interrupts
     NullChecks()
@@ -99,7 +114,8 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
         z$pb <- list(pb=NULL, pbval=0, pbmax=1)
     }
 
-    z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,...)
+    z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,
+                clusterIter, ...)
 
     time1 <-  proc.time()['elapsed']
     Report(c("Total computation time", round(time1 - time0, digits=2),
@@ -109,17 +125,19 @@ siena07<- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
         stopCluster(z$cl)
 
     class(z) <- "sienaFit"
+    z$tkvars <- NULL
+    z$pb <- NULL
     z
 }
 ##@InitReports siena07 Print report
-InitReports <- function(seed, newseed)
+InitReports <- function(z, seed, newseed)
 {
     Report("\n\n-----------------------------------\n", outf)
     Report("New Analysis started.\n", outf)
     Report(c("Date and time:", format(Sys.time(),"%d/%m/%Y %H:%M:%S")), outf)
     Report("\nNew results follow.\n", outf)
     Report("-----------------------------------\n", outf)
-    rforgeRevision <-  packageDescription("RSiena",
+    rforgeRevision <-  packageDescription(pkgname,
                                           fields="Repository/R-Forge/Revision")
     if (is.na(rforgeRevision))
     {
@@ -129,9 +147,9 @@ InitReports <- function(seed, newseed)
     {
         revision <- paste(" R-forge revision: ", rforgeRevision, " ", sep="")
     }
-    Report(c("\nSiena version ",
-             packageDescription("RSiena", fields = "Version"), " (",
-             format(as.Date(packageDescription("RSiena", fields = "Date")),
+    version <- packageDescription(pkgname, fields = "Version")
+    Report(c("\nSiena version ", version, " (",
+             format(as.Date(packageDescription(pkgname, fields = "Date")),
                     "%d %b %y"), ")",
              revision, "\n\n"), sep = '',  outf )
     Heading(1, outf, "Estimation by stochastic approximation algorithm.")
@@ -144,6 +162,9 @@ InitReports <- function(seed, newseed)
     {
         Report(sprintf("Current random number seed is %d.\n", seed), outf)
     }
+    z$revision <- revision
+    z$version <- version
+    z
 }
 
 ##@AnnouncePhase siena07 Progress reporting
@@ -159,7 +180,11 @@ AnnouncePhase <- function(z, x, subphase=NULL)
     }
     if (missing(subphase))
     {
-        Report(c("\nStart phase", z$Phase, "\n"), cf)
+        if (is.batch())
+        {
+            ##Report(c("\nStart phase", z$Phase, "\n"), cf)
+            Report(c("\nStart phase", z$Phase, "\n"))
+        }
     }
     else
     {
@@ -167,8 +192,13 @@ AnnouncePhase <- function(z, x, subphase=NULL)
         {
             tkinsert(z$tkvars$subphase, 0, paste(" ", subphase))
         }
-        Report(c("\nStart phase ", z$Phase, ".", subphase, "\n"), sep="", cf)
-    }
+        else
+        {
+            ##Report(c("\nStart phase ", z$Phase, ".", subphase, "\n"),
+            ##sep="", cf)
+            Report(c("\nStart phase ", z$Phase, ".", subphase, "\n"), sep="")
+        }
+   }
     if (z$Phase == 0)
     {
         if (!is.batch())

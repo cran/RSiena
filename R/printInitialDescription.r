@@ -60,40 +60,21 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 depvar <- data[[group]]$depvars[[j]]
                 atts <- attributes(depvar)
                 subs <- 1:data[[group]]$observations + periodFromStart
-                ones <- sapply(atts$vals, function(x){
-                    if (is.na(x["11"]))
-                    {
-                        x["1"]
-                    }
-                    else
-                    {
-                        x["1"] + x["11"]
-                    }
-                })
-                density[subs] <- ones / atts$nval
-                if (any(ones >= atts$nval))
+                density[subs] <- atts$density
+                if (any(atts$ones >= atts$nval))
                 {
                     difficult <- TRUE
                 }
-                if (bipartite)
-                {
-                    degree[subs] <- atts$netdims[2] * ones / atts$nval
-                    missings[subs] <- 1 - atts$nval/ atts$netdims[1] /
-                        atts$netdims[2]
-                }
-                else
-                {
-                    degree[subs] <- (atts$netdims[1] - 1) * ones / atts$nval
-                    missings[subs] <- 1 - atts$nval/ atts$netdims[1] /
-                        (atts$netdims[1] - 1)
-               }
-                nties[subs] <- ones
+                degree[subs] <- atts$degree
+                missings[subs] <-atts$missings
+                nties[subs] <- atts$ones
                 if (gpatts$symmetric[net])
                 {
                     nties <- nties / 2
                 }
                 periodFromStart <- data[[group]]$observations
             }
+            averageDegree <- mean(degree)
             ## now do the format
             tmp <- rbind(format(round(density, 3), nsmall=3, width=7),
                          format(round(degree, 3), nsmall=3, width=7),
@@ -109,16 +90,39 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 endCol <- startCol + 6
                 endCol <- min(endCol, nobs)
                 tmp3 <- rbind(format(startCol:endCol, width=7),
-                              tmp[, startCol:endCol])
+                              tmp[, startCol:endCol, drop=FALSE])
                 tmp2 <- cbind(text, tmp3, eols)
                 Report(t(tmp2), sep="", outf)
                 startCol <- startCol + 7
                 if (startCol > nobs)
                     break
             }
+            averageOutDegree <- rep(NA, nData)
+            for (group in 1:nData)
+            {
+                j <- match(netnames[net], names(data[[group]]$depvars))
+                if (is.na(j))
+                    stop("network names not consistent")
+                depvar <- data[[group]]$depvars[[j]]
+                atts <- attributes(depvar)
+                averageOutDegree[group] <- atts$"averageOutDegree"
+            }
+            Report("\n", outf)
+            if (nData > 1)
+            {
+                Report("The average degrees are: ", outf)
+                Report(paste(names(data), round(averageOutDegree, 3),
+                             sep=': '), outf)
+                Report("\n", outf)
+            }
+            else
+            {
+                Report(c("The average degree is",
+                         round(averageOutDegree, 3), "\n"), outf)
+            }
             Report("\n\n", outf)
             Report(c(ifelse(gpatts$symmetric[net], "Edge", "Tie"),
-                   "changes between subsequent observations:\n"), outf)
+                     "changes between subsequent observations:\n"), outf)
             valmin <- gpatts$netRanges[1, net]
             valmax <- gpatts$netRanges[2, net]
             tmp <- expand.grid(valmin:valmax, valmin:valmax)
@@ -260,6 +264,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                         {
                             ##  require(Matrix)
                             mymat <- depvar[[per]]
+                            diag(mymat) <- 0
                             mymat1 <- mymat@i
                             mymat2 <- mymat@j
                             mymat3 <- mymat@x
@@ -284,9 +289,11 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                                 missji <- paste(mymat2[is.na(mymat3)],
                                                 mymat1[is.na(mymat3)])
                                 mutual <- sum(ij %in% ji) / 2
+                                ## nondyads are ones where we have a link and
+                                ## its partner is missing
                                 nondyads <- sum(ji %in% missij)
                                 asymm <- length(ij) - nondyads - mutual * 2
-                                missdyads <- sum(!missij %in% missji) +
+                                missdyads <- sum(!(missij %in% missji)) +
                                     sum(missij %in% missji) / 2
                                 nulls <- atts$netdims[1] *
                                     (atts$netdims[2] - 1) / 2 -

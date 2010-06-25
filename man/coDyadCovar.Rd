@@ -5,12 +5,14 @@
   This function creates a constant dyadic covariate object from a matrix.
 }
 \usage{
-coDyadCovar(val, nodeSets=c("Actors","Actors"))
+coDyadCovar(val, nodeSets=c("Actors", "Actors"),
+    sparse=is(val,"dgTMatrix"))
 }
 \arguments{
-  \item{val}{Matrix of covariate values. }
+  \item{val}{Matrix of covariate values. May be sparse, of type "dgTMatrix" }
   \item{nodeSets}{The name of the node sets with which this
     covariate is associated.}
+  \item{sparse}{Boolean: whether a sparse matrix or not}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be

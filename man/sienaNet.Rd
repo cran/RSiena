@@ -6,8 +6,8 @@
   of triples.
 }
 \usage{
-sienaNet(netarray, type = c("oneMode", "bipartite", "behavior"),
-nodeSet = "Actors", sparse = is.list(netarray))
+sienaNet(netarray, type=c("oneMode", "bipartite", "behavior"),
+nodeSet="Actors", sparse=is.list(netarray))
 }
 \arguments{
   \item{netarray}{matrix (type="behavior" only)
@@ -31,7 +31,7 @@ An object of class "sienaNet".
 \seealso{\code{\link{sienaDataCreate}}}
 \examples{
 
-mynet1 <- sienaNet(array(c(s501,s502,s503),dim=c(50,50,3)))
+mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 
 }
 \keyword{classes}

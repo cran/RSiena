@@ -9,6 +9,7 @@
  * AverageReciprocatedAlterEffect class.
  *****************************************************************************/
 
+#include <string>
 #include <stdexcept>
 #include "AverageReciprocatedAlterEffect.h"
 #include "network/CommonNeighborIterator.h"

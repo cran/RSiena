@@ -16,7 +16,6 @@
 
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
-#include <R.h>
 namespace siena
 {
 

@@ -25,6 +25,7 @@ This data frame is used internally to construct effect objects.
     \item{\code{randomEffects}}{a logical vector}
     \item{\code{fix}}{a logical vector}
     \item{\code{test}}{a logical vector}
+    \item{\code{timeDummy}}{a character vector, default ","}
     \item{\code{initialValue}}{a numeric vector}
     \item{\code{parm}}{a numeric vector}
     \item{\code{functionType}}{a character vector}

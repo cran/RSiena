@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include <stdexcept>
+#include <R_ext/Print.h>
 
 #include "NetworkEffect.h"
 #include "network/Network.h"
@@ -174,6 +175,7 @@ double NetworkEffect::statistic(const Network * pSummationTieNetwork)
 	}
 
 	this->cleanupStatisticCalculation();
+	//Rprintf(" %f sum \n ", statistic);
 
 	return statistic;
 }
@@ -195,7 +197,6 @@ double NetworkEffect::egoStatistic(int ego,
 	{
 		statistic += this->tieStatistic(iter.actor());
 	}
-
 	return statistic;
 }
 

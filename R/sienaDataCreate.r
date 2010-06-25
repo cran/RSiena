@@ -42,12 +42,12 @@ addAttributes.coCovar <- function(x, name, ...)
 addAttributes.varCovar <- function(x, name, ...)
 {
     tmpmat <- x
-    varmean <- mean(tmpmat, na.rm=TRUE)
+    varmean <- mean(x, na.rm=TRUE)
     vartotal <- sum(x, na.rm=TRUE)
     nonMissingCount <- sum(!is.na(x))
-    attr(x, "rangep") <- apply(tmpmat, 2, range, na.rm=TRUE)
-    attr(x, "meanp") <- colMeans(tmpmat, na.rm=TRUE)
-    cr <- range(tmpmat, na.rm=TRUE)
+    attr(x, "rangep") <- apply(x, 2, range, na.rm=TRUE)
+    attr(x, "meanp") <- colMeans(x, na.rm=TRUE)
+    cr <- range(x, na.rm=TRUE)
     attr(x, 'range') <- cr[2] - cr[1]
     storage.mode(attr(x, 'range')) <- 'double'
     attr(x, 'mean') <- varmean
@@ -67,43 +67,112 @@ addAttributes.varCovar <- function(x, name, ...)
 ##@addAttributes.coDyadCovar DataCreate
 addAttributes.coDyadCovar <- function(x, name, bipartite, ...)
 {
+    sparse <- attr(x, "sparse")
     if (!bipartite) ## remove diagonal for calculation of mean
     {
-        diag(x) <- NA
+        if (!sparse)
+        {
+            diag(x) <- NA
+        }
+        else
+        {
+            diag(x[[1]])  <-  NA
+        }
     }
-    varmean <- mean(x, na.rm=TRUE)
+    if (sparse)
+    {
+        nonMissingCount <- sum(!is.na(x[[1]]))
+        varmean <- sum(x[[1]], na.rm=TRUE) / nonMissingCount
+        ## sparse mean is incorrect
+        rr <-  range(x[[1]], na.rm=TRUE)
+    }
+    else
+    {
+        varmean <- mean(x, na.rm=TRUE)
+        rr <-  range(x, na.rm=TRUE)
+        nonMissingCount <- sum(!is.na(x))
+    }
     attr(x,'mean') <- varmean
-    rr<-  range(x, na.rm=TRUE)
     attr(x,'range') <- rr[2] - rr[1]
     storage.mode(attr(x, 'range')) <- 'double'
     attr(x,'range2') <- rr
     attr(x, 'name') <- name
+    attr(x, "nonMissingCount") <- nonMissingCount
     if (!bipartite) #zero the diagonal
     {
-        diag(x) <- 0
+        if (sparse)
+        {
+            diag(x[[1]]) <- 0
+        }
+        else
+        {
+            diag(x) <- 0
+        }
     }
     x
 }
 ##@addAttributes.varDyadCovar DataCreate
 addAttributes.varDyadCovar <- function(x, name, bipartite, ...)
 {
+    sparse <- attr(x, "sparse")
+    vardims <- attr(x, "vardims")
     if (!bipartite) ## remove the diagonal before calculating the mean
     {
-        for (obs in 1:dim(x)[3])
+        for (obs in 1:vardims[3])
         {
-            diag(x[, , obs]) <- NA
+            if (sparse)
+            {
+                diag(x[[obs]]) <- NA
+            }
+            else
+            {
+                diag(x[, , obs]) <- NA
+            }
         }
     }
-    varmean <- mean(x, na.rm=TRUE)
-    attr(x,'mean') <- mean(x, na.rm=TRUE)
-    rr <-  range(x, na.rm=TRUE)
-    attr(x,'range') <- rr[2] - rr[1]
-    storage.mode(attr(x, 'range')) <- 'double'
-    attr(x, 'name') <- name
+    if (sparse)
+    {
+        totalValue <- 0
+        totalCount <- 0
+        meanp <- rep(NA, vardims[3])
+        nonMissingCounts <- rep(NA, vardims[3])
+        for (obs in 1:vardims[3])
+        {
+            totalValue <- totalValue + sum(x[[obs]], na.rm=TRUE)
+            nonMissingCounts[obs] <- sum(!is.na(x[[obs]]))
+            totalCount <- totalCount +  nonMissingCounts[obs]
+            meanp[obs] <- sum(x[[obs]], na.rm=TRUE) /
+                nonMissingCounts[obs]
+      }
+        varmean <- totalValue / totalCount
+        rr <- range(sapply(x, range, na.rm=TRUE), na.rm=TRUE)
+        attr(x, "meanp") <- meanp
+    }
+    else
+    {
+        varmean <- mean(x, na.rm=TRUE)
+        rr <-  range(x, na.rm=TRUE)
+        attr(x, "meanp") <- colMeans(x, dims=2, na.rm=TRUE)
+        nonMissingCounts <- colSums(!is.na(x), dims=2)
+    }
+    attr(x, "mean") <- varmean
+    attr(x, "range") <- rr[2] - rr[1]
+    storage.mode(attr(x, "range")) <- "double"
+    attr(x, "name") <- name
+    attr(x, "nonMissingCount") <- nonMissingCounts
     if (!bipartite) ## put diagonal to zero
     {
-        for (obs in 1:dim(x)[3])
-            diag(x[, , obs]) <- 0
+        for (obs in 1:vardims[3])
+        {
+            if (!sparse)
+            {
+                diag(x[, , obs]) <- 0
+            }
+            else
+            {
+                diag(x[[obs]]) <- 0
+            }
+        }
     }
     x
 }
@@ -310,9 +379,17 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
     {
         nattr <- attr(dycCovars[[i]], 'nodeSet')
         bipartite <- nattr[1] != nattr[2]
-        if (!validNodeSet(nattr[1], nrow(dycCovars[[i]])))
+        if (attr(dycCovars[[i]], "sparse"))
+        {
+            thisdycCovar <- dycCovars[[i]][[1]]
+        }
+        else
+        {
+            thisdycCovar <- dycCovars[[i]]
+        }
+        if (!validNodeSet(nattr[1], nrow(thisdycCovar)))
             stop('dyadic covariate incorrect nbr rows', names(dycCovars)[i])
-        if (!validNodeSet(nattr[2], ncol(dycCovars[[i]])))
+        if (!validNodeSet(nattr[2], ncol(thisdycCovar)))
              stop('dyadic covariate incorrect nbr columns',
                   names(dycCovars)[i])
         dycCovars[[i]] <- addAttributes(dycCovars[[i]], names(dycCovars)[i],
@@ -322,22 +399,37 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
     {
         if (observations < 3)
         {
-            stop("Changing covariates are not possibLe with only two waves")
+            stop("Changing covariates are not possible with only two waves")
         }
         nattr <- attr(dyvCovars[[i]],'nodeSet')
+        sparse <- attr(dyvCovars[[i]], "sparse")
         bipartite <- nattr[1] != nattr[2]
-        if (!validNodeSet(nattr[1], dim(dyvCovars[[i]])[1]))
+        vardims <- attr(dyvCovars[[i]], "vardims")
+        if (!validNodeSet(nattr[1], vardims[1]))
+        {
             stop('dyadic changing covariate incorrect nbr rows',
                  names(dyvCovars)[i])
-        if (!validNodeSet(nattr[2], dim(dyvCovars[[i]])[2]))
+        }
+        if (!validNodeSet(nattr[2], vardims[2]))
+        {
             stop('dyadic changing covariate incorrect nbr columns',
                  names(dyvCovars)[i])
-        if (dim(dyvCovars[[i]])[3] < (observations - 1))
+        }
+        if (vardims[3] < (observations - 1))
+        {
             stop('Dyadic changing covariate not enough observations')
-         if (dim(dyvCovars[[i]])[3] != (observations - 1))
+        }
+        if (vardims[3] != (observations - 1))
         {
             tmpatt <- attributes(dyvCovars[[i]])
-            dyvCovars[[i]] <- dyvCovars[[i]][, 1:(observations - 1)]
+            if (sparse)
+            {
+                dyvCovars[[i]] <- dyvCovars[[i]][1:(observations - 1)]
+            }
+            else
+            {
+                dyvCovars[[i]] <- dyvCovars[[i]][, 1:(observations - 1)]
+            }
             attnames <- names(tmpatt)
             for (att in seq(along=attnames))
             {
@@ -346,7 +438,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     attr(dyvCovars[[i]], attnames[att]) <- tmpatt[[att]]
                 }
             }
-          }
+        }
         dyvCovars[[i]] <- addAttributes(dyvCovars[[i]], names(dyvCovars)[i],
                                         bipartite)
     }
@@ -468,7 +560,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         attr(depvars[[i]], 'distance') <- rep(FALSE, observations - 1)
         attr(depvars[[i]], 'vals') <- vector("list", observations)
         attr(depvars[[i]], 'nval') <- rep(NA, observations)
-        attr(depvars[[i]], 'noMissing') <- rep(NA, observations)
+        attr(depvars[[i]], 'noMissing') <- rep(0, observations)
         if (type == 'behavior')
         {
             attr(depvars[[i]], 'noMissing') <- FALSE
@@ -614,8 +706,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     }
                     else
                     {
-                        attr(depvars[[i]], "vals")[[j]] <- table(mymat,
-                                                                 useNA="always")
+                        attr(depvars[[i]], "vals")[[j]] <-
+                            table(mymat, useNA="always")
                     }
                     attr(depvars[[i]], "nval")[j] <-
                         sum(!is.na(mymat[row(mymat) != col(mymat)]))
@@ -635,9 +727,34 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     attr(depvars[[i]], "range") <-
                         range(tmp[!(is.na(tmp) | tmp %in% c(10, 11))])
                 }
+                ## average degree
+                atts <- attributes(depvars[[i]])
+                ones <- sapply(atts$vals, function(x){
+                               if (is.na(x["11"]))
+                           {
+                               ones <- x["1"]
+                           }
+                               else
+                           {
+                               ones <- x["1"] + x["11"]
+                           }
+                              } )
+                density <- ones / atts$nval
+                degree <- (atts$netdims[1] - 1) * ones / atts$nval
+                missings <- 1 - atts$nval/ atts$netdims[1] /
+                    (atts$netdims[1] - 1)
+                noMissing <- atts$netdims[1] * (atts$netdims[1] - 1) -
+                    atts$nval
+                attr(depvars[[i]], "ones") <- ones
+                attr(depvars[[i]], "density") <- density
+                attr(depvars[[i]], "degree") <- degree
+                attr(depvars[[i]], "averageOutDegree") <- mean(degree)
+                attr(depvars[[i]], "averageInDegree") <- mean(degree)
+                attr(depvars[[i]], "missings") <- missings
+                attr(depvars[[i]], "noMissing") <- noMissing
             }
             else #type=='bipartite' not sure what we need here,
-                #### but include diagonal
+                ## but include diagonal
             {
                 attr(depvars[[i]], 'balmean') <- NA
                 attr(depvars[[i]], 'simMean') <- NA
@@ -692,7 +809,30 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     attr(depvars[[i]], "range") <-
                         range(tmp[!(is.na(tmp) | tmp %in% c(10, 11))])
                 }
-            }
+                 ## average degree
+                atts <- attributes(depvars[[i]])
+                ones <- sapply(atts$vals, function(x){
+                               if (is.na(x["11"]))
+                           {
+                               ones <- x["1"]
+                           }
+                               else
+                           {
+                               ones <- x["1"] + x["11"]
+                           }
+                              } )
+                density <- ones / atts$nval
+                degree <- (atts$netdims[2]) * ones / atts$nval
+                missings <- 1 - atts$nval/ atts$netdims[1] /
+                    atts$netdims[2]
+                noMissing <- atts$netdims[1] * atts$netdims[2] - atts$nval
+                attr(depvars[[i]], "ones") <- ones
+                attr(depvars[[i]], "density") <- density
+                attr(depvars[[i]], "degree") <- degree
+                attr(depvars[[i]], "averageOutDegree") <- mean(degree)
+                attr(depvars[[i]], "missings") <- missings
+                attr(depvars[[i]], "noMissing") <- noMissing
+           }
         }
         attr(depvars[[i]], 'name') <- names(depvars)[i]
     }
@@ -706,11 +846,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
     z$dycCovars <- dycCovars
     z$dyvCovars <- dyvCovars
     z$compositionChange <- compositionChange
- #   types <- sapply(z$depvars, function(x)attr(x, "type"))
- #   if (sum(types != "behavior" ) > 1)
- #   {
-        z <- checkConstraints(z)
- #   }
+    z <- checkConstraints(z)
+    z <- covarDist2(z)
     class(z) <- 'siena'
     z
 }
@@ -719,35 +856,41 @@ checkConstraints <- function(z)
 {
     types <- sapply(z$depvars, function(x)attr(x, "type"))
     sparse <- sapply(z$depvars, function(x)attr(x, "sparse"))
-    nodeSets <- sapply(z$depvars, function(x)attr(x, "nodeSet"))
+    nodeSets <- lapply(z$depvars, function(x)attr(x, "nodeSet"))
     nNets <- length(z$depvars)
+
     pairsOfNets <- as.matrix(expand.grid(names(z$depvars), names(z$depvars)))
-    ## maybe remove some as don't want pairs with self, but may want all there
-    ##pairsOfNets <- pairsOfNets[pairsOfNets[, 1] != pairsOfNets[, 2], ]
-    pairsNames <- paste(pairsOfNets[, 1], pairsOfNets[,2], sep=",")
+    pairsNames <- paste(pairsOfNets[, 1], pairsOfNets[, 2], sep=",")
 
     higher <- namedVector(FALSE, pairsNames )
     atLeastOne <- namedVector(FALSE, pairsNames )
     disjoint <- namedVector(FALSE, pairsNames )
 
-    ## identify any nets which may relate
+    ## identify any nets which may relate. These are those that
+    ## share a node set and type.
     relates <- data.frame(name=names(z$depvars), type=types,
                           nodeSets=sapply(nodeSets, paste, collapse=","),
                           tn=paste(types, sapply(nodeSets, paste,
                           collapse=",")) , stringsAsFactors=FALSE)
+
+    ## just check we have only one row per network
+    if (nrow(relates) != nNets)
+    {
+        stop("Error in checkConstraints")
+    }
+    ## find the ones that do occur more than once
     use <- relates$tn %in% relates$tn[duplicated(relates$tn)]
+
+    ## create a working list to be compared, with names for ease of access
     nets <- namedVector(NA, names(z$depvars), listType=TRUE)
+
     for (net in names(z$depvars)[use])
     {
         if (types[[net]] != "behavior")
         {
             nets[[net]] <- z$depvars[[net]]
-        ##    nets[[net]] <- replaceMissingsAndStructurals(z$depvars[[net]])
         }
     }
-
-   ## relSplits <- split(relates, relates$tn)
-   ## relSplits <- relSplits[sapply(relSplits, nrow) > 1]
 
     for (i in 1:nrow(pairsOfNets))
     {
@@ -761,7 +904,7 @@ checkConstraints <- function(z)
             nodes1 <- relates[net1, "nodeSets"]
             nodes2 <- relates[net2, "nodeSets"]
 
-            if (type1 == type2 && type1 != "behavior" & nodes1 == nodes2)
+            if (type1 == type2 && type1 != "behavior" && nodes1 == nodes2)
             {
                 higher[i] <- TRUE
                 disjoint[i] <- TRUE
@@ -808,7 +951,6 @@ checkConstraints <- function(z)
             }
         }
     }
-
     attr(z, "higher") <- higher
     attr(z, "disjoint") <- disjoint
     attr(z, "atLeastOne") <- atLeastOne
@@ -827,14 +969,6 @@ rangeAndSimilarity<- function(vals, rvals=NULL)
         rvals <- range(vals,na.rm=TRUE)
     }
     rvals1 <- rvals[2] - rvals[1]
-    ## use of outer creates a potentially huge matrix unnecessarily
-    ## tmp3 <- apply(vals,2,function(x)
-    ##          {
-    ##              y <- 1 - abs(outer(x, x, "-")) / rvals1
-    ##              diag(y) <- NA
-    ##              y
-    ##          })
-    ## tmp3 <- array(tmp3, dim=c(n, n, observations))
     tmp <- apply(vals, 2, function(v){
     sapply(1: length(v), function(x, y, r){
         z <- y
@@ -1075,11 +1209,27 @@ groupRangeAndSimilarityAndMean <- function(group)
             {
                 stop("inconsistent covariate names")
             }
-            vartotal <- vartotal + sum(group[[i]]$dyvCovars[[j]], na.rm=TRUE)
-            nonMissingCount <- nonMissingCount +
-                sum(!is.na(group[[i]]$dyvCovars[[j]]))
-            thisrange[, i] <- range(group[[i]]$dyvCovars[[j]],
-                                    na.rm=TRUE)
+            sparse <- attr(group[[i]]$dyvCovars[[j]], "sparse")
+            vardims <- attr(group[[i]]$dyvCovars[[j]], "vardims")
+            if (attr(group[[i]]$dyvCovars[[j]], "sparse"))
+            {
+                for (obs in 1:vardims[3])
+                {
+                    vartotal <- vartotal + sum(group[[i]]$dyvCovars[[j]][[obs]], na.rm=TRUE)
+                    nonMissingCount <- nonMissingCount +
+                        sum(!is.na(group[[i]]$dyvCovars[[j]][[obs]]))
+                }
+                thisrange[, i] <- range(sapply(group[[i]]$dyvCovars[[j]], range, na.rm=TRUE),
+                                            na.rm=TRUE)
+            }
+            else
+            {
+                vartotal <- vartotal + sum(group[[i]]$dyvCovars[[j]], na.rm=TRUE)
+                nonMissingCount <- nonMissingCount +
+                    sum(!is.na(group[[i]]$dyvCovars[[j]]))
+                thisrange[, i] <- range(group[[i]]$dyvCovars[[j]],
+                                        na.rm=TRUE)
+            }
         }
         dyvCovarMean[covar] <- vartotal / nonMissingCount
         rr <- range(thisrange, na.rm=TRUE)
@@ -1109,7 +1259,7 @@ groupRangeAndSimilarityAndMean <- function(group)
     attr(group, "dyvCovarMean") <- dyvCovarMean
     group
 }
-##@namedVector DataCreate
+##@namedVector DataCreate Utility to create a vector with appropriate names
 namedVector <- function(vectorValue, vectorNames, listType=FALSE)
 {
     if (listType)
@@ -1136,6 +1286,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
         attr(x, 'mean') <- atts$mean
         attr(x, 'vartotal') <- atts$vartotal
         attr(x, 'nonMissingCount') <- atts$nonMissingCount
+        attr(x, 'simMeans') <- atts$simMeans
         rr <- rangeAndSimilarity(x, atts$range2)
         attr(x, 'poszvar') <- atts$poszvar
         attr(x, 'similarity') <- rr$simValues
@@ -1207,8 +1358,10 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     cvnodeSets <- namedVector(NA, vCovars)
     dycnodeSets <- namedVector(NA, dycCovars, listType=TRUE)
     dyvnodeSets <- namedVector(NA, dyvCovars, listType=TRUE)
+    totalMissings <- namedVector(0, netnames)
     observations <- 0
     periodNos <- rep(NA, 2)
+    groupPeriods <- namedVector(NA, names(objlist))
     for (i in 1:length(objlist))
     {
         for (j in 1:length(objlist[[i]]$depvars))
@@ -1230,7 +1383,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             }
             if (is.null(nodeSets[[netnamesub]]))
             {
-                nodeSets[[netnamesub]] <- attribs[['nodeSet']]
+                  nodeSets[[netnamesub]] <- attribs[['nodeSet']]
             }
             else if (any(nodeSets[[netnamesub]] != attribs[['nodeSet']]))
             {
@@ -1265,6 +1418,8 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             {
                 structural[netnamesub] <- TRUE
             }
+            totalMissings[netnamesub] <- totalMissings[netnamesub] +
+                sum(attribs[["noMissing"]])
         }
         thisHigher <- attr(objlist[[i]], "higher")
         thisDisjoint <- attr(objlist[[i]], "disjoint")
@@ -1352,7 +1507,8 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
         newobs <- objlist[[i]]$observations
         periodNos[observations + (1 : (newobs - 1))] <-
                   observations + i - 1 + (1 : (newobs - 1))
-        observations <- observations + objlist[[i]]$observations -1
+        observations <- observations + objlist[[i]]$observations - 1
+        groupPeriods[i] <- newobs
     }
     ## if more than one object, now create the group proper
     if (length(objlist) > 1)
@@ -1422,6 +1578,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     attr(group, 'netnames') <- netnames
     attr(group, 'symmetric') <- symmetric
     attr(group, 'structural') <- structural
+    attr(group, "totalMissings") <- totalMissings
     attr(group, 'allUpOnly') <- allUpOnly
     attr(group, 'allDownOnly') <- allDownOnly
     attr(group, 'anyUpOnly') <- anyUpOnly
@@ -1435,6 +1592,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     attr(group, 'types') <- types
     attr(group, 'observations') <- observations
     attr(group, 'periodNos') <- periodNos
+    attr(group, 'groupPeriods') <- groupPeriods
     attr(group, 'netnodeSets') <- nodeSets
     attr(group, 'cCovars') <- cCovars
     attr(group, 'vCovars') <- vCovars
@@ -1467,6 +1625,33 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     balmeans <- calcBalmeanGroup (group)
     names(balmeans) <- netnames
     attr(group, "balmean") <- balmeans
+    ## calculate overall degree averages
+    atts <- attributes(group)
+    netnames <- atts$netnames
+    types <- atts$types
+    ## cat(types,'\n')
+    degrees <- namedVector(NA, netnames)
+    for (net in seq(along=netnames))
+    {
+        if (types[net] != "behavior")
+        {
+            degree <- 0
+            nDegree <- 0
+            for (i in 1: length(group))
+            {
+                j <- match(netnames[net], names(group[[i]]$depvars))
+                if (is.na(j))
+                    stop("network names not consistent")
+                depvar <- group[[i]]$depvars[[j]]
+                degs <- attr(depvar, "degree")
+                degree <- degree + sum(degs)
+                nDegree <- nDegree + length(degs)
+            }
+            degrees[net] <- degree / nDegree
+        }
+    }
+    attr(group, "averageOutDegree") <- degrees
+    attr(group, "averageInDegree") <- degrees
     group <- groupRangeAndSimilarityAndMean(group)
     bAnyMissing <- attr(group, "bAnyMissing")
     attr(group, "anyMissing") <- anyMissing | bAnyMissing
@@ -1477,6 +1662,10 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     ## copy the global attributes down to individual level where appropriate
     ##group <- copyGroupAttributes(group, "depvars", "balmean", "balmean")
     group <- copyGroupAttributes(group, "depvars", "symmetric", "symmetric")
+    ##group <- copyGroupAttributes(group, "depvars", "averageInDegree",
+    ##                             "averageInDegree")
+    ##group <- copyGroupAttributes(group, "depvars", "averageOutDegree",
+    ##                             "averageOutDegree")
     ##group <- copyGroupAttributes(group, "depvars", "bSim", "simMean")
     group <- copyGroupAttributes(group, "depvars", "bposzvar", "poszvar")
     group <- copyGroupAttributes(group, "depvars", "bRange", "range")
@@ -1687,4 +1876,125 @@ getGroupNetRanges <- function(data)
         }
     }
     ranges
+}
+
+##@covarDist2 DataCreate calculate average alter values for covariate wrt each net
+covarDist2 <- function(z)
+{
+    netNames <- names(z$depvars)
+    netTypes <- sapply(z$depvars, function(x)attr(x, "type"))
+    netActorSet <- sapply(z$depvars, function(x)
+                          if (attr(x, "type") == "bipartite")
+                      {
+                          attr(x, "nodeSet")[2]
+                      }
+                          else
+                      {
+                          attr(x, "nodeSet")
+                      }
+                          )
+    ## find the constant covariates
+    for (i in seq(along=z$cCovars))
+    {
+        nodeSet <- attr(z$cCovars[[i]], "nodeSet")
+        use <- (netTypes != "behavior" & netActorSet == nodeSet)
+        simMeans <- namedVector(NA, netNames[use])
+        for (j in which(use))
+        {
+            simMeans[netNames[j]] <-
+                calcCovarDist2(matrix(z$cCovars[[i]], ncol=1),
+                               z$depvars[[j]])
+        }
+        attr(z$cCovars[[i]], "simMeans") <- simMeans
+    }
+    for (i in seq(along=z$vCovars))
+    {
+        nodeSet <- attr(z$vCovars[[i]], "nodeSet")
+        use <- (netTypes != "behavior" & netActorSet == nodeSet)
+        simMeans <- namedVector(NA, netNames[use])
+        for (j in which(use))
+        {
+            simMeans[netNames[j]] <-
+                calcCovarDist2(z$vCovars[[i]], z$depvars[[j]])
+        }
+        attr(z$vCovars[[i]], "simMeans") <- simMeans
+
+    }
+    for (i in seq(along=z$depvars))
+    {
+        if (netTypes[i] == "behavior")
+        {
+            beh <- z$depvars[[i]][, 1, ]
+            ## take off the mean NB no structurals yet!
+            beh <- beh - mean(beh, na.rm=TRUE)
+            nodeSet <- netActorSet[i]
+            use <- (netTypes != "behavior" & netActorSet == nodeSet)
+            simMeans <- namedVector(NA, netNames[use])
+            for (j in which(use))
+            {
+                simMeans[netNames[j]] <-
+                    calcCovarDist2(beh[, -ncol(beh), drop=FALSE],
+                                   z$depvars[[j]], rval=range(beh, na.rm=TRUE))
+            }
+            attr(z$depvars[[i]], "simMeans") <- simMeans
+        }
+    }
+    z
+}
+##@ calcCovarDist2 DataCreate similarity mean for alter of this depvar
+calcCovarDist2 <- function(covar, depvar, rval=NULL)
+{
+    ## remove final obs from depvars
+    observations <- attr(depvar, "netdims")[3] - 1
+
+    simTotal <- rep(NA, observations)
+    simCnt <- rep(NA, observations)
+
+    for (i in 1:observations)
+    {
+        if (ncol(covar) == 1) # maybe constant covariate used for each obs
+        {
+            xx <- covar[, 1]
+        }
+        else
+        {
+            xx <- covar[, i]
+        }
+        if (attr(depvar, "sparse"))
+        {
+            dep <- depvar[[i]]
+            dep@x[dep@x %in% c(10, 11)] <- dep@x[dep@x %in% c(10, 11)] - 10
+        }
+        else
+        {
+            dep <- depvar[, , i]
+            dep[dep %in% c(10, 11)] <- dep[dep %in% c(10, 11)] - 10
+        }
+        vi <- apply(dep, 1, function(x)
+                {
+                    if (sum(x, na.rm=TRUE) > 0)
+                    {
+                        nonMissing <- sum(!is.na(xx[!is.na(x) & x > 0]))
+                        if (nonMissing > 0)
+                        {
+                            sum(x * xx, na.rm=TRUE)/ sum(x, na.rm=TRUE)
+                        }
+                        else
+                        {
+                            NA
+                        }
+                    }
+                    else
+                    {
+                        0
+                    }
+
+                }
+                    )
+
+        tmp <- rangeAndSimilarity(vi, rval)
+        simTotal[i] <- tmp$simTotal
+        simCnt[i] <- tmp$simCnt
+    }
+    sum(simTotal)/sum(simCnt)
 }

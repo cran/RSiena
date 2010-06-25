@@ -20,6 +20,7 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class NetworkVariable;
+class NetworkChange;
 
 
 // ----------------------------------------------------------------------------
@@ -40,6 +41,12 @@ public:
 	 * by setting the permitted flag to false for these alters.
 	 */
 	virtual void filterPermittedChanges(int ego, bool * permitted) = 0;
+
+	/**
+	 * Returns if applying the given ministep on the current state of the
+	 * network would be valid with respect to this filter.
+	 */
+	virtual bool validMiniStep(const NetworkChange * pMiniStep) = 0;
 
 protected:
 	inline const NetworkVariable * pVariable() const;

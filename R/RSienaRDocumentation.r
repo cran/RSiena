@@ -80,7 +80,7 @@ getRSienaRDocumentation <- function(Rdir)
     ## get the calls (global)
     codet <- lapply(comms3[,2], function(x)
                 {
-                    x <- try(getFromNamespace(x, "RSiena"), silent=TRUE)
+                    x <- try(getFromNamespace(x, pkgname), silent=TRUE)
                     if (is.function(x))
                     {
                         tmp1 <- findGlobals(x, merge=FALSE)[[1]]
@@ -108,7 +108,7 @@ getRSienaRDocumentation <- function(Rdir)
              {
                  yy <- y[x]
                  zz <- z[[x]]
-                 yy <- getFromNamespace(yy, "RSiena")
+                 yy <- getFromNamespace(yy, pkgname)
                  targs <- formals(yy)
                  n <- length(targs)
                  myargs <- targs

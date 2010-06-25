@@ -9,10 +9,10 @@
  * StatisticCalculator class.
  *****************************************************************************/
 
+#include <cstdlib>
 #include <stdexcept>
 #include <vector>
 #include <cmath>
-#include <R.h>
 
 #include "StatisticCalculator.h"
 #include "data/Data.h"

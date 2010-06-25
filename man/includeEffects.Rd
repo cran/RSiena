@@ -9,7 +9,7 @@
 }
 \usage{
 includeEffects(myeff, ..., include = TRUE, name = myeff$name[1],
-type = "eval", interaction1 = "", interaction2 = "")
+ type = "eval", interaction1 = "", interaction2 = "", character=FALSE)
 }
 \arguments{
   \item{myeff}{a Siena effects object as created by \code{\link{getEffects}}
@@ -24,7 +24,7 @@ short names to identify the effects which should be included or excluded.
 	included. Defaults to the first in the effects object.
 }
   \item{type}{
-  Type of effects to be included: currently only "eval" or "endow".
+  Type of effects to be included.
 }
   \item{interaction1}{
   Name of siena object where needed to completely identify the
@@ -34,6 +34,7 @@ short names to identify the effects which should be included or excluded.
   Name of siena object where needed to completely identify the
   effects e.g. covariate name or behavior variable name.
 }
+\item{character}{Boolean: are the effect names character strings or not}
 }
 \details{The arguments should identify the effects completely. The
   include column will be set to the value requested (TRUE or FALSE).

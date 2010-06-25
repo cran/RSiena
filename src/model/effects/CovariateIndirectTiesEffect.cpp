@@ -8,7 +8,6 @@
  * Description: This file contains the implementation of the class
  * CovariateIndirectTiesEffect.
  *****************************************************************************/
-#include <R.h>
 #include <stdexcept>
 
 #include "CovariateIndirectTiesEffect.h"

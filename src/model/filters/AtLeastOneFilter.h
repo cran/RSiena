@@ -28,6 +28,7 @@ public:
 		const NetworkVariable * pOtherVariable);
 
 	virtual void filterPermittedChanges(int ego, bool * permitted);
+	virtual bool validMiniStep(const NetworkChange * pMiniStep);
 };
 
 }

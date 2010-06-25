@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include <stdexcept>
-
+#include <R_ext/Print.h>
 #include "DyadicCovariateDependentNetworkEffect.h"
 #include "data/ConstantDyadicCovariate.h"
 #include "data/ChangingDyadicCovariate.h"
@@ -50,6 +50,8 @@ void DyadicCovariateDependentNetworkEffect::initialize(const Data * pData,
 
 	this->lpConstantCovariate =	pData->pConstantDyadicCovariate(name);
 	this->lpChangingCovariate =	pData->pChangingDyadicCovariate(name);
+
+	this->lexcludeMissings = false;
 
 	if (!this->lpConstantCovariate && !this->lpChangingCovariate)
 	{
@@ -100,6 +102,23 @@ bool DyadicCovariateDependentNetworkEffect::missing(int i, int j) const
 	return missing;
 }
 
+/**
+ * Returns if the associated covariate is a constant covariate or not
+ */
+bool DyadicCovariateDependentNetworkEffect::constantCovariate() const
+{
+
+	if (this->lpConstantCovariate)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+
+}
+
 
 /**
  * Returns an iterator over non-zero non-missing values of the given row
@@ -114,7 +133,9 @@ DyadicCovariateValueIterator
 	}
 	else
 	{
-		return this->lpChangingCovariate->rowValues(i, this->period());
+		//	Rprintf("%d %d effect \n", i, this->lexcludeMissings);
+		return this->lpChangingCovariate->rowValues(i, this->period(),
+			this->lexcludeMissings);
 	}
 }
 
@@ -132,8 +153,26 @@ DyadicCovariateValueIterator
 	}
 	else
 	{
-		return this->lpChangingCovariate->columnValues(j, this->period());
+		//	Rprintf("%d effect \n", this->lexcludeMissings);
+		return this->lpChangingCovariate->columnValues(j, this->period(),
+			this->lexcludeMissings);
 	}
 }
+
+/**
+ * This method is called at the start of the calculation of the statistic.
+ */
+void DyadicCovariateDependentNetworkEffect::initializeStatisticCalculation()
+{
+		this->lexcludeMissings = true;
+}
+/**
+ * This method is called at the end of the calculation of the statistic.
+ */
+void DyadicCovariateDependentNetworkEffect::cleanupStatisticCalculation()
+{
+		this->lexcludeMissings = false;
+}
+
 
 }

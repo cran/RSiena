@@ -48,6 +48,9 @@ protected:
 	bool missing(int i, int j) const;
 	DyadicCovariateValueIterator rowValues(int i) const;
 	DyadicCovariateValueIterator columnValues(int j) const;
+	bool constantCovariate() const;
+	virtual void initializeStatisticCalculation();
+	virtual void cleanupStatisticCalculation();
 
 private:
 	// The constant covariate this effect depends on or 0, if the
@@ -59,6 +62,10 @@ private:
 	// effect depends on a constant covariate.
 
 	ChangingDyadicCovariate * lpChangingCovariate;
+
+	// flag to control exclusion of missing values
+	
+	bool lexcludeMissings;
 };
 
 }

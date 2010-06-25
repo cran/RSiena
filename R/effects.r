@@ -446,16 +446,16 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
             if (all(nodeSets == attr(xx$dycCovars[[j]], 'nodeSet')))
             {
                 objEffects <- rbind(objEffects,
-                                    createEffects("dyadObjective",
+                                    createEffects("dyadBipartiteObjective",
                                                   names(xx$dycCovars)[j] ))
             }
         }
         for (j in seq(along = xx$dyvCovars))
         {
-            if (all(nodeSets == attr(xx$dycCovars[[j]], 'nodeSet')))
+            if (all(nodeSets == attr(xx$dyvCovars[[j]], 'nodeSet')))
             {
                 objEffects <- rbind(objEffects,
-                                    createEffects("dyadObjective",
+                                    createEffects("dyadBipartiteObjective",
                                                   names(xx$dyvCovars)[j]))
             }
         }
@@ -684,6 +684,16 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
                               substituteNames(covarBehObjEffects[2, ],
                                               zName=names(xx$depvars)[j]))
                 }
+                if ((types[j] =="oneMode" &&
+                    attr(xx$depvars[[j]], 'nodeSet') == nodeSet)
+                || (types[j] == "bipartite" &&
+                    attr(xx$depvars[[j]], 'nodeSet')[2] == nodeSet))
+                {
+                    covObjEffects <-
+                        rbind(covObjEffects,
+                              substituteNames(covarBehObjEffects[3, ],
+                                              zName=names(xx$depvars)[j]))
+                }
             }
         }
      #   if (!is.null(covObjEffects))
@@ -837,7 +847,8 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
     ## add starting values for the other objects
     if (groupx && length(x) > 1)
     {
-        period <- xx$observations   ### periods used so far
+        period <-  xx$observations ##periods used so far
+
         for (group in 2:length(x))
         {
             xx <- x[[group]]
@@ -992,6 +1003,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
                    },
                        stop('error type'))
             }
+            period <-  period + xx$observations ##periods used so far
         }
     }
     effects <- do.call(rbind, effects)
@@ -1035,7 +1047,7 @@ getBehaviorStartingVals <- function(depvar)
         }, z = depvar, y = dif)
         startRate <- tmp[1, ]
         ##tendency
-        tmp <- rowSums(tmp[-1, ]) + 2
+        tmp <- rowSums(tmp[-1, , drop=FALSE]) + 2
         tendency <- log((tmp[2] * (tmp[3] + tmp[4])) /
                         (tmp[4] * (tmp[1] + tmp[2])))
         untrimmed <- tendency

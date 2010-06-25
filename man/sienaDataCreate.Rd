@@ -36,15 +36,15 @@ model fit The components of the object are.
 \item{compositionChange}{List of composition change objects
   corresponding to the node sets}
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snidjers/siena/}}
+\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
 \seealso{
 \code{\link{sienaNet}}, \code{\link{coCovar}}, \code{\link{varCovar}},
 \code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},\cr
 \code{\link{sienaCompositionChange}}}
 \examples{
-mynet1 <- sienaNet(array(c(s501,s502,s503),dim=c(50,50,3)))
-mynet2 <- sienaNet(s50a,type='behavior')
-mydata <- sienaDataCreate(mynet1,mynet2)}
+mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mynet2 <- sienaNet(s50a, type='behavior')
+mydata <- sienaDataCreate(mynet1, mynet2)}
 
 \keyword{ classes }

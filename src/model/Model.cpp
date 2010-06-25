@@ -15,6 +15,7 @@
 #include "model/EffectInfo.h"
 #include "model/variables/DependentVariable.h"
 #include "model/effects/AllEffects.h"
+#include "model/ml/Chain.h"
 
 namespace siena
 {
@@ -29,7 +30,10 @@ namespace siena
 Model::Model()
 {
 	this->lconditional = false;
+	this->lneedChain = false;
 	this->lneedScores = false;
+	this->lneedDerivatives = false;
+	this->lneedChangeContributions = false;
 	this->lparallelRun = false;
 }
 
@@ -58,6 +62,8 @@ Model::~Model()
 		this->ltargetChanges.erase(this->ltargetChanges.begin());
 		delete[] array;
 	}
+
+	deallocateVector(this->lchainStore);
 }
 
 
@@ -99,6 +105,22 @@ string Model::conditionalDependentVariable() const
 {
 	return this->lconditionalDependentVariable;
 }
+/**
+ * Stores if a chain is to be built in the current simulation
+ */
+void Model::needChain(bool flag)
+{
+	this->lneedChain = flag;
+}
+
+
+/**
+ * Returns if a chain is to be built in the current simulation
+ */
+bool Model::needChain() const
+{
+	return this->lneedChain;
+}
 
 /**
  * Stores if scores are to accumulated in the current simulation
@@ -115,6 +137,38 @@ void Model::needScores(bool flag)
 bool Model::needScores() const
 {
 	return this->lneedScores;
+}
+/**
+ * Stores if derivatives are to accumulated in the current simulation
+ */
+void Model::needDerivatives(bool flag)
+{
+	this->lneedDerivatives = flag;
+}
+
+
+/**
+ * Returns if derivatives are to accumulated in the current simulation
+ */
+bool Model::needDerivatives() const
+{
+	return this->lneedDerivatives;
+}
+/**
+ * Stores if change contributions are to be stored on ministeps
+ */
+void Model::needChangeContributions(bool flag)
+{
+	this->lneedChangeContributions = flag;
+}
+
+
+/**
+ * Returns if change contributions are to be stroed on ministeps
+ */
+bool Model::needChangeContributions() const
+{
+	return this->lneedChangeContributions;
 }
 
 /**
@@ -134,6 +188,55 @@ bool Model::parallelRun() const
 	return this->lparallelRun;
 }
 
+/**
+ * Stores the number of ML steps
+ */
+void Model::numberMLSteps(int value)
+{
+	this->lnumberMLSteps = value;
+}
+
+
+/**
+ * Returns the number of ML steps
+ */
+int Model::numberMLSteps() const
+{
+	return this->lnumberMLSteps;
+}
+
+/**
+ * Stores the number of MH batches
+ */
+void Model::numberMHBatches(int value)
+{
+	this->lnumberMHBatches = value;
+}
+
+
+/**
+ * Returns the number of MH batches
+ */
+int Model::numberMHBatches() const
+{
+	return this->lnumberMHBatches;
+}
+/**
+ * Stores the Bayesian scale factor
+ */
+void Model::BayesianScaleFactor(double value)
+{
+	this->lBayesianScaleFactor = value;
+}
+
+
+/**
+ * Returns the Bayesian scale factor
+ */
+double Model::BayesianScaleFactor() const
+{
+	return this->lBayesianScaleFactor;
+}
 // ----------------------------------------------------------------------------
 // Section: Effect management
 // ----------------------------------------------------------------------------
@@ -402,4 +505,18 @@ int Model::targetChange(const Data * pData, int period) const
 	return value;
 }
 
+// ----------------------------------------------------------------------------
+// Section: Chain storage
+// ----------------------------------------------------------------------------
+
+void Model::chainStore(Chain& chain)
+{
+	// make a copy of the chain
+    this->lchainStore.push_back(chain.copyChain());
+}
+
+vector<Chain *> * Model::chainStore()
+{
+	return &(this->lchainStore);
+}
 }

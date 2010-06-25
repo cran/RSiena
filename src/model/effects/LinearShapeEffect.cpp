@@ -8,7 +8,6 @@
  * Description: This file contains the implementation of the
  * LinearShapeEffect class.
  *****************************************************************************/
-#include <R.h>
 
 #include "LinearShapeEffect.h"
 #include "model/variables/BehaviorVariable.h"

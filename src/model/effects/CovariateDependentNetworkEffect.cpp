@@ -10,7 +10,6 @@
  *****************************************************************************/
 
 #include <stdexcept>
-#include <R.h>
 
 #include "CovariateDependentNetworkEffect.h"
 #include "data/ConstantCovariate.h"
@@ -146,4 +145,30 @@ double CovariateDependentNetworkEffect::similarity(int i, int j) const
 	return similarity;
 }
 
+/**
+ * Returns the constant covariate associated with this effect.
+ */
+ConstantCovariate * CovariateDependentNetworkEffect::pConstantCovariate() const
+{
+		return this->lpConstantCovariate;
+
+}
+
+/**
+ * Returns the changing covariate associated with this effect.
+ */
+ChangingCovariate * CovariateDependentNetworkEffect::pChangingCovariate() const
+{
+		return this->lpChangingCovariate;
+
+}
+
+/**
+ * Returns the changing covariate associated with this effect.
+ */
+BehaviorLongitudinalData * CovariateDependentNetworkEffect::pBehaviorData() const
+{
+		return this->lpBehaviorData;
+
+}
 }

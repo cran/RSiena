@@ -11,6 +11,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 #include "OneModeNetwork.h"
 #include "network/IncidentTieIterator.h"

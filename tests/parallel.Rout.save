@@ -1,5 +1,5 @@
 
-R version 2.10.1 Patched (2010-01-11 r50955)
+R version 2.11.0 Patched (2010-04-23 r51810)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
@@ -21,7 +21,7 @@ Loading required package: xtable
 [1] NA
 > 
 > ##test3
-> mynet1 <- sienaNet(array(c(tmp3,tmp4),dim=c(32,32,2)))
+> mynet1 <- sienaNet(array(c(tmp3, tmp4),dim=c(32, 32, 2)))
 > mydata <- sienaDataCreate(mynet1)
 > myeff<- getEffects(mydata)
 > mymodel<- model.create(findiff=TRUE, fn = simstats0c, projname='test3',
@@ -112,7 +112,7 @@ Total of 269 iteration steps.
 > mynet2 <- sienaNet(s50a,type='behavior')
 > mydata <- sienaDataCreate(mynet1, mynet2)
 > myeff <- getEffects(mydata)
-> myeff$initialValue[94] <- 0.34699930338 ## siena3 starting values differ
+> myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
 > ##test10
 > print('test10')
 [1] "test10"
@@ -125,23 +125,23 @@ Total of 269 iteration steps.
 > ans
 Estimates, standard errors and t-statistics for convergence
 
-                                           Estimate   Standard   t statistic 
-                                                        Error                
+                                                  Estimate   Standard   t statistic 
+                                                               Error                
 
 Rate parameters: 
-  0.1      Rate parameter period 1          5.7677  ( 0.8719   )             
-  0.2      Rate parameter period 2          4.5201  ( 0.6091   )             
+  0.1      Rate parameter cond. variable period 1  5.7677  ( 0.8719   )             
+  0.2      Rate parameter cond. variable period 2  4.5201  ( 0.6091   )             
 
 Other parameters: 
 Network Dynamics 
-  1.  eval outdegree (density)             -2.3554  ( 0.1091   )  0.0029     
-  2.  eval reciprocity                      2.8153  ( 0.1977   ) -0.1256     
+  1.  eval outdegree (density)                    -2.3554  ( 0.1091   )  0.0029     
+  2.  eval reciprocity                             2.8153  ( 0.1977   ) -0.1256     
 
 Behavior Dynamics
-  3.  rate rate mynet2 (period 1)           1.1513  ( 0.3424   ) -0.1756     
-  4.  rate rate mynet2 (period 2)           1.6605  ( 0.7096   ) -0.0367     
-  5.  eval behavior mynet2 linear shape     0.3562  ( 0.1611   ) -0.1898     
-  6.  eval behavior mynet2 quadratic shape -0.1998  ( 0.1005   )  0.0724     
+  3.  rate rate mynet2 (period 1)                  1.1513  ( 0.3424   ) -0.1756     
+  4.  rate rate mynet2 (period 2)                  1.6605  ( 0.7096   ) -0.0367     
+  5.  eval behavior mynet2 linear shape            0.3562  ( 0.1611   ) -0.1898     
+  6.  eval behavior mynet2 quadratic shape        -0.1998  ( 0.1005   )  0.0724     
 
 Total of 371 iteration steps.
 

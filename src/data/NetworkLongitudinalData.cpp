@@ -25,16 +25,19 @@ namespace siena
 /**
  * Creates a data object for storing the given number of observations of a
  * network. Initially the networks are empty at each observation.
+ * @param[in] id the ID that is unique among all longitudinal data object
+ * of the parent Data instance
  * @param[in] name the name of the corresponding network variable
  * @param[in] pSenders the set of actors acting as senders of ties
  * @param[in] pReceivers the set of actors acting as receivers of ties
  * @param[in] observationCount the number of observations to be stored
  */
-NetworkLongitudinalData::NetworkLongitudinalData(
+NetworkLongitudinalData::NetworkLongitudinalData(int id,
 	std::string name,
 	const ActorSet * pSenders,
 	const ActorSet * pReceivers,
-	int observationCount) : LongitudinalData(name, pSenders, observationCount)
+	int observationCount) :
+		LongitudinalData(id, name, pSenders, observationCount)
 {
 	this->lpReceivers = pReceivers;
 	this->lnetworks = new Network * [observationCount];
@@ -283,6 +286,22 @@ void NetworkLongitudinalData::maxDegree(int degree)
 int NetworkLongitudinalData::maxDegree() const
 {
 	return this->lmaxDegree;
+}
+/**
+ * Stores the average in-degree over all receivers and observations.
+ */
+void NetworkLongitudinalData::averageInDegree(double val)
+{
+	this->laverageInDegree = val;
+}
+
+
+/**
+ * Store the average out-degree over all senders and observations.
+ */
+void NetworkLongitudinalData::averageOutDegree(double val)
+{
+	this->laverageOutDegree = val;
 }
 
 

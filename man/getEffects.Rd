@@ -37,6 +37,8 @@ return object may be lost if the data.frame is edited using \command{fix}.
   \item{randomEffects}{boolean: random or fixed effect}
   \item{fix}{boolean: fix value or not}
   \item{test}{boolean: test required or not}
+  \item{timeDummy}{comma separated list of periods, or "all", or ',' for none --
+	which time dummy interacted parameters should be included?}
   \item{initialValue}{starting value for estimation}
   \item{parm}{parameter values}
     \item{functionType}{"objective", "rate"}

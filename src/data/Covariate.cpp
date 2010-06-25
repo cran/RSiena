@@ -1,10 +1,10 @@
 /******************************************************************************
  * SIENA: Simulation Investigation for Empirical Network Analysis
- * 
+ *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
- * 
+ *
  * File: Covariate.cpp
- * 
+ *
  * Description: This file contains the implementation of the
  * Covariate class.
  *****************************************************************************/
@@ -62,6 +62,14 @@ void Covariate::similarityMean(double similarityMean)
 	this->lsimilarityMean = similarityMean;
 }
 
+/**
+ * Stores the similarity alter mean of this covariate wrt this network,
+ * which is calculated in R.
+ */
+void Covariate::similarityMeans(double similarityMean, std::string networkName)
+{
+	this->lsimilarityMeans[networkName] = similarityMean;
+}
 
 // ----------------------------------------------------------------------------
 // Section: Similarity
@@ -76,4 +84,19 @@ double Covariate::similarity(double a, double b) const
 	return 1.0 - fabs(a - b) / this->lrange - this->lsimilarityMean;
 }
 
+/**
+ * Returns the centered alter similarity for the given values relative to the given
+ * network, defined as 1 - |a - b| / range - similarityMeans[network].
+ */
+double Covariate::similarityNetwork(double a, double b, string networkName) const
+{
+	double similarityMean = 0;
+	map<std::string, double>::const_iterator iter =
+		this->lsimilarityMeans.find(networkName);
+	if (iter != this->lsimilarityMeans.end())
+	{
+		similarityMean = iter->second;
+	}
+	return 1.0 - fabs(a - b) / this->lrange - similarityMean;
+}
 }

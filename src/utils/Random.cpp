@@ -1,7 +1,16 @@
+/******************************************************************************
+ * SIENA: Simulation Investigation for Empirical Network Analysis
+ *
+ * Web: http://www.stats.ox.ac.uk/~snijders/siena/
+ *
+ * File: Random.cpp
+ *
+ * Description: This file contains the implementation of random number
+ * generation utilities.
+ *****************************************************************************/
+
 #include "Random.h"
 #include <sys/time.h>
-#include <R.h>
-#include <Rinternals.h>
 #include <Rmath.h>
 #include <vector>
 
@@ -42,7 +51,41 @@ double nextExponential(double lambda)
 #endif
 }
 
+/**
+ * Returns a gamma variate for the given shape and scale parameters.
+ */
 
+double nextGamma(double shape, double scale)
+{
+#ifndef STANDALONE
+	return rgamma(shape, scale);
+#endif
+}
+
+/**
+ * Returns a normal variate for the given mean and standard deviation
+ * parameters.
+ */
+
+double nextNormal(double mean, double standardDeviation)
+{
+#ifndef STANDALONE
+	return rnorm(mean, standardDeviation);
+#endif
+}
+
+/**
+ * Returns the normal density for the given value, mean and standard deviation
+ * parameters. The log will be returned if log is TRUE.
+ */
+
+double normalDensity(double value, double mean, double standardDeviation,
+	 int log)
+{
+#ifndef STANDALONE
+	return dnorm(value, mean, standardDeviation, log);
+#endif
+}
 /**
  * Draws a uniformly distributed random integer from the interval [0,n).
  */

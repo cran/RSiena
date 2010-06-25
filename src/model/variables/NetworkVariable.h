@@ -51,6 +51,7 @@ public:
 	virtual int m() const;
 	virtual LongitudinalData * pData() const;
 	bool oneModeNetwork() const;
+	virtual bool networkVariable() const;
 
 	virtual void initialize(int period);
 	virtual bool canMakeChange(int actor) const;
@@ -64,6 +65,11 @@ public:
 	int ego() const;
 
 	virtual double probability(MiniStep * pMiniStep);
+	virtual bool validMiniStep(const MiniStep * pMiniStep) const;
+	virtual MiniStep * randomMiniStep(int ego);
+	virtual bool missing(const MiniStep * pMiniStep) const;
+	virtual bool structural(const MiniStep * pMiniStep) const;
+	virtual double calculateChoiceProbability(const MiniStep * pMiniStep) const;
 
 private:
 	void preprocessEgo();
@@ -71,6 +77,8 @@ private:
 	void calculateTieFlipContributions();
 	void calculateTieFlipProbabilities();
 	void accumulateScores(int alter) const;
+	void accumulateDerivatives() const;
+	void copyChangeContributions(MiniStep * pMiniStep) const;
 
 	// The current state of the network
 	Network * lpNetwork;

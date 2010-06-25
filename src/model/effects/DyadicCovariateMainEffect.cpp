@@ -8,7 +8,7 @@
  * Description: This file contains the implementation of the
  * DyadicCovariateMainEffect class.
  *****************************************************************************/
-#include <R.h>
+#include <R_ext/Print.h>
 #include "DyadicCovariateMainEffect.h"
 #include "network/Network.h"
 #include "network/TieIterator.h"
@@ -35,9 +35,22 @@ double DyadicCovariateMainEffect::calculateContribution(int alter) const
 	double change = 0;
 	int ego = this->ego();
 
-	if (!this->missing(ego, alter))
+	// Exclude missings for Constant Covariates rather than replace them by
+	// the mean. For changing covariates we need difference between period
+	// and global means here. For constant ones we need to overwrite by 0 after
+	// centering, which is equivalent to excluding.
+	if (this->constantCovariate())
+	{
+		if (!this->missing(ego, alter))
+		{
+			change = this->value(ego, alter);
+			//	Rprintf("const %d %d %f \n", ego, alter, change);
+		}
+	}
+	else
 	{
 		change = this->value(ego, alter);
+		//	Rprintf("changing %d %d %f \n", ego, alter, change);
 	}
 
 	return change;
@@ -56,6 +69,7 @@ double DyadicCovariateMainEffect::tieStatistic(int alter)
 	if (!this->missing(this->ego(), alter))
 	{
 		statistic = this->value(this->ego(), alter);
+		//	Rprintf("stats %d %d %f \n", this->ego(), alter, statistic);
 	}
 
 	return statistic;

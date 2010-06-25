@@ -11,6 +11,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <string>
 #include "ReciprocatedSimilarityEffect.h"
 #include "network/OneModeNetwork.h"
 #include "network/CommonNeighborIterator.h"

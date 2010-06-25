@@ -35,12 +35,19 @@ double DyadicCovariateReciprocityEffect::calculateContribution(
 {
 	double change = 0;
 	int ego = this->ego();
-
-	if (this->inTieExists(alter) && !this->missing(ego, alter))
+	
+	if (this->inTieExists(alter))
 	{
-		change = this->value(ego, alter);
+		if (this->constantCovariate() && !this->missing(ego, alter))
+		{
+			change = this->value(ego, alter);
+		}
+		else
+		{
+			change = this->value(ego, alter);
+		}
 	}
-
+		
 	return change;
 }
 

@@ -42,6 +42,7 @@ public:
 
 	virtual int m() const;
 	virtual LongitudinalData * pData() const;
+	virtual bool behaviorVariable() const;
 	virtual void initialize(int period);
 	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
 		int actor);
@@ -52,14 +53,21 @@ public:
 	int value(int actor) const;
 	void value(int actor, int newValue);
 	double centeredValue(int actor) const;
+	bool structural(int actor) const;
 	double similarity(int i, int j) const;
 	const int * values() const;
 	int range() const;
 	double similarityMean() const;
 
 	virtual double probability(MiniStep * pMiniStep);
+	virtual bool validMiniStep(const MiniStep * pMiniStep) const;
+	virtual MiniStep * randomMiniStep(int ego);
+	virtual bool missing(const MiniStep * pMiniStep) const;
+	virtual bool structural(const MiniStep * pMiniStep) const;
+	virtual double calculateChoiceProbability(const MiniStep* pMiniStep) const;
 
 private:
+	void preprocessEgo();
 	double totalEvaluationContribution(int actor,
 		int difference) const;
 	double totalEndowmentContribution(int actor,
@@ -67,6 +75,8 @@ private:
 	void accumulateScores(int difference, bool UpPossible,
 		bool downPossible) const;
 	void calculateProbabilities(int actor);
+	void accumulateDerivatives() const;
+	void copyChangeContributions(MiniStep * pMiniStep) const;
 
 	// The observed data for this behavioral variable
 	BehaviorLongitudinalData * lpData;
@@ -98,6 +108,9 @@ private:
 
 	// Indicates if downward change is possible in the current situation
 	bool ldownPossible;
+
+	// the actor under consideration
+	int lego;
 };
 
 }

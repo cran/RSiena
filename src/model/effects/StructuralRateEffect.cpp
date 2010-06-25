@@ -31,13 +31,15 @@ StructuralRateEffect::StructuralRateEffect(const NetworkVariable * pVariable,
 	this->lpVariable = pVariable;
 	this->ltype = type;
 
+	double possibleDegree = max(this->lpVariable->n(),
+		this->lpVariable->m());
 	if (this->ltype == INVERSE_OUT_DEGREE_RATE)
 	{
-		this->lpTable = new EffectValueTable(this->lpVariable->n(), invertor);
+		this->lpTable = new EffectValueTable(possibleDegree, invertor);
 	}
 	else
 	{
-		this->lpTable = new EffectValueTable(this->lpVariable->n(), identity);
+		this->lpTable = new EffectValueTable(possibleDegree, identity);
 	}
 
 	this->lpTable->parameter(parameter);

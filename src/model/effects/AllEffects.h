@@ -12,11 +12,14 @@
 #ifndef ALLEFFECTS_H_
 #define ALLEFFECTS_H_
 
+#include "AltersCovariateAverageEffect.h"
 #include "AverageAlterEffect.h"
 #include "AverageReciprocatedAlterEffect.h"
 #include "BalanceEffect.h"
 #include "BetweennessEffect.h"
 #include "CovariateAlterEffect.h"
+#include "CovariateDistance2AlterEffect.h"
+#include "CovariateDistance2SimilarityEffect.h"
 #include "CovariateEgoAlterEffect.h"
 #include "CovariateEgoEffect.h"
 #include "CovariateIndirectTiesEffect.h"

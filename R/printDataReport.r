@@ -131,7 +131,7 @@ DataReport <- function(z, x, f)
             {
                 mdnet <- names(x$MaxDegree)[i]
                 Report(c("Dependent network variable", mdnet, ':\n'), outf)
-                if (attr(f, 'symmetric')[match(mdnet), attr(f, "netnames")])
+                if (attr(f, 'symmetric')[match(mdnet, attr(f, "netnames"))])
                 {
                     Report(c("All graphs are constrained to having degrees not",
                              "larger than", x$MaxDegree[i], '.\n'), outf)

@@ -34,7 +34,8 @@ class ActorSet;
 class LongitudinalData : public NamedObject
 {
 public:
-	LongitudinalData(std::string name,
+	LongitudinalData(int id,
+		std::string name,
 		const ActorSet * pActorSet,
 		int observationCount);
 	virtual ~LongitudinalData();
@@ -42,6 +43,7 @@ public:
 	const ActorSet * pActorSet() const;
 	int observationCount() const;
 	int n() const;
+	inline int id() const;
 
 	void upOnly(int period, bool flag);
 	bool upOnly(int period) const;
@@ -60,7 +62,26 @@ private:
 
 	// Stores a flag per each period if only downward changes were observed
 	bool * ldownOnly;
+
+	// The id of this data object, which is unique among all longitudinal
+	// data objects  of the parent (which is an instance of the Data class).
+
+	int lid;
 };
+
+
+// ----------------------------------------------------------------------------
+// Section: Inline methods
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns the ID of this data object. These IDs are unique among all
+ * longitudinal data objects of the owner Data instance.
+ */
+int LongitudinalData::id() const
+{
+	return this->lid;
+}
 
 }
 

@@ -23,7 +23,10 @@ namespace siena
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
+class LongitudinalData;
 class DependentVariable;
+class Chain;
+class Option;
 
 
 // ----------------------------------------------------------------------------
@@ -36,16 +39,28 @@ class DependentVariable;
  */
 class MiniStep
 {
+	friend class Chain;
+
 public:
-	MiniStep(int ego, string variableName, int difference);
+	MiniStep(LongitudinalData * pData, int ego);
 	virtual ~MiniStep();
 
 	inline int ego() const;
+	int variableId() const;
 	string variableName() const;
-	inline int difference() const;
+	
+	virtual bool networkMiniStep() const;
+	virtual bool behaviorMiniStep() const;
 
-	inline double logProbability() const;
-	void logProbability(double probability);
+	inline const Option * pOption() const;
+
+	Chain * pChain() const;
+
+	inline double logOptionSetProbability() const;
+	void logOptionSetProbability(double probability);
+
+	inline double logChoiceProbability() const;
+	void logChoiceProbability(double probability);
 
 	inline double reciprocalRate() const;
 	void reciprocalRate(double value);
@@ -55,20 +70,61 @@ public:
 	void pPrevious(MiniStep * pMiniStep);
 	void pNext(MiniStep * pMiniStep);
 
+	inline MiniStep * pPreviousWithSameOption() const;
+	inline MiniStep * pNextWithSameOption() const;
+	void pPreviousWithSameOption(MiniStep * pMiniStep);
+	void pNextWithSameOption(MiniStep * pMiniStep);
+
+	inline int index() const;
+	inline void index(int index);
+
+	inline int diagonalIndex() const;
+	inline void diagonalIndex(int index);
+
+	inline int consecutiveCancelingPairIndex() const;
+	inline void consecutiveCancelingPairIndex(int index);
+
+	inline int missingIndex() const;
+	inline void missingIndex(int index);
+
+	inline double orderingKey() const;
+	inline void orderingKey(double key);
+
 	virtual void makeChange(DependentVariable * pVariable);
+	virtual bool diagonal() const;
+	virtual bool missing(int period) const;
+	virtual MiniStep * createReverseMiniStep() const;
+	virtual MiniStep * createCopyMiniStep() const;
+
+	virtual bool firstOfConsecutiveCancelingPair() const;
+
+protected:
+	void pOption(const Option * pOption);
 
 private:
+	void pChain(Chain * pChain);
+
 	// The actor making the change
 	int lego;
 
-	// The name of the dependent variable to be changed
-	string lvariableName;
+	// The longitudinal data object for the corresponding dependent variable
+	LongitudinalData * lpData;
 
-	// The amount of change (+1,0,-1 for dichotomous variables)
-	int ldifference;
+	// The option of this ministep
+	const Option * lpOption;
 
-	// Log probability of making this ministep
-	double llogProbability;
+	// The owner chain (0, if the ministep is not part of a chain)
+	Chain * lpChain;
+
+	// Log probability of choosing the option set of this ministep,
+	// given the state just before this ministep.
+
+	double llogOptionSetProbability;
+
+	// Log probability of making this ministep, given that a ministep
+	// of the same option set will be made.
+
+	double llogChoiceProbability;
 
 	// Reciprocal of aggregate (summed) rate function immediately
 	// before this ministep.
@@ -80,6 +136,32 @@ private:
 
 	// Points to the next ministep in the same chain
 	MiniStep * lpNext;
+
+	// Points to the previous ministep with the same option
+	MiniStep * lpPreviousWithSameOption;
+
+	// Points to the next ministep with the same option
+	MiniStep * lpNextWithSameOption;
+
+	// The index in the vector of ministeps of the owner chain.
+	int lindex;
+
+	// The index in the vector of diagonal ministeps of the owner chain.
+	int ldiagonalIndex;
+
+	// The index in the vector of CCPs of the owner chain.
+	int lconsecutiveCancelingPairIndex;
+
+	// The index in the vector of network of behavior ministeps with
+	// missing observed data at either end of the period
+
+	int lmissingIndex;
+
+	// An arbitrary double value that corresponds with the chain order,
+	// i.e. x.lorderingKey < y.lorderingKey whenever x and y is part
+	// of the same chain and x precedes y in the chain.
+
+	double lorderingKey;
 };
 
 
@@ -97,21 +179,31 @@ int MiniStep::ego() const
 
 
 /**
- * Returns the amount of change in this ministep
- * (+1,0,-1 for dichotomous variables).
+ * Returns the log probability of choosing the option set of this ministep,
+ * given the state just before this ministep.
  */
-int MiniStep::difference() const
+double MiniStep::logOptionSetProbability() const
 {
-	return this->ldifference;
+	return this->llogOptionSetProbability;
 }
 
 
 /**
- * Returns the log probability of making this ministep.
+ * Returns the option of this ministep.
  */
-double MiniStep::logProbability() const
+const Option * MiniStep::pOption() const
 {
-	return this->llogProbability;
+	return this->lpOption;
+}
+
+
+/**
+ * Returns the log probability of making this ministep,
+ * given that a ministep of the same option set will be made.
+ */
+double MiniStep::logChoiceProbability() const
+{
+	return this->llogChoiceProbability;
 }
 
 
@@ -140,6 +232,130 @@ MiniStep * MiniStep::pPrevious() const
 MiniStep * MiniStep::pNext() const
 {
 	return this->lpNext;
+}
+
+
+/**
+ * Returns the previous ministep having the same option as this ministep.
+ */
+MiniStep * MiniStep::pPreviousWithSameOption() const
+{
+	return this->lpPreviousWithSameOption;
+}
+
+
+/**
+ * Returns the next ministep having the same option as this ministep.
+ */
+MiniStep * MiniStep::pNextWithSameOption() const
+{
+	return this->lpNextWithSameOption;
+}
+
+
+/**
+ * Returns the index of this ministep in the vector of ministeps of the
+ * owner chain.
+ */
+int MiniStep::index() const
+{
+	return this->lindex;
+}
+
+
+/**
+ * Stores the index of this ministep in the vector of ministeps of the
+ * owner chain.
+ */
+void MiniStep::index(int index)
+{
+	this->lindex = index;
+}
+
+
+/**
+ * Returns the index of this ministep in the vector of diagonal
+ * ministeps of the owner chain (-1, if the ministep is not part of a
+ * chain or is not diagonal).
+ */
+int MiniStep::diagonalIndex() const
+{
+	return this->ldiagonalIndex;
+}
+
+
+/**
+ * Stores the index of this ministep in the vector of diagonal
+ * ministeps of the owner chain (-1, if the ministep is not part of a
+ * chain or is not diagonal).
+ */
+void MiniStep::diagonalIndex(int index)
+{
+	this->ldiagonalIndex = index;
+}
+
+
+/**
+ * Returns the index of this ministep in the vector of ministeps
+ * of the owner chain that are the first ministeps of CCPs
+ * (-1, if the ministep is not part of a chain or is not the first
+ * ministep of a CCP).
+ */
+int MiniStep::consecutiveCancelingPairIndex() const
+{
+	return this->lconsecutiveCancelingPairIndex;
+}
+
+
+/**
+ * Stores the index of this ministep in the vector of ministeps
+ * of the owner chain that are the first ministeps of CCPs
+ * (-1, if the ministep is not part of a chain or is not the first
+ * ministep of a CCP).
+ */
+void MiniStep::consecutiveCancelingPairIndex(int index)
+{
+	this->lconsecutiveCancelingPairIndex = index;
+}
+
+
+/**
+ * Returns the index of this ministep in the corresponding vector of
+ * ministeps with missing observed data.
+ * (-1, if the observed data is not missing).
+ */
+int MiniStep::missingIndex() const
+{
+	return this->lmissingIndex;
+}
+
+
+/**
+ * Stores the index of this ministep in the corresponding vector of
+ * ministeps with missing observed data.
+ * (-1, if the observed data is not missing).
+ */
+void MiniStep::missingIndex(int index)
+{
+	this->lmissingIndex = index;
+}
+
+
+/**
+ * Returns the ordering key of this ministep.
+ */
+double MiniStep::orderingKey() const
+{
+	return this->lorderingKey;
+}
+
+
+/**
+ * Stores the ordering key of this ministep.
+ */
+void MiniStep::orderingKey(double key)
+{
+	this->lorderingKey = key;
 }
 
 }

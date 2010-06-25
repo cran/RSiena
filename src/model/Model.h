@@ -30,6 +30,7 @@ class Effect;
 class StructuralRateEffect;
 class Function;
 class EffectInfo;
+class Chain;
 
 
 // ----------------------------------------------------------------------------
@@ -76,6 +77,9 @@ public:
 	const vector<EffectInfo *> & rEvaluationEffects(string variableName) const;
 	const vector<EffectInfo *> & rEndowmentEffects(string variableName) const;
 
+	void chainStore(Chain& chain);
+	vector<Chain *> *chainStore();
+	
 	// Various flags
 
 	void conditional(bool flag);
@@ -87,11 +91,29 @@ public:
 	string conditionalDependentVariable() const;
 	void conditionalDependentVariable(string variableName);
 
+	void needChain(bool flag);
+	bool needChain() const;
+
 	void needScores(bool flag);
 	bool needScores() const;
 
+	void needDerivatives(bool flag);
+	bool needDerivatives() const;
+
+	void needChangeContributions(bool flag);
+	bool needChangeContributions() const;
+
 	void parallelRun(bool flag);
 	bool parallelRun() const;
+
+	void numberMLSteps(int value);
+	int numberMLSteps() const;
+
+	void numberMHBatches(int value);
+	int numberMHBatches() const;
+
+	void BayesianScaleFactor(double value);
+	double BayesianScaleFactor() const;
 
 private:
 	// Indicates if conditional simulation has to be carried out
@@ -127,12 +149,36 @@ private:
 
 	const vector<EffectInfo *> lemptyEffectVector;
 
+	// indicates whether we need to keep a chain of ministeps
+	bool lneedChain;
+
 	// indicates whether we need to accumulate scores in this iteration
 	bool lneedScores;
+
+	// indicates whether we need to accumulate derivatives for ML in
+	// this iteration
+	bool lneedDerivatives;
+
+	// indicates whether we need to store the change contributions on 
+	// the ministeps
+	bool lneedChangeContributions;
 
 	// indicates whether we need to match Siena3 in use of random variables
 	// and score calculations
 	bool lparallelRun;
+
+	// number of steps in a run for ML
+	int lnumberMLSteps;
+
+	// number of steps in a MCMC run for ML
+	int lnumberMHBatches;
+
+	// Bayesian scale factor for normal random variates
+	double lBayesianScaleFactor;
+
+	// chain storage
+	vector <Chain *> lchainStore;
+
 };
 
 }

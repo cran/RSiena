@@ -8,24 +8,31 @@
  * Description: This file contains the implementation of the
  * BehaviorVariable class.
  *****************************************************************************/
-
+#include <cstdlib>
 #include <cmath>
 #include <string>
 #include <stdexcept>
+#include <R_ext/Print.h>
+#include <R_ext/Arith.h>
+#include <Rinternals.h>
 #include "data/ActorSet.h"
 #include "utils/Random.h"
 #include "BehaviorVariable.h"
 #include "data/BehaviorLongitudinalData.h"
 #include "model/EpochSimulation.h"
+#include "model/tables/Cache.h"
 #include "model/variables/DependentVariable.h"
 #include "model/Model.h"
 #include "model/effects/BehaviorEffect.h"
 #include "model/EffectInfo.h"
 #include "model/SimulationActorSet.h"
+#include "model/ml/Chain.h"
 #include "model/ml/MiniStep.h"
+#include "model/ml/BehaviorChange.h"
 
 namespace siena
 {
+SEXP getMiniStepDF(const MiniStep& miniStep);
 
 /**
  * Creates a new behavior variable for the given observed data.
@@ -142,6 +149,16 @@ double BehaviorVariable::centeredValue(int actor) const
 
 
 /**
+ * Returns if the behavior is structurally determined for the given actor
+ * at the current period.
+ */
+bool BehaviorVariable::structural(int actor) const
+{
+	return this->lpData->structural(this->period(), actor);
+}
+
+
+/**
  * Returns the centered similarity of the given actors.
  */
 double BehaviorVariable::similarity(int i, int j) const
@@ -227,6 +244,7 @@ void BehaviorVariable::setLeaverBack(const SimulationActorSet * pActorSet,
  */
 void BehaviorVariable::makeChange(int actor)
 {
+	this->lego = actor;
 	this->calculateProbabilities(actor);
 
 	// Choose the change
@@ -239,6 +257,20 @@ void BehaviorVariable::makeChange(int actor)
 			this->ldownPossible);
 	}
 
+	if (this->pSimulation()->pModel()->needChain())
+	{
+		// insert ministep in chain
+		BehaviorChange * pMiniStep =
+			new BehaviorChange(this->lpData, actor, difference);
+		this->pSimulation()->pChain()->insertBefore(pMiniStep,
+			this->pSimulation()->pChain()->pLast());
+		pMiniStep->logChoiceProbability(log(this->lprobabilities[difference
+					+ 1]));
+		if (this->pSimulation()->pModel()->needChangeContributions())
+		{
+			this->copyChangeContributions(pMiniStep);
+		}
+	}
 	// Make the change
 
 	if (difference != 0)
@@ -257,8 +289,8 @@ void BehaviorVariable::makeChange(int actor)
 		{
 			int observedValue = this->lpData->value(this->period(), actor);
 			this->simulatedDistance(this->simulatedDistance() +
-				abs(this->lvalues[actor] - observedValue) -
-				abs(oldValue - observedValue));
+				std::abs(this->lvalues[actor] - observedValue) -
+				std::abs(oldValue - observedValue));
 		}
 	}
 }
@@ -269,8 +301,20 @@ void BehaviorVariable::makeChange(int actor)
  */
 void BehaviorVariable::calculateProbabilities(int actor)
 {
+	this->preprocessEgo();
 	this->lupPossible = true;
 	this->ldownPossible = true;
+
+	// initialize for later use!
+	for (unsigned i = 0; i < pEvaluationFunction()->rEffects().size(); i++)
+	{
+		this->levaluationEffectContribution[1][i] =	0;
+	}
+	for (unsigned i = 0; i < pEndowmentFunction()->rEffects().size(); i++)
+	{
+		this->lendowmentEffectContribution[1][i] =	R_NaN;
+		this->lendowmentEffectContribution[2][i] = 	R_NaN;
+	}
 
 	// Calculate the probability for downward change
 
@@ -285,6 +329,14 @@ void BehaviorVariable::calculateProbabilities(int actor)
 	{
 		this->lprobabilities[0] = 0;
 		this->ldownPossible = false;
+		for (unsigned i = 0; i < pEvaluationFunction()->rEffects().size(); i++)
+		{
+			this->levaluationEffectContribution[0][i] =	R_NaN;
+		}
+		for (unsigned i = 0; i < pEndowmentFunction()->rEffects().size(); i++)
+		{
+			this->lendowmentEffectContribution[0][i] =  R_NaN;
+		}
 	}
 
 	// No change means zero contribution, but exp(0) = 1
@@ -302,6 +354,14 @@ void BehaviorVariable::calculateProbabilities(int actor)
 	{
 		this->lprobabilities[2] = 0;
 		this->lupPossible = false;
+		for (unsigned i = 0; i < pEvaluationFunction()->rEffects().size(); i++)
+		{
+			this->levaluationEffectContribution[2][i] =	R_NaN;
+		}
+		for (unsigned i = 0; i < pEndowmentFunction()->rEffects().size(); i++)
+		{
+			this->lendowmentEffectContribution[2][i] = R_NaN;
+		}
 	}
 
 	double sum = this->lprobabilities[0] +
@@ -366,10 +426,10 @@ void BehaviorVariable::accumulateScores(int difference,
 		i < this->pEvaluationFunction()->rEffects().size();
 		i++)
 	{
-		if (difference == 1) // no change, but not initialised
-		{
-			this->levaluationEffectContribution[difference][i] = 0;
-		}
+// 		if (difference == 1) no change, but not initialised
+// 		{
+// 			this->levaluationEffectContribution[difference][i] = 0;
+// 		}
 		Effect * pEffect = this->pEvaluationFunction()->rEffects()[i];
 		double score = this->levaluationEffectContribution[difference][i];
 
@@ -395,16 +455,20 @@ void BehaviorVariable::accumulateScores(int difference,
 		i < this->pEndowmentFunction()->rEffects().size();
 		i++)
 	{
-		if (difference == 1) // no change, but not initialised
-		{
-			this->lendowmentEffectContribution[difference][i] = 0;
-		}
-		if (difference == 2) // up has no effect on endowment function
-		{
-			this->lendowmentEffectContribution[difference][i] = 0;
-		}
+// 		if (difference == 1) // no change, but not initialised
+// 		{
+// 			this->lendowmentEffectContribution[difference][i] = 0;
+// 		}
+// 		if (difference == 2) // up has no effect on endowment function
+// 		{
+// 			this->lendowmentEffectContribution[difference][i] = 0;
+// 		}
 		Effect * pEffect = this->pEndowmentFunction()->rEffects()[i];
-		double score = this->lendowmentEffectContribution[difference][i];
+		double score = 0;
+		if (difference == 0)
+		{
+			score = this->lendowmentEffectContribution[difference][i];
+		}
 
 		if (downPossible)
 		{
@@ -419,6 +483,32 @@ void BehaviorVariable::accumulateScores(int difference,
 	}
 }
 
+/**
+ * This method does some preprocessing to enable subsequent queries regarding
+ * the current ego.
+ */
+void BehaviorVariable::preprocessEgo()
+{
+	// Let the effects do their preprocessing.
+
+	const Function * pFunction = this->pEvaluationFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		BehaviorEffect * pEffect =
+			(BehaviorEffect *) pFunction->rEffects()[i];
+		pEffect->preprocessEgo(this->lego);
+	}
+
+	pFunction = this->pEndowmentFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		BehaviorEffect * pEffect =
+			(BehaviorEffect *) pFunction->rEffects()[i];
+		pEffect->preprocessEgo(this->lego);
+	}
+}
 
 // ----------------------------------------------------------------------------
 // Section: Maximum likelihood related methods
@@ -430,13 +520,381 @@ void BehaviorVariable::accumulateScores(int difference,
  */
 double BehaviorVariable::probability(MiniStep * pMiniStep)
 {
-	if (pMiniStep->difference() < -1 || pMiniStep->difference() > 1)
+	// Initialize the cache object for the current ego
+	this->pSimulation()->pCache()->initialize(pMiniStep->ego());
+
+	BehaviorChange * pBehaviorChange =
+		dynamic_cast<BehaviorChange *>(pMiniStep);
+
+	if (pBehaviorChange->difference() < -1 ||
+		pBehaviorChange->difference() > 1)
 	{
 		throw invalid_argument("MiniStep difference out of range [-1,1].");
 	}
 
 	this->calculateProbabilities(pMiniStep->ego());
-	return this->lprobabilities[pMiniStep->difference() + 1];
+	if (this->pSimulation()->pModel()->needScores())
+	{
+		this->accumulateScores(pBehaviorChange->difference() + 1,
+			this->lupPossible,
+			this->ldownPossible);
+	}
+	if (this->pSimulation()->pModel()->needDerivatives())
+	{
+		this->accumulateDerivatives();
+	}
+	if (this->pSimulation()->pModel()->needChangeContributions())
+	{
+		this->copyChangeContributions(pMiniStep);
+	}
+	return this->lprobabilities[pBehaviorChange->difference() + 1];
+}
+
+/**
+ * Updates the derivatives for evaluation and endowment function effects
+ * according to the current miniStep in the chain.
+ */
+void BehaviorVariable::accumulateDerivatives() const
+{
+	int totalEvaluationEffects = this->pEvaluationFunction()->rEffects().size();
+	int totalEndowmentEffects = this->pEndowmentFunction()->rEffects().size();
+	int totalEffects = totalEvaluationEffects + totalEndowmentEffects;
+	Effect * pEffect1;
+	Effect * pEffect2;
+	double derivative;
+	double * product = new double[totalEffects];
+	double contribution1 = 0.0;
+	double contribution2 = 0.0;
+
+	for (int effect1 = 0; effect1 < totalEffects; effect1++)
+	{
+		product[effect1] = 0.0;
+
+		if (effect1 < totalEvaluationEffects)
+		{
+			pEffect1 = this->pEvaluationFunction()->rEffects()[effect1];
+		}
+		else
+		{
+			pEffect1 = this->pEndowmentFunction()->rEffects()[effect1];
+		}
+		if (this->lupPossible)
+		{
+			if (effect1 < totalEvaluationEffects)
+			{
+				product[effect1] +=
+					this->levaluationEffectContribution[2][effect1] *
+					this->lprobabilities[2];
+			}
+			else
+			{
+				product[effect1] +=
+					this->lendowmentEffectContribution[2][effect1] *
+					this->lprobabilities[2];
+			}
+			//	Rprintf("%d %d %f\n", alter, effect1, product[effect1]);
+		}
+		if (this->ldownPossible)
+		{
+			if (effect1 < totalEvaluationEffects)
+			{
+				product[effect1] +=
+					this->levaluationEffectContribution[0][effect1] *
+					this->lprobabilities[0];
+			}
+			else
+			{
+				product[effect1] +=
+					this->lendowmentEffectContribution[0][effect1] *
+					this->lprobabilities[0];
+			}
+			//	Rprintf("%d %d %f\n", alter, effect1, product[effect1]);
+		}
+		for (int effect2 = effect1; effect2 < totalEffects; effect2++)
+		{
+			derivative = 0.0;
+			if (effect2 <= totalEvaluationEffects)
+			{
+				pEffect2 = this->pEvaluationFunction()->rEffects()[effect2];
+			}
+			else
+			{
+				pEffect2 = this->pEndowmentFunction()->rEffects()[effect2];
+			}
+
+			if (this->lupPossible)
+			{
+				if (effect1 < totalEvaluationEffects)
+				{
+					contribution1 =
+						this->levaluationEffectContribution[2][effect1];
+				}
+				else
+				{
+					contribution1 =
+						this->lendowmentEffectContribution[2][effect1];
+				}
+				if (effect2 < totalEvaluationEffects)
+				{
+					contribution2 =
+						this->levaluationEffectContribution[2][effect2];
+				}
+				else
+				{
+					contribution2 =
+						this->lendowmentEffectContribution[2][effect2];
+				}
+
+				derivative -=
+					contribution1 * contribution2 *	this->lprobabilities[2];
+				//	Rprintf("deriv 2 %d %d %d %f %f %f %f\n", alter, effect1, effect2,
+				//		derivative,
+						//		this->levaluationEffectContribution[alter][effect1],
+				//		this->levaluationEffectContribution[alter][effect2],
+				//		this->lprobabilities[alter]);
+			}
+
+			if (this->ldownPossible)
+			{
+				if (effect1 < totalEvaluationEffects &&
+					effect2 < totalEvaluationEffects)
+				{
+					contribution1 =
+						this->levaluationEffectContribution[0][effect1];
+
+					contribution2 =
+						this->levaluationEffectContribution[0][effect2];
+					derivative -=
+						contribution1 * contribution2 *	this->lprobabilities[0];
+				}
+				//	Rprintf("deriv 2 %d %d %d %f %f %f %f\n", alter, effect1, effect2,
+				//		derivative,
+						//		this->levaluationEffectContribution[alter][effect1],
+				//		this->levaluationEffectContribution[alter][effect2],
+				//		this->lprobabilities[alter]);
+			}
+			this->pSimulation()->derivative(pEffect1->pEffectInfo(),
+				pEffect2->pEffectInfo(),
+				this->pSimulation()->derivative(pEffect1->pEffectInfo(),
+					pEffect2->pEffectInfo()) +	derivative);
+		}
+	}
+
+	for (int effect1 = 0; effect1 < totalEffects; effect1++)
+	{
+		for (int effect2 = effect1; effect2 < totalEffects; effect2++)
+		{
+			if (effect1 < totalEvaluationEffects)
+			{
+				pEffect1 = this->pEvaluationFunction()->rEffects()[effect1];
+			}
+			else
+			{
+				pEffect1 = this->pEndowmentFunction()->rEffects()[effect1];
+			}
+			if (effect2 <= totalEvaluationEffects)
+			{
+				pEffect2 = this->pEvaluationFunction()->rEffects()[effect2];
+			}
+			else
+			{
+				pEffect2 = this->pEndowmentFunction()->rEffects()[effect2];
+			}
+
+			this->pSimulation()->derivative(pEffect1->pEffectInfo(),
+				pEffect2->pEffectInfo(),
+				this->pSimulation()->derivative(pEffect1->pEffectInfo(),
+					pEffect2->pEffectInfo()) +
+				product[effect1] * product[effect2]);
+		}
+	}
+	delete[] product;
+
+}
+
+//	Rprintf("deriv %f\n", derivative;
+
+
+
+/**
+ * Returns whether applying the given ministep on the current state of this
+ * variable would be valid with respect to all constraints.
+ */
+bool BehaviorVariable::validMiniStep(const MiniStep * pMiniStep) const
+{
+	bool valid = DependentVariable::validMiniStep(pMiniStep);
+
+	if (valid && !pMiniStep->diagonal())
+	{
+		const BehaviorChange * pBehaviorChange =
+			dynamic_cast<const BehaviorChange *>(pMiniStep);
+		int i = pMiniStep->ego();
+		int d = pBehaviorChange->difference();
+		int newValue = this->lvalues[i] + d;
+
+		if (newValue < this->lpData->min() || newValue > this->lpData->max())
+		{
+			valid = false;
+		}
+		else if (d > 0 && this->lpData->downOnly(this->period()))
+		{
+			valid = false;
+		}
+		else if (d < 0 && this->lpData->upOnly(this->period()))
+		{
+			valid = false;
+		}
+		else
+		{
+			valid = !this->lpData->structural(this->period(), i);
+		}
+	}
+
+	return valid;
+}
+
+
+/**
+ * Generates a random ministep for the given ego.
+ */
+MiniStep * BehaviorVariable::randomMiniStep(int ego)
+{
+	this->pSimulation()->pCache()->initialize(ego);
+	this->calculateProbabilities(ego);
+	int difference = nextIntWithProbabilities(3, this->lprobabilities) - 1;
+	BehaviorChange * pMiniStep =
+		new BehaviorChange(this->lpData, ego, difference);
+	pMiniStep->logChoiceProbability(log(this->lprobabilities[difference + 1]));
+	return pMiniStep;
+}
+
+
+/**
+ * Returns if the observed value for the option of the given ministep
+ * is missing at either end of the period.
+ */
+bool BehaviorVariable::missing(const MiniStep * pMiniStep) const
+{
+	return this->lpData->missing(this->period(), pMiniStep->ego()) ||
+		this->lpData->missing(this->period() + 1, pMiniStep->ego());
+}
+
+/**
+ * Returns if the given ministep is structurally determined in the period.
+ */
+bool BehaviorVariable::structural(const MiniStep * pMiniStep) const
+{
+	return this->lpData->structural(this->period(), pMiniStep->ego());
+}
+/**
+ * Copies the change contributions for evaluation and endowment function
+ * effects according to the current miniStep.
+ */
+void BehaviorVariable::copyChangeContributions(MiniStep * pMiniStep) const
+{
+	 BehaviorChange * pBehaviorChange =
+		dynamic_cast< BehaviorChange *>(pMiniStep);
+	 int nEvaluationEffects = this->pEvaluationFunction()->rEffects().size();
+	 int nEndowmentEffects = this->pEndowmentFunction()->rEffects().size();
+	 pBehaviorChange->allocateEffectContributionArrays(nEvaluationEffects,
+		 nEndowmentEffects);
+	 // PrintValue(getMiniStepDF(*pBehaviorChange));
+	 for (int difference = 0; difference < 3; difference++)
+	{
+
+		for (unsigned i = 0;
+			 i < this->pEvaluationFunction()->rEffects().size(); i++)
+		{
+			//	if (R_IsNaN(this->levaluationEffectContribution[difference][i]))
+			//		Rprintf(" %d %d RNAN\n", difference,i);
+			pBehaviorChange->evaluationEffectContribution(
+				this->levaluationEffectContribution[difference][i], difference,
+				i);
+		}
+
+		for (unsigned i = 0;
+			 i < this->pEndowmentFunction()->rEffects().size(); i++)
+		{
+			pBehaviorChange->endowmentEffectContribution(
+				this->lendowmentEffectContribution[difference][i], difference,
+				i);
+		}
+
+	}
+}
+/**
+ * Calculates the log probability of this change using stored
+ * change contributions.
+ */
+double BehaviorVariable::calculateChoiceProbability(const MiniStep * pMiniStep)
+ const
+{
+	 const BehaviorChange * pBehaviorChange =
+		dynamic_cast< const BehaviorChange *>(pMiniStep);
+	 //PrintValue(getMiniStepDF(*pBehaviorChange));
+	 double probabilities[3] = {0};
+
+	const Function * pFunction = this->pEvaluationFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		BehaviorEffect * pEffect =
+			(BehaviorEffect *) pFunction->rEffects()[i];
+		for (unsigned j = 0; j < 3; j++)
+		{
+				probabilities[j] +=	pEffect->parameter() *
+					pBehaviorChange->evaluationEffectContribution(
+						j, i);
+				//	Rprintf("%d %d %f %f\n",j, i,pEffect->parameter(),
+				//	pBehaviorChange->evaluationEffectContribution(j, i));
+		}
+	}
+    pFunction = this->pEndowmentFunction();
+
+	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	{
+		BehaviorEffect * pEffect =
+			(BehaviorEffect *) pFunction->rEffects()[i];
+		for (unsigned j = 0; j < 3; j++)
+		{
+			probabilities[j] +=	pEffect->parameter() *
+				pBehaviorChange->endowmentEffectContribution(j, i);
+		}
+	}
+
+	// exponentiate
+
+	probabilities[0] = exp(probabilities[0]);
+	probabilities[1] = exp(probabilities[1]);
+	probabilities[2] = exp(probabilities[2]);
+
+	double sum = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (!R_IsNaN(probabilities[i]))
+		{
+			//Rprintf("not Nan\n");
+			sum += probabilities[i];
+			//Rprintf(" sum %f\n", sum);
+		}
+	}
+	double value = log(probabilities[pBehaviorChange->difference() + 1] / sum);
+
+//	Rprintf("beh %f %x\n", value, this);
+	return value;
+}
+
+
+// ----------------------------------------------------------------------------
+// Section: Properties
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns if this is a behavior variable.
+ */
+bool BehaviorVariable::behaviorVariable() const
+{
+	return true;
 }
 
 }

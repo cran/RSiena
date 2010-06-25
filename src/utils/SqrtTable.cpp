@@ -79,14 +79,14 @@ double SqrtTable::sqrt(int i)
 	{
 		if (this->ltable[i] < 0)
 		{
-			this->ltable[i] = ::sqrt((double) i);
+			this->ltable[i] = std::sqrt((double) i);
 		}
 
 		root = this->ltable[i];
 	}
 	else
 	{
-		root = ::sqrt((double) i);
+		root = std::sqrt((double) i);
 	}
 
 	return root;

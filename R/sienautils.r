@@ -115,42 +115,86 @@ varCovar<- function(val, nodeSet='Actors')
 }
 
 ##@coDyadCovar Create
-coDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
+coDyadCovar<- function(val, nodeSets=c('Actors','Actors'), sparse=is(val,"dgTMatrix"))
 {
-    ##matrix, numeric or factor, dims= those of net - must validate later
-    if (!is.matrix(val))
-        stop('val must be a matrix')
-    if (!(is.numeric(val) || is.factor(val)))
-        stop('val must be numeric or a factor')
+    ##matrix, numeric or factor, dims= those of net - must validate later or sparse matrix
+    if (!sparse)
+    {
+        if (!is.matrix(val))
+        {
+            stop('val must be a matrix')
+        }
+        if (!(is.numeric(val) || is.factor(val)))
+        {
+            stop('val must be numeric or a factor')
+        }
+    }
+    else
+    {
+        if (!is(val, "dgTMatrix"))
+        {
+            stop('not a sparse triples matrices')
+        }
+        val <- list(val)
+    }
+    vardims <- dim(val)
     if (length(nodeSets) > 2)
+    {
         stop('nodeSets may only have one or two elements')
-     if (!is.character(nodeSets))
+    }
+    if (!is.character(nodeSets))
+    {
         stop('nodeSets must be a vector of character strings')
-    out<- val
+    }
+    out <- val
     class(out) <- 'coDyadCovar'
     attr(out, 'nodeSet') <- nodeSets
-    attr(out, 'sparse') <- FALSE ### for now!
+    attr(out, 'sparse') <- sparse
+    attr(out, "vardims") <- vardims
     out
 }
 ##@varDyadCovar Create
-varDyadCovar<- function(val, nodeSets=c('Actors','Actors'))
+varDyadCovar<- function(val, nodeSets=c('Actors','Actors'), sparse=is.list(val))
 {
     ##array, numeric or factor, dims= those of net by observations-1 -
-    ##must validate later
-    if (!is.array(val) || !(length(dim(val)) == 3))
-        stop('val must be a 3d array')
-    if (!(is.numeric(val) || is.factor(val)))
-        stop('val must be numeric or a factor')
+    ##must validate later or list of sparse matrices
+    if (!sparse)
+    {
+        if (!is.array(val) || !(length(dim(val)) == 3))
+            stop('val must be a 3d array')
+        if (!(is.numeric(val) || is.factor(val)))
+            stop('val must be numeric or a factor')
+        vardims <- dim(val)
+    }
+    else
+    {
+         if (!is.list(val))
+            stop('values must be an array or a list of sparse matrices')
+        if (!all(sapply(val, function(x) is(x,'dgTMatrix'))))
+            stop('not a list of sparse triples matrices')
+        vardims <- sapply(val, dim) ## dimensions of matrices in columns
+        if (any(vardims != vardims[, 1]))
+            stop('all matrices must have the same dimension')
+        vardims <- vardims[, 1]
+        vardims[3] <- length(val)
+
+    }
     if (length(nodeSets) > 2)
         stop('nodeSets may only have one or two elements')
     if (!is.character(nodeSets))
         stop('nodeSets must be a vector of character strings')
     if (length(nodeSets) == 1)
         nodeSets <- c(nodeSets, nodeSets)
+    observations <- vardims[3]
+    if (observations < 2)
+    {
+        stop('value must have at least two observations')
+    }
     out <- val
     class(out) <- 'varDyadCovar'
     attr(out, 'nodeSet') <- nodeSets
-    attr(out, 'sparse') <- FALSE ### for now!
+    attr(out, 'sparse') <- sparse
+    attr(out, 'vardims') <- vardims
     out
 }
 ##@sienaNet Create

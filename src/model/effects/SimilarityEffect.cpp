@@ -8,7 +8,7 @@
  * Description: This file contains the implementation of the
  * SimilarityEffect class.
  *****************************************************************************/
-
+#include <cstdlib>
 #include <cmath>
 #include <stdexcept>
 #include "SimilarityEffect.h"
@@ -17,7 +17,6 @@
 
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
-#include <R.h>
 
 using namespace std;
 

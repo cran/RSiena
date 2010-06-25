@@ -23,7 +23,8 @@ namespace siena
 class OneModeNetworkLongitudinalData : public NetworkLongitudinalData
 {
 public:
-	OneModeNetworkLongitudinalData(std::string name,
+	OneModeNetworkLongitudinalData(int id,
+		std::string name,
 		const ActorSet * pActors,
 		int observationCount);
 	virtual ~OneModeNetworkLongitudinalData();

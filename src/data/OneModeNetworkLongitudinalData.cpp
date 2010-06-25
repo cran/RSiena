@@ -20,15 +20,17 @@ namespace siena
 
 /**
  * Constructs a data object for storing observations of a one-mode network.
+ * @param[in] id the ID that is unique among all longitudinal data object
+ * of the parent Data instance
  * @param[in] name the name of the network
  * @param[in] pActors the set of actors underlying the network
  * @param[in] observationCount the number of observations to be stored
  */
-OneModeNetworkLongitudinalData::OneModeNetworkLongitudinalData(
+OneModeNetworkLongitudinalData::OneModeNetworkLongitudinalData(int id,
 	std::string name,
 	const ActorSet * pActors,
 	int observationCount) :
-		NetworkLongitudinalData(name, pActors, pActors, observationCount)
+		NetworkLongitudinalData(id, name, pActors, pActors, observationCount)
 {
 	this->lsymmetric = false;
 	this->lbalanceMean = 0;

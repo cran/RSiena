@@ -112,7 +112,8 @@ NetworkLongitudinalData * Data::createNetworkData(std::string name,
 	const ActorSet * pReceivers)
 {
 	NetworkLongitudinalData * pNetworkData =
-		new NetworkLongitudinalData(name,
+		new NetworkLongitudinalData(this->ldependentVariableData.size(),
+			name,
 			pSenders,
 			pReceivers,
 			this->lobservationCount);
@@ -131,7 +132,8 @@ OneModeNetworkLongitudinalData * Data::createOneModeNetworkData(
 	const ActorSet * pActors)
 {
 	OneModeNetworkLongitudinalData * pNetworkData =
-		new OneModeNetworkLongitudinalData(name,
+		new OneModeNetworkLongitudinalData(this->ldependentVariableData.size(),
+			name,
 			pActors,
 			this->lobservationCount);
 	this->ldependentVariableData.push_back(pNetworkData);
@@ -147,8 +149,12 @@ OneModeNetworkLongitudinalData * Data::createOneModeNetworkData(
 BehaviorLongitudinalData * Data::createBehaviorData(std::string name,
 	const ActorSet * pActorSet)
 {
+	// The index of the longidutinal data object
 	BehaviorLongitudinalData * pBehaviorData =
-		new BehaviorLongitudinalData(name, pActorSet, this->lobservationCount);
+		new BehaviorLongitudinalData(this->ldependentVariableData.size(),
+			name,
+			pActorSet,
+			this->lobservationCount);
 	this->ldependentVariableData.push_back(pBehaviorData);
 	return pBehaviorData;
 }

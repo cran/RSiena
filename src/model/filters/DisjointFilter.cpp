@@ -13,6 +13,7 @@
 #include "network/IncidentTieIterator.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
+#include "model/ml/NetworkChange.h"
 
 namespace siena
 {
@@ -55,6 +56,24 @@ void DisjointFilter::filterPermittedChanges(int ego, bool * permitted)
 
 		iter2.next();
 	}
+}
+
+
+/**
+ * Returns if applying the given ministep on the current state of the
+ * network would be valid with respect to this filter.
+ */
+bool DisjointFilter::validMiniStep(const NetworkChange * pMiniStep)
+{
+	const Network * pNetwork1 = this->pVariable()->pNetwork();
+	const Network * pNetwork2 = this->pOtherVariable()->pNetwork();
+
+	// We shouldn't introduce a tie if it is present in the other network.
+
+	int i = pMiniStep->ego();
+	int j = pMiniStep->alter();
+
+	return pNetwork1->tieValue(i, j) || !pNetwork2->tieValue(i, j);
 }
 
 }

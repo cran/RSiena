@@ -101,9 +101,14 @@ sienaDataCreateFromSession(filename = NULL, session = NULL,
 	\code{\link{sienaGroup}}}
 	\item{myeff}{Effects object associated with \code{mydata}}
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snidjers/siena/ }}
+\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/ }}
 \author{Ruth Ripley }
 \seealso{ \code{\link{sienaDataCreate}}, \code{\link{siena}}}
-%\examples{
-%}
+\examples{
+\dontrun{
+tmp <- sienaDataCreateFromSession("sienaFreshman.csv")
+mydata <- tmp$mydata
+myeff <- tmp$myeff
+}
+}
 \keyword{classes }

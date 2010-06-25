@@ -5,15 +5,16 @@
  *
  * File: Random.h
  *
- * Description: This module defines the class Random for random number
+ * Description: This module defines utilities for random number
  * generation.
  *****************************************************************************/
 
 #ifndef RANDOM_H_
 #define RANDOM_H_
 
-#include <R.h>
 #include <vector>
+
+using namespace std;
 
 namespace siena
 {
@@ -23,8 +24,14 @@ namespace siena
 double nextDouble();
 double nextExponential(double lambda);
 double nextExponentialQAD(double lambda);
+double nextGamma(double shape, double scale);
+double nextNormal(double mean, double standardDeviation);
 int nextInt(int n);
 int nextIntWithProbabilities(int n, const double * p);
+
+// Density function for normal variables
+double normalDensity(double value, double mean, double standardDeviation,
+	int log);
 
 //void storeState();
 //void restoreState();
@@ -45,7 +52,7 @@ int nextIntWithCumulativeProbabilities(int n, const T * p)
 	double value = nextDouble() * p[n - 1];
 	int i = 0;
 	int high = n - 1;
-	
+
 	while (p[i] < value)
 	{
 		int middle = (i + high) / 2;
@@ -61,6 +68,22 @@ int nextIntWithCumulativeProbabilities(int n, const T * p)
 	}
 
 	return i;
+}
+
+
+/**
+ * Permutes the elements in the given vector.
+ */
+template<class T>
+void permuteVector(vector<T> & rVector)
+{
+	for (unsigned i = 1; i < rVector.size(); i++)
+	{
+		T element = rVector[i];
+		int newIndex = nextInt(i + 1);
+		rVector[i] = rVector[newIndex];
+		rVector[newIndex] = element;
+	}
 }
 
 }

@@ -9,6 +9,7 @@
  * ReciprocalDegreeBehaviorEffect class.
  *****************************************************************************/
 
+#include <string>
 #include <stdexcept>
 #include "ReciprocalDegreeBehaviorEffect.h"
 #include "network/OneModeNetwork.h"
