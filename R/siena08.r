@@ -216,7 +216,7 @@ print.sienaMeta <- function(x, file=FALSE, ...)
                     format(round(y[[2]]$coefficients[1, 1], 4), width=9),
                     " (s.e.", format(round(y[[2]]$coefficients[1, 2], 4),
                                      width=9), "), two-sided ",
-                    reportp(pt(y[[2]]$coefficients[1, 3],
+                    reportp(2 * pt(-abs(y[[2]]$coefficients[1, 3]),
                                y$n1 - 1), 3), "\n\n"), sep="", outf)
            Report("Fisher's combination of one-sided tests\n", outf)
            Report("----------------------------------------\n", outf)

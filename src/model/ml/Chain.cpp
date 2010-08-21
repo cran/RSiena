@@ -315,20 +315,42 @@ void Chain::connect(int period)
 					if (iter1.valid() &&
 						(!iter2.valid() || iter1.actor() < iter2.actor()))
 					{
+						if (!pNetworkData->structural(i, iter1.actor(),
+								period)
+							//	|| !pNetworkData->structural(i, iter1.actor(),
+							//	period + 1)
+							)
+						{
 						miniSteps.push_back(
 							new NetworkChange(pNetworkData,
 								i,
 								iter1.actor()));
 						iter1.next();
 					}
+						else
+						{
+							// create step in structural subchain?
+						}
+					}
 					else if (iter2.valid() &&
 						(!iter1.valid() || iter2.actor() < iter1.actor()))
 					{
+						if (!pNetworkData->structural(i, iter2.actor(),
+								period)
+							//	|| !pNetworkData->structural(i, iter2.actor(),
+							// period + 1)
+							)
+						{
 						miniSteps.push_back(
 							new NetworkChange(pNetworkData,
 								i,
 								iter2.actor()));
 						iter2.next();
+					}
+					else
+					{
+							// create step in structural subchain?
+						}
 					}
 					else
 					{
@@ -354,10 +376,20 @@ void Chain::connect(int period)
 
 				for (int j = 0; j < delta; j++)
 				{
+					if (!pBehaviorData->structural(period, j)
+						//|| !pBehaviorData->structural(period, j + 1)
+						)
+
+					{
 					miniSteps.push_back(
 						new BehaviorChange(pBehaviorData,
 							i,
 							singleChange));
+					}
+					else
+					{
+						// create step in structural subchain?
+					}
 				}
 			}
 		}
@@ -627,7 +659,7 @@ MiniStep * Chain::randomDiagonalMiniStep() const
 
 
 /**
- * Returns a random ministep form the given interval.
+ * Returns a random ministep from the given interval.
  */
 MiniStep * Chain::randomMiniStep(MiniStep * pFirstMiniStep,
 	MiniStep * pLastMiniStep) const
@@ -743,6 +775,9 @@ MiniStep * Chain::nextMiniStepForOption(const Option & rOption,
 // Section: copy a chain (too difficult (for Ruth!) to do a copy constructor!
 // ----------------------------------------------------------------------------
 
+/**
+ * Returns a copy of the given chain
+ */
 Chain * Chain::copyChain()
 {
 	Chain * pChain = new Chain(this->lpData);

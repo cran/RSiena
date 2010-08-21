@@ -561,6 +561,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         attr(depvars[[i]], 'vals') <- vector("list", observations)
         attr(depvars[[i]], 'nval') <- rep(NA, observations)
         attr(depvars[[i]], 'noMissing') <- rep(0, observations)
+        attr(depvars[[i]], 'noMissingEither') <- rep(0, observations -1)
+        attr(depvars[[i]], 'nonMissingEither') <- rep(0, observations -1)
         if (type == 'behavior')
         {
             attr(depvars[[i]], 'noMissing') <- FALSE
@@ -580,6 +582,10 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 attr(depvars[[i]], "nval")[j + 1] <-  sum(!is.na(myvector2))
                 attr(depvars[[i]], 'noMissing')[j] <- sum(is.na(myvector1))
                 attr(depvars[[i]], 'noMissing')[j+1] <- sum(is.na(myvector2))
+                attr(depvars[[i]], 'noMissingEither')[j] <-
+                    sum(is.na(myvector2) | is.na(myvector1))
+                attr(depvars[[i]], 'nonMissingEither')[j] <-
+                    sum(!(is.na(myvector2) | is.na(myvector1)))
             if (all(mydiff >= 0, na.rm=TRUE))
                 attr(depvars[[i]], 'downonly')[j] <- TRUE
             if (all(mydiff <= 0, na.rm=TRUE))
@@ -618,6 +624,23 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 {
                     mymat1 <- myarray[[j]]
                     mymat2 <- myarray[[j + 1]]
+                    ## remove diagonals if not bipartite
+                    if (attr(depvars[[i]], "type") != "bipartite")
+                    {
+                        diag(mymat1) <- NA
+                        diag(mymat2) <- NA
+                    }
+                    attr(depvars[[i]], 'noMissingEither')[j] <-
+                        sum(is.na(mymat1) | is.na(mymat2))
+                    attr(depvars[[i]], 'nonMissingEither')[j] <-
+                        sum(!(is.na(mymat1) | is.na(mymat2)))
+                    ## remove diagonals if not bipartite
+                    if (attr(depvars[[i]], "type") != "bipartite")
+                    {
+                        attr(depvars[[i]], 'noMissingEither')[j] <-
+                            attr(depvars[[i]], 'noMissingEither')[j] -
+                                nrow(mymat1)
+                    }
                     ##remove structural values
                     x1 <- mymat1@x
                     x2 <- mymat2@x
@@ -625,12 +648,6 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     x2[x2 %in% c(10, 11)] <- NA
                     mymat1@x <- x1
                     mymat2@x <- x2
-                    ## remove diagonals if not bipartite
-                    if (attr(depvars[[i]], "type") != "bipartite")
-                    {
-                        diag(mymat1) <- NA
-                        diag(mymat2) <- NA
-                    }
                     mydiff <- mymat2 - mymat1
                     attr(depvars[[i]], 'distance')[j] <- sum(mydiff != 0,
                                                              na.rm = TRUE)
@@ -643,15 +660,26 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 {
                     mymat1 <- myarray[, , j]
                     mymat2 <- myarray[, , j + 1]
-                    ##remove structural values
-                    mymat1[mymat1 %in% c(10,11)] <- NA
-                    mymat2[mymat2 %in% c(10,11)] <- NA
                     ## remove diagonals if not bipartite
                     if (attr(depvars[[i]], "type") != "bipartite")
                     {
                         diag(mymat1) <- NA
                         diag(mymat2) <- NA
                     }
+                    attr(depvars[[i]], 'noMissingEither')[j] <-
+                        sum(is.na(mymat1) | is.na(mymat2))
+                    attr(depvars[[i]], 'nonMissingEither')[j] <-
+                        sum(!(is.na(mymat1) | is.na(mymat2)))
+                    ## remove diagonals if not bipartite as not relaly missing
+                    if (attr(depvars[[i]], "type") != "bipartite")
+                    {
+                        attr(depvars[[i]], 'noMissingEither')[j] <-
+                            attr(depvars[[i]], 'noMissingEither')[j] -
+                                nrow(mymat1)
+                    }
+                    ##remove structural values
+                    mymat1[mymat1 %in% c(10,11)] <- NA
+                    mymat2[mymat2 %in% c(10,11)] <- NA
                     mydiff <- mymat2 - mymat1
                     attr(depvars[[i]], 'distance')[j] <- sum(mydiff != 0,
                                                              na.rm = TRUE)
@@ -752,7 +780,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 attr(depvars[[i]], "averageInDegree") <- mean(degree)
                 attr(depvars[[i]], "missings") <- missings
                 attr(depvars[[i]], "noMissing") <- noMissing
-            }
+           }
             else #type=='bipartite' not sure what we need here,
                 ## but include diagonal
             {
@@ -1358,12 +1386,24 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     cvnodeSets <- namedVector(NA, vCovars)
     dycnodeSets <- namedVector(NA, dycCovars, listType=TRUE)
     dyvnodeSets <- namedVector(NA, dyvCovars, listType=TRUE)
-    totalMissings <- namedVector(0, netnames)
+  #  totalMissings <- namedVector(0, netnames, listType=TRUE)
+  #  nonMissingCount <- namedVector(0, netnames, listType=TRUE)
     observations <- 0
     periodNos <- rep(NA, 2)
+    numberMissingNetwork <- rep(0, 2)
+    numberMissingBehavior <- rep(0, 2)
+    numberNonMissingNetwork <- rep(0, 2)
+    numberNonMissingBehavior <- rep(0, 2)
     groupPeriods <- namedVector(NA, names(objlist))
     for (i in 1:length(objlist))
     {
+        newobs <- objlist[[i]]$observations
+        periodNos[observations + (1 : (newobs - 1))] <-
+            observations + i - 1 + (1 : (newobs - 1))
+        numberMissingBehavior[observations + (1 : (newobs - 1))] <- 0
+        numberNonMissingBehavior[observations + (1 : (newobs - 1))] <- 0
+        numberMissingNetwork[observations + (1 : (newobs - 1))] <- 0
+        numberNonMissingNetwork[observations + (1 : (newobs - 1))] <- 0
         for (j in 1:length(objlist[[i]]$depvars))
         {
             varname <- names(objlist[[i]]$depvars)[j]
@@ -1418,9 +1458,26 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             {
                 structural[netnamesub] <- TRUE
             }
-            totalMissings[netnamesub] <- totalMissings[netnamesub] +
-                sum(attribs[["noMissing"]])
-        }
+            if (attribs[["type"]] == "behavior")
+            {
+                numberMissingBehavior[observations + (1 : (newobs - 1))] <-
+                    numberMissingBehavior[observations + (1 : (newobs - 1))] +
+                        attribs[["noMissingEither"]]
+                numberNonMissingBehavior[observations + (1 : (newobs - 1))] <-
+                    numberNonMissingBehavior[observations +
+                                             (1 : (newobs - 1))] +
+                                                 attribs[["nonMissingEither"]]
+            }
+            else
+            {
+                numberMissingNetwork[observations + (1 : (newobs - 1))] <-
+                    numberMissingNetwork[observations + (1 : (newobs - 1))] +
+                        attribs[["noMissingEither"]]
+                numberNonMissingNetwork[observations + (1 : (newobs - 1))] <-
+                    numberNonMissingNetwork[observations + (1 : (newobs - 1))] +
+                        attribs[["nonMissingEither"]]
+            }
+       }
         thisHigher <- attr(objlist[[i]], "higher")
         thisDisjoint <- attr(objlist[[i]], "disjoint")
         thisAtLeastOne <- attr(objlist[[i]], "atLeastOne")
@@ -1504,9 +1561,6 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
                 stop('Inconsistent node Sets')
             }
         }
-        newobs <- objlist[[i]]$observations
-        periodNos[observations + (1 : (newobs - 1))] <-
-                  observations + i - 1 + (1 : (newobs - 1))
         observations <- observations + objlist[[i]]$observations - 1
         groupPeriods[i] <- newobs
     }
@@ -1578,7 +1632,15 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     attr(group, 'netnames') <- netnames
     attr(group, 'symmetric') <- symmetric
     attr(group, 'structural') <- structural
-    attr(group, "totalMissings") <- totalMissings
+ #   attr(group, "totalMissings") <- totalMissings
+    attr(group, "numberNonMissingNetwork") <-
+        numberNonMissingNetwork[1:observations]
+    attr(group, "numberMissingNetwork") <-
+        numberMissingNetwork[1:observations]
+    attr(group, "numberNonMissingBehavior") <-
+        numberNonMissingBehavior[1:observations]
+    attr(group, "numberMissingBehavior") <-
+        numberMissingBehavior[1:observations]
     attr(group, 'allUpOnly') <- allUpOnly
     attr(group, 'allDownOnly') <- allDownOnly
     attr(group, 'anyUpOnly') <- anyUpOnly
@@ -1591,7 +1653,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     attr(group, 'anyAtLeastOne') <- anyAtLeastOne
     attr(group, 'types') <- types
     attr(group, 'observations') <- observations
-    attr(group, 'periodNos') <- periodNos
+    attr(group, 'periodNos') <- periodNos[1:observations]
     attr(group, 'groupPeriods') <- groupPeriods
     attr(group, 'netnodeSets') <- nodeSets
     attr(group, 'cCovars') <- cCovars
@@ -1941,7 +2003,7 @@ covarDist2 <- function(z)
     }
     z
 }
-##@ calcCovarDist2 DataCreate similarity mean for alter of this depvar
+##@calcCovarDist2 DataCreate similarity mean for alter of this depvar
 calcCovarDist2 <- function(covar, depvar, rval=NULL)
 {
     ## remove final obs from depvars

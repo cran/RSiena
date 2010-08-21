@@ -109,6 +109,15 @@ public:
 	void numberMLSteps(int value);
 	int numberMLSteps() const;
 
+	void maximumPermutationLength(double value);
+	double maximumPermutationLength() const;
+
+	void minimumPermutationLength(double value);
+	double minimumPermutationLength() const;
+
+	void initialPermutationLength(double value);
+	double initialPermutationLength() const;
+
 	void numberMHBatches(int value);
 	int numberMHBatches() const;
 
@@ -169,6 +178,15 @@ private:
 
 	// number of steps in a run for ML
 	int lnumberMLSteps;
+
+	// maximum length of permuted interval
+	double lmaximumPermutationLength;
+
+	// minimum length of permuted interval
+	double lminimumPermutationLength;
+
+	// initial length of permuted interval
+	double linitialPermutationLength;
 
 	// number of steps in a MCMC run for ML
 	int lnumberMHBatches;

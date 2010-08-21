@@ -70,6 +70,7 @@ int Option::alter() const
 
 bool operator<(const Option & rOption1, const Option & rOption2);
 
+bool operator==(const Option & rOption1, const Option & rOption2);
 }
 
 #endif /* OPTION_H_ */

@@ -58,26 +58,31 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 	this->lactiveStructuralTieCount = new int[this->n()];
 
 	this->lpermitted = new bool[this->m()];
-	this->lprobabilities = new double[this->m()];
 
+	int numberOfAlters;
 	if (this->oneModeNetwork())
 	{
 		this->lpNetwork = new OneModeNetwork(this->n(), false);
+		numberOfAlters = this->m();
 	}
 	else
 	{
 		this->lpNetwork = new Network(this->n(), this->m());
+		numberOfAlters = this->m() + 1;
 	}
 
-	this->levaluationEffectContribution = new double * [this->m()];
-	this->lendowmentEffectContribution = new double * [this->m()];
+	this->lprobabilities = new double[numberOfAlters];
+	this->levaluationEffectContribution = new double * [numberOfAlters];
+	this->lendowmentEffectContribution = new double * [numberOfAlters];
 
-	for (int i = 0; i < this->m(); i++)
+	for (int i = 0; i < numberOfAlters; i++)
 	{
 		this->levaluationEffectContribution[i] =
-			new double[pSimulation->pModel()->rEvaluationEffects(pData->name()).size()];
+			new double[pSimulation->pModel()->
+				rEvaluationEffects(pData->name()).size()];
 		this->lendowmentEffectContribution[i] =
-			new double[pSimulation->pModel()->rEvaluationEffects(pData->name()).size()];
+			new double[pSimulation->pModel()->
+				rEvaluationEffects(pData->name()).size()];
 	}
 
 	this->lpNetworkCache =
@@ -98,8 +103,16 @@ NetworkVariable::~NetworkVariable()
 
 
 	// Delete arrays of contributions
-
-	for (int i = 0; i < this->m(); i++)
+	int numberOfAlters;
+	if (this->oneModeNetwork())
+	{
+		numberOfAlters = this->m();
+	}
+	else
+	{
+		numberOfAlters = this->m() + 1;
+	}
+	for (int i = 0; i < numberOfAlters; i++)
 	{
 		delete[] this->levaluationEffectContribution[i];
 		delete[] this->lendowmentEffectContribution[i];
@@ -438,15 +451,24 @@ bool NetworkVariable::canMakeChange(int actor) const
  */
 void NetworkVariable::makeChange(int actor)
 {
+	int m;
 	this->lego = actor;
 	this->calculateTieFlipProbabilities();
-	int alter = nextIntWithProbabilities(this->m(), this->lprobabilities);
+	if (this->oneModeNetwork())
+	{
+		m = this->m();
+	}
+	else
+	{
+		m = this->m() + 1;
+	}
+
+	int alter = nextIntWithProbabilities(m, this->lprobabilities);
 
 	if (this->pSimulation()->pModel()->needScores())
 	{
 		this->accumulateScores(alter);
 	}
-
 	if (this->pSimulation()->pModel()->needChain())
 	{
 		// add ministep to chain
@@ -460,9 +482,11 @@ void NetworkVariable::makeChange(int actor)
 			this->copyChangeContributions(pMiniStep);
 		}
 	}
-	// Make a change if we have a real alter (other than the ego)
+	// Make a change if we have a real alter (other than the ego or
+	// the dummy for bipartite networks)
 
-	if (!this->oneModeNetwork() || this->lego != alter)
+	if ((!this->oneModeNetwork() && alter < this->m()) ||
+		(this->oneModeNetwork() && this->lego != alter))
 	{
 		int currentValue = this->lpNetwork->tieValue(this->lego, alter);
 
@@ -553,7 +577,9 @@ void NetworkVariable::calculatePermissibleChanges()
 	// Test each alter if a tie flip to that alter is permitted according
 	// to upOnly/downOnly flags and the max degree.
 
-	for (int i = 0; i < this->m(); i++)
+	int m = this->m();
+
+	for (int i = 0; i < m; i++)
 	{
 		if (this->lpNetworkCache->outTieExists(i))
 		{
@@ -674,6 +700,21 @@ void NetworkVariable::calculateTieFlipContributions()
 			}
 		}
 	}
+
+	// need to initialise the no-effect option of alter = this->m() for
+	// twomode networks
+
+	if (twoModeNetwork)
+	{
+		for (int i = 0; i < evaluationEffectCount; i++)
+		{
+			this->levaluationEffectContribution[m][i] = 0;
+		}
+		for (int i = 0; i < evaluationEffectCount; i++)
+		{
+			this->lendowmentEffectContribution[m][i] = 0;
+		}
+	}
 }
 
 
@@ -691,8 +732,9 @@ void NetworkVariable::calculateTieFlipProbabilities()
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
 
 	double total = 0;
+	int m = this->m();
 
-	for (int alter = 0; alter < this->m(); alter++)
+	for (int alter = 0; alter < m; alter++)
 	{
 		if (this->lpermitted[alter])
 		{
@@ -732,12 +774,18 @@ void NetworkVariable::calculateTieFlipProbabilities()
 
 		total += this->lprobabilities[alter];
 	}
+	if (!this->oneModeNetwork())
+	{
+		total += 1;
+		this->lprobabilities[m] = 1;
+		m++;
+	}
 
 	// Normalize
 
 	if (total != 0)
 	{
-		for (int alter = 0; alter < this->m(); alter++)
+		for (int alter = 0; alter < m; alter++)
 		{
 			this->lprobabilities[alter] /= total;
 		}
@@ -751,6 +799,9 @@ void NetworkVariable::calculateTieFlipProbabilities()
  */
 void NetworkVariable::accumulateScores(int alter) const
 {
+
+	int m = this->m();
+
 	for (unsigned i = 0;
 		i < this->pEvaluationFunction()->rEffects().size();
 		i++)
@@ -759,17 +810,17 @@ void NetworkVariable::accumulateScores(int alter) const
 		double score = this->levaluationEffectContribution[alter][i];
 		//	Rprintf("score 1 %f\n", score);
 
-		for (int j = 0; j < this->m(); j++)
+		for (int j = 0; j < m; j++)
 		{
 			if (this->lpermitted[j])
 			{
-			score -=
-				this->levaluationEffectContribution[j][i] *
+				score -=
+					this->levaluationEffectContribution[j][i] *
 					this->lprobabilities[j];
 			//Rprintf("score 2 %d %f %f %f\n", j, score,
 			//		this->levaluationEffectContribution[j][i],
 			//	this->lprobabilities[j]);
-		}
+			}
 		}
 
 		this->pSimulation()->score(pEffect->pEffectInfo(),
@@ -777,26 +828,30 @@ void NetworkVariable::accumulateScores(int alter) const
 		//Rprintf("score %f\n", score);
 	}
 	for (unsigned i = 0;
-		i < this->pEndowmentFunction()->rEffects().size();
-		i++)
+		 i < this->pEndowmentFunction()->rEffects().size();
+		 i++)
 	{
 		Effect * pEffect = this->pEndowmentFunction()->rEffects()[i];
-		double score = this->lendowmentEffectContribution[alter][i];
 
-		for (int j = 0; j < this->m(); j++)
+		double score = 0;
+		if (this->lpNetworkCache->outTieExists(alter))
 		{
-		if (this->lpNetworkCache->outTieExists(j) &&
-			this->lpermitted[j])
-			{
-			score -=
-				this->lendowmentEffectContribution[j][i] *
-					this->lprobabilities[j];
+			score += this->lendowmentEffectContribution[alter][i];
 		}
+
+		for (int j = 0; j < m; j++)
+		{
+			if (this->lpNetworkCache->outTieExists(j) &&
+				this->lpermitted[j])
+			{
+				score -=
+					this->lendowmentEffectContribution[j][i] *
+					this->lprobabilities[j];
+			}
 		}
 
 		this->pSimulation()->score(pEffect->pEffectInfo(),
 			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
-//	Rprintf(" endow score %f\n", score);
 	}
 }
 
@@ -1037,6 +1092,7 @@ bool NetworkVariable::missing(const MiniStep * pMiniStep) const
 {
 	const NetworkChange * pNetworkChange =
 		dynamic_cast<const NetworkChange *>(pMiniStep);
+
 	return this->lpData->missing(pNetworkChange->ego(),
 			pNetworkChange->alter(),
 			this->period()) ||

@@ -74,9 +74,9 @@ PrintReport <- function(z, x)
                    Report('\nOther parameters:\n', bof)
                }
            }
-           nBehavs <- length(z$f[[1]]$behavs)
-           nOneModes <- length(z$f[[1]]$nets)
-           if (nBehavs > 0 && nOneModes > 0)
+           nBehavs <- sum(z$types == "behavior")
+           nNetworks <- length(z$types) - nBehavs
+           if (nBehavs > 0 && nNetworks > 0)
            {
                Report("Network Dynamics\n", outf)
            }
@@ -113,10 +113,10 @@ PrintReport <- function(z, x)
            tmp <- paste(sprintf("%2d", 1:length(z$requestedEffects$effectName)),
                         '. ', format(substr(tmp, 1, 50), width=50),
                         theta, ses, '\n', sep='', collapse = '')
-           if (nBehavs > 0 && nOneModes > 0)
+           if (nBehavs > 0 && nNetworks > 0)
            {
-               nOneModeEff <- nrow(z$requestedEffects) - nrow(behEffects)
-               tmpstr <- paste(nOneModeEff + 1, '. ', sep='')
+               nNetworkEff <- nrow(z$requestedEffects) - nrow(behEffects)
+               tmpstr <- paste(nNetworkEff + 1, '. ', sep='')
                tmpsub <- regexpr(tmpstr, tmp, fixed=TRUE)
                tmp1 <- substring(tmp, 1, tmpsub - 2)
                tmp2 <- substring(tmp, tmpsub - 1, nchar(tmp))

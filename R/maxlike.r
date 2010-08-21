@@ -105,8 +105,8 @@ maxlikefn<- function(z,x,INIT=FALSE,TERM=FALSE, data, effects=NULL,nstart=1000,
         f$startmat <- startmat
         f$endmat <- endmat
         f$chain <- chain
-        f$accepts <-  rep(0,6)
-        f$rejects <- rep(0,6)
+        f$accepts <-  rep(0,7)
+        f$rejects <- rep(0,7)
         f$probs <- c(pinsdel, 0, pdiaginsdel)#
         f$madechain <- FALSE
         f$numm <- 20

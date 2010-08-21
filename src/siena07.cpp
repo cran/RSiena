@@ -3717,13 +3717,13 @@ one of values, one of missing values (boolean) */
 
 		/* get hold of the statistics for accept and reject */
 		SEXP accepts;
-		PROTECT(accepts = allocVector(INTSXP, 6));
+		PROTECT(accepts = allocVector(INTSXP, 7));
 		SEXP rejects;
-		PROTECT(rejects = allocVector(INTSXP, 6));
+		PROTECT(rejects = allocVector(INTSXP, 7));
 		int * iaccepts = INTEGER(accepts);
 		int * irejects = INTEGER(rejects);
 
-		for (int i = 0; i < 6; i++)
+		for (int i = 0; i < 7; i++)
 		{
 			iaccepts[i] = pMLSimulation->acceptances(i);
 			irejects[i] = pMLSimulation->rejections(i);
@@ -3766,7 +3766,8 @@ one of values, one of missing values (boolean) */
         return(ans);
     }
 
-    SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES, SEXP PROBS)
+    SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+		SEXP PROBS, SEXP MINIMUMPERM, SEXP MAXIMUMPERM, SEXP INITIALPERM)
     {
 		/* set up chains and do the first few MH iters on each */
 
@@ -3779,10 +3780,18 @@ one of values, one of missing values (boolean) */
 
 		int totObservations = 0;
         for (int group = 0; group < nGroups; group++)
+		{
             totObservations += (*pGroupData)[group]->observationCount() - 1;
+		}
 
 		/* get hold of the model object */
         Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+
+		/* copy permutation lengths to the model */
+
+		pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
+		pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
+		pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
 
 		SEXP RpChains;
 		PROTECT(RpChains = allocVector(VECSXP, totObservations));
@@ -3800,9 +3809,10 @@ one of values, one of missing values (boolean) */
 		pMLSimulation->permuteProbability(REAL(PROBS)[2]);
 		pMLSimulation->insertPermuteProbability(REAL(PROBS)[3]);
 		pMLSimulation->deletePermuteProbability(REAL(PROBS)[4]);
-		pMLSimulation->randomMissingProbability(REAL(PROBS)[5]);
-		pMLSimulation->missingNetworkProbability(REAL(PROBS)[6]);
-		pMLSimulation->missingBehaviorProbability(REAL(PROBS)[7]);
+		pMLSimulation->insertRandomMissingProbability(REAL(PROBS)[5]);
+		pMLSimulation->deleteRandomMissingProbability(REAL(PROBS)[6]);
+		pMLSimulation->missingNetworkProbability(REAL(PROBS)[7]);
+		pMLSimulation->missingBehaviorProbability(REAL(PROBS)[8]);
 
 		/* initialize the chain: this also initializes the data */
 		pMLSimulation->connect(0);
@@ -3816,7 +3826,7 @@ one of values, one of missing values (boolean) */
 		/* do some more steps */
 
 		pMLSimulation->setUpProbabilityArray();
-		int numSteps=1000;
+		int numSteps = 500;
 		for (int i = 0; i < numSteps; i++)
 		{
 			pMLSimulation->MLStep();

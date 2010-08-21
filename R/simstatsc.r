@@ -1555,6 +1555,8 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         }
         ## now check if conditional estimation is OK and copy to z if so
         z$cconditional <- FALSE
+        types <- sapply(data[[1]]$depvars, function(x) attr(x, 'type'))
+        nets <- sum(types != "behavior")
         if (x$cconditional)
         {
             if (x$maxlike)
@@ -1562,7 +1564,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
                 stop("Conditional estimation is not possible with",
                      "maximum likelihood method")
             }
-            types <- sapply(data[[1]]$depvars, function(x) attr(x, 'type'))
+          #  types <- sapply(data[[1]]$depvars, function(x) attr(x, 'type'))
             nets <- sum(types != "behavior")
             ##  if (nets == 1) not sure if this is necessary
             ##  {
@@ -1620,7 +1622,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         attr(f, "compositionChange") <- attr(data, "compositionChange")
         attr(f, "exooptions") <- attr(data, "exooptions")
         attr(f, "groupPeriods") <- attr(data, "groupPeriods")
-        attr(f, "totalMissings") <- attr(data, "totalMissings")
+      #  attr(f, "totalMissings") <- attr(data, "totalMissings")
 
         if (x$maxlike && x$FinDiff.method)
         {
@@ -1670,7 +1672,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     }
     else ## initC, i.e just send already set up data into new processes
     {
-       f <- FRANstore()
+        f <- FRANstore()
         ## Would like f to be just the data objects plus the attributes
         ## but need the effects later. Also a few other things,
         ## which probably could be attributes but are not!
@@ -1688,6 +1690,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         f$interactionEffects <- NULL
         f$chain <- NULL
         f$pMLSimulation <- NULL
+        f$types <- NULL
     }
     ##browser()
     pData <- .Call('setupData', PACKAGE=pkgname,
@@ -1846,35 +1849,21 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         ## set up chains and do initial steps
         simpleRates <- TRUE
 
-        ## sum the missings to calculate the relevant probabilities
-        totalMissings <- attr(f, "totalMissings")
         types <- attr(f, "types")
-        use <- types != "behavior"
-        ## use arbitrary n for now
-        n <- length(f[[1]]$nodeSets[[1]])
-        if (sum(use) > 0)
-        {
-            netMissings <- sum(totalMissings[use])
-            prmin <- netMissings / (netMissings + sum(use) * n * (n - 1))
-        }
-        else
-        {
-            prmin <- 0.0
-        }
-        use <- types == "behavior"
-        if (sum(use) > 0)
-        {
-            behMissings <- sum(totalMissings[types == "behavior"])
-            prmib <- behMissings / (behMissings + sum(use) * n)
-        }
-        else
-        {
-            prmib <- 0.0
-        }
-        z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prrms,
-                     prmin, prmib)
+        nbrNonMissNet <- attr(f, "numberMissingNetwork")
+        nbrMissNet <- attr(f, "numberMissingNetwork")
+        nbrNonMissBeh <- attr(f, "numberMissingBehavior")
+        nbrMissBeh <- attr(f, "numberMissingBehavior")
+
+        prmin <-   nbrMissNet/ (nbrMissNet + nbrNonMissNet)
+        prmib <-   nbrMissBeh/ (nbrMissBeh + nbrNonMissBeh)
+        cat (prmin, prmib, '\n')
+        z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prirms,
+                     x$prdrms, prmin, prmib)
         ans <- .Call("mlMakeChains", PACKAGE=pkgname, pData, pModel,
-                     simpleRates, z$probs)
+                     simpleRates, z$probs, x$minimumPermutationLength,
+                     x$maximumPermutationLength,
+                     x$initialPermutationLength)
         f$chain <- ans[[2]]
         ##store address of simulation object
         f$pMLSimulation <- ans[[1]][[1]]
@@ -1898,6 +1887,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     f$depNames <- names(f[[1]]$depvars)
     f$groupNames <- names(f)[1:nGroup]
     f$nGroup <- nGroup
+    f$types <- types
     if (!initC)
     {
         z$f <- f

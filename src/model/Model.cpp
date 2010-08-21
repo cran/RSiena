@@ -206,13 +206,63 @@ int Model::numberMLSteps() const
 }
 
 /**
+ * Stores the maximum permutation length
+ */
+void Model::maximumPermutationLength(double value)
+{
+	this->lmaximumPermutationLength = value;
+}
+
+
+/**
+ * Returns the maximum permutation length
+ */
+double Model::maximumPermutationLength() const
+{
+	return this->lmaximumPermutationLength;
+}
+
+/**
+ * Stores the minimum permutation length
+ */
+void Model::minimumPermutationLength(double value)
+{
+	this->lminimumPermutationLength = value;
+}
+
+
+/**
+ * Returns the minimum permutation length
+ */
+double Model::minimumPermutationLength() const
+{
+	return this->lminimumPermutationLength;
+}
+
+/**
+ * Stores the initial permutation length
+ */
+void Model::initialPermutationLength(double value)
+{
+	this->linitialPermutationLength = value;
+}
+
+
+/**
+ * Returns the initial permutation length
+ */
+double Model::initialPermutationLength() const
+{
+	return this->linitialPermutationLength;
+}
+
+/**
  * Stores the number of MH batches
  */
 void Model::numberMHBatches(int value)
 {
 	this->lnumberMHBatches = value;
 }
-
 
 /**
  * Returns the number of MH batches

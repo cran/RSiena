@@ -185,11 +185,6 @@ varDyadCovar<- function(val, nodeSets=c('Actors','Actors'), sparse=is.list(val))
         stop('nodeSets must be a vector of character strings')
     if (length(nodeSets) == 1)
         nodeSets <- c(nodeSets, nodeSets)
-    observations <- vardims[3]
-    if (observations < 2)
-    {
-        stop('value must have at least two observations')
-    }
     out <- val
     class(out) <- 'varDyadCovar'
     attr(out, 'nodeSet') <- nodeSets

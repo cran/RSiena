@@ -26,4 +26,13 @@ bool operator<(const Option & rOption1, const Option & rOption2)
 					rOption1.alter() < rOption2.alter())));
 }
 
+/**
+ * Returns if this option is equal to the given option.
+ */
+bool operator==(const Option & rOption1, const Option & rOption2)
+{
+	return (rOption1.variableIndex() == rOption2.variableIndex() &&
+		(rOption1.ego() == rOption2.ego() &&
+			rOption1.alter() == rOption2.alter()));
+}
 }

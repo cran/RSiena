@@ -9,6 +9,8 @@
  * NetworkChange.
  *****************************************************************************/
 
+#include "data/ActorSet.h"
+#include <R_ext/Print.h>
 #include "NetworkChange.h"
 #include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
@@ -88,8 +90,19 @@ bool NetworkChange::diagonal() const
  */
 bool NetworkChange::missing(int period) const
 {
+	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+
+	if (oneMode || this->alter() <
+		this->lpData->pReceivers()->n())
+	{
 	return this->lpData->missing(this->ego(), this->lalter, period) ||
 		this->lpData->missing(this->ego(), this->lalter, period + 1);
+}
+	else
+	{
+		// bipartite network no change option
+		return true;
+	}
 }
 
 

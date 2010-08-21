@@ -418,6 +418,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                 if (types[i] == "behavior")
                 {
                     depvar <- x$depvars[[i]][, 1, ]
+                    atts <- attributes(x$depvars[[i]])
                     netname <- atts$name
                     missings <- colSums(is.na(depvar))
                     Report(c(format(netname, width=12),
@@ -437,6 +438,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                 if (types[i] == "behavior")
                 {
                     depvar <- x$depvars[[i]][, 1, ]
+                    atts <- attributes(x$depvars[[i]])
                     netname <- atts$name
                     means <- colMeans(depvar, na.rm=TRUE)
                     Report(c(format(netname, width=14),

@@ -334,7 +334,7 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
             mydf[1:nn, 'row'] <- nnstr
             mydf[1:nn, 'value'] <- x$rate
             mydf[1:nn, 'se'] <- x$vrate
-            if (is.null(x$f[[1]]$nDepvars) || x$f[[1]]$nDepvars == 1)
+            if (length(x$f$types) == 1)
             {
                 mydf[1:nn, 'text'] <- paste('Rate parameter period', 1:nn)
             }
@@ -349,9 +349,9 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
             addsub <- addsub + 1
         }
     }
-    nBehavs <- length(x$f[[1]]$behavs)
-    nOneModes <- length(x$f[[1]]$nets)
-    if (nBehavs > 0 && nOneModes > 0)
+    nBehavs <- sum(x$f$types == "behavior")
+    nNetworks <- length(x$f$types) - nBehavs
+    if (nBehavs > 0 && nNetworks > 0)
     {
         addtorow$command[addsub] <-
             "Network Dynamics"
@@ -390,12 +390,12 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
         mydf[nrates + (1:x$pp), 'tstat' ] <- x$tstat
     }
 
-    if (nBehavs > 0 && nOneModes > 0)
+    if (nBehavs > 0 && nNetworks > 0)
     {
-        nOneModeEff <- nrow(effects) - nrow(behEffects)
+        nNetworkEff <- nrow(effects) - nrow(behEffects)
         addtorow$command[addsub] <-
             'Behavior Dynamics'
-        addtorow$pos[[addsub]] <- nrates + 2 + nOneModeEff
+        addtorow$pos[[addsub]] <- nrates + 2 + nNetworkEff
         addsub <- addsub + 1
     }
     return(list(mydf=mydf, addtorow=addtorow))

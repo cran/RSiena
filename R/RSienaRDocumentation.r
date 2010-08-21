@@ -151,8 +151,8 @@ getRSienaRDocumentation <- function(Rdir)
                    n <- length(y[[x]])
                    if (n > 0)
                    {
-                       cbind( rep(a[x, 1], n), rep(z[x], n),  y[[x]], rep(a[x, 3], n),
-                             rep(a[x, 4], n))
+                       cbind( rep(a[x, 1], n), rep(z[x], n),  y[[x]],
+                             rep(a[x, 3], n), rep(a[x, 4], n))
                    }
                    else
                    {
