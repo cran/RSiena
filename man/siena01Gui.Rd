@@ -13,13 +13,14 @@ siena01Gui(getDocumentation=FALSE)
 }
 \details{
 
-  This function provides a graphical user interface for fitting
-  Siena models. It can be run from within an R session, but is also
-  called by \command{siena.exe} (Windows) and \command{sienascript} (Linux or
-  Mac).  It allows entry of details of the data files required, either
-  using the gui or by loading a session file. The \command{Apply} button
-  causes a call to \code{\link{sienaDataCreateFromSession}} followed by a
-  display of the \code{\link{sienaModelOptions}} screen.
+  This function provides a graphical user interface for fitting Siena
+  models. It can be run from within an R session, but is also called
+  directly by \command{sienascript} (Linux or Mac) (The Windows
+  interface via \command{siena.exe} has now been removed).  It allows
+  entry of details of the data files required, either using the gui or
+  by loading a session file. The \command{Apply} button causes a call to
+  \code{\link{sienaDataCreateFromSession}} followed by a display of the
+  \code{\link{sienaModelOptions}} screen.
 
   The required format for the column entries is described on the help
   page  for\cr

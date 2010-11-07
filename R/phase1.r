@@ -480,7 +480,7 @@ FiniteDifferences <- function(z, x, fra, ...)
        # zdummy <- z[c('theta', 'Deriv', 'cconditional', 'FinDiff.method',
        #               'int2', 'cl')]
         zdummy <- makeZsmall(z)
-        if (!z$fixed[i])
+        if (z$Phase == 3 || !z$fixed[i])
         {
             zdummy$theta[i] <- z$theta[i] + z$epsilon[i]
         }

@@ -708,7 +708,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                                 nsmall=3, width=10), "\n"), outf)
             }
             Report('\n', outf)
-            Report(c(ifelse(nCovars == 1, "This ", "These"),
+            Report(c(ifelse(nCovars == 1, "This ", "These "),
                      "global mean value",
                      ifelse(nCovars == 1, " is ", "s are "),
                      "subtracted from the changing dyadic covariate",

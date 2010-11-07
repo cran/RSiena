@@ -45,7 +45,8 @@ mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mynet2 <- sienaNet(s50a,type='behavior')
 mydata <- sienaDataCreate(mynet1, mynet2)
 myeff <- getEffects(mydata)
-myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
+myeff <- setEffect(myeff, linear, initialValue=0.34699930338, name="mynet2")
+##myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
 ##test10
 print('test10')
 mymodel$projname <- 'test10'

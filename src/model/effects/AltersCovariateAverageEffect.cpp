@@ -75,7 +75,7 @@ double AltersCovariateAverageEffect::endowmentStatistic(const int * difference,
 
 	for (int i = 0; i < n; i++)
 	{
-		if (difference[i] > 0)
+		if (difference[i] > 0 && !this->missingDummy(i))
 		{
 			statistic += currentValues[i] * this->averageAlterValue(i);
 		}

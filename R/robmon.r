@@ -127,7 +127,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                 else
                 {
                     Report('Number of subphases is specified as 0.\n', outf)
-                    Report('0 subphases; no estimationl only phase 3.\n', lf)
+                    Report('0 subphases; no estimation: only phase 3.\n', lf)
                 }
                 Report(c('Therefore the estimation phase is skipped\n',
                          'and the program passes on immediately to phase 3\n',

@@ -1038,16 +1038,19 @@ getBehaviorStartingVals <- function(depvar)
         rr <- range(depvar, na.rm=TRUE)
         dif <- t(diff(t(depvar))) ##calculate column differences
         tmp <- sapply(1:ncol(dif), function(x, y, z){
-            mintab <- table(dif[z[, x] == rr[1], x] > 0)
-            maxtab <- table(dif[z[, x] == rr[2], x] < 0)
-            val <- (mintab[2] + 1) / (sum(mintab) + 2) +
-                (maxtab[2] + 1) / (sum(maxtab) + 2)
+            mintab <- c("FALSE"=0, "TRUE" = 0)
+            mintab[1] <- 1 + sum(dif[z[, x] == rr[1], x] == 0, na.rm=TRUE)
+            mintab[2] <- 1 + sum(dif[z[, x] == rr[1], x] > 0, na.rm=TRUE)
+            maxtab <- c("FALSE"=0, "TRUE" = 0)
+            maxtab[1] <- 1 + sum(dif[z[, x] == rr[2], x] == 0, na.rm=TRUE)
+            maxtab[2] <- 1 + sum(dif[z[, x] == rr[2], x] < 0, na.rm=TRUE)
+            val <- mintab[2] / sum(mintab) + maxtab[2]  / sum(maxtab)
             if (val > 0.9) val <- 0.5
             c(-log(1 - val), mintab, maxtab)
         }, z = depvar, y = dif)
         startRate <- tmp[1, ]
         ##tendency
-        tmp <- rowSums(tmp[-1, , drop=FALSE]) + 2
+        tmp <- rowSums(tmp[-1, , drop=FALSE])
         tendency <- log((tmp[2] * (tmp[3] + tmp[4])) /
                         (tmp[4] * (tmp[1] + tmp[2])))
         untrimmed <- tendency

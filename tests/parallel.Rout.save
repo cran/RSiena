@@ -112,7 +112,12 @@ Total of 269 iteration steps.
 > mynet2 <- sienaNet(s50a,type='behavior')
 > mydata <- sienaDataCreate(mynet1, mynet2)
 > myeff <- getEffects(mydata)
-> myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
+> myeff <- setEffect(myeff, linear, initialValue=0.34699930338, name="mynet2")
+                       name shortName type interaction1 interaction2 include
+mynet2.objEffects.32 mynet2    linear eval                              TRUE
+                     parm   fix  test initialValue timeDummy
+mynet2.objEffects.32    0 FALSE FALSE    0.3469993         ,
+> ##myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
 > ##test10
 > print('test10')
 [1] "test10"

@@ -126,8 +126,8 @@ double DenseTriadsEffect::tieStatistic(int j)
 
 	// Get the number of dense triads involving the tie (i,j).
 
-	if (this->ldensity == 6 && this->lmark[j] == this->lbaseMark + 2 ||
-		this->ldensity == 5 && this->lmark[j] == this->lbaseMark + 1)
+	if ((this->ldensity == 6 && this->lmark[j] == this->lbaseMark + 2) ||
+		(this->ldensity == 5 && this->lmark[j] == this->lbaseMark + 1))
 	{
 		// We need complete dyads (j,h) and (i,h) to have
 		// a dense triad.

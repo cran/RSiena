@@ -1,9 +1,93 @@
+2010-11-06 R-forge revision 125
+
+	* data/allEffects.csv,
+	src/model/effects/InStructuralEquivalenceEffect.cpp,
+	src/model/effects/InStructuralEquivalenceEffect.h,
+	src/model/effects/EffectFactory.cpp,src/model/effects/AllEffects.h,
+	src/data/OneModeNetworkLongitudinalData.cpp,
+	src/data/OneModeNetworkLongitudinalData.h,
+	R/sienadataCreate.r, R/initializeFRAN.r, src/siena07internals.cpp:
+	new in-structural equivalence effect (RSienaTest only)
+	* data/allEffects.csv, R/sienaModelCreate.r, R/initializeFRAN.r,
+	R/sienaprint.r, man/sienaModelCreate.Rd, R/printDataReport.r,
+	src/model/variables/NetworkVariable.cpp,
+	src/model/variables/NetworkVariable.h,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/DependentVariable.h,
+	src/model/variables/BehaviorVariable.cpp,
+	src/model/EpochSimulation.cpp, src/model/Model.h,
+	doc/simstats0c.tex: symmetric models
+	(RSienaTest only)
+	* R/robmon.r, man/siena01Gui.Rd : minor textual corrections
+	* R/sienaDataCreate.r: sorted networks before behavior variables
+	* doc/RSienaDeveloper.tex, doc/Siena_algorithms4.tex:
+	documentation (RSienaTest only)
+	* R/phase1.r: do finite difference calculations for fixed
+	parameters during phase 3.
+	* R/print07Report.r, R/phase3.r: fix typos in printing of report.
+	* R/sienaTimeTest.r: fix bugs with missing interaction effects,
+	multiple dependent networks and multiple groups.
+	* src/model/effects/DenseTriadsEffect.cpp: add parentheses to remove a
+	compiler warning.
+	* src/model/ml/MLSimulation.cpp: commented a problem (RSienaTest only)
+	* src/siena07models.cpp: return chains as dataframe not list.
+	(RSienaTest only)
+	* cleanup.win: remove siena01.exe part
+
+2010-10-22 R-forge revision 124
+
+	* R/sienaTimeTest.r: fix bug causing error when only one effect
+	(added multiple drop=FALSE)
+	* src/win32/(all), configure.win, R/siena01.r: removed siena.exe,
+	install function now gives a message.
+	* doc/classdesign.tex (RSienaTest only) updated documentation
+
+2010-10-13 R-forge revision 123 RSienaTest only
+
+	* doc/RSienaDeveloper.tex: added details about change logs etc
+
+2010-10-09 R-forge revision 122
+
+	* src/siena07models.cpp: corrected loop for return of MH
+	acceptances and rejections. (RSienaTest only)
+	* doc/RSienaDeveloper.tex, doc/RSiena.bib, doc/s_man400.tex,
+	doc/siena_algorithms4.tex, doc/simstats0c.tex: documentation
+	updates.
+	(RSienaTest only)
+	* R/effects.r: fixed bug in starting values for behavior
+	variables when all changes were in one direction (in revision 120
+	for RSienaTest)
+	* src/data/various, src/model/ml: ML code (RSienaTest only)
+	* src/model/effects/AltersCovariateAverageEffect.cpp,
+	CovariateDistance2AlterEffect.cpp: implemented new parameter.
+	* data/allEffects.csv: removed effects added in error (revision
+	120)
+	* data/allEffects.csv: added dyadic/ego to various effects to
+	allow inclusion of interaction effects.
+
+2010-10-08 R-forge revision 121 RSienaTest only
+
+	* src/model/ml/chain.cpp: commented out a rogue "Rprintf" command
+
+2010-09-20 R-forge revision 120
+
+	* data/allEffects.csv: added alter average distance 2 effects for
+	behavior variables
+	* R/sienaDataCreate.r: fixed bug in names of dyadic covariates
+	when converted to varying covariates for groups
+	* R/effects.r: fixed bug in starting values for behavior
+	variables when all changes were in one direction (missed this in RSiena)
+	* R/phase3.r: minor correction to text in siena07 report.
+	* R/print01Report: minor correction to text.
+	* R/simstatsc.r (RSiena only): make sure types are available to
+	multiple processes.
+
 2010-08-21 R-forge revision 119
 
 	* R/sienaDataCreate.r: fix function comments so documentation
-	runs. 
+	runs.
 	* R/RSienaRDocumentation.r: minor source format changes.
-	
+
 2010-08-20 R-forge revision 118 RSienaTest only
 
 	* src/siena07internals.cpp, src/siena07models.cpp,

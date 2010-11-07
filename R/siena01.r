@@ -13,12 +13,10 @@ installGui <- function()
 {
     if (.Platform$OS.type =="windows")
     {
-        tmp <- list.files(pkgpath)
-        if (subs <- grep("sienaguisetup", tmp))
-        {
-            filename=paste(pkgpath, "/", tmp[subs], sep="", collapse="")
-            system(filename)
-        }
+        message("The standalone gui is no longer available. ",
+                "To run the gui within R:\n",
+                "Start R, load RSiena using Packages menu ",
+                "then type siena01Gui() (and <ENTER>)")
     }
     else
     {

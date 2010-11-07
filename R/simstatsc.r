@@ -1622,6 +1622,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         attr(f, "compositionChange") <- attr(data, "compositionChange")
         attr(f, "exooptions") <- attr(data, "exooptions")
         attr(f, "groupPeriods") <- attr(data, "groupPeriods")
+        attr(f, "periodNos") <- attr(data, "periodNos")
       #  attr(f, "totalMissings") <- attr(data, "totalMissings")
 
         if (x$maxlike && x$FinDiff.method)
@@ -1760,6 +1761,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         basicEffects <- ff$basicEffects
         interactionEffects <- ff$interactionEffects
         nGroup <- ff$nGroup
+        types <- ff$types
     }
     ans <- .Call('effects', PACKAGE=pkgname, pData, basicEffects)
     pModel <- ans[[1]][[1]]

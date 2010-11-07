@@ -312,8 +312,8 @@ phase3.2 <- function(z, x, ...)
              'iterations,\n'), outf)
     if (!x$maxlike && z$cconditional)
         Report(c('basic rate parameter',
-                 c('', 's')[as.integer(z$observations > 2) + 1],
-                 ' as well as \n'), outf)
+                 c('', 's')[as.integer(z$f$observations > 2) + 1],
+                 ' as well as \n'), sep='', outf)
     Report(c('convergence diagnostics, covariance and derivative matrices based on ',
              z$Phase3nits, ' iterations.\n\n'), sep='', outf)
     Report('Information for convergence diagnosis.\n', outf)

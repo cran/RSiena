@@ -11,6 +11,7 @@
 ##@PrintReport siena07 Print report
 PrintReport <- function(z, x)
 {
+    types <- attr(z$f, "types")
     Report('\n\n', outf)
     Heading(2, outf, "Estimation Results.")
     if (!z$OK)
@@ -74,8 +75,8 @@ PrintReport <- function(z, x)
                    Report('\nOther parameters:\n', bof)
                }
            }
-           nBehavs <- sum(z$types == "behavior")
-           nNetworks <- length(z$types) - nBehavs
+           nBehavs <- sum(types == "behavior")
+           nNetworks <- length(types) - nBehavs
            if (nBehavs > 0 && nNetworks > 0)
            {
                Report("Network Dynamics\n", outf)

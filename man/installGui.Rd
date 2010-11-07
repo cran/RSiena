@@ -2,10 +2,12 @@
 \Rdversion{1.1}
 \alias{installGui}
 \title{
-Function to start up the installer for the standalone Gui.
+Obsolete function to start up the installer for the standalone Gui.
 }
 \description{
-Starts the installer for the standalone version of RSiena. Only for Windows.
+Once started the installer for the standalone version of RSiena. Only
+for Windows. Not possible since R version 2.12.0. Use \code{siena01Gui}
+within R instead.
 }
 \usage{
 installGui()
