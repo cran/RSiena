@@ -72,6 +72,9 @@ public:
 	int id() const;
 	virtual bool networkVariable() const;
 	virtual bool behaviorVariable() const;
+	virtual bool symmetric() const;
+	virtual bool constrained() const;
+	virtual int alter() const;
 
 	inline const Function * pEvaluationFunction() const;
 	inline const Function * pEndowmentFunction() const;
@@ -80,6 +83,7 @@ public:
 	inline int period() const;
 	virtual bool canMakeChange(int actor) const;
 	virtual void makeChange(int actor) = 0;
+	bool successfulChange() const;
 
 	virtual void actOnJoiner(const SimulationActorSet * pActorSet,
 		int actor);
@@ -98,6 +102,9 @@ public:
 	void accumulateRateScores(double tau,
 		const DependentVariable * pSelectedVariable = 0,
 		int selectedActor = 0);
+	void accumulateRateScores(double tau,
+		const DependentVariable * pSelectedVariable,
+		int selectedActor, int alter);
 	double basicRateScore() const;
 	double constantCovariateScore(const ConstantCovariate * pCovariate) const;
 	double changingCovariateScore(const ChangingCovariate * pCovariate) const;
@@ -115,7 +122,8 @@ public:
 	 */
 	virtual double probability(MiniStep * pMiniStep) = 0;
 
-	virtual bool validMiniStep(const MiniStep * pMiniStep) const;
+	virtual bool validMiniStep(const MiniStep * pMiniStep,
+		bool checkUpOnlyDownOnlyConditions = true) const;
 
 	void updateEffectParameters();
 	void updateEffectInfoParameters();
@@ -141,14 +149,21 @@ public:
 	double basicRateDerivative() const;
 	virtual double calculateChoiceProbability(const MiniStep * pMiniStep) const = 0;
 
-	// Bayesian related
+	// Bayesian related: get new values
 	void sampleBasicRate(int miniStepCount);
 	double sampleParameters(double scaleFactor);
+	// get and set sampled basic rates and shapes
+	double sampledBasicRates(unsigned iteration) const;
+	void sampledBasicRates(double value);
+	int sampledBasicRatesDistributions(unsigned iteration) const;
+	void sampledBasicRatesDistributions(int value);
+	void clearSampledBasicRates();
 
 protected:
 	inline EpochSimulation * pSimulation() const;
 	void simulatedDistance(int distance);
 	void invalidateRates();
+	void successfulChange(bool success);
 
 private:
 	void initializeFunction(Function * pFunction,
@@ -157,7 +172,9 @@ private:
 	bool constantRates() const;
 	double calculateRate(int i);
 	double structuralRate(int i) const;
+	double behaviorVariableRate(int i) const;
 	void updateCovariateRates();
+	void calculateScoreSumTerms();
 
 	// A simulation of the actor-based model, which owns this variable
 	EpochSimulation * lpSimulation;
@@ -234,16 +251,62 @@ private:
 	// Scores for rate effects depending on inverse degree
 	map<const NetworkVariable *, double> linverseOutDegreeScores;
 
+	// Sum term for scores for rate effects depending on constant covariates
+	map<const ConstantCovariate *, double> lconstantCovariateSumTerm;
+
+	// Sum term for scores for rate effects depending on changing covariates
+	map<const ChangingCovariate *, double> lchangingCovariateSumTerm;
+
+	// Sum term for scores for rate effects depending on behavior variables
+	map<const BehaviorVariable *, double> lbehaviorVariableSumTerm;
+
+	// Sum term for scores for rate effects depending on out degree
+	map<const NetworkVariable *, double> loutDegreeSumTerm;
+
+	// Sum term for scores for rate effects depending on in degree
+	map<const NetworkVariable *, double> linDegreeSumTerm;
+
+	// Sum term for scores for rate effects depending on reciprocal degree
+	map<const NetworkVariable *, double> lreciprocalDegreeSumTerm;
+
+	// Sum term for scores for rate effects depending on inverse degree
+	map<const NetworkVariable *, double> linverseOutDegreeSumTerm;
+
+	// Sum term for model B scores for rate effects depending on constant
+	// covariates
+	map<const ConstantCovariate *, double> lconstantCovariateModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on changing
+	// covariates
+	map<const ChangingCovariate *, double> lchangingCovariateModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on behavior
+	// variables
+	map<const BehaviorVariable *, double> lbehaviorVariableModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on out degree
+	map<const NetworkVariable *, double> loutDegreeModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on inverse degree
+	map<const NetworkVariable *, double> linverseOutDegreeModelBSumTerm;
+
 	// Indicates if the rates are valid and shouldn't be recalculated
 	// provided that the rates are constant during the period.
 
 	int lvalidRates;
 
-	// store for number of acceptances and rejections for non basic rate 
+	// store for number of acceptances and rejections for non basic rate
 	// parameters in Bayesian modelling
 
 	int lacceptances;
 	int lrejections;
+
+	// flag to indicate we gave up on a step due to uponly and other filters
+	bool lsuccessfulChange;
+	// store for sampled parameters and the shapes used for basic rate
+	// parameters
+	vector<double> lsampledBasicRates;
+	vector<int> lsampledBasicRatesDistributions;
 
 };
 

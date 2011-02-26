@@ -13,6 +13,8 @@
 #include "NetworkLongitudinalData.h"
 #include "network/Network.h"
 #include "network/OneModeNetwork.h"
+#include "network/NetworkUtils.h"
+#include "network/IncidentTieIterator.h"
 #include "data/ActorSet.h"
 
 namespace siena
@@ -44,6 +46,7 @@ NetworkLongitudinalData::NetworkLongitudinalData(int id,
 	this->lstructuralTieNetworks = new Network * [observationCount];
 	this->lmissingTieNetworks = new Network * [observationCount];
 	this->lmaxDegree = std::numeric_limits<int>::max();
+	this->ldensity = new double[observationCount];
 
 	for (int i = 0; i < observationCount; i++)
 	{
@@ -82,10 +85,12 @@ NetworkLongitudinalData::~NetworkLongitudinalData()
 	delete[] this->lnetworks;
 	delete[] this->lstructuralTieNetworks;
 	delete[] this->lmissingTieNetworks;
+	delete[] this->ldensity;
 
 	this->lnetworks = 0;
 	this->lstructuralTieNetworks = 0;
 	this->lmissingTieNetworks = 0;
+	this->ldensity = 0;
 }
 
 
@@ -98,7 +103,8 @@ NetworkLongitudinalData::~NetworkLongitudinalData()
  */
 void NetworkLongitudinalData::calculateProperties()
 {
-	// Calculate the average indegree and outdegree.
+	// Calculate the overall average indegree and outdegree and
+	// the observed network density at each observation.
 
 	this->laverageInDegree = 0;
 	this->laverageOutDegree = 0;
@@ -108,15 +114,44 @@ void NetworkLongitudinalData::calculateProperties()
 		observation++)
 	{
 		Network * pNetwork = this->lnetworks[observation];
+		Network * pMissingNetwork = this->lmissingTieNetworks[observation];
 
 		for (int i = 0; i < this->lpReceivers->n(); i++)
 		{
 			this->laverageInDegree += pNetwork->inDegree(i);
 		}
 
+		int observedTieCount = 0;
+
 		for (int i = 0; i < this->pActorSet()->n(); i++)
 		{
 			this->laverageOutDegree += pNetwork->outDegree(i);
+			observedTieCount +=
+				pNetwork->outDegree(i) -
+					commonActorCount(pNetwork->outTies(i),
+						pMissingNetwork->outTies(i));
+		}
+
+		// Get the number of non-missing tie variables
+
+		int nonMissingCount = this->n() * this->lpReceivers->n();
+
+		if (this->pActorSet() == this->lpReceivers)
+		{
+			// Don't count the diagonal entries for one-mode networks
+			nonMissingCount -= this->n();
+		}
+
+		nonMissingCount -= pMissingNetwork->tieCount();
+
+		// Calculate the observed density
+
+		this->ldensity[observation] = 0;
+
+		if (nonMissingCount > 0)
+		{
+			this->ldensity[observation] =
+				((double) observedTieCount) / nonMissingCount;
 		}
 	}
 
@@ -320,6 +355,28 @@ double NetworkLongitudinalData::averageInDegree() const
 double NetworkLongitudinalData::averageOutDegree() const
 {
 	return this->laverageOutDegree;
+}
+
+
+/**
+ * Returns the relative frequency of the given value among the
+ * observed value at the given observation.
+ */
+double NetworkLongitudinalData::observedDistribution(int value,
+	int observation) const
+{
+	double frequency = 0;
+
+	if (value == 1)
+	{
+		frequency = this->ldensity[observation];
+	}
+	else if (value == 0)
+	{
+		frequency = 1 - this->ldensity[observation];
+	}
+
+	return frequency;
 }
 
 }

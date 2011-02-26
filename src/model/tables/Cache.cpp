@@ -12,6 +12,7 @@
 #include "utils/Utils.h"
 #include "network/Network.h"
 #include "model/tables/NetworkCache.h"
+#include "model/tables/TwoNetworkCache.h"
 
 
 namespace siena
@@ -26,6 +27,13 @@ Cache::Cache()
 Cache::~Cache()
 {
 	clearMap(this->lnetworkCaches, false, true);
+	for (map<const Network *, map<const Network *, TwoNetworkCache *> >
+			 ::iterator iter = this->ltwoNetworkCaches.begin();
+		 iter != this->ltwoNetworkCaches.end();
+		 iter++)
+	{
+		clearMap(iter->second, false, true);
+	}
 }
 
 
@@ -49,6 +57,35 @@ NetworkCache * Cache::pNetworkCache(const Network * pNetwork)
 	return pNetworkCache;
 }
 
+TwoNetworkCache * Cache::pTwoNetworkCache(const Network * pFirstNetwork,
+	const Network * pSecondNetwork)
+{
+	TwoNetworkCache * pTwoNetworkCache = 0;
+	map<const Network *,
+		map <const Network *, TwoNetworkCache *> >::iterator iter =
+		this->ltwoNetworkCaches.find(pFirstNetwork);
+
+	if (iter != this->ltwoNetworkCaches.end())
+	{
+		map <const Network *, TwoNetworkCache *> cacheMap = iter->second;
+		map <const Network *, TwoNetworkCache *>::iterator iter2 =
+			cacheMap.find(pSecondNetwork);
+		if (iter2 != cacheMap.end())
+		{
+			pTwoNetworkCache = iter2->second;
+		}
+	}
+	if (!pTwoNetworkCache)
+	{
+		pTwoNetworkCache = new TwoNetworkCache(pFirstNetwork, pSecondNetwork);
+		pTwoNetworkCache->initialize(this->lego);
+
+		this->ltwoNetworkCaches[pFirstNetwork][pSecondNetwork] =
+			pTwoNetworkCache;
+	}
+
+	return pTwoNetworkCache;
+}
 
 void Cache::initialize(int ego)
 {
@@ -61,6 +98,22 @@ void Cache::initialize(int ego)
 	{
 		NetworkCache * pNetworkCache = iter->second;
 		pNetworkCache->initialize(ego);
+	}
+
+	for (map<const Network *, map<const Network *, TwoNetworkCache *> >
+			 ::iterator iter = this->ltwoNetworkCaches.begin();
+		 iter != this->ltwoNetworkCaches.end();
+		 iter++)
+	{
+		map<const Network *, TwoNetworkCache *> cacheMap = iter->second;
+		for (map<const Network *, TwoNetworkCache *>::iterator iter2 =
+				 cacheMap.begin();
+			 iter2 != cacheMap.end();
+			 iter2++)
+		{
+			TwoNetworkCache * pTwoNetworkCache = iter2->second;
+			pTwoNetworkCache->initialize(ego);
+		}
 	}
 }
 

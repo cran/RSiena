@@ -569,6 +569,11 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                                         "ActorSet"], " ")[[1]]
                        miss <- namesession$MissingValues
                        miss <- strsplit(miss, " ")
+                       if (observations - 1 != nrow(namesession))
+                       {
+                           stop("observations and periods don't match ",
+                                "for dyadic covariate")
+                       }
                        if (namesession$Format[1] == "matrix")
                        {
                            myarray <- array(NA, dim=c(dim(namefiles[[1]]),
@@ -587,11 +592,6 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                        {
                            if (nrow(namesession) > 1)
                            {
-                               if (observations - 1 != nrow(namesession))
-                               {
-                                   stop("observations and periods don't match",
-                                        "for dyadic covariate")
-                               }
                                mylist <- vector("list", observations - 1)
                                nActors <-
                                    as.numeric(strsplit(namesession$

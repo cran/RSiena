@@ -24,8 +24,9 @@
 sienaTimeTest(sienaFit, effects=NULL, condition=FALSE)
 }
 \arguments{
-  \item{sienaFit}{ A sienaFit object returned by \code{siena07}. }
-  \item{effects}{Optional vector of effect numbers to test}
+  \item{sienaFit}{ A \code{sienaFit} object returned by \code{siena07}. }
+  \item{effects}{Optional vector of effect numbers to test. Use the
+	number on the print of the sienaFit object.}
   \item{condition}{ Whether to orthogonalize individual score tests
   against base effects and un-estimated dummy terms or just base effects.}
 }
@@ -34,7 +35,7 @@ sienaTimeTest(sienaFit, effects=NULL, condition=FALSE)
  implemented by Lospinoso et. al. (2010) by using statistics already
  calculated at each wave to populate vectors of partitioned moment
  functions corresponding to a restricted model (the model that has been
- fit by \code{sienaFitObject}) and an unrestricted model (which contains
+ fit by \code{sienaFit} Object) and an unrestricted model (which contains
  dummies for \code{m=2...(M-1)}). A covariance matrix of these statistics
  is calculated, and a delta matrix is constructed through the score
  functions' outer products with these statistics. Through an
@@ -44,9 +45,10 @@ sienaTimeTest(sienaFit, effects=NULL, condition=FALSE)
 
  If it is determined that a time heterogeneity occurs for any number of
  time periods or effects (or any combination therein), the
- \code{timeDummy} column provides facilities within a sienaFit object to
- quickly adjust the model and re-estimate in the usual way. Alternately,
- the includeTimeDummy function can be used to add the desired dummies.
+ \code{timeDummy} column provides facilities within a \code{sienaFit} object to
+ quickly adjust the model and re-estimate in the usual way.
+ The \code{includeTimeDummy} function can be used to add the desired
+ dummies entries to the effects object.
 }
 \value{
   \code{sienaTimeTest} Returns a list containing many items,

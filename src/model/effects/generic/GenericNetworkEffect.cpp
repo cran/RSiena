@@ -88,7 +88,7 @@ void GenericNetworkEffect::initialize(const Data * pData,
 /**
  * Does the necessary preprocessing work for calculating the tie flip
  * contributions for a specific ego. This method must be invoked before
- * calling NetworkEffect::calculateTieFlipContribution(...).
+ * calling NetworkEffect::calculateContribution(...).
  */
 void GenericNetworkEffect::preprocessEgo(int ego)
 {
@@ -105,8 +105,7 @@ void GenericNetworkEffect::preprocessEgo(int ego)
 /**
  * Assuming that the ego would flip the tie to the given actor,
  * this method calculates the change in the statistic corresponding
- * to this effect. The method has to be overriden by all concrete
- * effect classes.
+ * to this effect.
  */
 double GenericNetworkEffect::calculateContribution(int alter) const
 {

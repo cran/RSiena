@@ -264,17 +264,18 @@ print.sienaModel <- function(x, ...)
     cat(' Number of iterations in phase 3:', x$n3, '\n')
     if (is.na(x$cconditional) || !x$cconditional)
     {
-        cat('Unconditional simulation\n')
+        cat(" Unconditional simulation\n")
     }
     else
     {
-        cat('Conditional simulation:')
+        cat(" Conditional simulation:")
         if (x$condname != '')
             cat('conditioned on', x$condname,'\n')
         else
             if (x$condvarno > 0)
                 cat('conditioned on First variable')
     }
+    cat(" Model Type:", ModelTypeStrings[x$modelType], "\n")
     invisible(x)
 
 }

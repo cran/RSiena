@@ -11,7 +11,7 @@
 ##@DataReport siena07 Print report
 DataReport <- function(z, x, f)
 {
-    ##f could be a group, but has attributes like a group even if not!
+    ## f could be a group, but has attributes like a group even if not!
     oneMode <- attr(f, "types") == "oneMode"
     bipartite <- attr(f, "types") == "bipartite"
     behavior <- attr(f, "types") == "behavior"
@@ -35,12 +35,13 @@ DataReport <- function(z, x, f)
             {
                 Report(sprintf("Network %d %s\n", i, oneModeNames[i]), outf)
             }
-            if (symmetric[i])
-                ModelTypeStrings <- c("Forcing model")
-            else
-                ModelTypeStrings <- c("Standard actor-oriented model")
             Report(sprintf("Model Type %d: %s\n",
-                           x$ModelType, ModelTypeStrings[x$ModelType]), outf)
+                           z$modelType, ModelTypeStrings[z$modelType]), outf)
+            if (z$modelType != x$modelType)
+            {
+                Report(c("Note that the model type requested has been",
+                       "over-ridden\n"), outf)
+            }
         }
     }
     if (x$cconditional  != z$cconditional)

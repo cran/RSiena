@@ -6,8 +6,8 @@
  }
 
 \usage{
-\method{plot}{sienaTimeTest}(x, pairwise=FALSE, effects=1:2,
-	dims=c(2, 1), scale=.2, plevels=c(.1, .05, .025), multiplot=FALSE, ...)
+\method{plot}{sienaTimeTest}(x, pairwise=FALSE, effects,
+	 scale=.2, plevels=c(.1, .05, .025), ...)
 }
 \arguments{
   \item{x}{ A sienaTimeTest object returned by \code{sienaTimeTest}. }
@@ -19,9 +19,6 @@
 \item{effects}{ A vector of integers corresponding to the indices given
   in the \code{sienaTimeTest} output for effects which are to be
   plotted.}
-\item{dims}{ If multiple effects are to be plotted, a vector of the
-  form (rows, columns) corresponding to how the plot is to lay out the
-  effects. }
 \item{scale}{ A positive number corresponding to the number of standard
   deviations on one step estimates to use for computing the maximum and
   minimum of the plotting range. We recommend experimenting with this
@@ -29,8 +26,8 @@
   numbers shrink the axes.}
 \item{plevels}{ A list of three decimals indicating the gradients at
   which to draw the confidence interval bars.}
-\item{multiplot}{Boolean: are the plots to be one per page (TRUE) or not}
- \item{\dots}{For extra arguments (none used at present)}
+ \item{\dots}{For extra arguments. The Lattice parameter \code{layout}
+   can be used to control the layout of the graphs.}
 }
 \details{
  The \code{pairwise=TRUE} plot may be used to assess whether effects are
@@ -65,7 +62,8 @@
 
 }
 \author{Josh Lospinoso}
-\seealso{\code{\link{siena07}}, \code{\link{sienaTimeTest}}}
+\seealso{\code{\link{siena07}}, \code{\link{sienaTimeTest}},
+  \code{\link{xyplot}}}
 \examples{
 \dontrun{
 mymodel <- sienaModelCreate(fn=simstats0c, nsub=4, n3=500)
@@ -83,7 +81,8 @@ ttp <- sienaTimeTest(ansp)
 plot(ttp, pairwise=TRUE)
 
 ## Time test plots show
-plot(ttp, effects=1:4, dims=c(2,2))
+plot(ttp, effects=1:3) ## default layout
+plot(ttp, effects=1:3, layout=c(3,1))
 }
 }
 

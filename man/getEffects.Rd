@@ -44,13 +44,25 @@ return object may be lost if the data.frame is edited using \command{fix}.
     \item{functionType}{"objective", "rate"}
   \item{period}{period for basic rate parameters}
   \item{rateType}{"Structural", "covariate"}
+  \item{untrimmedValue}{Used to store initial values which could be
+	trimmed}
+  \item{effect1}{Used to indicate effect number in user specified interactions}
+  \item{effect2}{Used to indicate effect number in user specified interactions}
+  \item{effect3}{Used to indicate effect number in user specified
+	interactions}
+  \item{interactionType}{Defines "dyadic" or "ego" effects}
   \item{effectFn}{here NULL, but could be replaced by a function later}
   \item{statisticFn}{here NULL, but could be replaced by a function
 	later}
-  \item{untrimmedValue}{Used to store initial values which could be trimmed}
   \item{netType}{"oneMode", "behavior", "bipartite"}
   \item{groupName}{name of relevant data object}
   \item{group}{sequential number of relevant data object in total}
+  \item{effectNumber}{a unique identifier of the row}
+  The combination of \code{name}, \code{shortName}, \code{interaction1},
+  \code{interaction2}, and \code{type} uniquely identifies any effect
+  other than basic rate effects.The combination \code{name},
+  \code{shortName}, \code{period} and \code{group} uniquely identifies a
+  basic rate effect.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}

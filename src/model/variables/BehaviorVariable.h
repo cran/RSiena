@@ -60,7 +60,8 @@ public:
 	double similarityMean() const;
 
 	virtual double probability(MiniStep * pMiniStep);
-	virtual bool validMiniStep(const MiniStep * pMiniStep) const;
+	virtual bool validMiniStep(const MiniStep * pMiniStep,
+		bool checkUpOnlyDownOnlyConditions = true) const;
 	virtual MiniStep * randomMiniStep(int ego);
 	virtual bool missing(const MiniStep * pMiniStep) const;
 	virtual bool structural(const MiniStep * pMiniStep) const;

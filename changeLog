@@ -1,3 +1,203 @@
+2011-02-26 R-forge revision 141
+
+	* man/RSiena-package.Rd, DESCRIPTION: fix typos, one making check fail!
+
+2011-02-24 R-forge revision 140
+
+	* R/sienaGOF.r: Added cumulative tests, simulated image
+	  function imageGOF, and cleaned up the code to reflect
+	  RSiena coding standards. Added image plot to plot.sienaGOF.
+	* man/sienaGOF.Rd: Changes to reflect the above
+
+2011-02-23 R-forge revision 139
+
+	* src/model/ml/MLsimulation.cpp,
+	src/model/variables/NetworkVariable.cpp: ML for bipartite
+	networks.
+
+2011-02-22 R-forge revision 138
+
+	Change version number on RSiena to 137
+
+2011-02-22 R-forge revision 137
+
+	* Changes to RSienaTest Only
+	* DESCRIPTION: removed dependency on snopgof (for now!) and add
+	  -ed dependency for MASS, sna, vioplot for sienaGOF.
+	* R/sienaTimeTest.r: added functionality for behavioral dummies
+	  but they will not work until behavioral interaction effects
+	  are supported.
+	* R/sienaGOF.r: removed dependency on snopgof (runs standalone)
+	  and a number of smaller features like being able to run a
+	  joint test across all waves or break them out, having control
+	  over the centrality measure (mean, median, etc.), and not
+	  requiring that the auxiliary statistics are non-collinear
+	  (this is where MASS's ginv comes in). I also moved the
+	  relevant functionality from snopgof directly into the code.
+	* man/sienaGOF.Rd: Changes to reflect the above
+
+2011-02-21 R-forge revision 136
+
+	* R/initializeFRAN.r: fix bug in bipartite networks: diagonals
+	were being zeroed.
+	* R/siena01.r: correct test for maximum degree in display
+
+2011-02-05 R-forge revision 135
+
+	* R/siena08.r: fix bug in summary method. Just layout, caused crash.
+
+2011-02-05 R-forge revision 134
+
+	* R/phase2.r, R/siena08.r, man/siena08.Rd, man/print.sienaMeta.Rd:
+	changes as in revision 133 copied to RSiena.
+	* R/siena08.r, man/siena08.Rd, man/print.sienaMeta.Rd: changes to
+	format of new code, reinstate object in summary method  help page.
+	* R/iwlsm.r, man/iwlsm.Rd: correct calculation of variance estimate
+	* R/sienaDataCreate.r: minor amendments
+	* R/sienaDataCreateFromSession.r: message from siena01Gui if
+	changing dyadic covariates do not match number of observations.
+	* R/sienaTimeTest.r: message that timedummies are not implemented
+	for structural rate effects.
+	* src/model/ml/MLSimulation.cpp, src/model/ml/NetworkChange.cpp,
+	src/model/variables/NetworkVariable.cpp: changes for ML, should now run OK
+	for bipartite networks.
+	* src/model/variables/DependentVariable.cpp: added some error trapping.
+	* tests/parallel.R, tests/parallel.Rout.save: removed multiple
+	processes from tests as they were failing on R-forge.
+
+2011-01-25 R-forge revision 133 (RSienaTest only)
+        * R/phase2.r: comment out two test lines causing a crash of the ML
+        estimation when model specifications get so large that subphases
+        exceed 1000 iterations.
+        * R/siena08.r: debugging and adding of functionalities to the meta-
+        analysis.
+        * man/siena08.Rd: explain new features in help function
+        * man/print.sienaMeta.Rd: explain new features in help function
+
+2011-01-17 R-forge revision 132
+	* Changing revision 131 to conform with coding standards
+2011-01-17 R-forge revision 131
+	* Changes to RSienaTest Only
+	* R/gof.r: Added. Contains the function sienaGof and other functions
+	for performing basic goodness of fit tests from arbitrary functions.
+	This function requires the snopgof package to perform the Monte
+	Carlo test. There are also plotting facilities.
+	* man/gof.rd: Added. Contains basics of how to use sienaGof
+	* NAMESPACE: Added sienaGof functions to namespace for proper operation
+	* DESCRIPTION: Added snopgof to the recommended packages.
+
+2011-01-16 R-forge revision 130
+
+	* R/phase3.r: correct number of iterations in field Phase3nits
+	* R/robmon.r, R/siena07.r, man/siena07.Rd: make initC=TRUE the
+	default
+	* src/model/variables/NetworkVariable.cpp: fix array bound error in
+	initialisation for bipartite networks and reverse order of tests
+	for symmetric model types to avoid problem with bipartite no
+	change.
+	* src/model/effects/generic/GenericNetworkEffect.cpp: edits to
+	comments
+	* src.model/tables/MixedConfigurationTable.cpp,
+	MixedConfigurationTable.h: make size of table big enough for any
+	of the senders or receivers.
+	* doc/s_man400.tex, doc/RSiena.bib: various edits.
+	* tests/parallel.R, test/parallel.Rout.save: added test with bipartite
+	network and multiple processes.
+
+2011-01-08 R-forge revision 129
+
+	* R/sienaTimeTest.r, doc/sienaTimeFix.tex: added interactions
+	types for requested effect in call to includeInteraction.
+	* R/siena07.r: suppress warning message when loading snow
+	package. (Ineffective in sub processes)
+
+2010-12-02 R-forge revision 128
+
+	* data/allEffects.csv: removed to effect from bipartite bipartite,
+	added altDist2W and simDist2W to group covarNetNetObjective.
+	* R/effects.r: fixed bug meaning covNetNet effect was not added
+	for behavior variables. Altered code for covarNetNetEff to cope
+	with new effects.
+	* R/effectsMethods.r: now interaction names may be expanded even
+	in the absence of time dummies.
+	* R/initializeFRAN.r: make targets2 for maximum likelihood a
+	matrix of the correct size, containing zeros.
+	* R/initializeFRAN.r, R/sienaModelCreate, man/sienaModelCreate.Rd:
+	Add multiplication factor, altered default ML probabiltities
+	* R/sienaEffects.r: added period and group to setEffect so can set
+	initial values on basic rates.
+	* src/model/effects/CovariateDistance2AlterEffect.cpp: fixed a bug
+	in calculation with parameter set to 2.
+	* src/model/effects/EffectFactory.cpp,
+        src/model/effects/generic/CovariateDistance2AlterNetworkFunction.cpp
+	src/model/effects/generic/CovariateDistance2AlterNetworkFunction.h
+	src/model/effects/generic/CovariateDistance2NetworkFunction.cpp
+	src/model/effects/generic/CovariateDistance2NetworkFunction.h
+	src/model/effects/generic/CovariateDistance2SimilarityNetworkFunction.
+	cpp
+	src/model/effects/generic/CovariateDistance2SimilarityNetworkFunction.h
+	src/model/effects/generic/CovariateNetworkAlterFunction.cpp
+	src/model/effects/generic/CovariateNetworkAlterFunction.h
+	src/model/effects/generic/MixedNetworkAlterFunction.cpp
+	src/model/effects/generic/MixedNetworkAlterFunction.h
+	src/model/effects/generic/MixedTwoPathFunction.cpp
+	src/model/effects/generic/MixedTwoPathFunction.h
+	src/model/effects/generic/NetworkAlterFunction.h
+	src/model/tables/MixedConfigurationTable.cpp
+	src/model/tables/MixedConfigurationTable.h
+	src/model/tables/MixedEgocentricConfigurationTable.cpp
+	src/model/tables/MixedEgocentricConfigurationTable.h
+	src/model/tables/MixedTwoPathTable.cpp
+	src/model/tables/MixedTwoPathTable.h
+	src/model/tables/TwoNetworkCache.cpp
+	src/model/tables/TwoNetworkCache.h
+	src/model/tables/Cache.cpp
+	src/model/tables/Cache.h
+	added new effects: to, altDist2W, simDist2W. Altered altDist2 and
+	simDist2 to  be generic effects which use same functions as
+	altDist2W, simDist2W. New two-network cache with mixed-two-path
+	table.
+	* src/model/ml/MLSimulation.cpp: changes to ML routines
+	* src/model/variables/DependentVariable.cpp,
+	 src/model/variables/DependentVariable.h: added calculation loop
+	for rate effects depending on behavior variables, and stored
+	the product term for the scores. Also stored product term for
+	model type B scores.
+	* src/model/variables/NetworkVariable.cpp: fixed bug in
+	calculation of symmetric model type BFORCE scores.
+	* R/sienaTimeTest.r: added code for finitedifferences and ML fits.
+	* doc/sienaTimeFixDoc.tex: added to RSienaTest
+
+2010-11-25 R-forge revision 127
+
+	* man/s_man400.tex: updated examples of sienaTimeTest.
+	* R/initializeFRAN.r: (RSiena only): forgotten new file
+
+2010-11-25 R-forge revision 126
+
+	* DESCRIPTION: new main version number for RSiena, 1.0.12
+	* R/sienaTimeTest.r, R/effects.r, R/sienaeffects.r,
+	R/effectsMethods.r, man/sienaTimeTest.Rd, plot.sienaTimeTest.Rd,
+	man/print.sienaEffects.Rd, man/includeInteraction.Rd:
+	amendment and extension of sienaTimeTest and sienaTimeFix.
+	includeInteraction now adds rows if necessary and has parameter to
+	suppress printing. Time dummy rows can optionally be added to
+	print and summary of sienaEffects object.
+	* src/siena07internals.cpp, src/model/ml/MLSimulation.cpp,
+        src/model/ml/MLSimulation.h, src/model/variables/DependentVariable.cpp,
+        src/model/variables/DependentVariable.h: return values for rates
+	for multiple dependent variables.
+	* doc/RSiena.bib: minor updates
+	* man/sienaNet.Rd, getEffects.Rd, siena07.Rd, sienaDataCreate.Rd,
+	doc/RSIENAspec.tex: documentation
+	* tests/parallel.Rout.save: minor changes for compatibility
+	* R/terminateFRAN.r, R/simstatsc.r, R/maxlikec.r: new function
+	terminateFRAN in separate file.
+	* R/Sienatest.r: added traps for matrix inversion failure
+	* R/sienaDataCreate.r, R/initializeFRAN: minor amendments
+	* R/phase1.r, R/phase3.r, R/maxlikec.c: return contributions to
+	dfra for maximum likelihood and finite differences by wave
+
 2010-11-06 R-forge revision 125
 
 	* data/allEffects.csv,

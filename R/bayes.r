@@ -24,9 +24,9 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
         z$candidates <- matrix(NA, nrow=nmain * nrunMHBatches,
                                ncol=sum(!basicRate))
         z$acceptances <- rep(NA, nmain * nrunMHBatches)
-        z$MHacceptances <- matrix(NA, nrow=nmain * nrunMHBatches, ncol=6)
-        z$MHrejections <- matrix(NA, nrow=nmain * nrunMHBatches , ncol=6)
-        z$MHproportions <- matrix(NA, nrow=nmain *  nrunMHBatches, ncol=6)
+        z$MHacceptances <- matrix(NA, nrow=nmain * nrunMHBatches, ncol=7)
+        z$MHrejections <- matrix(NA, nrow=nmain * nrunMHBatches , ncol=7)
+        z$MHproportions <- matrix(NA, nrow=nmain *  nrunMHBatches, ncol=7)
         z
     }
     storeData <- function()
@@ -127,13 +127,13 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
             }
             if (z$scaleFactor < tiny)
             {
-                cat('scalefactor < tiny\n')
+                cat('calefactor < tiny\n')
                 browser()
             }
         }
         cat('fine tuning took ', iter, ' iterations. Scalefactor:',
             z$scaleFactor, '\n')
-        z
+       z
     }
 
     ## initialise
@@ -151,6 +151,7 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
     z$maxlike <- TRUE
     model$maxlike <- TRUE
     model$FRANname <- "maxlikec"
+    z$print <- FALSE
     z$int <- 1
     z$int2 <- 1
     model$cconditional <-  FALSE
@@ -195,7 +196,8 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
             cat('main after ii',ii,numm, '\n')
             dev.set(thetaplot)
             thetadf <- data.frame(z$lambdas, z$betas)
-            acceptsdf <- data.frame(z$MHproportions, z$acceptances)
+            acceptsdf <- data.frame(z$MHproportions[, 1:5],
+                                    z$acceptances)
             lambdaNames <- paste(z$effects$name[basicRate],
                                  z$effects$shortName[basicRate],
                                  z$effects$period[basicRate],
@@ -204,7 +206,8 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
                                z$effects$shortName[!basicRate], sep=".")
             names(thetadf) <- c(lambdaNames, betaNames)
             names(acceptsdf) <- c("InsDiag", "CancDiag", "Permute", "InsPerm",
-                                  "CancPerm", "Missing", "BayesAccepts")
+                                  "CancPerm", #"Missing",
+                                  "BayesAccepts")
             varnames <- paste(names(thetadf), sep="", collapse= " + ")
             varcall <- paste("~ ", varnames,  sep="", collapse="")
             print(histogram(as.formula(varcall), data=thetadf, scales="free",
@@ -230,7 +233,7 @@ MCMCcycle <- function(z, nrunMH, nrunMHBatches)
     group <- 1
     f <- FRANstore()
     ans <- .Call("MCMCcycle", PACKAGE=pkgname, f$pData, f$pModel,
-                 f$pMLSimulation, f$myeffects, as.integer(period),
+                 f$myeffects, as.integer(period),
                  as.integer(group),
                  z$scaleFactor, nrunMH, nrunMHBatches)
     ## process the return values

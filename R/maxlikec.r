@@ -29,25 +29,7 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     }
     if (TERM)
     {
-        f <- FRANstore()
-        f$pModel <- NULL
-        f$pData <- NULL
-        FRANstore(NULL) ## clear the stored object
-        if (is.null(z$print) || z$print)
-        {
-            PrintReport(z, x)
-        }
-        if (sum(z$test))
-        {
-            z$fra <- colMeans(z$sf, na.rm=TRUE)
-            ans <- ScoreTest(z$pp, z$dfra, z$msf, z$fra, z$test, x$maxlike)
-            z <- c(z, ans)
-            TestOutput(z, x)
-        }
-        if (!is.null(z$dfra))
-        {
-            dimnames(z$dfra)[[1]] <- as.list(z$requestedEffects$shortName)
-        }
+        z <- terminateFRAN(z, x)
         return(z)
     }
     ######################################################################
@@ -55,15 +37,14 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     ######################################################################
     ## retrieve stored information
     f <- FRANstore()
-    ## browser()
-    ##if (z$Phase == 2)
-    ##{
-    ##    returnDeps <- FALSE
-    ##}
-    ##else
-    ##{
-    returnDeps <- z$returnDeps
-    ##}
+    if (z$Phase == 2)
+    {
+        returnDeps <- FALSE
+    }
+    else
+    {
+        returnDeps <- z$returnDeps
+    }
     ## create a grid of periods with group names in case want to parallelize
     ## using this
     groupPeriods <- attr(f, "groupPeriods")
@@ -71,42 +52,61 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                       as.vector(unlist(sapply(groupPeriods - 1,
                                               function(x) 1:x))))
     ## z$int2 is the number of processors if iterating by period, so 1 means
-    ## we are not
-    if (z$int2==1 || nrow(callGrid) == 1)
+    ## we are not. Can only parallelize by period at the moment.
+    ## browser()
+    if (nrow(callGrid) == 1)
     {
-        ## for now!
         ans <- .Call('mlPeriod', PACKAGE=pkgname, z$Deriv, f$pData,
-                     f$pModel, f$myeffects, f$pMLSimulation, z$theta,
-                     returnDeps, 1, 1, z$nrunMH)
+                     f$pModel, f$myeffects, z$theta,
+                     returnDeps, 1, 1, z$nrunMH, z$addChainToStore,
+                     z$needChangeContributions)
+        ans[[7]] <- list(ans[[7]])
     }
     else
     {
-        use <- 1:(min(nrow(callGrid), z$int2))
-      #  anss <- parRapply(z$cl[use], callGrid, doModel,
-      #                    z$Deriv, seeds, , z$theta,
-      #                    randomseed2, returnDeps, z$FinDiff.method, TRUE)
-      #  ##anss <- apply(callGrid, 1, doModel,
-        ##            z$Deriv, fromFiniteDiff, z$theta,
-        ##           returnDeps, z$FinDiff.method)
+        if (z$int2 == 1)
+        {
+            anss <- apply(callGrid, 1, doMLModel, z$Deriv, z$theta,
+                          returnDeps,  z$nrunMH, z$addChainToStore,
+                          z$needChangeContributions)
+        }
+        else
+        {
+            use <- 1:(min(nrow(callGrid), z$int2))
+            anss <- parRapply(z$cl[use], callGrid, doMLModel, z$Deriv, z$theta,
+                              returnDeps, z$nrunMH, z$addChainToStore,
+                              z$needChangeContributions)
+        }
         ## reorganize the anss so it looks like the normal one
-        ## browser()
         ans <- NULL
-      #  ans[[1]] <- sapply(anss, "[[", 1) ## statistics
-       # ans[[2]] <- sapply(anss, "[[", 2) ## scores
-      #  ans[[3]] <- split(lapply(anss, "[[", 3), callGrid[, 1]) ## seeds
-      #  ans[[4]] <- sapply(anss, "[[", 4) # ntim
-      #  ans[[5]] <- NULL # randomseed not sensible here
-      #  fff <- lapply(anss, "[[", 6)
-      #  fff <- split(fff, callGrid[, 1])
-     #   ans[[6]] <-
-     #       lapply(fff, function(x)
-      #         {
-       #            lapply(1:length(f$depNames), function(x, z)
-        #                  lapply(z, "[[", x), z=x)
-         #      }
-          #         )
+        ans[[1]] <- sapply(anss, "[[", 1) ## statistics
+        ans[[2]] <- NULL ## scores
+        ans[[3]] <- NULL ## seeds
+        ans[[4]] <- NULL ## ntim
+        ans[[5]] <- NULL # randomseed
+        if (returnDeps) ## chains
+        {
+            fff <- lapply(anss, "[[", 6)
+            fff <- split(fff, callGrid[, 1])
+            ans[[6]] <-
+                lapply(fff, function(x)
+                   {
+                       lapply(1:length(f$depNames), function(x, z)
+                              lapply(z, "[[", x), z=x)
+                   }
+                       )
+        }
+        else
+        {
+            ans[[6]] <-  NULL
+        }
+        ans[[7]] <- lapply(anss, "[[", 7) ## derivative
+        ans[[8]] <- lapply(anss, "[[", 8)
+        ans[[8]] <- do.call("+",  ans[[8]]) ## accepts
+        ans[[9]] <- lapply(anss, "[[", 9)
+        ans[[9]] <- do.call("+",  ans[[9]]) ## rejects
     }
-    ## browser()
+
     dff <- ans[[7]]
     fra <- -t(ans[[1]]) ##note sign change
 
@@ -116,6 +116,8 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
         sims <- ans[[6]]
     else
         sims <- NULL
+
+    #print(length(sims[[1]]))
     if (returnDeps) ## this is not finished yet!
     {
         ## attach the names
@@ -134,38 +136,67 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     }
     if (z$Deriv) ## need to reformat the derivatives
     {
-        dffraw <- ans[[7]]
+        ## current format is a list of vectors of the lower? triangle
+        ## of the matrix. Need to be put into a symmetric matrix.
+        ## Tricky part is getting the rates in the right place!
+        ## Note that we do not yet deal with rate effects other than the basic
         dff <- matrix(0, nrow=z$pp, ncol=z$pp)
-        start <- 1
-        rawsub <- 1
-        for (i in 1:length(f$myeffects))
+        nPeriods <- length(ans[[7]])
+        dff2 <- array(0, dim=c(nPeriods, z$pp, z$pp))
+        for (period in 1:nPeriods)
         {
-            rows <- nrow(f$myeffects[[i]])
-            nRates <- sum(f$myeffects[[i]]$type == 'rate')
-            nonRates <- rows - nRates
-            dff[cbind(start:(start + nRates -1), start:(start + nRates - 1))] <-
-                dffraw[rawsub:(rawsub + nRates - 1)]
-            start <- start + nRates
-            rawsub <- rawsub + nRates
-            dff[start : (start + nonRates - 1 ),
-                           start : (start + nonRates - 1)] <-
-                dffraw[rawsub:(rawsub + nonRates * nonRates - 1)]
-            start <- start + nonRates
-            rawsub <- rawsub + nonRates * nonRates
+            dffraw <- ans[[7]][[period]]
+            ## start indexes row/col for first effect for the variable
+            start <- 1
+            ## rawsub is subscript in the vector
+            rawsub <- 1
+            ## f$myeffects is a list of data frames per dependent variable
+            ## of selected effects.
+            for (i in 1:length(f$myeffects))
+            {
+                dffPeriod <- matrix(0, nrow=z$pp, ncol=z$pp)
+                ## rows is the number of effects for this variable
+                rows <- nrow(f$myeffects[[i]])
+                ## nRates is the number of rate effects for this variable
+                ## at present nRates will be the number of periods.
+                nRates <- sum(f$myeffects[[i]]$type == 'rate')
+                ## nonRates is the number of rows/cols in the objective function
+                ## part of the derivative matrix dff.
+                nonRates <- rows - nRates
+                ## first put the basic rate for this variable in the right place
+                dffPeriod[cbind(start:(start + nRates -1),
+                                start:(start + nRates - 1))] <-
+                                    dffraw[rawsub:(rawsub + nRates - 1)]
+                ##
+                ## now the matrix of objective function effects
+                ##
+                start <- start + nRates
+                ##
+                rawsub <- rawsub + nRates
+                ##
+                dffPeriod[start : (start + nonRates - 1 ),
+                          start : (start + nonRates - 1)] <-
+                              dffraw[rawsub:(rawsub + nonRates * nonRates - 1)]
+                start <- start + nonRates
+                rawsub <- rawsub + nonRates * nonRates
+                dffPeriod <- dffPeriod + t(dffPeriod)
+                diag(dffPeriod) <- diag(dffPeriod) / 2
+                dff2[period , , ] <- dff2[period, , ] - dffPeriod
+                dff <- dff - dffPeriod
+            }
         }
-        dff <- dff + t(dff)
-        diag(dff) <- diag(dff) / 2
-        dff <- -dff
     }
     else
     {
         dff <- NULL
+        dff2 <- NULL
     }
-   # browser()
+    ## browser()
 
-   list(fra = fra, ntim0 = NULL, feasible = TRUE, OK = TRUE,
-         sims=sims, dff = dff, chain = list(ans[[6]]), accepts=ans[[8]],
-        rejects= ans[[9]])
+    list(fra = fra, ntim0 = NULL, feasible = TRUE, OK = TRUE,
+         sims=sims, dff = dff, dff2=dff2,
+         chain = list(ans[[6]]), accepts=ans[[8]],
+         rejects= ans[[9]])
 }
 
 dist2full<-function(dis) {
@@ -178,4 +209,14 @@ dist2full<-function(dis) {
 
       full+t(full)
 
+}
+##@doMLModel Maximum likelihood
+doMLModel <- function(x, Deriv, theta, returnDeps, nrunMH, addChainToStore,
+                      needChangeContributions)
+{
+    f <- FRANstore()
+    .Call("mlPeriod", PACKAGE=pkgname, Deriv, f$pData,
+          f$pModel, f$myeffects, theta, returnDeps,
+          as.integer(x[1]), as.integer(x[2]), nrunMH, addChainToStore,
+          needChangeContributions)
 }

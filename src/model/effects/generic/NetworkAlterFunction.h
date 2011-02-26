@@ -26,7 +26,7 @@ class Network;
 class NetworkCache;
 
 
-class NetworkAlterFunction: public AlterFunction, NamedObject
+class NetworkAlterFunction: public AlterFunction, public NamedObject
 {
 public:
 	NetworkAlterFunction(string networkName);

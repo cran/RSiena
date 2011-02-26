@@ -24,7 +24,13 @@ nodeSet="Actors", sparse=is.list(netarray))
   Siena model fit.
 }
 \value{
-An object of class "sienaNet".
+An object of class "sienaNet". An array or (networks only) a list of sparse
+matrices with attributes:
+  \item{netdims}{Dimensions of the network or behavior
+	variable. Senders, receivers (1 for behavior), periods}
+  \item{type}{oneMode, bipartite or behavior}
+  \item{sparse}{Boolean: whether a list of sparse matrices or not}
+  \item{nodeSet}{Character string with name(s) of node set(s)}
 }
 \references{See \url{http://www.stats.ox.ac.uk/siena/}}
 \author{Ruth Ripley}
@@ -32,6 +38,8 @@ An object of class "sienaNet".
 \examples{
 
 mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-
+mynet2 <- sienaNet(s50a, type="behavior")
+mynet3 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)),
+type="bipartite", nodeSet=c("senders", "receivers"))
 }
 \keyword{classes}

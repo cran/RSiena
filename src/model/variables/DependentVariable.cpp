@@ -8,7 +8,7 @@
  * Description: This file contains the implementation of the
  * DependentVariable class.
  *****************************************************************************/
-
+#include <R_ext/Print.h>
 #include <cmath>
 #include <stdexcept>
 
@@ -107,6 +107,9 @@ void DependentVariable::initializeRateFunction()
 					this->lconstantCovariateParameters[pConstantCovariate] =
 						parameter;
 					this->lconstantCovariateScores[pConstantCovariate] = 0;
+					this->lconstantCovariateSumTerm[pConstantCovariate] = 0;
+					this->lconstantCovariateModelBSumTerm[pConstantCovariate]
+						= 0;
 				}
 				else if (pChangingCovariate)
 				{
@@ -119,6 +122,9 @@ void DependentVariable::initializeRateFunction()
 					this->lchangingCovariateParameters[pChangingCovariate] =
 						parameter;
 					this->lchangingCovariateScores[pChangingCovariate] = 0;
+					this->lchangingCovariateSumTerm[pChangingCovariate] = 0;
+					this->lchangingCovariateModelBSumTerm[pChangingCovariate]
+						= 0;
 				}
 				else if (pBehaviorVariable)
 				{
@@ -130,6 +136,9 @@ void DependentVariable::initializeRateFunction()
 					this->lbehaviorVariableParameters[pBehaviorVariable] =
 						parameter;
 					this->lbehaviorVariableScores[pBehaviorVariable] = 0;
+					this->lbehaviorVariableSumTerm[pBehaviorVariable] = 0;
+					this->lbehaviorVariableModelBSumTerm[pBehaviorVariable]
+						= 0;
 				}
 				else
 					throw logic_error(
@@ -176,6 +185,8 @@ void DependentVariable::initializeRateFunction()
 						OUT_DEGREE_RATE,
 						parameter));
 				this->loutDegreeScores[pVariable] = 0;
+				this->loutDegreeSumTerm[pVariable] = 0;
+				this->loutDegreeModelBSumTerm[pVariable] = 0;
 			}
 			else if (effectName == "inRate")
 			{
@@ -189,6 +200,7 @@ void DependentVariable::initializeRateFunction()
 						IN_DEGREE_RATE,
 						parameter));
 				this->linDegreeScores[pVariable] = 0;
+				this->linDegreeSumTerm[pVariable] = 0;
 			}
 			else if (effectName == "recipRate")
 			{
@@ -208,6 +220,7 @@ void DependentVariable::initializeRateFunction()
 						RECIPROCAL_DEGREE_RATE,
 						parameter));
 				this->lreciprocalDegreeScores[pVariable] = 0;
+				this->lreciprocalDegreeSumTerm[pVariable] = 0;
 			}
 			else if (effectName == "outRateInv")
 			{
@@ -221,6 +234,8 @@ void DependentVariable::initializeRateFunction()
 						INVERSE_OUT_DEGREE_RATE,
 						parameter));
 				this->linverseOutDegreeScores[pVariable] = 0;
+				this->linverseOutDegreeSumTerm[pVariable] = 0;
+				this->linverseOutDegreeModelBSumTerm[pVariable] = 0;
 			}
 			else
 			{
@@ -361,7 +376,7 @@ void DependentVariable::initialize(int period)
 
 		// TODO: Behavior variables change all the time, so I'm not sure
 		// it is enough to update the covariate rates at the start of the
-		// period only.
+		// period only. Amended 25/11/2010 RR
 
 		this->updateCovariateRates();
 	}
@@ -382,6 +397,7 @@ void DependentVariable::initialize(int period)
  */
 void DependentVariable::calculateRates()
 {
+	double sumRatesSquared = 0;
 	if (!this->constantRates() || !this->lvalidRates)
 	{
 		this->ltotalRate = 0;
@@ -400,12 +416,25 @@ void DependentVariable::calculateRates()
 			{
 				this->lrate[i] = 0;
 			}
-
 			this->ltotalRate += this->lrate[i];
-		}
+			sumRatesSquared += this->lrate[i] * this->lrate[i];
 
+		}
+		if (networkVariable())
+		{
+			if (this->pSimulation()->pModel()->needScores())
+			{
+				this->calculateScoreSumTerms();
+			}
+			if(this->pSimulation()->pModel()->modelTypeB())
+			{
+				this->ltotalRate = this->totalRate() * this->totalRate() -
+					sumRatesSquared;
+			}
+		}
 		this->lvalidRates = true;
 	}
+
 }
 
 
@@ -451,6 +480,7 @@ double DependentVariable::calculateRate(int i)
 
 	return this->basicRate() *
 		this->lcovariateRates[i] *
+		this->behaviorVariableRate(i) *
 		this->structuralRate(i);
 }
 
@@ -533,19 +563,19 @@ void DependentVariable::updateCovariateRates()
 	// the corresponding parameter.
 	// Again, the calculation of the exponentials is postponed.
 
-	for (std::map<const BehaviorVariable *, double>::iterator iter =
-			this->lbehaviorVariableParameters.begin();
-		iter != this->lbehaviorVariableParameters.end();
-		iter++)
-	{
-		const BehaviorVariable * pBehavior = iter->first;
-		double parameter = iter->second;
+// 	for (std::map<const BehaviorVariable *, double>::iterator iter =
+// 			this->lbehaviorVariableParameters.begin();
+// 		iter != this->lbehaviorVariableParameters.end();
+// 		iter++)
+// 	{
+// 		const BehaviorVariable * pBehavior = iter->first;
+// 		double parameter = iter->second;
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			this->lcovariateRates[i] += parameter * pBehavior->value(i);
-		}
-	}
+// 		for (int i = 0; i < this->n(); i++)
+// 		{
+// 			this->lcovariateRates[i] += parameter * pBehavior->value(i);
+// 		}
+// 	}
 
 	// Okay, now we take the exponentials of the sums of contributions over
 	// all covariates. This is valid, because exp(x_1 + ... + x_k) =
@@ -574,6 +604,30 @@ double DependentVariable::structuralRate(int i) const
 
 	return rate;
 }
+/**
+ * Returns the component of the rate function of actor <i>i</i> depending
+ * on behavior variables.
+ */
+double DependentVariable::behaviorVariableRate(int i) const
+{
+	// Add the contributions of each behavior variable with non-zero parameter
+	// for the rate functions. The contribution of a behavior variable v to
+	// the rate function of an actor i is exp(\alpha v[i]), where \alpha is
+	// the corresponding parameter.
+
+	double rate = 0;
+	for (std::map<const BehaviorVariable *, double>::const_iterator iter =
+			this->lbehaviorVariableParameters.begin();
+		iter != this->lbehaviorVariableParameters.end();
+		iter++)
+	{
+		const BehaviorVariable * pBehavior = iter->first;
+		double parameter = iter->second;
+		rate += parameter * pBehavior->value(i);
+	}
+
+	return exp(rate);
+}
 
 
 // ----------------------------------------------------------------------------
@@ -598,9 +652,19 @@ void DependentVariable::accumulateRateScores(double tau,
 	if (this == pSelectedVariable)
 	{
 		this->lbasicRateScore += 1.0 / this->basicRate();
+		if (this->pSimulation()->pModel()->modelTypeB())
+		{
+			throw logic_error("model type b");
+			this->lbasicRateScore += 1.0 / this->basicRate();
+		}
 	}
-
 	this->lbasicRateScore -= this->totalRate() * tau / this->basicRate();
+
+	if (this->pSimulation()->pModel()->modelTypeB())
+	{
+		throw logic_error("model type b");
+		this->lbasicRateScore -= this->totalRate() * tau / this->basicRate();
+	}
 
 	// Update scores for covariate dependent rate parameters
 
@@ -616,10 +680,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pCovariate->value(selectedActor);
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -= this->lrate[i] * pCovariate->value(i) * tau;
-		}
+		iter->second -= this->lconstantCovariateSumTerm[pCovariate] * tau;
 	}
 
 	for (std::map<const ChangingCovariate *, double>::iterator iter =
@@ -633,11 +694,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pCovariate->value(selectedActor, this->period());
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -=
-				this->lrate[i] * pCovariate->value(i, this->period()) * tau;
-		}
+		iter->second -= this->lchangingCovariateSumTerm[pCovariate] * tau;
 	}
 
 	for (std::map<const BehaviorVariable *, double>::iterator iter =
@@ -652,10 +709,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pBehavior->value(selectedActor);
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -= this->lrate[i] * pBehavior->value(i) * tau;
-		}
+		iter->second -= this->lbehaviorVariableSumTerm[pBehavior] * tau;
 	}
 
 	// Update scores for structural rate parameters
@@ -672,12 +726,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pNetwork->outDegree(selectedActor);
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -= this->rate(i) *	pNetwork->outDegree(i) * tau;
-			//		Rprintf("%d %f %d %f\n",i,this->rate(i), pNetwork->outDegree(i), tau);
-		}
-		//	Rprintf("%f 1\n", iter->second);
+		iter->second -= this->loutDegreeSumTerm[iter->first] * tau;
 	}
 
 	for (std::map<const NetworkVariable *, double>::iterator iter =
@@ -692,11 +741,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pNetwork->inDegree(selectedActor);
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -= this->rate(i) *	pNetwork->inDegree(i) * tau;
-		}
-		//	Rprintf("%f 1\n", iter->second);
+		iter->second -= this->linDegreeSumTerm[iter->first] * tau;
 	}
 
 	for (std::map<const NetworkVariable *, double>::iterator iter =
@@ -712,11 +757,7 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += pNetwork->reciprocalDegree(selectedActor);
 		}
 
-		for (int i = 0; i < this->n(); i++)
-		{
-			iter->second -=
-				this->rate(i) *	pNetwork->reciprocalDegree(i) * tau;
-		}
+		iter->second -= this->lreciprocalDegreeSumTerm[iter->first] * tau;
 	}
 
 	for (std::map<const NetworkVariable *, double>::iterator iter =
@@ -731,11 +772,292 @@ void DependentVariable::accumulateRateScores(double tau,
 			iter->second += invertor(pNetwork->outDegree(selectedActor));
 		}
 
+		iter->second -= this->linverseOutDegreeSumTerm[iter->first] * tau;
+	}
+}
+
+/**
+ * Updates the rate score functions for this event for this variable.
+ * @param[in] tau the time increment in the current step of the simulation
+ * @param[in] pSelectedVariable the variable, which has been selected in
+ * the current step of the simulation (0, if none is selected)
+ * @param[in] selectedActor the actor, which has been selected to change
+ * the selected variable, if any. If no variable has been selected, this
+ * parameter is ignored.
+ * @param[in] alter the alter, which has been selected to make a two-way
+ * change in this variable. If no variable has been selected, this
+ * parameter is ignored.
+ */
+void DependentVariable::accumulateRateScores(double tau,
+	const DependentVariable * pSelectedVariable,
+	int selectedActor, int alter)
+{
+	 switch (this->pSimulation()->pModel()->modelType())
+	 {
+	 case NOTUSED:
+	 case NORMAL:
+	 case AFORCE:
+	 case AAGREE:
+		 break;
+	 case BFORCE:
+	 case BAGREE:
+	 case BJOINT:
+
+		 // Update the score for the basic rate parameter
+
+		 if (this == pSelectedVariable && this->successfulChange())
+		 {
+			 this->lbasicRateScore += 2.0 / this->basicRate();
+		 }
+		 this->lbasicRateScore -=
+			 2 * this->totalRate() * tau / this->basicRate();
+
+		 // Update scores for covariate dependent rate parameters
+
+		 for (std::map<const ConstantCovariate *,
+				  double>::iterator iter =
+				  this->lconstantCovariateScores.begin();
+			  iter != this->lconstantCovariateScores.end();
+			  iter++)
+		 {
+			 const ConstantCovariate * pCovariate = iter->first;
+
+			 if (this == pSelectedVariable && this->successfulChange())
+			 {
+				 iter->second += pCovariate->value(selectedActor) +
+					 pCovariate->value(alter);
+			 }
+
+			 iter->second -= tau *
+				 this->lconstantCovariateModelBSumTerm[pCovariate];
+		 }
+		 for (std::map<const ChangingCovariate *, double>::iterator iter =
+				  this->lchangingCovariateScores.begin();
+			  iter != this->lchangingCovariateScores.end();
+			  iter++)
+		 {
+			 const ChangingCovariate * pCovariate = iter->first;
+
+			 if (this == pSelectedVariable && this->successfulChange())
+			 {
+				 iter->second +=
+						 pCovariate->value(selectedActor, this->period()) +
+					 pCovariate->value(alter, this->period());
+			 }
+
+			 iter->second -= tau *
+				 this->lchangingCovariateModelBSumTerm[pCovariate];
+		 }
+		 for (std::map<const BehaviorVariable *,
+				  double>::iterator iter =
+				  this->lbehaviorVariableScores.begin();
+			  iter != this->lbehaviorVariableScores.end();
+			  iter++)
+		 {
+			 const BehaviorVariable * pBehavior = iter->first;
+
+			 if (this == pSelectedVariable && this->successfulChange())
+			 {
+				 iter->second += pBehavior->value(selectedActor) +
+					 pBehavior->value(alter);
+			 }
+
+			 iter->second -= tau *
+				 this->lbehaviorVariableModelBSumTerm[pBehavior];
+		 }
+
+		 // Update scores for structural rate parameters:
+		 // only out and inverse out for model type b
+
+		 for (std::map<const NetworkVariable *, double>::iterator iter =
+				  this->loutDegreeScores.begin();
+			  iter != this->loutDegreeScores.end();
+			  iter++)
+		 {
+			 const Network * pNetwork = iter->first->pNetwork();
+
+			 if (this == pSelectedVariable && this->successfulChange())
+			 {
+				 iter->second += pNetwork->outDegree(selectedActor) +
+					 pNetwork->outDegree(alter);
+			 }
+
+			 iter->second -= tau * this->loutDegreeModelBSumTerm[iter->first];
+		 }
+
+
+		 for (std::map<const NetworkVariable *, double>::iterator iter =
+				  this->linverseOutDegreeScores.begin();
+			  iter != this->linverseOutDegreeScores.end();
+			  iter++)
+		 {
+			 const Network * pNetwork = iter->first->pNetwork();
+
+			 if (this == pSelectedVariable && this->successfulChange())
+			 {
+				 iter->second += invertor(pNetwork->outDegree(selectedActor))
+					 + invertor(pNetwork->outDegree(alter));
+			 }
+			 iter->second -= tau *
+				 this->linverseOutDegreeModelBSumTerm[iter->first];
+		 }
+	 }
+}
+/**
+ * Calculates the rate score sum terms for this variable.
+ *
+ */
+void DependentVariable::calculateScoreSumTerms()
+{
+	// calculate score sum terms for covariate dependent rate parameters
+
+	for (std::map<const ConstantCovariate *,
+			 double>::iterator iter =
+			 this->lconstantCovariateScores.begin();
+		 iter != this->lconstantCovariateScores.end();
+		 iter++)
+	{
+		const ConstantCovariate * pCovariate = iter->first;
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
 		for (int i = 0; i < this->n(); i++)
 		{
-			iter->second -=
-				this->rate(i) * invertor(pNetwork->outDegree(i)) * tau;
+			timesRate += pCovariate->value(i) * this->lrate[i];
+			if (this->pSimulation()->pModel()->modelTypeB())
+			{
+				timesRateSquared += pCovariate->value(i) * this->lrate[i] *
+					this->lrate[i];
+			}
 		}
+		this->lconstantCovariateSumTerm[pCovariate] = timesRate;
+		this->lconstantCovariateModelBSumTerm[pCovariate] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+	}
+	for (std::map<const ChangingCovariate *, double>::iterator iter =
+			 this->lchangingCovariateScores.begin();
+		 iter != this->lchangingCovariateScores.end();
+		 iter++)
+	{
+		const ChangingCovariate * pCovariate = iter->first;
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += pCovariate->value(i, this->period()) * this->lrate[i];
+			if (this->pSimulation()->pModel()->modelTypeB())
+			{
+				timesRateSquared += pCovariate->value(i, this->period()) *
+					this->lrate[i] * this->lrate[i];
+			}
+		}
+		this->lchangingCovariateSumTerm[pCovariate] = timesRate;
+		this->lchangingCovariateModelBSumTerm[pCovariate] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+	}
+	for (std::map<const BehaviorVariable *,
+			 double>::iterator iter =
+			 this->lbehaviorVariableScores.begin();
+		 iter != this->lbehaviorVariableScores.end();
+		 iter++)
+	{
+		const BehaviorVariable * pBehavior = iter->first;
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += pBehavior->value(i) * this->lrate[i];
+			if (this->pSimulation()->pModel()->modelTypeB())
+			{
+				timesRateSquared += pBehavior->value(i) * this->lrate[i] *
+					this->lrate[i];
+			}
+		}
+		this->lbehaviorVariableSumTerm[pBehavior] = timesRate;
+		this->lbehaviorVariableModelBSumTerm[pBehavior] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+	}
+
+	// Update scores for structural rate parameters. NB no in- or recip-
+	// for model type B
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->linDegreeScores.begin();
+		 iter != this->linDegreeScores.end();
+		 iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		double timesRate = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += pNetwork->inDegree(i) * this->lrate[i];
+		}
+		this->linDegreeSumTerm[iter->first] = timesRate;
+	}
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->loutDegreeScores.begin();
+		 iter != this->loutDegreeScores.end();
+		 iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += pNetwork->outDegree(i) * this->lrate[i];
+			if (this->pSimulation()->pModel()->modelTypeB())
+			{
+				timesRateSquared += pNetwork->outDegree(i) * this->lrate[i] *
+					this->lrate[i];
+			}
+		}
+		this->loutDegreeSumTerm[iter->first] = timesRate;
+		this->loutDegreeModelBSumTerm[iter->first] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->lreciprocalDegreeScores.begin();
+		 iter != this->lreciprocalDegreeScores.end();
+		 iter++)
+	{
+		const OneModeNetwork * pNetwork =
+			(const OneModeNetwork *) iter->first->pNetwork();
+
+		double timesRate = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += pNetwork->reciprocalDegree(i) * this->lrate[i];
+		}
+		this->lreciprocalDegreeSumTerm[iter->first] = timesRate;
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->linverseOutDegreeScores.begin();
+		 iter != this->linverseOutDegreeScores.end();
+		 iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += invertor(pNetwork->outDegree(i)) * this->lrate[i];
+			if (this->pSimulation()->pModel()->modelTypeB())
+			{
+				timesRateSquared += invertor(pNetwork->outDegree(i)) *
+					this->lrate[i] * this->lrate[i];
+			}
+		}
+		this->linverseOutDegreeSumTerm[iter->first] = timesRate;
+		this->linverseOutDegreeModelBSumTerm[iter->first] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+
 	}
 }
 
@@ -762,7 +1084,6 @@ void DependentVariable::calculateMaximumLikelihoodRateScores(int
 void DependentVariable::calculateMaximumLikelihoodRateDerivatives(int
 	activeMiniStepCount)
 {
-//	Rprintf("%d %d %f\n", this->n(), activeMiniStepCount, this->basicRate());
 	this->lbasicRateDerivative =
 		- activeMiniStepCount / this->basicRate()/ this->basicRate();
 }
@@ -935,9 +1256,11 @@ void DependentVariable::actOnLeaver(const SimulationActorSet * pActorSet,
 
 /**
  * Returns whether applying the given ministep on the current state of this
- * variable would be valid with respect to all constraints.
+ * variable would be valid with respect to all constraints. One can disable
+ * the checking of up-only and down-only conditions.
  */
-bool DependentVariable::validMiniStep(const MiniStep * pMiniStep) const
+bool DependentVariable::validMiniStep(const MiniStep * pMiniStep,
+	bool checkUpOnlyDownOnlyConditions) const
 {
 	return true;
 }
@@ -1009,10 +1332,8 @@ void DependentVariable::updateEffectInfoParameters()
 void DependentVariable::sampleBasicRate(int miniStepCount)
 {
 	this->lbasicRate = nextGamma(miniStepCount + 1, 1.0 / this->n());
-	MLSimulation * pMLSimulation =
-		dynamic_cast<MLSimulation * >(this->pSimulation());
-	pMLSimulation->sampledBasicRates(this->lbasicRate);
-	pMLSimulation->sampledBasicRatesDistributions(miniStepCount + 1);
+	this->sampledBasicRates(this->lbasicRate);
+	this->sampledBasicRatesDistributions(miniStepCount + 1);
 	this->lvalidRates = false;
 }
 /**
@@ -1058,7 +1379,68 @@ double DependentVariable::sampleParameters(double scaleFactor)
 	}
 	return priornew - priorold;
 }
+/**
+ * Clears the sampled basic rate parameter store.
+ */
 
+void DependentVariable::clearSampledBasicRates()
+{
+  this->lsampledBasicRates.clear();
+}
+/**
+ * Returns the sampled basic rate parameter for the given iteration.
+ */
+
+double DependentVariable::sampledBasicRates(unsigned iteration) const
+{
+  if (iteration < this->lsampledBasicRates.size())
+	{
+		return this->lsampledBasicRates[iteration];
+	}
+	else
+	{
+		throw std::out_of_range("The number" + toString(iteration) +
+			" is not in the range [0," +
+			toString(this->lsampledBasicRates.size()) + "].");
+	}
+
+}
+/**
+ * Stores the sampled basic rate parameter for the next iteration.
+ */
+
+void DependentVariable::sampledBasicRates(double value)
+{
+	this->lsampledBasicRates.push_back(value);
+}
+/**
+ * Returns the shape parameter used in the sampled basic rate parameter for
+ * the given iteration.
+ */
+
+int DependentVariable::sampledBasicRatesDistributions(unsigned iteration) const
+{
+	if (iteration < this->lsampledBasicRatesDistributions.size())
+	{
+		return this->lsampledBasicRatesDistributions[iteration];
+	}
+	else
+	{
+		throw std::out_of_range("The number" + toString(iteration) +
+			" is not in the range [0," +
+			toString(this->lsampledBasicRatesDistributions.size()) + "].");
+	}
+
+}
+/**
+ * Stores the shape parameter used in the sampled basic rate parameter for the
+ * next iteration.
+ */
+
+void DependentVariable::sampledBasicRatesDistributions(int value)
+{
+	this->lsampledBasicRatesDistributions.push_back(value);
+}
 // ----------------------------------------------------------------------------
 // Section: Properties
 // ----------------------------------------------------------------------------
@@ -1082,4 +1464,46 @@ bool DependentVariable::behaviorVariable() const
 	return false;
 }
 
+/**
+ * Returns if this is a symmetric one mode network.
+ */
+bool DependentVariable::symmetric() const
+{
+	// This method is overridden in NetworkVariable. Here we return false.
+	return false;
+}
+
+/**
+ * Returns if there are any constraints on the permitted changes of this
+ * variable.
+ */
+bool DependentVariable::constrained() const
+{
+	return this->pData()->upOnly(this->period()) ||
+		this->pData()->downOnly(this->period());
+}
+
+/**
+ * Returns the alter for this step. Only used for symmetric one mode networks.
+ */
+int DependentVariable::alter() const
+{
+	// This method is overridden in NetworkVariable. Here we return false.
+	return 0;
+}
+/**
+ * Returns whether the most recent change attempted was successful.
+ */
+bool DependentVariable::successfulChange() const
+{
+	return this->lsuccessfulChange;
+}
+
+/**
+ * Stores whether the most recent change attempted was successful.
+ */
+void DependentVariable::successfulChange(bool success)
+{
+	this->lsuccessfulChange = success;
+}
 }

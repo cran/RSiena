@@ -20,9 +20,10 @@ class EpochSimulation;
 class State
 {
 public:
-	State(Data * pData, int observation);
+	State(const Data * pData, int observation, bool copyValues = false);
 	State(EpochSimulation * pSimulation);
 	State();
+	virtual ~State();
 
 	const Network * pNetwork(string name) const;
 	void pNetwork(string name, const Network * pNetwork);
@@ -35,6 +36,7 @@ public:
 private:
 	map<string, const Network *> lnetworks;
 	map<string, const int *> lbehaviors;
+	bool lownedValues;
 };
 
 }

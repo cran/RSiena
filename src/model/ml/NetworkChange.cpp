@@ -61,7 +61,7 @@ void NetworkChange::makeChange(DependentVariable * pVariable)
 {
 	MiniStep::makeChange(pVariable);
 
-	if (this->ego() != this->lalter)
+	if (!this->diagonal())
 	{
 		NetworkVariable * pNetworkVariable =
 			dynamic_cast<NetworkVariable *>(pVariable);
@@ -80,7 +80,9 @@ void NetworkChange::makeChange(DependentVariable * pVariable)
  */
 bool NetworkChange::diagonal() const
 {
-	return this->ego() == this->lalter;
+	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+	return (oneMode && this->ego() == this->lalter) || (!oneMode &&
+		this->lalter ==	this->lpData->pReceivers()->n());
 }
 
 
@@ -95,13 +97,13 @@ bool NetworkChange::missing(int period) const
 	if (oneMode || this->alter() <
 		this->lpData->pReceivers()->n())
 	{
-	return this->lpData->missing(this->ego(), this->lalter, period) ||
-		this->lpData->missing(this->ego(), this->lalter, period + 1);
-}
+		return this->lpData->missing(this->ego(), this->lalter, period) ||
+			this->lpData->missing(this->ego(), this->lalter, period + 1);
+	}
 	else
 	{
 		// bipartite network no change option
-		return true;
+		return false;
 	}
 }
 
@@ -150,8 +152,8 @@ double NetworkChange::endowmentEffectContribution(int alter, int effect) const
  * Stores the evaluationEffectContribution in the next spot for this alter for
  * this ministep.
  */
-void NetworkChange::evaluationEffectContribution(double value, int alter, 
-	int effect) 
+void NetworkChange::evaluationEffectContribution(double value, int alter,
+	int effect)
 {
 	this->levaluationEffectContribution[alter][effect] = value;
 }
@@ -160,8 +162,8 @@ void NetworkChange::evaluationEffectContribution(double value, int alter,
  * Stores the endowmentEffectContribution for this effect and alter for
  * this ministep.
  */
-void NetworkChange::endowmentEffectContribution(double value, int alter, 
-	int effect) 
+void NetworkChange::endowmentEffectContribution(double value, int alter,
+	int effect)
 {
 	this->lendowmentEffectContribution[alter][effect] = value;
 }
@@ -169,12 +171,12 @@ void NetworkChange::endowmentEffectContribution(double value, int alter,
  * Creates arrays for the evaluation and endowment Effect Contributions for
  * this ministep.
  */
-void NetworkChange::allocateEffectContributionArrays(int nEvaluationEffects, 
-	int nEndowmentEffects, int m) 
+void NetworkChange::allocateEffectContributionArrays(int nEvaluationEffects,
+	int nEndowmentEffects, int m)
 {
-	this->levaluationEffectContribution.resize(m, 
+	this->levaluationEffectContribution.resize(m,
 		vector <double> (nEvaluationEffects));
-	this->lendowmentEffectContribution.resize(m, 
+	this->lendowmentEffectContribution.resize(m,
 		vector <double> (nEvaluationEffects));
 }
 

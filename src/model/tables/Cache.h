@@ -18,6 +18,7 @@ using namespace std;
 namespace siena
 {
 
+class TwoNetworkCache;
 class NetworkCache;
 class Network;
 
@@ -29,10 +30,14 @@ public:
 	virtual ~Cache();
 
 	NetworkCache * pNetworkCache(const Network * pNetwork);
+	TwoNetworkCache * pTwoNetworkCache(const Network * pFirstNetwork,
+		const Network * pSecondNetwork);
 	void initialize(int ego);
 
 private:
 	map<const Network *, NetworkCache *> lnetworkCaches;
+	map<const Network *, map <const Network *, TwoNetworkCache *> >
+		ltwoNetworkCaches;
 	int lego;
 };
 

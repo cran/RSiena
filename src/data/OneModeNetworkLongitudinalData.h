@@ -33,6 +33,8 @@ public:
 	void symmetric(bool flag);
 	double balanceMean() const;
 	void balanceMean(double value);
+	double structuralMean() const;
+	void structuralMean(double value);
 
 private:
 	// Indicates is the networks are supposed to be symmetric at all
@@ -42,6 +44,9 @@ private:
 
 	// The centering constant for the balance effect.
 	double lbalanceMean;
+
+	// The centering constant for the in-structural equivalence effect.
+	double lstructuralMean;
 };
 
 }

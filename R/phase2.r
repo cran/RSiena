@@ -285,7 +285,7 @@ doIterations<- function(z, x, subphase,...)
         }
         if (x$maxlike)
         {
-            z$phase2fras[subphase, ,z$nit] <- fra
+         #   z$phase2fras[subphase, ,z$nit] <- fra
          #   z$rejectprops[subphase, , z$nit] <- zz$rejectprop
         }
         if (z$nit %% 2 == 1)
@@ -464,7 +464,7 @@ doIterationsCopy <- function(z, x, subphase, numberIterations=10,
         }
         if (x$maxlike)
         {
-            z$phase2fras[subphase, ,z$nit] <- fra
+            # z$phase2fras[subphase, ,z$nit] <- fra
             ##   z$rejectprops[subphase, , z$nit] <- zz$rejectprop
         }
         if (z$nit %% 2 == 1)

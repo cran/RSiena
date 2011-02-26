@@ -11,7 +11,7 @@
 setEffect(myeff, shortName, parameter = 0, fix = FALSE,
 test = FALSE, initialValue = 0, timeDummy = ",", include = TRUE,
 name = myeff$name[1], type = "eval", interaction1 = "",
-interaction2 = "", character=FALSE)
+interaction2 = "", period=1, group=1, character=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -29,7 +29,7 @@ interaction2 = "", character=FALSE)
   \item{initialValue}{Initial value required. Default 0.
 }
 \item{timeDummy}{string: Comma delimited string of which periods to
-dummy. Alternately, use \code{\link{includeTimeDummy}}.
+dummy. Alternatively, use \code{\link{includeTimeDummy}}.
 }
   \item{include}{Boolean. default TRUE, but can be switched to FALSE to
 	turn off an effect.}
@@ -48,6 +48,12 @@ dummy. Alternately, use \code{\link{includeTimeDummy}}.
   Name of siena object where needed to completely identify the
   effect e.g. covariate name or behavior variable name.
 }
+\item{period}{
+  Number of period if basic rate. Use numbering within groups.
+}
+\item{group}{
+  Number of group if basic rate.
+  }
 \item{character}{Boolean: is the short name a character string or not}
 }
 \details{
@@ -55,7 +61,7 @@ The arguments should identify the effects completely. The parm column
 will be set to the parameter value requested. The
   include column will be set to the include value requested (TRUE or FALSE)}
 \value{
-	An updated version of the input effects object, with one rows
+	An updated version of the input effects object, with one row
 	updated.
 	Details of the row altered will be printed.
 }

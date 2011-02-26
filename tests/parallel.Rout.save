@@ -1,7 +1,8 @@
 
-R version 2.11.0 Patched (2010-04-23 r51810)
+R version 2.12.1 Patched (2010-12-27 r53883)
 Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i386-pc-mingw32/i386 (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -113,10 +114,10 @@ Total of 269 iteration steps.
 > mydata <- sienaDataCreate(mynet1, mynet2)
 > myeff <- getEffects(mydata)
 > myeff <- setEffect(myeff, linear, initialValue=0.34699930338, name="mynet2")
-                       name shortName type interaction1 interaction2 include
-mynet2.objEffects.32 mynet2    linear eval                              TRUE
-                     parm   fix  test initialValue timeDummy
-mynet2.objEffects.32    0 FALSE FALSE    0.3469993         ,
+                    name shortName type interaction1 interaction2 include parm
+mynet2.obj.eval.1 mynet2    linear eval                              TRUE    0
+                    fix  test initialValue timeDummy period group
+mynet2.obj.eval.1 FALSE FALSE    0.3469993         ,   <NA>     1
 > ##myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
 > ##test10
 > print('test10')
@@ -160,8 +161,8 @@ Total of 371 iteration steps.
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 > data501paj <- sienaDataCreateFromSession("s50paj.csv", modelName="s50paj")
 Loading required package: network
-Classes for Relational Data
-Version 1.4-1 created on July 26, 2008.
+     Classes for Relational Data
+Version      1.5-1 created on      October 18, 2010.
 copyright (c) 2005, Carter T. Butts, University of California-Irvine
                     Mark S. Handcock, University of Washington
                     David R. Hunter, Penn State University
@@ -188,5 +189,37 @@ Estimates, standard errors and t-statistics for convergence
 
 Total of 614 iteration steps.
 
-> ## compare with outputs in parallelchecked/
+> ##test12
+> print('test12')
+[1] "test12"
+> use<- 1:30
+> mynet1 <- sienaNet(array(c(s501[use,], s502[use,], s503[use,]),
++                          dim=c(length(use), 50,3)), type='bipartite',
++                          nodeSet=c('Senders','receivers'))
+> receivers <- sienaNodeSet(50,'receivers')
+> senders <- sienaNodeSet(30,'Senders')
+> mydata <- sienaDataCreate(mynet1, nodeSets=list(senders, receivers))
+> myeff <- getEffects(mydata)
+> myeff <- includeEffects(myeff,  inPop)
+                    name shortName type interaction1 interaction2 include
+mynet1.obj.eval.3 mynet1     inPop eval                              TRUE
+> ans <- siena07(sienaModelCreate(n3=100,nsub=2, seed=1, projname="test12"),
++                data=mydata, effects=myeff, batch=TRUE, silent=TRUE)
+> ans
+Estimates, standard errors and t-statistics for convergence
+
+                                   Estimate   Standard   t statistic 
+                                                Error                
+
+Rate parameters: 
+  0.1      Rate parameter period 1  4.2062  ( 0.5851   )             
+  0.2      Rate parameter period 2  3.4880  ( 0.5183   )             
+
+Other parameters: 
+  1.  eval outdegree (density)     -1.7536  ( 0.1460   ) -0.0832     
+  2.  eval indegree - popularity    0.0517  ( 0.0500   ) -0.3291     
+
+Total of 190 iteration steps.
+
+> tt <- sienaTimeTest(ans)
 > 

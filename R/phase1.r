@@ -46,6 +46,7 @@ phase1.1 <- function(z, x, ...)
     z$sf2 <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
     z$ssc <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
     z$sdf <- array(0, dim=c(z$n1, z$pp, z$pp))
+    z$sdf2 <- array(0, dim=c(z$n1, f$observations -1, z$pp, z$pp))
     z$accepts <- matrix(0, nrow=z$n1, ncol=7)
     z$rejects <- matrix(0, nrow=z$n1, ncol=7)
     z$npos <- rep(0, z$pp)
@@ -187,9 +188,12 @@ doPhase1it<- function(z, x, zsmall, xsmall, ...)
     {
         fra <- colSums(zz$fra)
         fra <- fra - z$targets
+        fra2 <- zz$fra
         z$sf[z$nit, ] <- fra
         z$sf2[z$nit, , ] <- zz$fra
         z$sims[[z$nit]] <- zz$sims
+        z$chain[[z$nit]] <- zz$chain
+        fra <- fra + z$targets
     }
     else
     {
@@ -201,18 +205,22 @@ doPhase1it<- function(z, x, zsmall, xsmall, ...)
             z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
             z$sims[[z$nit + (i - 1)]] <- zz[[i]]$sims
         }
-
+        fra2 <- t(sapply(zz, function(x)x$fra))
+        dim(fra2) <- c(int, nrow(zz[[1]]$fra), z$pp)
+        fra <- t(sapply(zz, function(x) colSums(x$fra)))
     }
     if (x$maxlike)
     {
         z$sdf[z$nit, , ] <- zz$dff
+        z$sdf2[z$nit, , , ] <- zz$dff2
         z$accepts[z$nit, ] <- zz$accepts
         z$rejects[z$nit, ] <- zz$rejects
     }
     else if (z$FinDiff.method)
     {
-        z <- FiniteDifferences(z, x, fra + z$targets, ...)
+        z <- FiniteDifferences(z, x, fra , fra2, ...)
         z$sdf[z$nit:(z$nit + (z$int - 1)), , ] <- z$sdf0
+        z$sdf2[z$nit:(z$nit + (z$int - 1)), , , ] <- z$sdf02
     }
     else
     {
@@ -391,6 +399,7 @@ phase1.2 <- function(z, x, ...)
     z$phase1devs <- z$sf
     z$phase1dfra <- z$frda
     z$phase1sdf <- z$sdf
+    z$phase1sdf2 <- z$sdf2
     z$phase1scores <- z$ssc
     ##browser()
     z
@@ -410,7 +419,7 @@ CalculateDerivative <- function(z, x)
         ##if force_fin_diff_phase_1 is true so warning is zero on entry
         ##browser()
 
-        dfra <-derivativeFromScoresAndDeviations(z$ssc, z$sf2)
+        dfra <- derivativeFromScoresAndDeviations(z$ssc, z$sf2)
 
         z$jacobianwarn1 <- rep(FALSE, z$pp)
         if (any(diag(dfra) <= 0))
@@ -469,10 +478,11 @@ CalculateDerivative <- function(z, x)
 }
 
 ##@FiniteDifferences siena07 Does the extra iterations for finite differences
-FiniteDifferences <- function(z, x, fra, ...)
+FiniteDifferences <- function(z, x, fra, fra2, ...)
 {
     int <- z$int
     fras <- array(0, dim = c(int, z$pp, z$pp))
+    fras2 <- array(0, dim = c(int, z$f$observations - 1, z$pp, z$pp))
     xsmall <- NULL
  ##browser()
     for (i in 1 : z$pp)
@@ -487,8 +497,7 @@ FiniteDifferences <- function(z, x, fra, ...)
         ##  assign('.Random.seed',randomseed,pos=1)
         if (int == 1)
         {
-            zz <- x$FRAN(zdummy, xsmall, INIT=FALSE,
-                         fromFiniteDiff=TRUE)
+            zz <- x$FRAN(zdummy, xsmall, INIT=FALSE, fromFiniteDiff=TRUE)
             if (!zz$OK)
             {
                 z$OK <- zz$OK
@@ -504,11 +513,15 @@ FiniteDifferences <- function(z, x, fra, ...)
         if (int == 1)
         {
             fras[1, i, ] <- colSums(zz$fra) - fra
+            fras2[1, , i, ] <- zz$fra - fra2
         }
         else
         {
             for (j in 1 : int)
-                fras[j, i, ] <- colSums(zz[[j]]$fra) - fra
+            {
+                fras[j, i, ] <- colSums(zz[[j]]$fra) - fra[j, ]
+                fras2[j, , i, ] <- zz[[j]]$fra - fra2[j, , ]
+           }
         }
     }
                                         ##browser()
@@ -520,13 +533,8 @@ FiniteDifferences <- function(z, x, fra, ...)
                 ifelse(abs(diag(matrix(fras[ii, , ], nrow=z$pp))) > 1e-6, 1, 0)
         }
     }
-    sdf <- fras
-    for (i in 1:int)
-    {
-        sdf[i, , ] <- fras[i, , ] / rep(z$epsilon, z$pp)
-    }
-    z$sdf0 <- sdf
-                                        ## browser()
+    z$sdf0 <- fras / rep(rep(z$epsilon, each=int), z$pp)
+    z$sdf02 <- fras2 / rep(rep(z$epsilon, each=int * dim(fras2)[2]), z$pp)
     z
 }
 ##@derivativeFromScoresAndDeviations siena07 create dfra from scores and deviations
@@ -570,5 +578,7 @@ makeZsmall <- function(z)
     zsmall$pp <- z$pp
     zsmall$nrunMH <- z$nrunMH
     zsmall$returnDeps <- z$returnDeps
+    zsmall$addChainToStore <- z$addChainToStore
+    zsmall$needChangeContributions <- z$needChangeContributions
     zsmall
 }

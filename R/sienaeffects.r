@@ -7,7 +7,6 @@
 # *
 # * Description: This module contains utilities for updating an effects object
 # *****************************************************************************/
-
 ##@includeEffect DataCreate
 includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
                            type="eval", interaction1="", interaction2="",
@@ -48,7 +47,8 @@ includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
 includeInteraction <- function(myeff, ...,
                                include=TRUE, name=myeff$name[1],
                         type="eval", interaction1=rep("", 3),
-                               interaction2=rep("", 3), character=FALSE)
+                               interaction2=rep("", 3), character=FALSE,
+                               verbose=TRUE)
 {
     if (character)
     {
@@ -74,20 +74,6 @@ includeInteraction <- function(myeff, ...,
     else
     {
         shortNames <- dots
-    }
-    ## if want to include, check that we have a spare row
-    if (include)
-    {
-        ints <- myeff[myeff$name == name & myeff$shortName  %in%
-                      c("unspInt", "behUnspInt") &
-                      (is.na(myeff$effect1) | myeff$effect1 == 0)&
-                      myeff$type == type, ]
-        if (nrow(ints) == 0)
-        {
-            stop("No more interactions available:",
-                 "recreate the effects object requesting more interactions")
-        }
-        ints <- ints[1, ]
     }
     ## find the first underlying effect
     shortName <- shortNames[1]
@@ -151,6 +137,41 @@ includeInteraction <- function(myeff, ...,
     {
         effect3 <- 0
     }
+    ## if want to include, check that we have a spare row
+    if (include)
+    {
+        ints <- myeff[myeff$name == name & myeff$shortName  %in%
+                      c("unspInt", "behUnspInt") &
+                      (is.na(myeff$effect1) | myeff$effect1 == 0)&
+                      myeff$type == type, ]
+        if (nrow(ints) == 0)
+        {
+            baseEffect<- myeff[myeff$name == name, ][1, ]
+            if (baseEffect$netType != "behavior")
+            {
+                tmprow <- createEffects("unspecifiedNetInteraction", name=name,
+                                        netType=baseEffect$netType,
+                                        groupName=baseEffect$groupName,
+                                        group=baseEffect$group)
+            }
+            else
+            {
+                tmprow <- createEffects("unspecifiedBehaviorInteraction",
+                                        name=name,
+                                        netType=baseEffect$netType,
+                                        groupName=baseEffect$groupName,
+                                        group=baseEffect$group)
+            }
+            tmprow$include <- TRUE
+            tmprow <- tmprow[tmprow$type==type, ]
+            tmprow$effectNumber <- max(myeff$effectNumber) + 1
+            rownames(tmprow) <-
+                paste(name, "obj", "type", tmprow$effectNumber, sep='.')
+            myeff <- rbind(myeff, tmprow)
+            ints <- tmprow
+        }
+        ints <- ints[1, ]
+    }
     if (include)
     {
         intn <- myeff$effectNumber == ints$effectNumber
@@ -167,9 +188,13 @@ includeInteraction <- function(myeff, ...,
         }
         myeff[intn, "include"] <- FALSE
     }
-    print.data.frame(myeff[intn, c("name", "shortName", "type", "interaction1",
-                     "interaction2", "include", "effect1", "effect2",
-                        "effect3")])
+    if (verbose)
+    {
+        print.data.frame(myeff[intn, c("name", "shortName", "type",
+                                       "interaction1", "interaction2",
+                                       "include", "effect1", "effect2",
+                                       "effect3")])
+    }
     myeff
 }
 
@@ -179,7 +204,7 @@ setEffect <- function(myeff, shortName, parameter=0,
                       timeDummy=",",
                       include=TRUE, name=myeff$name[1],
                       type="eval", interaction1="", interaction2="",
-                      character=FALSE)
+                       period=1, group=1, character=FALSE)
 {
     if (!character)
     {
@@ -189,7 +214,9 @@ setEffect <- function(myeff, shortName, parameter=0,
     myeff$name == name &
     myeff$type == type &
     myeff$interaction1 == interaction1 &
-    myeff$interaction2 == interaction2
+    myeff$interaction2 == interaction2 &
+    (is.na(myeff$period) | myeff$period == period) &
+    myeff$group == group
     if (sum(use) == 0)
     {
         stop("Effect not found")
@@ -206,6 +233,6 @@ setEffect <- function(myeff, shortName, parameter=0,
     myeff[use, "timeDummy"] <- timeDummy
     print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
                        "interaction2", "include", "parm", "fix", "test",
-                       "initialValue", "timeDummy")])
+                       "initialValue", "timeDummy", "period", "group")])
     myeff
 }

@@ -811,7 +811,7 @@ siena01Gui <- function(getDocumentation=FALSE)
                     tclvalue(derivVar) <<- '0. crude Monte Carlo'
                }
                 tclvalue(ph3spinVar) <<- mymodel$n3
-                if (mymodel$MaxDegree != 0)
+                if (any(mymodel$MaxDegree != 0))
                 {
                     for (i in 1:nMaxDegree)
                     {

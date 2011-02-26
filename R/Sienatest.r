@@ -178,8 +178,17 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
         dfra2 <- dfra + msf
     else
         dfra2 <- dfra
-    dinv2 <- solve(dfra2)
-    oneStep<- -dinv2 %*% fra
+    if (inherits(try(dinv2 <- solve(dfra2)), "try-error"))
+    {
+        Report("Error message for inversion to get onestep estimator: \n", cf)
+        dinv2 <- dfra2
+        dinv2[] <- NA
+        oneStep <- rep(NA, nrow(dfra2))
+    }
+    else
+    {
+        oneStep<- -dinv2 %*% fra
+    }
     list(testresult=testresult, testresulto=testresulto,
          testresOverall=testresOverall, covMatrix=covMatrix,
          oneStep=oneStep, dinv2= dinv2, dfra2=dfra2)
@@ -188,47 +197,65 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
 EvaluateTestStatistic<- function(maxlike, test, dfra, msf, fra)
 {
     ##uses local arrays set up in the calling procedure
-    d11 <- dfra[!test,!test,drop=FALSE]
-    d22 <- dfra[test,test,drop=FALSE]
-    d21 <- dfra[test,!test,drop=FALSE]
+    d11 <- dfra[!test, !test, drop=FALSE]
+    d22 <- dfra[test, test, drop=FALSE]
+    d21 <- dfra[test, !test, drop=FALSE]
     d12 <- t(d21)
-    sigma11 <- msf[!test,!test,drop=FALSE]
-    sigma22<- msf[test,test,drop=FALSE]
-    sigma12 <- msf[!test,test,drop=FALSE]
+    sigma11 <- msf[!test, !test, drop=FALSE]
+    sigma22<- msf[test, test,drop=FALSE]
+    sigma12 <- msf[!test, test, drop=FALSE]
     sigma21<- t(sigma12)
     z1 <- fra[!test]
     z2 <- fra[test]
-    id11 <- solve(d11)
-    rg<- d21%*%id11
-    if (!maxlike)
+    if (inherits(try(id11 <- solve(d11)), "try-error"))
     {
-        ##orthogonalise deviation vector
-        ov<- z2-rg%*%z1
-        ##compute var(ov) = sigma22- (d21%*%id11) %*%sigma12 -
-        ##      sigma21 %*% t(id11)%*% t(d21) +
-        ##      d21%*%id11 %*% sigma11 %*% t(id11) %*% t(d21)
-        v2<- sigma21 - rg%*%sigma11
-        v6<- v2 %*% t(id11) %*% t(d21)
-        v9<- sigma22 -  rg %*% sigma12 -v6
+        Report('Error message for inversion of d11: \n', cf)
+        oneSided <- NA
+        v9 <- d22
+        v9[] <- NA
+        cvalue <- matrix(NA, 1, 1)
     }
     else
     {
-        ov <- -z2
-        v9 <- d22 - rg %*% d12
-    }
-    vav<- solve(v9)  ## vav is the inverse variance matrix of ov
-    cvalue <- t(ov) %*% vav %*% ov
-    if (cvalue < 0) cvalue <- 0
-    if (sum(test)==1)
-    {
-        if (vav>0)
-            oneSided <- ov * sqrt(vav)
+        rg <- d21 %*% id11
+        if (!maxlike)
+        {
+            ##orthogonalise deviation vector
+            ov <- z2 - rg %*% z1
+            ##compute var(ov) = sigma22 - (d21 %*% id11) %*% sigma12 -
+            ##      sigma21 %*% t(id11)%*% t(d21) +
+            ##      d21%*%id11 %*% sigma11 %*% t(id11) %*% t(d21)
+            v2 <- sigma21 - rg %*% sigma11
+            v6 <- v2 %*% t(id11) %*% t(d21)
+            v9 <- sigma22 -  rg %*% sigma12 - v6
+        }
         else
+        {
+            ov <- -z2
+            v9 <- d22 - rg %*% d12
+        }
+        if (inherits(try(vav <- solve(v9)), "try-error"))
+            ## vav is the inverse variance matrix of ov
+        {
+            Report('Error message for inversion of v9: \n', cf)
+            vav <- v9
+            vav[] <- NA
+        }
+        cvalue <- t(ov) %*% vav %*% ov
+        if (cvalue < 0) cvalue <- 0
+        if (sum(test) == 1)
+        {
+            if (vav > 0)
+                oneSided <- ov * sqrt(vav)
+            else
+                oneSided <- 0
+            if (!maxlike) oneSided <- - oneSided
+            ## change the sign for intuition for users
+        }
+        else
+        {
             oneSided <- 0
-        if (!maxlike) oneSided<- - oneSided
-        ## change the sign for intuition for users
+        }
     }
-    else
-        oneSided <- 0
     list(cvalue=cvalue, oneSided=oneSided, covMatrix=v9)
 }

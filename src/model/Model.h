@@ -21,6 +21,15 @@ namespace siena
 {
 
 // ----------------------------------------------------------------------------
+// Section: Enumerations
+// ----------------------------------------------------------------------------
+
+/**
+ * This enumeration defines the possible types of model for symmetric,
+ * undirected networks.
+ */
+	enum ModelType { NOTUSED, NORMAL, AFORCE, AAGREE, BFORCE, BAGREE, BJOINT };
+// ----------------------------------------------------------------------------
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
@@ -77,9 +86,16 @@ public:
 	const vector<EffectInfo *> & rEvaluationEffects(string variableName) const;
 	const vector<EffectInfo *> & rEndowmentEffects(string variableName) const;
 
-	void chainStore(Chain& chain);
-	vector<Chain *> *chainStore();
-	
+	void chainStore(const Chain& chain, int periodFromStart);
+	vector <Chain *> & rChainStore( int periodFromStart);
+	void partClearChainStore();
+	void clearChainStore();
+	void clearChainStore(int periodFromStart);
+	void setupChainStore(int numberOfPeriods);
+	void deleteLastChainStore(int periodFromStart);
+	void numberOfPeriods(int numberOfPeriods);
+	int numberOfPeriods();
+
 	// Various flags
 
 	void conditional(bool flag);
@@ -106,6 +122,12 @@ public:
 	void parallelRun(bool flag);
 	bool parallelRun() const;
 
+	void modelType(int type);
+	ModelType modelType() const;
+	bool modelTypeB() const;
+
+	// various stores for ML
+
 	void numberMLSteps(int value);
 	int numberMLSteps() const;
 
@@ -117,6 +139,37 @@ public:
 
 	void initialPermutationLength(double value);
 	double initialPermutationLength() const;
+
+	void insertDiagonalProbability(double probability);
+	double insertDiagonalProbability() const;
+
+	void cancelDiagonalProbability(double probability);
+	double cancelDiagonalProbability() const;
+
+	void permuteProbability(double probability);
+	double permuteProbability() const;
+
+	void insertPermuteProbability(double probability);
+	double insertPermuteProbability() const;
+
+	void deletePermuteProbability(double probability);
+	double deletePermuteProbability() const;
+
+	void insertRandomMissingProbability(double probability);
+	double insertRandomMissingProbability() const;
+
+	void deleteRandomMissingProbability(double probability);
+	double deleteRandomMissingProbability() const;
+
+	void missingNetworkProbability(double probability);
+	double missingNetworkProbability(int periodFromStart) const;
+
+	void missingBehaviorProbability(double probability);
+	double missingBehaviorProbability(int periodFromStart) const;
+
+	// simple rates flag for ML
+	bool simpleRates() const;
+	void simpleRates(bool simpleRates);
 
 	void numberMHBatches(int value);
 	int numberMHBatches() const;
@@ -168,7 +221,7 @@ private:
 	// this iteration
 	bool lneedDerivatives;
 
-	// indicates whether we need to store the change contributions on 
+	// indicates whether we need to store the change contributions on
 	// the ministeps
 	bool lneedChangeContributions;
 
@@ -188,15 +241,34 @@ private:
 	// initial length of permuted interval
 	double linitialPermutationLength;
 
+	// probabilities of the different ML steps
+	double linsertDiagonalProbability;
+	double lcancelDiagonalProbability;
+	double lpermuteProbability;
+	double linsertPermuteProbability;
+	double ldeletePermuteProbability;
+	double linsertRandomMissingProbability;
+	double ldeleteRandomMissingProbability;
+
+	bool lsimpleRates;
+
+	vector <double> lmissingNetworkProbability;
+	vector <double> lmissingBehaviorProbability;
+
 	// number of steps in a MCMC run for ML
 	int lnumberMHBatches;
 
 	// Bayesian scale factor for normal random variates
 	double lBayesianScaleFactor;
 
-	// chain storage
-	vector <Chain *> lchainStore;
+	// chain storage: vector of chains for each period for each set of samples
+	// lchainStore[i] is set of entries for periodFromStart <i>,
+	// which incorporates both the group and period.
+	vector <vector <Chain *> > lchainStore;
 
+	int lnumberOfPeriods;
+
+	ModelType lmodelType;
 };
 
 }

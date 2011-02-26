@@ -73,7 +73,7 @@ iwlsm.formula <-
 }
 ##@iwlsm.default iwlsm
 iwlsm.default <-
-  function(x, y, weights, ses, ..., w = rep(1, nrow(x)),
+  function(x, y, weights, ses, ..., w = rep(1/nrow(x), nrow(x)),
            init = "ls", psi = psi.iwlsm,
            scale.est = c("MAD", "Huber", "proposal 2"), k2 = 1.345,
            method = c("M", "MM"), wt.method = c("inv.var", "case"),
@@ -146,6 +146,7 @@ iwlsm.default <-
             } else stop("'init' method is unknown")
             coef <- temp$coefficient
             resid <- temp$residuals
+            hh <- hatvalues(lm(y ~ -1 + x, weights=w))
         } else {
             if(is.list(init)) coef <- init$coef
             else coef <- init
@@ -193,11 +194,12 @@ iwlsm.default <-
             }
         }
        ## w <- psi(resid/scale)###
-        w <- psi(resid, w=w, sj2=ses)
+        w <- psi(resid, w=w, sj2=ses, hh=hh)
         if(!is.null(wt)) w <- w * weights
         temp <- lm.wfit(x, y, w, method="qr")
         coef <- temp$coefficients
         resid <- temp$residuals ##  w * res* res
+        hh <- hatvalues(lm(y ~ -1 + x, weights=w))
         if(!is.null(test.vec)) convi <- irls.delta(testpv, get(test.vec))
         else convi <- irls.rrxwr(x, w, resid)
         conv <- c(conv, convi)
@@ -428,15 +430,15 @@ vcov.iwlsm <- function (object, ...)
     so$stddev^2 * so$cov.unscaled
 }
 ##@psi.iwlsm iwlsm
-psi.iwlsm <- function(u, k, deriv=0, w, sj2)
+psi.iwlsm <- function(u, k, deriv=0, w, sj2, hh)
 {
     if (!deriv)
     {
-        v <- sum(w * u^2) / (1 - sum(w * w))
+        v <- sum(w * u^2) / (1 - sum(w * hh))
         v1 <- max(0, v - weighted.mean(sj2, w))
         ww <- 1 /(v1 + sj2)
         ww / sum(ww)
-    }
+   }
     else ## dummy: I have removed the call with deriv = 1
     {
         rep(1, length(u))

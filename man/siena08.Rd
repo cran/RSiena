@@ -1,7 +1,7 @@
 \name{siena08}
 \alias{siena08}
 \title{
-Funtion to perform a meta analysis of a collection of Siena fits.
+Function to perform a meta analysis of a collection of Siena fits.
 }
 \description{
 Estimates a meta analysis based on  a collection of Siena fits.
@@ -30,8 +30,10 @@ siena08(..., projname = "sienaMeta", bound = 5)
   \code{summary} and \code{plot} methods for this class.
 
   An object of class \code{sienaMeta} is a list containing at least the
-  following. (Items \code{regfit} to
+  following. (Items \code{cor.est} to
   \code{ns} appear once for each effect.)
+  \item{cor.est}{Pearson correlation coefficient between estimates ans their standard errors.}
+  \item{cor.pval}{p-value for above}
   \item{regfit}{Part of the result of the fit of \code{\link{iwlsm}}.}
   \item{regsummary}{The summary of the fit, which includes the
   coefficient table.}
@@ -39,7 +41,7 @@ siena08(..., projname = "sienaMeta", bound = 5)
   \item{pTsq}{p-value for above}
   \item{tratio}{test statistics that mean effect is 0}
   \item{ptratio}{p-value for above}
-  \item{Qstat}{Test statisitc for variance of effects is zero}
+  \item{Qstat}{Test statistic for variance of effects is zero}
   \item{pttilde}{p-value for above}
   \item{cjplus}{Test statistic for at least one theta strictly greater than 0}
   \item{cjminus}{Test statistic for at least one theta strictly less than 0}

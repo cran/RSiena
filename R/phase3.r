@@ -44,6 +44,7 @@ phase3 <- function(z, x, ...)
     z$sf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
     z$ssc <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
     z$sdf <- array(0, dim = c(z$n3, z$pp, z$pp))
+    z$sdf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp, z$pp))
     if (!is.null(z$cconditional) && z$cconditional)
     {
         z$ntim <- matrix(NA, nrow=z$n3, ncol=f$observations - 1)
@@ -187,10 +188,12 @@ phase3 <- function(z, x, ...)
                                  'based on only', nit,
                                  'phase-3 iterations.\n'), outf)
                     }
-                    z$sf <- z$sf[1:nit,,drop=FALSE]
-                    z$sf2 <- z$sf2[1:nit,,,drop=FALSE]
-                    z$ssc <- z$ssc[1:nit,,,drop=FALSE]
-                    z$sdf <-z$sdf[1:nit,,,drop=FALSE]
+                    z$sf <- z$sf[1:nit, , drop=FALSE]
+                    z$sf2 <- z$sf2[1:nit, , , drop=FALSE]
+                    z$ssc <- z$ssc[1:nit, , , drop=FALSE]
+                    z$sdf <-z$sdf[1:nit, , , drop=FALSE]
+                    z$sdf2 <-z$sdf2[1:nit, , , ,drop=FALSE]
+                    endNit <- nit
                     break
                 }
                 if (UserRestartFlag())
@@ -202,9 +205,9 @@ phase3 <- function(z, x, ...)
     {
         return(z)
     }
-    z$Phase3nits <- nit
-    z$n3 <- nit
-    z<- phase3.2(z,x)
+    z$Phase3nits <- endNit
+    z$n3 <- endNit
+    z <- phase3.2(z,x)
     z
 }
 
@@ -237,6 +240,8 @@ doPhase3it<- function(z, x, nit, zsmall, xsmall, ...)
         z$sf[nit, ] <- fra
         z$sf2[nit, , ] <- zz$fra
         z$sims[[nit]] <- zz$sims
+        fra <- fra + z$targets
+        fra2 <- zz$fra
     }
     else
     {
@@ -247,26 +252,35 @@ doPhase3it<- function(z, x, nit, zsmall, xsmall, ...)
             z$sf[nit + (i - 1), ] <- fra
             z$sf2[nit + (i - 1), , ] <- zz[[i]]$fra
             z$sims[[nit + (i - 1)]] <- zz[[i]]$sims
-       }
+        }
+        fra <- t(sapply(zz, function(x)colSums(x$fra)))
+        fra2 <- t(sapply(zz, function(x)x$fra))
+        dim(fra2) <- c(int, nrow(zz[[1]]$fra), z$pp)
     }
     if ((!x$maxlike) && z$cconditional)
     {
         if (int==1)
+        {
             z$ntim[nit,] <- zz$ntim0
+        }
         else
         {
             for (i in 1:int)
+            {
                 z$ntim[nit+(i-1),] <- zz[[i]]$ntim0
+            }
         }
     }
     if (z$FinDiff.method)
     {
-        z <- FiniteDifferences(z, x, fra + z$targets, ...)
+        z <- FiniteDifferences(z, x, fra, fra2, ...)
         z$sdf[nit:(nit + (int - 1)), , ] <- z$sdf0
+        z$sdf2[nit:(nit + (int - 1)), , ,] <- z$sdf02
     }
     else if (x$maxlike) ## as far as I can see
     {
         z$sdf[nit, , ] <- zz$dff
+        z$sdf2[nit, , , ] <- zz$dff2
     }
     else
     {

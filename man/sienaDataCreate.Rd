@@ -25,7 +25,7 @@ data. If there is more than one nodeSet they must all be specified.
 }
 \value{
 An object of class "siena" which is designed to be used in a siena
-model fit The components of the object are.
+model fit. The components of the object are.
 \item{nodeSets}{List of node sets involved}
 \item{observations}{Integer indicating number of waves of data}
 \item{depvars}{List of networks and behavior variables}

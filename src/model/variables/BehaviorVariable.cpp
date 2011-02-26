@@ -293,6 +293,7 @@ void BehaviorVariable::makeChange(int actor)
 				std::abs(oldValue - observedValue));
 		}
 	}
+	this->successfulChange(true);
 }
 
 
@@ -718,9 +719,11 @@ void BehaviorVariable::accumulateDerivatives() const
 
 /**
  * Returns whether applying the given ministep on the current state of this
- * variable would be valid with respect to all constraints.
+ * variable would be valid with respect to all constraints. One can disable
+ * the checking of up-only and down-only conditions.
  */
-bool BehaviorVariable::validMiniStep(const MiniStep * pMiniStep) const
+bool BehaviorVariable::validMiniStep(const MiniStep * pMiniStep,
+	bool checkUpOnlyDownOnlyConditions) const
 {
 	bool valid = DependentVariable::validMiniStep(pMiniStep);
 
@@ -736,11 +739,15 @@ bool BehaviorVariable::validMiniStep(const MiniStep * pMiniStep) const
 		{
 			valid = false;
 		}
-		else if (d > 0 && this->lpData->downOnly(this->period()))
+		else if (checkUpOnlyDownOnlyConditions &&
+			d > 0 &&
+			this->lpData->downOnly(this->period()))
 		{
 			valid = false;
 		}
-		else if (d < 0 && this->lpData->upOnly(this->period()))
+		else if (checkUpOnlyDownOnlyConditions &&
+			d < 0 &&
+			this->lpData->upOnly(this->period()))
 		{
 			valid = false;
 		}

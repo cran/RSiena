@@ -26,6 +26,7 @@ namespace siena
 
 class MiniStep;
 class Data;
+class State;
 
 
 // ----------------------------------------------------------------------------
@@ -43,21 +44,26 @@ public:
 	Chain(Data * pData);
 	virtual ~Chain();
 
+	// Initialization
+
+	void setupInitialState(bool copyValues);
+
 	// Chain modifications
 
 	void clear();
 	void insertBefore(MiniStep * pNewMiniStep, MiniStep * pExistingMiniStep);
 	void remove(MiniStep * pMiniStep);
 	void connect(int period);
-	void period(int period);
-
 	void onReciprocalRateChange(const MiniStep * pMiniStep, double newValue);
+	void changeInitialState(const MiniStep * pMiniStep);
 
 	// Accessors
 
+	void period(int period);
 	int period() const;
 	MiniStep * pFirst() const;
 	MiniStep * pLast() const;
+	const State * pInitialState() const;
 	int ministepCount() const;
 	int diagonalMinistepCount() const;
 	int consecutiveCancelingPairCount() const;
@@ -74,6 +80,7 @@ public:
 
 	// Same option related
 
+	MiniStep * firstMiniStepForOption(const Option & rOption) const;
 	MiniStep * nextMiniStepForOption(const Option & rOption,
 		const MiniStep * pFirstMiniStep) const;
 
@@ -88,7 +95,8 @@ public:
 	MiniStep * randomMissingBehaviorMiniStep() const;
 
 	// copy
-	Chain * copyChain();
+	Chain * copyChain() const;
+	void dumpChain() const;
 
 private:
 	void resetOrderingKeys();
@@ -106,6 +114,9 @@ private:
 
 	// The period of changes represented by this chain
 	int lperiod;
+
+	// The initial state of the variables (denoted y_init in the specification)
+	State * lpInitialState;
 
 	// Stores the ministeps in no particular order.
 	// The first (dummy) ministep is not stored in this vector.

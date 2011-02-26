@@ -63,6 +63,7 @@ public:
 	double averageOutDegree() const;
 	void averageInDegree(double val);
 	void averageOutDegree(double val);
+	virtual double observedDistribution(int value, int observation) const;
 
 private:
 	// The set of actors receiving the ties of the network
@@ -89,6 +90,11 @@ private:
 
 	// The average out-degree over all senders and observations
 	double laverageOutDegree;
+
+	// The density of the network at each observation with the missing
+	// values excluded from the calculation.
+
+	double * ldensity;
 };
 
 }

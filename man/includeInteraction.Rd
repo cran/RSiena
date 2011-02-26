@@ -10,7 +10,7 @@ Function to create user-specified interactions for a Siena model.
 includeInteraction(myeff, ..., include = TRUE,
 name = myeff$name[1], type = "eval",
 interaction1 = rep("", 3), interaction2 = rep("", 3),
-character=FALSE)
+character = FALSE, verbose = TRUE)
 }
 \arguments{
   \item{myeff}{a Siena effects object as created by \code{\link{getEffects}}}
@@ -37,6 +37,7 @@ character=FALSE)
   Trailing blanks may be omitted.
 }
 \item{character}{Boolean: are the effect names character strings or not}
+\item{verbose}{Boolean: should the print of altered effects be produced.}
 }
 \details{The details provided should uniquely identify up to three
   effects. If so, an interaction effect will be created and included or

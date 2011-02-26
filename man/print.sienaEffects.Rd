@@ -10,8 +10,10 @@
   atomic columns listed separately.
 }
 \usage{
-\method{print}{sienaEffects}(x, fileName = NULL, includeOnly=TRUE, ...)
-\method{summary}{sienaEffects}(object, fileName = NULL, includeOnly=TRUE, ...)
+\method{print}{sienaEffects}(x, fileName = NULL, includeOnly=TRUE,
+expandDummies = FALSE, ...)
+\method{summary}{sienaEffects}(object, fileName = NULL,
+includeOnly=TRUE, expandDummies = FALSE, ...)
 \method{print}{summary.sienaEffects}(x, fileName = NULL, ...)
 }
 \arguments{
@@ -23,6 +25,8 @@
 }
   \item{includeOnly}{Boolean. If TRUE, only effects with the include
 	flag TRUE will be printed.}
+  \item{expandDummies}{Interpret the \code{timeDummy} column and show
+	any effects which would be added by \code{sienaTimeFix}}
   \item{\dots}{For extra arguments (none used at present)}
 }
 \value{
@@ -41,6 +45,7 @@
 }
 \author{Ruth Ripley
 }
+\seealso{\code{\link{sienaTimeTest}}}
 \examples{
 mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mynet2 <- sienaNet(s50a, type='behavior')

@@ -32,9 +32,12 @@
 #include "model/effects/generic/InStarFunction.h"
 #include "model/effects/generic/ReciprocatedTwoPathFunction.h"
 #include "model/effects/generic/TwoPathFunction.h"
+#include "model/effects/generic/MixedTwoPathFunction.h"
 #include "model/effects/generic/ConditionalFunction.h"
 #include "model/effects/generic/EqualCovariatePredicate.h"
 #include "model/effects/generic/MissingCovariatePredicate.h"
+#include "model/effects/generic/CovariateDistance2AlterNetworkFunction.h"
+#include "model/effects/generic/CovariateDistance2SimilarityNetworkFunction.h"
 
 namespace siena
 {
@@ -257,6 +260,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new FourCyclesEffect(pEffectInfo);
 	}
+	else if (effectName == "inStructEq")
+	{
+		pEffect = new InStructuralEquivalenceEffect(pEffectInfo);
+	}
 	else if (effectName == "crprod")
 	{
 		pEffect = new GenericNetworkEffect(pEffectInfo,
@@ -394,6 +401,12 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			new ReciprocatedTwoPathFunction(pEffectInfo->interactionName1()));
 	}
+	else if (effectName == "to")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new MixedTwoPathFunction(pEffectInfo->interactionName1(),
+				pEffectInfo->variableName()));
+	}
 	else if (effectName == "covNetNet")
 	{
 		string networkName = pEffectInfo->interactionName1();
@@ -509,11 +522,59 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "altDist2")
 	{
-		pEffect = new CovariateDistance2AlterEffect(pEffectInfo);
+		//	pEffect = new CovariateDistance2AlterEffect(pEffectInfo);
+		string networkName = pEffectInfo->variableName();
+		string covariateName = pEffectInfo->interactionName1();
+		double parameter = pEffectInfo->internalEffectParameter();
+		AlterFunction * pChangeFunction =
+			new CovariateDistance2AlterNetworkFunction(networkName,
+				covariateName, parameter, false);
+		AlterFunction * pStatisticFunction =
+			new CovariateDistance2AlterNetworkFunction(networkName,
+				covariateName, parameter, true);
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pChangeFunction, pStatisticFunction);
 	}
 	else if (effectName == "simDist2")
 	{
-		pEffect = new CovariateDistance2SimilarityEffect(pEffectInfo);
+		//	pEffect = new CovariateDistance2SimilarityEffect(pEffectInfo);
+		string networkName = pEffectInfo->variableName();
+		string covariateName = pEffectInfo->interactionName1();
+		AlterFunction * pChangeFunction =
+			new CovariateDistance2SimilarityNetworkFunction(networkName,
+				covariateName, false);
+		AlterFunction * pStatisticFunction =
+			new CovariateDistance2SimilarityNetworkFunction(networkName,
+				covariateName, true);
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pChangeFunction, pStatisticFunction);
+	}
+	else if (effectName == "altDist2W")
+	{
+		string networkName = pEffectInfo->interactionName1();
+		string covariateName = pEffectInfo->interactionName2();
+		double parameter = pEffectInfo->internalEffectParameter();
+		AlterFunction * pChangeFunction =
+			new CovariateDistance2AlterNetworkFunction(networkName,
+				covariateName, parameter, false);
+		AlterFunction * pStatisticFunction =
+			new CovariateDistance2AlterNetworkFunction(networkName,
+				covariateName, parameter, true);
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pChangeFunction, pStatisticFunction);
+	}
+	else if (effectName == "simDist2W")
+	{
+		string networkName = pEffectInfo->interactionName1();
+		string covariateName = pEffectInfo->interactionName2();
+		AlterFunction * pChangeFunction =
+			new CovariateDistance2SimilarityNetworkFunction(networkName,
+				covariateName, false);
+		AlterFunction * pStatisticFunction =
+			new CovariateDistance2SimilarityNetworkFunction(networkName,
+				covariateName, true);
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pChangeFunction, pStatisticFunction);
 	}
 	else
 	{

@@ -52,6 +52,8 @@ public:
 	virtual LongitudinalData * pData() const;
 	bool oneModeNetwork() const;
 	virtual bool networkVariable() const;
+	virtual bool constrained() const;
+	virtual bool symmetric() const;
 
 	virtual void initialize(int period);
 	virtual bool canMakeChange(int actor) const;
@@ -63,22 +65,32 @@ public:
 	Network * pNetwork() const;
 
 	int ego() const;
+	virtual int alter() const;
 
 	virtual double probability(MiniStep * pMiniStep);
-	virtual bool validMiniStep(const MiniStep * pMiniStep) const;
+	virtual bool validMiniStep(const MiniStep * pMiniStep,
+		bool checkUpOnlyDownOnlyConditions = true) const;
 	virtual MiniStep * randomMiniStep(int ego);
 	virtual bool missing(const MiniStep * pMiniStep) const;
 	virtual bool structural(const MiniStep * pMiniStep) const;
 	virtual double calculateChoiceProbability(const MiniStep * pMiniStep) const;
 
 private:
-	void preprocessEgo();
+	void preprocessEgo(int ego);
 	void calculatePermissibleChanges();
 	void calculateTieFlipContributions();
 	void calculateTieFlipProbabilities();
 	void accumulateScores(int alter) const;
 	void accumulateDerivatives() const;
 	void copyChangeContributions(MiniStep * pMiniStep) const;
+	bool checkAlterAgreement(int alter);
+	void addAlterAgreementScores(bool accept);
+	void accumulateSymmetricModelScores(int alter, bool accept);
+	void accumulateRateScores(double tau, const DependentVariable *
+		pSelectedVariable, int selectedActor);
+	void calculateSymmetricTieFlipContributions(int alter, int sub);
+	void calculateSymmetricTieFlipProbabilities(int alter, int sub);
+	bool makeModelTypeBChange();
 
 	// The current state of the network
 	Network * lpNetwork;
@@ -125,6 +137,20 @@ private:
 	// ego are not permitted.
 
 	vector<PermittedChangeFilter *> lpermittedChangeFilters;
+
+	// Vectors of tie flip contributions to effects for models with
+	// cooperation between actor and alter.
+
+	double ** lsymmetricEvaluationEffectContribution;
+	double ** lsymmetricEndowmentEffectContribution;
+
+	// Probabilities for models with cooperation between actor and alter
+
+    double lsymmetricProbabilities[2];
+
+	// The current alter for models with cooperation between actor and alter
+
+	int lalter;
 };
 
 

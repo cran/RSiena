@@ -363,6 +363,7 @@ void EpochSimulation::runStep()
 {
     this->calculateRates();
 	this->drawTimeIncrement();
+
 	double nextTime = this->ltime + this->ltau;
 
     DependentVariable * pSelectedVariable = 0;
@@ -388,26 +389,31 @@ void EpochSimulation::runStep()
 
 			pSelectedVariable = this->chooseVariable();
 			selectedActor = this->chooseActor(pSelectedVariable);
+
+
+			this->lpCache->initialize(selectedActor);
+
+			pSelectedVariable->makeChange(selectedActor);
+
+			if (pSelectedVariable->successfulChange())
+			{
+				if (this->pModel()->needChain())
+				{
+					// update rate probabilities on the final ministep
+					this->lpChain->pLast()->pPrevious()->
+						logOptionSetProbability(log(pSelectedVariable->
+								rate(selectedActor)
+								/ this->totalRate()));
+					this->lpChain->pLast()->pPrevious()->
+						reciprocalRate(1.0 / this->totalRate());
+				}
+			}
 			// Update the scores for rate parameters
 			if (this->pModel()->needScores())
 			{
 				this->accumulateRateScores(this->ltau,
 					pSelectedVariable,
 					selectedActor);
-			}
-
-			this->lpCache->initialize(selectedActor);
-			pSelectedVariable->makeChange(selectedActor);
-
-			if (this->pModel()->needChain())
-			{
-				// update rate probabilities on the final ministep
-				this->lpChain->pLast()->pPrevious()->
-					logOptionSetProbability(log(pSelectedVariable->
-							rate(selectedActor)
-							/ this->totalRate()));
-				this->lpChain->pLast()->pPrevious()->
-					reciprocalRate(1.0 / this->totalRate());
 			}
 		}
 	}
@@ -616,9 +622,23 @@ void EpochSimulation::accumulateRateScores(double tau,
 {
 	for (unsigned i = 0; i < this->lvariables.size(); i++)
 	{
-		this->lvariables[i]->accumulateRateScores(tau,
-			pSelectedVariable,
-			selectedActor);
+
+		if (this->lvariables[i]->symmetric()  &&
+			this->pModel()->modelTypeB())
+		{
+			//	Rprintf("1got here %d\n",this->lvariables[i]->alter());
+			this->lvariables[i]->accumulateRateScores(tau,
+				pSelectedVariable,
+				selectedActor, this->lvariables[i]->alter());
+			//Rprintf("got here2\n");
+		}
+		else
+		{
+			//	Rprintf("got else %d\n",this->lvariables[i]->alter());
+			this->lvariables[i]->accumulateRateScores(tau,
+				pSelectedVariable,
+				selectedActor);
+		}
 	}
 }
 
@@ -645,9 +665,9 @@ const Model * EpochSimulation::pModel() const
 }
 
 /**
- * Returns the chain repesenting the events simulated by this simulation object.
+ * Returns the chain representing the events simulated by this simulation object.
  */
-Chain * EpochSimulation::pChain()
+Chain * EpochSimulation::pChain() const
 {
     return this->lpChain;
 }

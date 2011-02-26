@@ -38,6 +38,7 @@ BehaviorLongitudinalData::BehaviorLongitudinalData(int id,
 	this->lvalues = new int * [observationCount];
 	this->lmissing = new bool * [observationCount];
 	this->lstructural = new bool * [observationCount];
+	this->lobservedDistributions = new map<int, double>[observationCount];
 
 	for (int i = 0; i < observationCount; i++)
 	{
@@ -70,9 +71,11 @@ BehaviorLongitudinalData::~BehaviorLongitudinalData()
 	delete[] this->lvalues;
 	delete[] this->lmissing;
 	delete[] this->lstructural;
+	delete[] this->lobservedDistributions;
 	this->lvalues = 0;
 	this->lmissing = 0;
 	this->lstructural = 0;
+	this->lobservedDistributions = 0;
 }
 
 
@@ -245,6 +248,24 @@ int BehaviorLongitudinalData::range() const
 
 
 /**
+ * Returns the relative frequency of the given value among the
+ * observed value at the given observation.
+ */
+double BehaviorLongitudinalData::observedDistribution(int value,
+	int observation) const
+{
+	double frequency = 0;
+
+	if (value >= this->min() && value <= this->max())
+	{
+		frequency = this->lobservedDistributions[observation][value];
+	}
+
+	return frequency;
+}
+
+
+/**
  * Calculates various properties of the observed data.
  */
 void BehaviorLongitudinalData::calculateProperties()
@@ -258,13 +279,17 @@ void BehaviorLongitudinalData::calculateProperties()
 		int nonMissingValueCount = 0;
 		int sum = 0;
 
+		this->lobservedDistributions[i].clear();
+
 		for (int actor = 0; actor < this->n(); actor++)
 		{
 			if (!this->lmissing[i][actor])
 			{
-				this->lmin = std::min(this->lmin, this->lvalues[i][actor]);
-				this->lmax = std::max(this->lmax, this->lvalues[i][actor]);
-				sum += this->lvalues[i][actor];
+				int value = this->lvalues[i][actor];
+				this->lmin = std::min(this->lmin, value);
+				this->lmax = std::max(this->lmax, value);
+				sum += value;
+				this->lobservedDistributions[i][value]++;
 				nonMissingValueCount++;
 			}
 		}
@@ -275,6 +300,13 @@ void BehaviorLongitudinalData::calculateProperties()
 				"No valid data for dependent actor variable '" +
 				this->name() +
 				"', observation " + toString(i));
+		}
+
+		// Normalize the frequencies of observed values
+
+		for (int value = this->lmin; value <= this->lmax; value++)
+		{
+			this->lobservedDistributions[i][value] /= nonMissingValueCount;
 		}
 
 		this->loverallMean += ((double) sum) / nonMissingValueCount;

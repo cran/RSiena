@@ -9,6 +9,13 @@
 # *
 # *****************************************************************************/
 
+ModelTypeStrings <- c("Standard actor-oriented model",
+                      "Forcing model",
+                      "Initiative model",
+                      "Pairwise forcing model",
+                      "Pairwise mutual model",
+                      "Pairwise joint model")
+
 ##@sienaModelCreate DataCreate
 sienaModelCreate <-
     function(fn,
@@ -16,9 +23,10 @@ sienaModelCreate <-
              n3=1000, nsub=4, maxlike=FALSE, diag=!maxlike,
              condvarno=0, condname='',
              firstg=0.2, cond=NA, findiff=FALSE,  seed=NULL,
-             pridg=0.1, prcdg=0.1, prper=0.3, pripr=0.25, prdpr=0.25,
-             prirms=0.0, prdrms=0.0, maximumPermutationLength=40,
-             minimumPermutationLength=2, initialPermutationLength=20)
+             pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
+             prirms=0.05, prdrms=0.05, maximumPermutationLength=40,
+             minimumPermutationLength=2, initialPermutationLength=20,
+             modelType=1, mult=4)
 {
     model <- NULL
     model$projname <- projname
@@ -72,7 +80,7 @@ sienaModelCreate <-
     model$FinDiff.method <-  findiff
     model$nsub <- nsub
     model$diag <- diag
-    model$ModelType <- 1
+    model$modelType <- modelType
     model$MaxDegree <- MaxDegree
     model$randomSeed <- seed
     model$pridg <- pridg
@@ -85,6 +93,7 @@ sienaModelCreate <-
     model$maximumPermutationLength <- maximumPermutationLength
     model$minimumPermutationLength <- minimumPermutationLength
     model$initialPermutationLength <- initialPermutationLength
+    model$mult <- mult
     class(model) <- "sienaModel"
     model
 }

@@ -42,7 +42,8 @@
  argument to \code{siena08}.
 
  The function \code{plot.sienaMeta} plots estimates against standard
- errors for each effect, with lines added at \verb{x=\pm 2}.
+ errors for each effect, with reference lines added at the two-sided 
+ significance threshold 0.05.
 }
 \references{
   T. A. B. Snijders and Chris Baerveldt.

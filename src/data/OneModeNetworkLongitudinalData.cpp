@@ -34,6 +34,7 @@ OneModeNetworkLongitudinalData::OneModeNetworkLongitudinalData(int id,
 {
 	this->lsymmetric = false;
 	this->lbalanceMean = 0;
+	this->lstructuralMean = 0;
 }
 
 
@@ -86,4 +87,21 @@ void OneModeNetworkLongitudinalData::balanceMean(double value)
 	this->lbalanceMean = value;
 }
 
+/**
+ * Returns the centering constant for the in-structural equivalence effect.
+ * This class just stores the value computed in R.
+ */
+double OneModeNetworkLongitudinalData::structuralMean() const
+{
+	return this->lstructuralMean;
+}
+
+
+/**
+ * Stores the centering constant for the in-structural equivalence effect.
+ */
+void OneModeNetworkLongitudinalData::structuralMean(double value)
+{
+	this->lstructuralMean = value;
+}
 }

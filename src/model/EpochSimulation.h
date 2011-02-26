@@ -71,16 +71,16 @@ public:
 
     double score(const EffectInfo * pEffect) const;
     void score(const EffectInfo * pEffect, double value);
-	map<const EffectInfo *, double> 
+	map<const EffectInfo *, double>
 		derivative(const EffectInfo * pEffect1) const;
-	double derivative(const EffectInfo * pEffect1, 
+	double derivative(const EffectInfo * pEffect1,
 		const EffectInfo * pEffect2) const;
 	void derivative(const EffectInfo * pEffect1, const EffectInfo * pEffect2,
 		double value);
-	Chain * pChain();
+	Chain * pChain() const;
 	double calculateChainProbabilities(Chain * chain);
 	void updateParameters();
-	
+
 protected:
     void calculateRates();
     double totalRate() const;

@@ -50,6 +50,12 @@ public:
 	void downOnly(int period, bool flag);
 	bool downOnly(int period) const;
 
+	/**
+	 * Returns the relative frequency of the given value among the
+	 * observed value at the given observation.
+	 */
+	virtual double observedDistribution(int value, int observation) const = 0;
+
 private:
 	// The domain of the dependent variable
 	const ActorSet * lpActorSet;

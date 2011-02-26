@@ -67,4 +67,18 @@ ans501e <- siena07(model501e, data=data501e$mydata, effects=data501e$myeff,
                    parallelTesting=TRUE, batch=TRUE, silent=TRUE)
 ##, verbose=TRUE)
 ans501e
-## compare with outputs in parallelchecked/
+##test12
+print('test12')
+use<- 1:30
+mynet1 <- sienaNet(array(c(s501[use,], s502[use,], s503[use,]),
+                         dim=c(length(use), 50,3)), type='bipartite',
+                         nodeSet=c('Senders','receivers'))
+receivers <- sienaNodeSet(50,'receivers')
+senders <- sienaNodeSet(30,'Senders')
+mydata <- sienaDataCreate(mynet1, nodeSets=list(senders, receivers))
+myeff <- getEffects(mydata)
+myeff <- includeEffects(myeff,  inPop)
+ans <- siena07(sienaModelCreate(n3=100,nsub=2, seed=1, projname="test12"),
+               data=mydata, effects=myeff, batch=TRUE, silent=TRUE)
+ans
+tt <- sienaTimeTest(ans)

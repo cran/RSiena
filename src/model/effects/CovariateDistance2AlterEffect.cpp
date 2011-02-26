@@ -8,7 +8,7 @@
  * Description: This file contains the implementation of the
  * CovariateDistance2AlterEffect class.
  *****************************************************************************/
-
+#include <R_ext/Print.h>
 #include "CovariateDistance2AlterEffect.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
@@ -44,7 +44,7 @@ double CovariateDistance2AlterEffect::calculateContribution(int alter) const
 			//	this->value(this->ego()) );
 			if (degree > 1)
 			{
-				change -= (degree * change - this->value(this->ego()))/
+				change = (degree * change - this->value(this->ego()))/
 					(degree - 1);
 			}
 			else
@@ -78,11 +78,11 @@ double CovariateDistance2AlterEffect::tieStatistic(int alter)
 			if (tieValue == 1)
 			{
 				int degree = this->pNetwork()->outDegree(alter);
-//				Rprintf("before %d %f %d %f\n", degree, statistic,
-//							this->ego(), this->value(this->ego()) );
+// 				Rprintf("before %d %d %f %d %f\n", alter, degree, statistic,
+// 							this->ego(), this->value(this->ego()) );
 				if (degree > 1)
 				{
-					statistic -=
+					statistic =
 						(degree * statistic - this->value(this->ego()))/
 						(degree - 1);
 				}
@@ -90,13 +90,13 @@ double CovariateDistance2AlterEffect::tieStatistic(int alter)
 				{
 					statistic = 0;
 				}
-//				Rprintf("stat after %d %f %d %f\n", degree, statistic,
-//					this->ego(), this->value(this->ego()) );
+// 				Rprintf("stat after %d %f %d %f\n", degree, statistic,
+// 					this->ego(), this->value(this->ego()) );
 			}
 		}
 
 	}
-//			Rprintf("%f\n", statistic );
+// 			Rprintf("%f\n", statistic );
 	return statistic;
 }
 

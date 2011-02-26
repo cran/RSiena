@@ -38,6 +38,7 @@
 #include "IndegreePopularityEffect.h"
 #include "InInDegreeAssortativityEffect.h"
 #include "InOutDegreeAssortativityEffect.h"
+#include "InStructuralEquivalenceEffect.h"
 #include "InteractionCovariateEffect.h"
 #include "InverseOutdegreeEffect.h"
 #include "InverseSquaredOutdegreeEffect.h"

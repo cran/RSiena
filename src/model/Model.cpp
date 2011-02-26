@@ -7,7 +7,8 @@
  *
  * Description: This file contains the implementation of the Model class.
  *****************************************************************************/
-
+#include <R_ext/Print.h>
+#include <vector>
 #include "Model.h"
 #include "utils/Utils.h"
 #include "data/Data.h"
@@ -35,6 +36,15 @@ Model::Model()
 	this->lneedDerivatives = false;
 	this->lneedChangeContributions = false;
 	this->lparallelRun = false;
+	this->linsertDiagonalProbability = 0;
+	this->lcancelDiagonalProbability = 0;
+	this->lpermuteProbability = 0;
+	this->linsertPermuteProbability = 0;
+	this->ldeletePermuteProbability = 0;
+	this->linsertRandomMissingProbability = 0;
+	this->ldeleteRandomMissingProbability = 0;
+	this->lsimpleRates = 0;
+	this->lmodelType = NORMAL;
 }
 
 
@@ -63,7 +73,10 @@ Model::~Model()
 		delete[] array;
 	}
 
-	deallocateVector(this->lchainStore);
+	for (unsigned i = 0; i < this->lchainStore.size(); i++)
+	{
+		deallocateVector(this->lchainStore[i]);
+	}
 }
 
 
@@ -559,14 +572,290 @@ int Model::targetChange(const Data * pData, int period) const
 // Section: Chain storage
 // ----------------------------------------------------------------------------
 
-void Model::chainStore(Chain& chain)
+/**
+ * Stores a copy of the chain in the vector of stored chains for this period.
+ */
+void Model::chainStore(const Chain& chain, int periodFromStart)
 {
+//	Rprintf(" %d %d\n", this->lchainStore.size(), periodFromStart);
+	if (this->lchainStore.size() == 0)
+	{
+//	Rprintf(" %d\n", this->lnumberOfPeriods);
+		this->setupChainStore(this->lnumberOfPeriods);
+	}
 	// make a copy of the chain
-    this->lchainStore.push_back(chain.copyChain());
+	Chain * pChain = chain.copyChain();
+
+    this->lchainStore[periodFromStart].push_back(pChain);
 }
 
-vector<Chain *> * Model::chainStore()
+
+/**
+ * Returns reference to the vector of stored chains for this period.
+ */
+vector<Chain *> & Model::rChainStore(int periodFromStart)
 {
-	return &(this->lchainStore);
+	return this->lchainStore[periodFromStart];
+}
+
+void Model::partClearChainStore()
+{
+	for (unsigned i = 0; i < this->lchainStore.size(); i++)
+	{
+		// need to keep the final one to continue from
+		for (unsigned j = 0; j < this->lchainStore[i].size() - 1; j++)
+		{
+			//delete the chain pointed to
+			delete this->lchainStore[i][j];
+		}
+		vector<Chain *>::iterator iter = this->lchainStore[i].begin();
+		for (unsigned j = 0; j < this->lchainStore[i].size() - 1; j++)
+		{
+			//erase the entry
+			this->lchainStore[i].erase(iter);
+			iter++;
+		}
+
+	}
+}
+void Model::clearChainStore()
+{
+	for (unsigned i = 0; i < this->lchainStore.size(); i++)
+	{
+		deallocateVector(this->lchainStore[i]);
+	}
+
+}
+
+void Model::clearChainStore(int periodFromStart)
+{
+	deallocateVector(this->lchainStore[periodFromStart]);
+}
+
+void Model::setupChainStore(int numberPeriods)
+{
+	this->lchainStore.resize(numberPeriods);
+}
+
+void Model::deleteLastChainStore(int periodFromStart)
+{
+	this->lchainStore[periodFromStart].pop_back();
+}
+
+void Model::numberOfPeriods(int numberOfPeriods)
+{
+	this->lnumberOfPeriods = numberOfPeriods;
+}
+int Model::numberOfPeriods()
+{
+	return this->lnumberOfPeriods;
+}
+
+void Model::modelType(int type)
+{
+	this->lmodelType = ModelType(type);
+}
+
+ModelType Model::modelType() const
+{
+	return this->lmodelType;
+}
+bool Model::modelTypeB() const
+{
+	return this->lmodelType == BFORCE || 
+		this->lmodelType == BAGREE || this->lmodelType == BJOINT;
+}
+
+// ----------------------------------------------------------------------------
+// Section: Probabilities
+//-----------------------------------------------------------------------------
+/**
+ * Stores the probability associated with the insertDiagonalMiniStep
+ * operation.
+ */
+void Model::insertDiagonalProbability(double probability)
+{
+	this->linsertDiagonalProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the insertDiagonalMiniStep
+ * operation.
+ */
+double Model::insertDiagonalProbability() const
+{
+	return this->linsertDiagonalProbability;
+}
+
+
+/**
+ * Stores the probability associated with the cancelDiagonalMiniStep
+ * operation.
+ */
+void Model::cancelDiagonalProbability(double probability)
+{
+	this->lcancelDiagonalProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the cancelDiagonalMiniStep
+ * operation.
+ */
+double Model::cancelDiagonalProbability() const
+{
+	return this->lcancelDiagonalProbability;
+}
+
+
+/**
+ * Stores the probability associated with the permute
+ * operation.
+ */
+void Model::permuteProbability(double probability)
+{
+	this->lpermuteProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the permute
+ * operation.
+ */
+double Model::permuteProbability() const
+{
+	return this->lpermuteProbability;
+}
+
+/**
+ * Stores the probability associated with the insertPermute
+ * operation.
+ */
+void Model::insertPermuteProbability(double probability)
+{
+	this->linsertPermuteProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the insertPermute
+ * operation.
+ */
+double Model::insertPermuteProbability() const
+{
+	return this->linsertPermuteProbability;
+}
+
+
+/**
+ * Stores the probability associated with the deletePermute
+ * operation.
+ */
+void Model::deletePermuteProbability(double probability)
+{
+	this->ldeletePermuteProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the deletePermute
+ * operation.
+ */
+double Model::deletePermuteProbability() const
+{
+	return this->ldeletePermuteProbability;
+}
+
+/**
+ * Stores the probability associated with the insertRandomMissing
+ * operation.
+ */
+void Model::insertRandomMissingProbability(double probability)
+{
+	this->linsertRandomMissingProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the insertRandomMissing
+ * operation.
+ */
+double Model::insertRandomMissingProbability() const
+{
+	return this->linsertRandomMissingProbability;
+}
+
+/**
+ * Stores the probability associated with the deleteRandomMissing
+ * operation.
+ */
+void Model::deleteRandomMissingProbability(double probability)
+{
+	this->ldeleteRandomMissingProbability = probability;
+}
+
+
+/**
+ * Returns the probability associated with the deleteRandomMissing
+ * operation.
+ */
+double Model::deleteRandomMissingProbability() const
+{
+	return this->ldeleteRandomMissingProbability;
+}
+
+/**
+ * Adds the missing network probability (prmin) to the vector for
+ * the specified group
+ */
+void Model::missingNetworkProbability(double probability)
+{
+	this->lmissingNetworkProbability.push_back(probability);
+}
+
+
+/**
+ * Returns the missing network probability (prmin) for the specified group
+ * and period
+ */
+double Model::missingNetworkProbability( int periodFromStart) const
+{
+	return this->lmissingNetworkProbability[periodFromStart];
+}
+
+/**
+ * Adds the missing behavior probability (prmib) to the vector for
+ * the specified group.
+ */
+void Model::missingBehaviorProbability(double probability)
+{
+	this->lmissingBehaviorProbability.push_back(probability);
+}
+
+
+/**
+ * Returns the missing behavior probability (prmib) for the specified
+ * period from the start
+ */
+double Model::missingBehaviorProbability(int periodFromStart) const
+{
+	return this->lmissingBehaviorProbability[periodFromStart];
+}
+/**
+ * Stores the simpleRates flag for the ML model.
+ */
+void Model::simpleRates(bool simpleRates)
+{
+	this->lsimpleRates = simpleRates;
+}
+
+
+/**
+ * Returns the simpleRates flag for the ML model.
+ */
+bool Model::simpleRates() const
+{
+	return this->lsimpleRates;
 }
 }

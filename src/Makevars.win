@@ -1,6 +1,6 @@
 SOURCES=$(wildcard data/*.cpp network/*.cpp utils/*.cpp model/*.cpp model/effects/*.cpp model/tables/*.cpp model/variables/*.cpp model/effects/generic/*.cpp model/ml/*.cpp model/filters/*.cpp)
 
-OBJECTS = siena07.o $(SOURCES:.cpp=.o)
+OBJECTS = siena07models.o siena07utilities.o siena07setup.o siena07internals.o $(SOURCES:.cpp=.o)
 
 PKG_CPPFLAGS=-I.
 

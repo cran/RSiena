@@ -12,7 +12,12 @@
 namespace siena
 {
 
-State::State(Data * pData, int observation)
+/**
+ * Creates a state of variables as of the given observation of the given
+ * Data object. The values may be copied of referenced directly as indicated
+ * by the parameter <code>copyValues</code>.
+ */
+State::State(const Data * pData, int observation, bool copyValues)
 {
 	const vector<LongitudinalData *> & rVariables =
 		pData->rDependentVariableData();
@@ -26,19 +31,40 @@ State::State(Data * pData, int observation)
 
 		if (pNetworkData)
 		{
-			this->lnetworks[pNetworkData->name()] =
-				pNetworkData->pNetwork(observation);
+			const Network * pNetwork = pNetworkData->pNetwork(observation);
+
+			if (copyValues)
+			{
+				pNetwork = pNetwork->clone();
+			}
+
+			this->lnetworks[pNetworkData->name()] = pNetwork;
 		}
 		else if (pBehaviorData)
 		{
-			this->lbehaviors[pBehaviorData->name()] =
-				pBehaviorData->values(observation);
+			const int * values = pBehaviorData->values(observation);
+
+			if (copyValues)
+			{
+				int * copies = new int[pBehaviorData->n()];
+
+				for (int actor = 0; actor < pBehaviorData->n(); actor++)
+				{
+					copies[actor] = values[actor];
+				}
+
+				values = copies;
+			}
+
+			this->lbehaviors[pBehaviorData->name()] = values;
 		}
 		else
 		{
 			throw domain_error("Unexpected class of longitudinal data");
 		}
 	}
+
+	this->lownedValues = copyValues;
 }
 
 
@@ -69,6 +95,8 @@ State::State(EpochSimulation * pSimulation)
 			throw domain_error("Unexpected class of dependent variable");
 		}
 	}
+
+	this->lownedValues = false;
 }
 
 
@@ -78,9 +106,26 @@ State::State(EpochSimulation * pSimulation)
  */
 State::State()
 {
+	this->lownedValues = false;
 }
 
 
+/**
+ * Deallocates this state.
+ */
+State::~State()
+{
+	if (this->lownedValues)
+	{
+		this->deleteValues();
+	}
+}
+
+
+/**
+ * Returns the network for the given name or 0 if there is no such a network
+ * stored in this state.
+ */
 const Network * State::pNetwork(string name) const
 {
 	const Network * pNetwork = 0;
@@ -105,6 +150,10 @@ void State::pNetwork(string name, const Network * pNetwork)
 }
 
 
+/**
+ * Returns the values of the behavior variable with the given name, or 0
+ * if no such values are stored in this state.
+ */
 const int * State::behaviorValues(string name) const
 {
 	const int * values = 0;

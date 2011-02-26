@@ -23,13 +23,13 @@ iwlsm(x, ...)
     wt.method = c("inv.var", "case"),
     model = TRUE, x.ret = TRUE, y.ret = FALSE, contrasts = NULL)
 
-\method{iwlsm}{default}(x, y, weights, ses, \dots, w = rep(1, nrow(x)),
+\method{iwlsm}{default}(x, y, weights, ses, \dots, w = rep(1/nrow(x), nrow(x)),
     init = "ls", psi = psi.iwlsm,
     scale.est = c("MAD", "Huber", "proposal 2"), k2 = 1.345,
     method = c("M", "MM"), wt.method = c("inv.var", "case"),
     maxit = 20, acc = 1e-4, test.vec = "resid", lqs.control = NULL)
 
-psi.iwlsm(u, k, deriv = 0, w, sj2)
+psi.iwlsm(u, k, deriv = 0, w, sj2, hh)
 }
 \arguments{
   \item{formula}{
@@ -130,7 +130,7 @@ psi.iwlsm(u, k, deriv = 0, w, sj2)
     first derivative. (Latter not used).
   }
   \item{sj2}{Estimated variance of the responses}
-
+  \item{hh}{Diagonal values of the hat matrix}
 }
 \details{This function is very slightly adapted from \code{rlm} in
   packages \code{MASS}. It alternates between weighted
