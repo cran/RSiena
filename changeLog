@@ -1,3 +1,89 @@
+2011-05-16 R-forge revision 146
+
+	* src/Makevars.win: alter linking to reduce command line length
+	* doc/s_man400.tex: add tex code to reduce size of pdf, many
+	updates
+	* doc/RSiena.bib, doc/simstatsc.tex, doc/RSienaDeveloper.tex:
+	updated documentation for symmetric networks and other minor changes.
+	* R/siena08.r: formatting changes only
+	* R/sienaDataCreate.r: set diagonals to NA for sparse matrices
+	when calculating degree and setting attributes
+	* R/sienaDataCreateFromSession.r: if using read.pajek to read a
+	non-directed network duplicate the ties in the edgelist.
+
+2011-04-20 R-forge revision 145
+
+	* src/model/effects/outTruncEffect.cpp: reformating
+
+2011-04-19 R-forge revision 144
+
+	* data/allEffects.csv, src/model/effects/AllEffects.h,
+	src/model/effects/EffectFactory.cpp,
+	src/model/effects/OutTruncEffect.h,
+	src/model/effects/OutTruncEffect.spp: new effect OutTruncEffect
+
+	* R/siena08.r, R/observationsErrors.r,
+	man/print.sienaMeta.Rd, man/siena08.Rd: added ML
+	method to siena08, enhanced plots.
+
+	* doc/RSiena.bib, doc/Siena_algorithms4.tex,
+	doc/s_man400.tex, doc/RscriptDataFormat.R,
+	doc/RscriptSienaBehaviour.R, doc/RscriptSienaRunModel.R,
+	doc/RscripSienaVariableFormat.R: major edits, scripts now included
+	in latex.
+
+	* man/includeEffects.Rd: added another example
+
+	* man/s50.Rd, man/s501.Rd, man/s502.Rd, man/s503.Rd, man/s50a.Rd:
+	more helpful information.
+
+	* R/initializeFRAN.r, R/maxlikec.r, man/summary.iwlsm.Rd:
+	added eolstyle property.
+
+2011-03-13 R-forge revision 143 RSienaTest only
+
+	* data/allEffects.csv: Modified default parm for Gwesp effects
+	* src/model/effects/GwespEffect.h added as superclass to all Gwesp effects
+	* src/model/effects/GwespEffect.cpp Now implements GwespAbstract class
+	* src/model/effects/GwespBFEffect.h Now implements GwespAbstract class
+	* src/model/effects/GwespFBEffect.h Now implements GwespAbstract class
+	* src/model/effects/GwespBBEffect.h Now implements GwespAbstract class
+	* src/model/effects/GwespFFEffect.h Now implements GwespAbstract class
+	* src/model/effects/GwespRREffect.h Now implements GwespAbstract class
+	* src/model/effects/GwespBFEffect.cpp Now implements GwespAbstract class
+	* src/model/effects/GwespFBEffect.cpp Now implements GwespAbstract class
+	* src/model/effects/GwespBBEffect.cpp Now implements GwespAbstract class
+	* src/model/effects/GwespFFEffect.cpp Now implements GwespAbstract class
+	* src/model/effects/GwespRREffect.cpp Now implements GwespAbstract class
+	* man/sienaGOF.Rd: Added primitive snow cluster support,
+	option for robust covariance estimation
+	* R/sienaGOF.r: Added primitive snow cluster support,
+	option for robust covariance estimation
+
+2011-03-06 R-forge revision 142 RSienaTest only
+
+	* R/sienaGOF: fixed a plotting issue with missing data
+	*  src/model/effects/EffectFactory.cpp: added GWESP terms
+	* src/model/effects/AllEffects.h: added GWESP terms
+	* src/model/effects/EffectFactory.cpp: added GWESP terms
+	* data/allEffects.csv: added GWESP terms
+	* man/sienaGOF.Rd: Incorporated GWESP into the model
+	* src/model/effects/GwespBFEffect.h added
+	* src/model/effects/GwespFBEffect.h added
+	* src/model/effects/GwespBBEffect.h added
+	* src/model/effects/GwespFFEffect.h added
+	* src/model/effects/GwespRREffect.h added
+	* src/model/effects/GwespBFEffect.cpp added
+	* src/model/effects/GwespFBEffect.cpp added
+	* src/model/effects/GwespBBEffect.cpp added
+	* src/model/effects/GwespFFEffect.cpp added
+	* src/model/effects/GwespRREffect.cpp added
+	* NOTE: the 'parm' column needs an integer, and I got
+	around this by using it as a "hundredths" interpretation
+	so that I x 100 when it reaches the effect object's
+	constructor. It would be nice to have it imported in
+	"createEffect" as a double.
+
 2011-02-26 R-forge revision 141
 
 	* man/RSiena-package.Rd, DESCRIPTION: fix typos, one making check fail!

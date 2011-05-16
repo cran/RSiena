@@ -380,6 +380,12 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                               c(nonzero[[x]], 10, 11)), 3] <- 0
                                myedgelist[myedgelist[,3] %in%
                                           nonzero[[x]], 3] <- 1
+                               if (!is.directed(namefiles[[x]]))
+                               {
+                                   perm <- c(2, 1, 3)
+                                   myedgelist <- rbind(myedgelist, myedgelist[, perm])
+                               }
+                             
                                if (network.size(namefiles[[x]]) != nActors)
                                    stop("number of actors inconsistent")
 

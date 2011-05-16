@@ -168,6 +168,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new OutdegreeActivitySqrtEffect(pEffectInfo);
 	}
+	else if (effectName == "outTrunc")
+	{
+		pEffect = new OutTruncEffect(pEffectInfo);
+	}
 	else if (effectName == "outInv")
 	{
 		pEffect = new InverseOutdegreeEffect(pEffectInfo);

@@ -57,5 +57,6 @@ mynet2 <- sienaNet(s50a, type="behavior")
 mydata <- sienaDataCreate(mynet1, mynet2)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip, balance)
+myeff <- includeEffects(myeff, avAlt, name="mynet2", interaction1="mynet1")
 }
 \keyword{ classes }

@@ -708,10 +708,12 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                     if (sparse)
                     {
                         mymat <- myarray[[j]]
+                        diag(mymat) <- NA
                     }
                     else
                     {
                         mymat <- myarray[, , j]
+                        diag(mymat) <- NA
                     }
                     if (suppressMessages(!isSymmetric(mymat)))
                     {
@@ -1005,16 +1007,19 @@ rangeAndSimilarity<- function(vals, rvals=NULL)
         rvals <- range(vals,na.rm=TRUE)
     }
     rvals1 <- rvals[2] - rvals[1]
-    tmp <- apply(vals, 2, function(v){
-    sapply(1: length(v), function(x, y, r){
-        z <- y
-        z[x] <- NA
-        #browser()
-        tmp1 <- 1 - abs(y[x] - z) / r
-        list(sum(tmp1, na.rm=TRUE), sum(!is.na(tmp1)))
-         },
-           y=v, r=rvals1)})
-
+    tmp <- apply(vals, 2, function(v)
+             {
+                 sapply(1: length(v), function(x, y, r)
+                    {
+                        z <- y
+                        z[x] <- NA
+                        ##browser()
+                        tmp1 <- 1 - abs(y[x] - z) / r
+                        list(sum(tmp1, na.rm=TRUE), sum(!is.na(tmp1)))
+                    },
+                        y=v, r=rvals1)
+             }
+                 )
     tmp <- unlist(tmp)
     raw <- tmp[seq(1, length(tmp), by=2)]
     cnts <- tmp[seq(2, length(tmp), by=2)]

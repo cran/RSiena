@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: siena08.r
 # *
@@ -9,7 +9,7 @@
 # * collection of Siena fits.
 # *****************************************************************************/
 ##@siena08 siena08
-siena08 <- function(..., projname="sienaMeta", bound=5)
+siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
 {
     dots <- as.list(substitute(list(...)))[-1] ##first entry is the word 'list'
     if (length(dots) == 0)
@@ -92,17 +92,22 @@ siena08 <- function(..., projname="sienaMeta", bound=5)
         {
             if (sum((x1$se < bound)) >= 3)
             {
-                check.correl <- cor.test(x1$theta, x1$se)
+                suppressWarnings(check.correl <- cor.test(x1$theta, x1$se,
+                                                          method="spearman"))
+                ## warnings will be given in case of ties, not important here
             }
             else
             {
-                check.correl <- data.frame(estimate=NA, p.value=NA)
+                check.correl <- data.frame(estimate=NA, p.value=NA,
+                                           method="no correlation test")
             }
             regfit <- iwlsm(theta ~ 1, psi=psi.iwlsm, data=x1,
                             ses=x1$se^2)
             regfit$terms <- NA
             regfit$model <- NULL
             regfit$psi <- NULL
+            ## symbols ttilde, Qstat, Tsq as in Snijders & Baerveldt (2003),
+            ##(18), (17), (15)
             Tsq <- sum((x1$theta / x1$se)^2)
             regsummary <- summary(regfit)
             tratio <- regsummary$coef[1, 3]
@@ -113,8 +118,13 @@ siena08 <- function(..., projname="sienaMeta", bound=5)
             cjminus <- -2 * sum(pnorm(x1$theta / x1$se, log=TRUE))
             cjplusp <- 1 - pchisq(cjplus, 2 * nrow(x1))
             cjminusp <- 1 - pchisq(cjminus, 2 * nrow(x1))
+            ## ML estimates and confidence intervals
+            maxxlik <- maxlik(x1$theta,x1$se)
+            cmu  <- confint.mu(x1$theta,x1$se,alpha)
+            csig <- confint.sig(x1$theta,x1$se,alpha)
             ret1 <- list(cor.est=check.correl$estimate,
                          cor.pval=check.correl$p.value,
+                         cor.meth=check.correl$method,
                          regfit=regfit, regsummary=regsummary,
                          Tsq=Tsq, pTsq=1 - pchisq(Tsq, nrow(x1) - 1),
                          tratio=tratio,
@@ -122,7 +132,10 @@ siena08 <- function(..., projname="sienaMeta", bound=5)
                          Qstat=Qstat,
                          pttilde=1 - pchisq(Qstat, nrow(x1) - 1),
                          cjplus=cjplus, cjminus=cjminus,
-                         cjplusp=cjplusp, cjminusp=cjminusp, n1=nrow(x1))
+                         cjplusp=cjplusp, cjminusp=cjminusp, n1=nrow(x1),
+                         mu.ml=maxxlik$mu, sigma.ml=maxxlik$sig,
+                         mu.ml.se=maxxlik$se.mu,
+                         mu.confint=cmu, sigma.confint=csig)
         }
         else
         {
@@ -212,8 +225,8 @@ print.sienaMeta <- function(x, file=FALSE, ...)
                     " :  Estimate ",
                     format(round(x$theta, 4), width=12),
                     " (standard error ",
-                    format(round(x$se, 2), nsmall=2,
-                           width=11), ")", x$excl, "\n", sep="")
+                    format(round(x$se, 4), nsmall=4,
+                           width=12), ")", x$excl, "\n", sep="")
        Report(c(tmp, "\n"), sep="", outf)
        Report(c(" ", y$n1, " datasets used.\n\n"), sep="", outf)
        if (y$n1 > 0)
@@ -226,11 +239,17 @@ print.sienaMeta <- function(x, file=FALSE, ...)
            }
            else
            {
-               Report(c(": \nPearson correlation =", format(round(y$cor.est, 4),
-                                                            width=9),
+               Report(c(": \n", y$cor.meth, " =", format(round(y$cor.est, 4),
+                                                         width=9),
                         ", two-sided ",reportp(y$cor.pval,3), "\n\n"), sep="",
                       outf)
            }
+           Report(c("Estimates and test based on IWLS modification of",
+                    "Snijders & Baerveldt (2003)\n"),
+                  outf)
+           Report(c("---------------------------------------------------",
+                    "-------------------------\n"), sep="",
+                  outf)
            Report(c("Test that all parameters are 0 : \n"), outf)
            Report(c("chi-squared =", format(round(y$Tsq, 4), width=9),
                     ", d.f. = ", y$n1, ", ",
@@ -240,17 +259,38 @@ print.sienaMeta <- function(x, file=FALSE, ...)
                     " (s.e.", format(round(y$regsummary$coefficients[1, 2], 4),
                                      width=9), "), two-sided ",
                     reportp(2 * pt(-abs(y$regsummary$coefficients[1, 3]),
-                                   y$n1 - 1), 3), "\n"), sep="", outf)
-           Report(c("based on IWLS modification of Snijders & Baerveldt (2003). ",
-                  "\n\n"), sep="", outf)
-           Report(c("Residual standard error",
+                                   y$n1 - 1), 3), "\n\n"), sep="", outf)
+           Report(c("Estimated standard deviation",
                     format(round(y$regsummary$stddev, 4), width=9)), outf)
            Report("\nTest that variance of parameter is 0 :\n", outf)
            Report(c("Chi-squared = ", format(round(y$Qstat, 4), width=9),
                     " (d.f. = ", y$n1-1, "), ", reportp(y$pttilde, 3),
-                    "\n"), sep="", outf)
-           Report(c("based on IWLS modification of Snijders & Baerveldt (2003). ",
                     "\n\n"), sep="", outf)
+           Report(c("Estimates and confidence intervals under normality",
+                    "assumptions\n"),
+                  outf)
+           Report(c("-------------------------------------------------------",
+                    "-------\n"), outf)
+           Report(c("Estimated mean parameter",
+                    format(round(y$mu.ml, 4), width=9),
+                    " (s.e.",format(round(y$mu.ml.se, 4), width=9),
+                    "), two-sided ",
+                    reportp(2 * pt(-abs(y$mu.ml/y$mu.ml.se),
+                                   y$n1 - 1), 3), "\n"), sep="", outf)
+           Report(c(format(round(y$mu.confint[3], 2), width=4),
+                    "level confidence interval [",
+                    format(round(y$mu.confint[1], 4), width=7),
+                    ",",
+                    format(round(y$mu.confint[2], 4), width=7), "]\n"), outf)
+           Report(c("Estimated standard deviation",
+                    ifelse((y$sigma.ml > 0.0001)|(y$sigma.ml < 0.0000001),
+                           format(round(y$sigma.ml, 4), width=9), " < 0.0001"),
+                     "\n"), outf)
+           Report(c(format(round(y$sigma.confint[3], 2), width=4),
+                    "level confidence interval [",
+                    format(round(y$sigma.confint[1], 4), width=7),
+                    ",",
+                    format(round(y$sigma.confint[2], 4), width=7), "]\n\n"), outf)
            Report("Fisher's combination of one-sided tests\n", outf)
            Report("----------------------------------------\n", outf)
            Report("Combination of right one-sided p-values:\n", outf)
@@ -327,17 +367,24 @@ reportp <- function(p, ndec)
 }
 
 ##@plot.sienaMeta Methods
-plot.sienaMeta <- function(x, ...)
+plot.sienaMeta <- function(x, ..., layout = c(2,2))
 {
     library(lattice)
-    tmp <- xyplot(theta ~ se|effects, data=x$thetadf, ylab="estimates",
-                  xlab="standard errors", layout=c(4,4),
+    tmp <- xyplot(theta ~ se|effects,
+                  data=x$thetadf[is.na(x$thetadf$scoretests),],
+                  ylab="estimates",
+                  xlab="standard errors", layout=layout,
                   panel=function(x, y)
               {
                   panel.xyplot(x, y)
                   panel.abline(0, qnorm(0.025))
                   panel.abline(0, qnorm(0.975))
-              }, scales="free")
+              },
+                  prepanel=function(x,y)
+              {   list(xlim=c(min(0,min(x)),max(0,max(x))),
+                       ylim=c(min(0,min(y)),max(0,max(y))))
+              },
+                scales="free")
     tmp[!sapply(tmp$y.limits, function(x)all(is.na(x)))]
 }
 
@@ -555,7 +602,7 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
            }
            else
            {
-               Report(c(": \nPearson correlation =", format(round(y$cor.est, 4),
+               Report(c(": \n", y$cor.meth, " =", format(round(y$cor.est, 4),
                                                             width=9),
                         ", two-sided ",reportp(y$cor.pval,3), "\n\n"),
                       sep="", outf)

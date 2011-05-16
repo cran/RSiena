@@ -9,10 +9,24 @@ models can be fitted quickly.
 }
 \format{
  A matrix of variables relating to the use of alcohol for the actors in
- the network. Two columns, one for each time point. Coding is 1--5, high
+ the network. Three columns, one for each time point. Coding is 1--5, high
  values indicating higher consumption.
 }
-\source{part of s50-alcohol.dat from the Stocnet package.
+\source{
+\url{http://www.stats.ox.ac.uk/~snijders/siena/s50_data.zip}
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{
+West, P. and Sweeting, H. (1995) Background Rationale and Design of the 
+West of Scotland 11-16 Study. 
+Working Paper No. 52. MRC Medical Sociology Unit Glasgow.
+
+See \url{http://www.stats.ox.ac.uk/~snijders/siena/s50_data.htm}
+}
+\seealso{\code{\link{s501}}, \code{\link{s502}}, \code{\link{s503}}
+}
+\examples{
+mynet <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mybeh <- sienaNet(s50a, type='behavior')
+mydata <- sienaDataCreate(mynet, mybeh)
+}
 \keyword{datasets}
