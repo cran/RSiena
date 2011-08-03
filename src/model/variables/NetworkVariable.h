@@ -77,20 +77,22 @@ public:
 
 private:
 	void preprocessEgo(int ego);
+	void preprocessEgo(const Function * pFunction, int ego);
 	void calculatePermissibleChanges();
 	void calculateTieFlipContributions();
 	void calculateTieFlipProbabilities();
 	void accumulateScores(int alter) const;
 	void accumulateDerivatives() const;
 	void copyChangeContributions(MiniStep * pMiniStep) const;
-	bool checkAlterAgreement(int alter);
+	void checkAlterAgreement(int alter);
 	void addAlterAgreementScores(bool accept);
 	void accumulateSymmetricModelScores(int alter, bool accept);
 	void accumulateRateScores(double tau, const DependentVariable *
 		pSelectedVariable, int selectedActor);
 	void calculateSymmetricTieFlipContributions(int alter, int sub);
 	void calculateSymmetricTieFlipProbabilities(int alter, int sub);
-	bool makeModelTypeBChange();
+	bool calculateModelTypeBProbabilities();
+	bool diagonalMiniStep(int ego, int alter) const;
 
 	// The current state of the network
 	Network * lpNetwork;
@@ -125,6 +127,12 @@ private:
 
 	double ** lendowmentEffectContribution;
 
+	// A two-dimensional array of tie flip contributions to effects, where
+	// rows correspond to alters and columns correspond to effects in the
+	// tie creation function.
+
+	double ** lcreationEffectContribution;
+
 	// Selection probability per each alter
 	double * lprobabilities;
 
@@ -143,6 +151,7 @@ private:
 
 	double ** lsymmetricEvaluationEffectContribution;
 	double ** lsymmetricEndowmentEffectContribution;
+	double ** lsymmetricCreationEffectContribution;
 
 	// Probabilities for models with cooperation between actor and alter
 
@@ -151,6 +160,16 @@ private:
 	// The current alter for models with cooperation between actor and alter
 
 	int lalter;
+
+	// The probability of selecting the current alter for models with
+	// cooperation between actor and alter
+
+	double lalterProbability;
+
+	// The probability of making the proposed change for models with
+	// cooperation between actor and alter
+
+	double lsymmetricProbability;
 };
 
 

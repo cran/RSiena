@@ -381,7 +381,8 @@ sienaFitThetaTable <- function(x, tstat=FALSE)
             behEffects$effectName
     }
     mydf[nrates + (1:x$pp), 'row'] <-  1:x$pp
-    mydf[nrates + (1:x$pp), 'type' ] <- effects$type
+    mydf[nrates + (1:x$pp), 'type' ] <- ifelse(effects$type == "creation",
+                                               "creat", effects$type)
     mydf[nrates + (1:x$pp), 'text' ] <- effects$effectName
     mydf[nrates + (1:x$pp), 'value' ] <- theta
     mydf[nrates + (1:x$pp), 'se' ] <- ses
@@ -457,7 +458,7 @@ xtable.sienaFit <- function(x, caption = NULL, label = NULL, align = NULL,
         format(mydf[mydf$row < 1, 'row'])
     mydf[mydf[,'row'] >= 1, 'row'] <- paste(format(mydf[mydf$row >= 1,
              'row']), '.', sep='')
-    tmp <- list(xtable(mydf, caption=caption, label=label, align=align,
+    tmp <- list(xtable::xtable(mydf, caption=caption, label=label, align=align,
                        digits=digits, display=display), add.to.row=addtorow,
                 include.colnames=FALSE, include.rownames=FALSE, ...)
     class(tmp) <- c("xtable.sienaFit", "xtable")
@@ -477,4 +478,21 @@ print.xtable.sienaFit <- function(x, ...)
         do.call("print", x[-2])
     }
     invisible(x)
+}
+
+print.chains.data.frame <- function(x, ...)
+{
+    NextMethod(x)
+	initState <- attr(x, "initialStateDifferences")
+	endState <- attr(x, "endStateDifferences")
+	if (nrow(initState) > 0)
+	{
+		cat("\n Initial State Differences:\n")
+		print(initState)
+	}
+	if (nrow(endState) > 0)
+	{
+		cat("\n End State Differences:\n")
+		print(endState)
+	}
 }

@@ -29,11 +29,13 @@ namespace siena
  */
 NetworkChange::NetworkChange(NetworkLongitudinalData * pData,
 	int ego,
-	int alter) : MiniStep(pData, ego)
+	int alter,
+	bool diagonal) : MiniStep(pData, ego)
 {
 	this->lpData = pData;
 	this->lalter = alter;
 	this->pOption(new Option(pData->id(), ego, alter));
+	this->diagonal(diagonal);
 }
 
 
@@ -74,16 +76,16 @@ void NetworkChange::makeChange(DependentVariable * pVariable)
 }
 
 
-/**
- * Returns if this ministep is diagonal, namely, it does not change
- * the dependent variables.
- */
-bool NetworkChange::diagonal() const
-{
-	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
-	return (oneMode && this->ego() == this->lalter) || (!oneMode &&
-		this->lalter ==	this->lpData->pReceivers()->n());
-}
+// /**
+//  * Returns if this ministep is diagonal, namely, it does not change
+//  * the dependent variables.
+//  */
+// bool NetworkChange::diagonal() const
+// {
+// 	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+// 	return (oneMode && this->ego() == this->lalter) || (!oneMode &&
+// 		this->lalter ==	this->lpData->pReceivers()->n());
+// }
 
 
 /**
@@ -97,7 +99,55 @@ bool NetworkChange::missing(int period) const
 	if (oneMode || this->alter() <
 		this->lpData->pReceivers()->n())
 	{
-		return this->lpData->missing(this->ego(), this->lalter, period) ||
+		// return this->lpData->missing(this->ego(), this->lalter, period) ||
+		// 	this->lpData->missing(this->ego(), this->lalter, period + 1);
+		//return this->lpData->missing(this->ego(), this->lalter, period) ||
+		//	this->lpData->missing(this->ego(), this->lalter, period + 1);
+		return this->missingStart(period) || this->missingEnd(period);
+	}
+	else
+	{
+		// bipartite network no change option
+		return false;
+	}
+}
+
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the start of the given period.
+ */
+bool NetworkChange::missingStart(int period) const
+{
+	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+
+	if (oneMode || this->alter() <
+		this->lpData->pReceivers()->n())
+	{
+		// return this->lpData->missing(this->ego(), this->lalter, period) ||
+		// 	this->lpData->missing(this->ego(), this->lalter, period + 1);
+		return //this->lpData->missing(this->ego(), this->lalter, period) ||
+			this->lpData->missing(this->ego(), this->lalter, period);
+	}
+	else
+	{
+		// bipartite network no change option
+		return false;
+	}
+}
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the end of the given period.
+ */
+bool NetworkChange::missingEnd(int period) const
+{
+	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+
+	if (oneMode || this->alter() <
+		this->lpData->pReceivers()->n())
+	{
+		// return this->lpData->missing(this->ego(), this->lalter, period) ||
+		// 	this->lpData->missing(this->ego(), this->lalter, period + 1);
+		return //this->lpData->missing(this->ego(), this->lalter, period) ||
 			this->lpData->missing(this->ego(), this->lalter, period + 1);
 	}
 	else
@@ -107,7 +157,6 @@ bool NetworkChange::missing(int period) const
 	}
 }
 
-
 /**
  * Returns a new ministep that reverses the effect of this ministep.
  */
@@ -115,7 +164,7 @@ MiniStep * NetworkChange::createReverseMiniStep() const
 {
 	return new NetworkChange(this->lpData,
 		this->ego(),
-		this->lalter);
+		this->lalter, this->diagonal());
 }
 /**
  * Returns a new ministep that is a copy of this ministep.
@@ -123,7 +172,7 @@ MiniStep * NetworkChange::createReverseMiniStep() const
 MiniStep * NetworkChange::createCopyMiniStep() const
 {
 	NetworkChange * pNetworkChange =  new NetworkChange(this->lpData,
-		this->ego(), this->lalter);
+		this->ego(), this->lalter, this->diagonal());
 	// copy the contribution changes
 	pNetworkChange->levaluationEffectContribution =
 		this->levaluationEffectContribution;
@@ -148,6 +197,17 @@ double NetworkChange::endowmentEffectContribution(int alter, int effect) const
 	return this->lendowmentEffectContribution[alter][effect];
 }
 
+
+/**
+ * Returns the creationEffectContribution for this effect and alter for
+ * this ministep.
+ */
+double NetworkChange::creationEffectContribution(int alter, int effect) const
+{
+	return this->lcreationEffectContribution[alter][effect];
+}
+
+
 /**
  * Stores the evaluationEffectContribution in the next spot for this alter for
  * this ministep.
@@ -167,17 +227,35 @@ void NetworkChange::endowmentEffectContribution(double value, int alter,
 {
 	this->lendowmentEffectContribution[alter][effect] = value;
 }
+
+
 /**
- * Creates arrays for the evaluation and endowment Effect Contributions for
+ * Stores the creationEffectContribution for this effect and alter for
+ * this ministep.
+ */
+void NetworkChange::creationEffectContribution(double value,
+	int alter,
+	int effect)
+{
+	this->lcreationEffectContribution[alter][effect] = value;
+}
+
+
+/**
+ * Creates arrays for the effect Contributions for
  * this ministep.
  */
 void NetworkChange::allocateEffectContributionArrays(int nEvaluationEffects,
-	int nEndowmentEffects, int m)
+	int nEndowmentEffects,
+	int nCreationEffects,
+	int m)
 {
 	this->levaluationEffectContribution.resize(m,
 		vector <double> (nEvaluationEffects));
 	this->lendowmentEffectContribution.resize(m,
-		vector <double> (nEvaluationEffects));
+		vector <double> (nEndowmentEffects));
+	this->lcreationEffectContribution.resize(m,
+		vector <double> (nCreationEffects));
 }
 
 }

@@ -74,7 +74,6 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 }
                 periodFromStart <- data[[group]]$observations
             }
-            averageDegree <- mean(degree)
             ## now do the format
             tmp <- rbind(format(round(density, 3), nsmall=3, width=7),
                          format(round(degree, 3), nsmall=3, width=7),
@@ -400,9 +399,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
             periodFromStart <- 0
             bRange <- gpatts$bRange[net]
             minval <- gpatts$behRange[, net][1]
-            maxval <- gpatts$behRange[, net][2]
             vals <- matrix(0, ncol=nobs, nrow=bRange + 1)
-            minsub <- max(1, minval)
             missings <- rep(0, nobs)
             missingN <- rep(NA, nobs)
             for (group in 1:nData)

@@ -63,22 +63,20 @@ double AltersCovariateAverageEffect::egoStatistic(int ego, double * currentValue
 }
 
 /**
- * Returns the statistic corresponding to this effect as part of
+ * Returns the statistic corresponding to the given ego as part of
  * the endowment function with respect to the initial values of a
  * behavior variable and the current values.
  */
-double AltersCovariateAverageEffect::endowmentStatistic(const int * difference,
+double AltersCovariateAverageEffect::egoEndowmentStatistic(int ego,
+	const int * difference,
 	double * currentValues)
 {
 	double statistic = 0;
-	int n = this->pNetwork()->n();
 
-	for (int i = 0; i < n; i++)
+	if (difference[ego] > 0 && !this->missingDummy(ego))
 	{
-		if (difference[i] > 0 && !this->missingDummy(i))
-		{
-			statistic += currentValues[i] * this->averageAlterValue(i);
-		}
+		//statistic = currentValues[ego] * this->averageAlterValue(ego);
+		statistic -= difference[ego] * this->averageAlterValue(ego);
 	}
 
 	return statistic;

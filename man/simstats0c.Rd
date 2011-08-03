@@ -8,7 +8,8 @@
 \usage{
 simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
            data=NULL, effects=NULL, fromFiniteDiff=FALSE,
-           profileData=FALSE, prevAns=NULL, returnDeps=FALSE)
+           profileData=FALSE, prevAns=NULL, returnDeps=FALSE,
+           returnChains=FALSE)
 }
 \arguments{
   \item{z}{Control object, passed in automatically in  \code{\link{siena07}}.}
@@ -30,20 +31,21 @@ simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
 	deviations) will be extracted along with the latest version of the
 	parameters which will be used as the initial values, unless the
 	model requests the use of standard initial values. If the previous
-	model is the same as the current one, Phase 1 will be omitted. If
+	model is exactly the same as the current one, Phase 1 will be omitted. If
 	not, any parameter estimates for effects which are included in
 	the new model will be used as initial
-	values, but phase1 will still be carried out. 
+	values, but phase 1 will still be carried out.
 	If the results used as \code{prevAns} are a reasonable starting point,
 	this will increase efficiency of the algorithm. }
   \item{returnDeps}{Boolean. Whether to return the simulated networks in
 	Phase 3.}
+  \item{returnChains}{Boolean. Whether to return the chains.}
 }
 \details{
   This should be used for the element FRAN of the model object in case of
   estimation by Method of Moments.
   The arguments with no defaults must be passed in on the call to
-  \code{\link{siena07}}. 
+  \code{\link{siena07}}.
 }
 \value{Depends on the call. If \code{INIT} or \code{initC} or
   \code{TERM}

@@ -16,53 +16,59 @@ InstabilityAnalysis<- function(z)
     ## can be obtained via svd(data) (which is stored in z$sf). Square of ratio
     ## of smallest to largest singular value.
     Report('Instability Analysis\n')
-    pp<- length(z$diver)
-    constant<- z$diver
-    test<- z$test
-    covtheta<- z$covtheta
-    covZ<- z$msf
-    covth<- covtheta[!(test|constant),!(test|constant)]
-    covth<- MatrixNorm(covth)
-    eigenv<- eigen(covth,symmetric=TRUE)$values
-    ma<- max(eigenv)
-    mi<- min(eigenv)
+    constant <- z$diver
+    test <- z$test
+    covtheta <- z$covtheta
+    covZ <- z$msf
+    covth <- covtheta[!(test|constant), !(test|constant)]
+    covth <- MatrixNorm(covth)
+    eigenv <- eigen(covth,symmetric=TRUE)$values
+    ma <- max(eigenv)
+    mi <- min(eigenv)
     if (mi!=0)
-        cond.n <- ma/mi
-    Report('Instability analysis\n',lf)
-    Report('--------------------\n\n',lf)
-    Report('Variance-covariance matrix of parameter estimates',lf)
+    {
+        cond.n <- ma / mi
+    }
+    Report('Instability analysis\n', lf)
+    Report('--------------------\n\n', lf)
+    Report('Variance-covariance matrix of parameter estimates', lf)
     ##if (global boolean1 )
     ## Report(' (without coordinates that are kept constant):\n',lf)
     ##else
-    Report(c(':\n\nCondition number = ',format(cond.n,width=4,nsmall=4,digits=1),
+    Report(c(':\n\nCondition number = ',format(cond.n, width=4, nsmall=4,
+                                               digits=1),
              ' \n\n'),sep='',lf)
-    Report(c('Eigen Values  ',format(eigenv,width=6,nsmall=6,digits=1)),lf)
+    Report(c('Eigen Values  ', format(eigenv, width=6, nsmall=6, digits=1)), lf)
     Report('\n\n',lf)
-    covZ<- MatrixNorm(covZ)
-    eigenvZ<-eigen(covZ,symmetric=TRUE)$values
-    ma<- max(eigenvZ)
-    mi<- min(eigenvZ)
+    covZ <- MatrixNorm(covZ)
+    eigenvZ <-eigen(covZ, symmetric=TRUE)$values
+    ma <- max(eigenvZ)
+    mi <- min(eigenvZ)
     if (mi!=0)
-        cond.n <- ma/mi
+    {
+        cond.n <- ma / mi
+    }
     Report('Variance-covariance matrix of X',lf)
-    Report(c(':\n\nCondition number = ',format(cond.n,width=4,nsmall=4,digits=1),
-             ' \n\n'),sep='',lf)
-    Report(c('Eigen Values  ',format(eigenvZ,width=6,nsmall=6,digits=1)),lf)
+    Report(c(':\n\nCondition number = ', format(cond.n, width=4, nsmall=4,
+                                                digits=1),
+             ' \n\n'), sep='', lf)
+    Report(c('Eigen Values  ', format(eigenvZ, width=6, nsmall=6, digits=1)), lf)
     Report(c('\n\n',date(),'\n'),sep='',lf)
-    mysvd<- svd(z$sf)$d
-    ma<- max(mysvd)
-    mi<- min(mysvd)
-    cond.n<- (ma/mi)^2
-      Report(c(':\n\nCondition number2 = ',format(cond.n,width=4,nsmall=4,digits=1),
-             ' \n\n'),sep='',lf)
-    Report(c('Singular Values  ',format(mysvd,width=6,nsmall=6,digits=1)),lf)
-    Report(c('\n\n',date(),'\n'),sep='',lf)
+    mysvd <- svd(z$sf)$d
+    ma <- max(mysvd)
+    mi <- min(mysvd)
+    cond.n <- (ma/mi)^2
+    Report(c(':\n\nCondition number2 = ',
+             format(cond.n, width=4, nsmall=4, digits=1),
+             ' \n\n'), sep='', lf)
+    Report(c('Singular Values  ', format(mysvd, width=6, nsmall=6, digits=1)), lf)
+    Report(c('\n\n', date(), '\n'), sep='', lf)
 }
 
 ##@MatrixNorm siena07 Not currently used. May be incorrect.
-MatrixNorm<- function(mat)
+MatrixNorm <- function(mat)
 {
-    tmp<-  apply(mat,2,function(x)x/sqrt(crossprod(x)))
+    tmp <- apply(mat, 2, function(x) x / sqrt(crossprod(x)))
     ##or  sweep(mat,2,apply(mat,2,function(x)x/sqrt(crossprod(x))
     tmp
 }
@@ -70,27 +76,33 @@ MatrixNorm<- function(mat)
 TestOutput <- function(z, x)
 {
     testn <- sum(z$test)
-   # browser()
+    ## browser()
     if (testn)
     {
         if (x$maxlike)
+        {
             Heading(2, outf,'Score test <c>')
+        }
         else
+        {
             Heading(2, outf, 'Generalised score test <c>')
-        Report('Testing the goodness-of-fit of the model restricted by\n',outf)
-        j<- 0
+        }
+        Report('Testing the goodness-of-fit of the model restricted by\n', outf)
+        j <- 0
         for (k in 1:z$pp)
+        {
             if (z$test[k])
             {
-                j<- j+1
-                Report(c(" (",j,")   ",
+                j <- j + 1
+                Report(c(" (", j, ")   ",
                          format(paste(z$requestedEffects$type[k], ":  ",
                                       z$requestedEffects$effectName[k],
-                                                   sep=""),
-                                             width=50), " = ",
-                         sprintf("%8.4f",z$theta[k]),"\n"),
+                                      sep=""),
+                                width=50), " = ",
+                         sprintf("%8.4f", z$theta[k]), "\n"),
                        sep = "", outf)
             }
+        }
         Report('_________________________________________________\n',outf)
         Report('                ',outf)
         Report('   \n',outf)
@@ -118,22 +130,29 @@ TestOutput <- function(z, x)
                          '   d.f. = 1  p-value '), sep = '', outf)
                 pvalue<- 1-pchisq(z$testresult[k],1)
                 if (pvalue < 0.0001)
+                {
                     Report('< 0.0001\n',outf)
+                }
                 else
+                {
                     Report(c('= ', sprintf("%8.4f", pvalue), '\n'), sep = '',
                            outf)
+                }
                 Report(c(' - one-sided (normal variate): ',
                          sprintf("%8.4f", z$testresulto[k])), sep = '', outf)
-                if (k<j)
+                if (k < j)
+                {
                     Report('\n\n',outf)
+                }
             }
         }
-        Report('    \n_________________________________________________\n\n',outf)
-        Report('One-step estimates: \n\n',outf)
+        Report('    \n_________________________________________________\n\n',
+               outf)
+        Report('One-step estimates: \n\n', outf)
         for (i in 1 : z$pp)
         {
-            onestepest<- z$oneStep[i]+z$theta[i]
-            Report(c(format(paste(z$requestedEffects$type[i],':  ',
+            onestepest <- z$oneStep[i] + z$theta[i]
+            Report(c(format(paste(z$requestedEffects$type[i], ':  ',
                                   z$requestedEffects$effectName[i], sep = ''),
                             width=50),
                      sprintf("%8.4f", onestepest), '\n'), sep = '', outf)
@@ -141,10 +160,11 @@ TestOutput <- function(z, x)
         Report('\n',outf)
     }
 }
+
 ##@ScoreTest siena07 Do score tests
 ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
 {
-    testresult<- rep(NA, pp) ##for chisq per parameter
+    testresult <- rep(NA, pp) ##for chisq per parameter
     testresulto <- rep(NA, pp) ##for one-sided tests per parameter
     ##first the general one
     ans <- EvaluateTestStatistic(maxlike, test, dfra, msf, fra)
@@ -163,7 +183,7 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
         {
             if (test[i])
             {
-                k <- k+1
+                k <- k + 1
                 use[i] <- TRUE
                 ans <- EvaluateTestStatistic(maxlike, test[use], dfra[use, use],
                            msf[use, use], fra[use])

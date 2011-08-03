@@ -167,6 +167,10 @@ includeInteraction <- function(myeff, ...,
             tmprow$effectNumber <- max(myeff$effectNumber) + 1
             rownames(tmprow) <-
                 paste(name, "obj", "type", tmprow$effectNumber, sep='.')
+           # if ('requested' %in% names(myeff))
+           # {
+            #    tmprow$requested <- TRUE
+           # }
             myeff <- rbind(myeff, tmprow)
             ints <- tmprow
         }

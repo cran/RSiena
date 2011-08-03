@@ -1,3 +1,258 @@
+2011-08-03 R-forge revision 167
+
+	* doc/RSiena_manual.tex: minor changes
+	* data/allEffects.csv, src.effects/effectFactory.cpp: renamed avSimX,
+	totSimX, avAltX to avSimEgoX etc in preparation for avSimAlterX etc
+	to appear soon!
+	* R/effects.r: added network names to behavior effects if there is more
+	than one network.
+	* R/initializeFRAN.r: removed duplicate variable names from network
+	interaction effects.
+	* R/siena01.r, doc/RscriptDataFormat.R: change name of manual in model
+	help function and script.
+	* R/sienaDataCreate.r: trap missing Actors node set if node sets are
+	supplied. (was crashing!)
+	* DESCRIPTION: added BuildResaveData:no to stop allEffects.r being
+	compressed in the build.
+
+2011-08-02 R-forge revision 166
+
+	* doc/RSiena_Manual.tex: corrections
+	* doc/RSiena.bib: small format corrections
+
+2011-07-28 R-forge revision 165
+
+	* doc/RSiena_Manual.tex: corrections
+	* doc/RSiena.bib: a few additions
+
+2011-07-27 R-forge revision 164
+
+	* R/effects.r: change default behavior effects to include quadratic
+	shape unless range is less than 2 (from less than or equal to 2).
+	* R/siena01.r: change name of manual.
+	* R/initializeFRAN.r: remove duplicate variable names from behavior
+	interaction effects.
+	* man/siena07.Rd: correct description of prevAns.
+
+2011-07-23 R-forge revision 163
+
+	* R/effectsDocumentation.r: fix bug caused by changes to effects
+	* R/phase1.r: avoid allocation of unnecessary storage for derivatives
+
+2011-07-10 R-forge revision 162
+
+	* src/model/effects/OutTruncEffect.cpp,
+	src/model/effects/OutTruncEffect.h, src/model/effects/allEffects.h,
+	src/model/effects/EffectFactory.cpp: renamed effect to TruncatedOutDegree
+	to comply with standards.
+	* src/model/effects/BehaviorInteractionEffect.cpp: remove extraneous
+	variable definitions to remove compiler warnings.
+
+2011-07-02 R-forge revision 161
+
+	* man.siena08.Rd: add note that names of effects must match
+	* man/siena07.Rd, man/simstats0c.Rd: minor edits.
+	* R/effects.r, R/sienaDataCreate.r: minor edits of comments
+	* R/bayes.r, R/maxlikec.r, inst/examples/algorithms.r: Bayesian routine
+	was failing for single data objects.
+	* R/RSienaRDocumentation.r: fix for internal functions of internal
+	functions. Clumsy at present.
+	* man/RscriptSienaRunModel.R: minor correction to text, many trailing
+	spaces removed.
+
+2011-06-24 R-forge revision 160
+
+	* src/model/effects/BehaviorInteractionEffect.cpp,
+	src/model/effects/AltersCovariateAverageEffect.cpp,
+	src/model/effects/LinearShapeEffect.cpp,
+	src/model/effects/MainCovariateEffect.cpp,
+	src/model/effects/IndegreeEffect.cpp,
+	src/model/effects/OutdegreeEffect.cpp,
+	src/model/effects/SimilarityEffect.cpp (this one was changed in the
+	previous revision): make endowment and creation
+	effects consistently subtract the previous value. Interactions now
+	divide by minus the difference rather than the current value.
+
+2011-06-23 R-forge revision 159
+
+	* src/model/effects/BehaviorInteractionEffect.cpp,
+	src/model/effects/BehaviorInteractionEffect.h: forgotten in previous
+	revision.
+
+2011-06-22 R-forge revision 158
+
+	* data/allEffects.csv, R/effects.r,
+	src/model/effects/InteractionCovariateEffect.cpp,
+	src/model/effects/InteractionCovariateEffect.h,
+	src/model/effects/SimilarityEffect.cpp,
+	src/model/effects/SimilarityEffect.h: fix replication bug in unspecified
+	interactions, remove influence 1-sided effects, replace influence
+	interaction effects by 3 options. Tidy up covarBehaviorObjective group.
+	* data/allEffects.csv, R/effectsMethods.r, R/initializeFRAN.r,
+	src/model/effects/allEffects.h,
+	src/model/effects/AltersCovariateAverageEffect.cpp,
+	src/model/effects/AltersCovariateAverageEffect.h,
+	src/model/effects/AverageAlterEffect.cpp,
+	src/model/effects/AverageAlterEffect.h,
+	src/model/effects/BehaviorEffect.cpp, src/model/effects/BehaviorEffect.h,
+	src/model/EffectFactory.cpp,
+	src/model/effects/IndegreeEffect.cpp, src/model/effects/indegreeEffect.h,
+	src/model/effects/LinearShapeEffect.cpp,
+	src/model/effects/LinearShapeEffect.h,
+	src/model/effects/MainCovariateEffect.cpp,
+	src/model/effects/MainCovariateEffect.h,
+	src/model/effects/OutdegreeEffect.cpp,
+	src/model/effects/OutdegreeEffect.h,
+	src/model/variables/BehaviorVariable.cpp: behavior interactions
+	* R/initializeFRAN.r: fix bug: underlying effects of interactions with
+	include = FALSE were being included.
+	* R/sienaTimeTest.r, doc/sienaTimeFix.doc (RSienaTest only): implement
+	time dummies for behavior effects.
+
+2011-06-18 R-forge revision 157
+
+	* R/phase2.r: corrected definition of standard deviation used to control
+	maximum jump. Was incorrect if using prevAns as it had the deviations
+	from phase 3 rather than phase 1.
+	* R/phase1.r, R/maxlikec.r, R/siena08.r: reformatting, using complete
+	object names
+	* R/bayes.r: remove unused variables to avoid warnings
+	* man/sienaFit.Rd, R/effectsDocumentation.r, R/RSienaRDocumentation.r,
+	R/sienaprint.r, DESCRIPTION, NAMESPACE: alter interface to xtable to
+	allow loading package without it.
+
+2011-06-13 R-forge revision 156
+
+	* R/bayes.r, R/maxlikec.r, R/initializeFRAN.r, R/phase1.r,
+	src/model/ml/chain.cpp, src/model/ml/chain.h,
+	src/model/ml/MLSimulation.cpp, src/model/ml/MLSimulation.h,
+	src/model/model.cpp, src/model/model.h,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/DependentVariable.h,
+	src/siena07internals.cpp, src/siena07internals.h,
+	src/siena07models.cpp, src/siena07models.h, src/siena07setup.cpp,
+	src/siena07/utilities.cpp, src/siena07utilities.h: Bayesian
+	routine now in R, calling normal maxlike routine. Also end state vector
+	for chains.
+	* R/effects.r: minor bug if up or down only for some waves only and
+	bipartite. Density effect was removed.
+	* R/sienaprint.r: new method to print initial and end states of chains:
+	chains.data.frame.
+
+2011-06-12 R-forge revision 155
+
+	* R/initializeFRAN.r: fix bug re behavior variables with values 10 or 11
+	* data/allEffects.csv: alter short name for egoXaltX for symmetric
+	networks to match that for non-symmetric ones.
+
+2011-06-05 R-forge revision 154 RSienaTest only
+
+	* doc/missingsEtc.tex, doc/bayes.tex, doc.maxlikec.tex: added
+	* doc/RSienaSpec.tex, doc/simstats0c.tex: updated
+	* R/bayes.r, R/maxlikec.r, R/initializeFRAN.r: new Bayes routine
+
+2011-06-04 R-forge revision 153
+
+	* R/effects.r, R/initializeFRAN.r, R/print07Report.r, R/sienaprint.r,
+	src/model/effects/BehaviorEffect.cpp, src/model/effects/BehaviorEffect.h,
+	src/model/effects/NetworkEffect.cpp, src/model/effects/NetworkEffect.h,
+	src/model/EpochSimulation.cpp,
+	src/model/ml/BehaviorChange.cpp, src/model/ml/BehaviorChange.h,
+	src/model/ml/NetworkChange.cpp, src/model/ml/NetworkChange.h,
+	src/model/model.cpp, src/model/model.h,
+	src/model/StatisticCalculator.cpp, src/model/StatisticCalculator.h,
+	src/model/variables/BehaviorVariable.cpp,
+	src/model/variables/BehaviorVariable.h,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/DependentVariable.h,
+	src/model/variables/NetworkVariable.cpp,
+	src/model/variables/NetworkVariable.h,
+	src/siena07internals.cpp: creation effects (incomplete)
+	* src/model/variables/NetworkVariable.cpp,
+	src/model/variables/NetworkVariable.h:
+	Minor changes to algorithm for model type B.
+	* R/initializeFRAN.r, R/maxlikec.r, R/phase3.r, R/simstats0c.r
+	src/model/ml/BehaviorChange.cpp, src/model/ml/BehaviorChange.h,
+	src/model/ml/Chain.cpp, src/model/ml/Chain.h,
+	src/model/ml/MiniStep.cpp, src/model/ml/MiniStep.h,
+	src/model/ml/MLSimulation.cpp, src/model/ml/MLSimulation.h
+	src/model/ml/NetworkChange.cpp, src/model/ml/NetworkChange.h,
+	src/siena07models.cpp, src/siena07setup.cpp, src/siena07setup.h,
+	src/siena07utilities.cpp, src/siena07utilities.h: ML work in progress.
+	Includes corrections for bipartites, new parameter to return the chains,
+	construction of initial chain corrected with constraints between
+	networks, variable permutation lengths
+	* R/bayes.r, src/model/effects/StructuralRateEffect.cpp,
+	src/model/effects/StructuralRateEffect.h,
+	src/model/EpochSimulation.cpp, src/model/EpochSimulation.h,
+	src/model/ml/BehaviorChange.cpp, src/model/ml/BehaviorChange.h,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/DependentVariable.h, src/siena07internals.cpp,
+	src/siena07models.cpp, inst/examples/algorithms.r, int/examples/runalg.r:
+	Bayes, algorithms (still incomplete)
+	* R/effectsMethods: fix bug which prevented time dummies showing
+	on a print of the effects object.
+	* R/phase3.r: minor change to code controlling iterations for
+	multiple processors. Stop allocating unnecessary arrays.
+	* R/siena07.r, R/siena01.r, R/sienatest.r,
+	src/model/effects/OutTruncEffect.cpp: reformatting only
+	* (RSienaTest only)
+	src/model/effects/EffectFactory.cpp, src/model/effects/AllEffects.h,
+	src/model/effects/generic/GwespFunction.cpp,
+	src/model/effects/generic/GwespFunction.h: replaced GwespEffects by a
+	generic one using a GwespFunction.
+	* doc/RSiena_Manual.tex rename from doc/s_man400.tex
+	*doc/RSienaDeveloper.tex: added C++ standards, notes about environment
+	variables for use when checking packages.
+
+2011-05-29 R-forge revision 152 RSienaTest only
+
+	* R/sienaGOF.r: Fixed a few bugs,  doc/s_400.tex: updated the script
+
+2011-05-27 R-forge revision 151
+
+	* R/observationErrors.r: added various traps for vectors of length
+	1, removed spaces from function comments (RSienaTest was missed in
+	revision 150).
+	* R/effects.r: remove final few unused variables.
+
+2011-05-27 R-forge revision 150
+
+	* cleanup.win, cleanup, src/Makevars, src/Makevars.win: changes
+	for building and cleaning directories.
+	* src/siena07utilities.cpp, src/sienaModels.cpp,
+	src/models/ml/chain.cpp: remove compiler warning about set but
+	unused variables
+	* R/phase3.r, R/print01Report, R/siena08.r, R/sienaDataCreate.r,
+	R/sienaDataCreateFromSession.r: remove partial argument matches
+	* R/bayes.r, R/effects.r, R/initializeFRAN.r, R/maxlike.r,
+	R/maxlikecalc.r, R/observationErrors.r, R/phase1.r, R/phase2.r,
+	R/print01Report.r, R/printDataReport.r,
+	R/printInitialDescription.r, R/robmon.r, R/RSienaRDocumentation.r,
+	R/siena01.r, R/siena07.r, R/sienaDataCreate.r,
+	R/sienaDataCrateFromSession.r, R/Sienatest.r, R/simstatsc.r:
+	remove codetools warnings about variables set but unused
+	* R/observationErrors.r: added various traps for vectors of length
+	1, removed spaces from function comments.
+
+2011-05-26 R-forge revision 149 RSienaTest only
+
+	* R/sienaGOF.R, NAMESPACE, doc/RSiena.bib, doc/s_man400.tex:
+	Minor debugs for multi-wave
+	data in sienaGOF, added summary.sienaGOF functionality,
+	added a model selection script to the manual.
+
+2011-05-25 R-forge revision 148 RSienaTest only
+
+	* man/sienaGOF.Rd, man/sienaGOFsupplement.Rd,
+	R/sienaGOF.R, NAMESPACE,
+	src/initializeFRAN.r: overhaul of sienaGOF.
+
+2011-05-19 R-forge revision 147 RSienaTest only
+
+	* doc/s_man400.tex, doc/Siena_algorithms4.tex: updated
+	documentation
+
 2011-05-16 R-forge revision 146
 
 	* src/Makevars.win: alter linking to reduce command line length

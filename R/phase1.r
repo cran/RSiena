@@ -44,9 +44,15 @@ phase1.1 <- function(z, x, ...)
     z$n1 <- endNit
     z$sf <- matrix(0, nrow = z$n1, ncol = z$pp)
     z$sf2 <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
-    z$ssc <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
-    z$sdf <- array(0, dim=c(z$n1, z$pp, z$pp))
-    z$sdf2 <- array(0, dim=c(z$n1, f$observations -1, z$pp, z$pp))
+    if (!x$maxlike & !z$FinDiff.method)
+    {
+		z$ssc <- array(0, dim=c(z$n1, f$observations - 1, z$pp))
+	}
+	else
+	{
+		z$sdf <- array(0, dim=c(z$n1, z$pp, z$pp))
+		z$sdf2 <- array(0, dim=c(z$n1, f$observations -1, z$pp, z$pp))
+	}
     z$accepts <- matrix(0, nrow=z$n1, ncol=7)
     z$rejects <- matrix(0, nrow=z$n1, ncol=7)
     z$npos <- rep(0, z$pp)
@@ -261,8 +267,10 @@ doPhase1it<- function(z, x, zsmall, xsmall, ...)
     {
       #  Report(c('Phase', z$Phase, 'Iteration ', z$nit, '\n'))
         if (is.batch())
+		{
             Report(c('Phase ', z$Phase, ' Iteration ', z$nit, ' Progress: ',
                      round(progress), '%\n'), sep='')
+		}
         else
         {
             DisplayTheta(z)
@@ -408,7 +416,6 @@ phase1.2 <- function(z, x, ...)
 ##@CalculateDerivative siena07 Calculates derivative in Phase 1
 CalculateDerivative <- function(z, x)
 {
-    f <- FRANstore()
     if (z$FinDiff.method || x$maxlike)
     {
         dfra <- t(apply(z$sdf, c(2, 3), mean))
@@ -578,7 +585,11 @@ makeZsmall <- function(z)
     zsmall$pp <- z$pp
     zsmall$nrunMH <- z$nrunMH
     zsmall$returnDeps <- z$returnDeps
+    zsmall$returnChains <- z$returnChains
+    zsmall$returnDataFrame <- z$returnDataFrame
     zsmall$addChainToStore <- z$addChainToStore
     zsmall$needChangeContributions <- z$needChangeContributions
+	zsmall$callGrid <- z$callGrid
+	zsmall$thetaMat <- z$thetaMat
     zsmall
 }

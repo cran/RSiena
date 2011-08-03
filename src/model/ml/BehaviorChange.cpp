@@ -31,6 +31,7 @@ BehaviorChange::BehaviorChange(BehaviorLongitudinalData * pData,
 	this->lpData = pData;
 	this->ldifference = difference;
 	this->pOption(new Option(pData->id(), ego));
+	this->diagonal(difference == 0);
 }
 
 
@@ -68,14 +69,14 @@ void BehaviorChange::makeChange(DependentVariable * pVariable)
 }
 
 
-/**
- * Returns if this ministep is diagonal, namely, it does not change
- * the dependent variables.
- */
-bool BehaviorChange::diagonal() const
-{
-	return this->difference() == 0;
-}
+// /**
+//  * Returns if this ministep is diagonal, namely, it does not change
+//  * the dependent variables.
+//  */
+// bool BehaviorChange::diagonal() const
+// {
+// 	return this->difference() == 0;
+// }
 
 
 /**
@@ -84,10 +85,33 @@ bool BehaviorChange::diagonal() const
  */
 bool BehaviorChange::missing(int period) const
 {
-	return this->lpData->missing(period, this->ego()) ||
-		this->lpData->missing(period + 1, this->ego());
+//	return this->lpData->missing(period, this->ego()) ||
+//		this->lpData->missing(period + 1, this->ego());
+//	return this->lpData->missing(period, this->ego()) ||
+//		this->lpData->missing(period + 1, this->ego());
+	return this->missingStart(period) || this->missingEnd(period);
 }
 
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the start of the given period.
+ */
+bool BehaviorChange::missingStart(int period) const
+{
+//	return this->lpData->missing(period, this->ego()) ||
+//		this->lpData->missing(period + 1, this->ego());
+	return this->lpData->missing(period, this->ego());
+}
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the end of the given period.
+ */
+bool BehaviorChange::missingEnd(int period) const
+{
+//	return this->lpData->missing(period, this->ego()) ||
+//		this->lpData->missing(period + 1, this->ego());
+	return this->lpData->missing(period + 1, this->ego());
+}
 
 /**
  * Returns a new ministep that reverses the effect of this ministep.
@@ -144,17 +168,30 @@ const
  * Returns the endowmentEffectContribution for this effect and difference
  * for this ministep.
  */
-double BehaviorChange::endowmentEffectContribution(int difference, int effect) 
+double BehaviorChange::endowmentEffectContribution(int difference, int effect)
 const
 {
 	return this->lendowmentEffectContribution[difference][effect];
 }
+
+
+/**
+ * Returns the creationEffectContribution for this effect and difference
+ * for this ministep.
+ */
+double BehaviorChange::creationEffectContribution(int difference, int effect)
+	const
+{
+	return this->lcreationEffectContribution[difference][effect];
+}
+
+
 /**
  * Stores the evaluationEffectContribution for this difference, this effect and
  * this ministep.
  */
 void BehaviorChange::evaluationEffectContribution(double value, int difference,
-	int effect) 
+	int effect)
 {
 	this->levaluationEffectContribution[difference][effect] = value;
 }
@@ -164,21 +201,38 @@ void BehaviorChange::evaluationEffectContribution(double value, int difference,
  * this ministep.
  */
 void BehaviorChange::endowmentEffectContribution(double value, int difference,
-	int effect) 
+	int effect)
 {
 	this->lendowmentEffectContribution[difference][effect] = value;
 }
+
+
+/**
+ * Stores the creationEffectContribution for this difference, this effect and
+ * this ministep.
+ */
+void BehaviorChange::creationEffectContribution(double value,
+	int difference,
+	int effect)
+{
+	this->lcreationEffectContribution[difference][effect] = value;
+}
+
+
 /**
  * Creates arrays for the evaluation and endowment Effect Contributions for
  * this ministep.
  */
-void BehaviorChange::allocateEffectContributionArrays(int nEvaluationEffects, 
-	int nEndowmentEffects) 
+void BehaviorChange::allocateEffectContributionArrays(int nEvaluationEffects,
+	int nEndowmentEffects,
+	int nCreationEffects)
 {
-	this->levaluationEffectContribution.resize(3, 
+	this->levaluationEffectContribution.resize(3,
 		vector <double> (nEvaluationEffects));
-	this->lendowmentEffectContribution.resize(3, 
+	this->lendowmentEffectContribution.resize(3,
 		vector <double> (nEvaluationEffects));
+	this->lcreationEffectContribution.resize(3,
+		vector <double> (nCreationEffects));
 }
 
 

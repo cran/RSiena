@@ -441,7 +441,7 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 
 		// Once all network data has been stored, calculate some
 		// statistical properties of that data.
-		//pOneModeNetworkLongitudinalData->calculateProperties();
+		pOneModeNetworkLongitudinalData->calculateProperties();
 		//Rprintf("%f %f\n", pOneModeNetworkLongitudinalData->
 		//	averageInDegree(), pOneModeNetworkLongitudinalData->
 		//	averageOutDegree());
@@ -1518,6 +1518,22 @@ void getStatistics(SEXP EFFECTSLIST,
 						score = 0;
 					}
 				}
+				else if (strcmp(effectType, "creation") == 0)
+				{
+					EffectInfo * pEffectInfo = (EffectInfo *)
+						R_ExternalPtrAddr(
+							VECTOR_ELT(VECTOR_ELT(EFFECTS,
+									pointerCol), i));
+					statistic = pCalculator->statistic(pEffectInfo);
+					if (pEpochSimulation)
+					{
+						score = pEpochSimulation->score(pEffectInfo);
+					}
+					else
+					{
+						score = 0;
+					}
+				}
 				else
 				{
 					error("invalid effect type %s\n", effectType);
@@ -1600,7 +1616,8 @@ void getScores(SEXP EFFECTSLIST, int period, int group, const Data *pData,
 						const DependentVariable * pVariable =
 							pMLSimulation->pVariable(networkName);
 						(*rscore)[storescore++] = pVariable->basicRateScore();
-						(*rderiv)[storederiv++] = pVariable->basicRateDerivative();
+						(*rderiv)[storederiv++] =
+							pVariable->basicRateDerivative();
 					}
 					else
 					{
@@ -1644,104 +1661,6 @@ void getScores(SEXP EFFECTSLIST, int period, int group, const Data *pData,
 					}
 				}
 			}
-		}
-	}
-	UNPROTECT(1);
-}
-/**
- *  retrieves the values of the candidate parameters for each of the effects,
- *  for one period.
- */
-void getCandidatesAndShapes(SEXP EFFECTSLIST, int period, int group,
-	const Data *pData,
-	const MLSimulation * pMLSimulation, vector<double> * rcandidates,
-	vector<int> * ibayesshapes, int nBatches)
-{
-
-	// get the column names from the names attribute
-	SEXP cols;
-	PROTECT(cols = install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
-
-	int netTypeCol; /* net type */
-	int nameCol; /* network name */
-	int effectCol;  /* short name of effect */
-	int parmCol;
-	int int1Col;
-	int int2Col;
-	int initValCol;
-	int typeCol;
-	int groupCol;
-	int periodCol;
-	int pointerCol;
-	int rateTypeCol;
-	int intptr1Col;
-	int intptr2Col;
-	int intptr3Col;
-
-	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
-		&parmCol, &int1Col, &int2Col, &initValCol,
-		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
-
-	int storeCandidates = 0;
-
-	for (int ii = 0; ii < length(EFFECTSLIST); ii++)
-	{
-		const char * networkName =
-			CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, ii),
-						nameCol), 0));
-		SEXP EFFECTS = VECTOR_ELT(EFFECTSLIST, ii);
-
-		for (int i = 0; i < length(VECTOR_ELT(EFFECTS,0)); i++)
-		{
-			const char * effectName =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, effectCol),  i));
-			const char * effectType =
-				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
-			if (strcmp(effectType, "rate") == 0)
-			{
-				if (strcmp(effectName, "Rate") == 0)
-				{
-					int groupno =
-						INTEGER(VECTOR_ELT(EFFECTS, groupCol))[i];
-					int periodno =
-						INTEGER(VECTOR_ELT(EFFECTS, periodCol))[i];
-					if ((periodno - 1) == period && (groupno - 1) == group)
-					{
-						//TODO: make this work for more than one variable
-						const DependentVariable * pVariable =
-							pMLSimulation->pVariable(networkName);
-						for (int batch = 0; batch < nBatches; batch++)
-						{
-						  	(*rcandidates)[storeCandidates + batch] =
-						  		pVariable->sampledBasicRates(batch);
-						  	(*ibayesshapes)[storeCandidates + batch] =
-						  		pVariable->
-						  		sampledBasicRatesDistributions(batch);
-						}
-					}
-				}
-				else
-				{
-					error("Non constant rate effects are not %s",
-						"implemented for maximum likelihood.");
-				}
-			}
-			else
-			{
-				const EffectInfo * pEffectInfo = (const EffectInfo *)
-					R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS,
-								pointerCol), i));
-				for (int batch = 0; batch < nBatches; batch++)
-				{
-					(*rcandidates)[storeCandidates + batch] =
-						pMLSimulation->candidates(pEffectInfo, batch);
-					(*ibayesshapes)[storeCandidates + batch] = 0;
-				}
-
-			}
-			storeCandidates += nBatches;
 		}
 	}
 	UNPROTECT(1);

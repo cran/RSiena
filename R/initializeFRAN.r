@@ -114,12 +114,12 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         data <- tmp$data
         effects <- tmp$effects
         ## find any effects not included which are needed for interactions
-        interactionNos <- unique(c(effects$effect1, effects$effect2,
-                                   effects$effect3))
+        tmpEffects <- effects[effects$include, ]
+        interactionNos <- unique(c(tmpEffects$effect1, tmpEffects$effect2,
+                                   tmpEffects$effect3))
         interactionNos <- interactionNos[interactionNos > 0]
         interactions <- effects$effectNumber %in%
                                           interactionNos
-        interactionMainEffects <- effects[interactions, ]
         effects$requested <- effects$include
         requestedEffects <- effects[effects$include, ]
 
@@ -168,7 +168,6 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             }
         }
         types <- sapply(data[[1]]$depvars, function(x) attr(x, 'type'))
-        nets <- sum(types != "behavior")
         ## now check if conditional estimation is OK and copy to z if so
         z$cconditional <- FALSE
         if (x$cconditional)
@@ -457,6 +456,14 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             z$maxlikeTargets2 <- ans
             z$mult <- x$mult
             z$nrunMH <- z$mult * sum(z$maxlikeTargets[z$effects$basicRate])
+            ##thetaMat is to allow different thetas for each group in Bayes
+            z$thetaMat <- matrix(z$theta, nrow=nGroup, ncol=z$pp, byrow=TRUE)
+            ## create a grid of periods with group names in case want to
+            ## parallelize using this
+            groupPeriods <- attr(f, "groupPeriods")
+            z$callGrid <- cbind(rep(1:nGroup, groupPeriods - 1),
+                                as.vector(unlist(sapply(groupPeriods - 1,
+                                                        function(x) 1:x))))
         }
     }
 
@@ -490,43 +497,67 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
 
     if (x$maxlike)
     {
-        ## set up chains and do initial steps
         simpleRates <- TRUE
-
-        types <- attr(f, "types")
-        nbrNonMissNet <- attr(f, "numberNonMissingNetwork")
-        nbrMissNet <- attr(f, "numberMissingNetwork")
-        nbrNonMissBeh <- attr(f, "numberNonMissingBehavior")
-        nbrMissBeh <- attr(f, "numberMissingBehavior")
-
-        z$prmin <-   nbrMissNet/ (nbrMissNet + nbrNonMissNet)
-        if (sum(nbrMissBeh + nbrNonMissBeh) > 0)
+        if (any(!z$effects$basicRate & z$effects$type =="rate"))
         {
-            z$prmib <-   nbrMissBeh/ (nbrMissBeh + nbrNonMissBeh)
+           # browser()
+            simpleRates <- FALSE
         }
-        else
+        z$simpleRates <- simpleRates
+        if (!initC)
         {
-            z$prmib <- rep(0, length(nbrMissBeh))
-        }
-        ## cat (z$prmin, z$prmib, '\n')
-        z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prirms,
-                     x$prdrms)
-        cat(z$probs,'\n')
-        ans <- .Call("mlMakeChains", PACKAGE=pkgname, pData, pModel,
-                     simpleRates, z$probs, z$prmin, z$prmib,
-                     x$minimumPermutationLength,
-                     x$maximumPermutationLength,
-                     x$initialPermutationLength)
+            ## set up chains and do initial steps
 
-        f$minimalChain <- ans[[1]]
-        f$chain <- ans[[2]]
-      #  print(nrow(ans[[1]][[1]]))
-      #  print(nrow(ans[[2]][[1]]))
-      # browser()
-        ##store address of simulation object
-       # f$pMLSimulation <- ans[[1]][[1]]
-        #ans1 <- reg.finalizer(f$pMLSimulation, clearMLSimulation,
-         #                     onexit = FALSE)
+            types <- attr(f, "types")
+            nbrNonMissNet <- attr(f, "numberNonMissingNetwork")
+            nbrMissNet <- attr(f, "numberMissingNetwork")
+            nbrNonMissBeh <- attr(f, "numberNonMissingBehavior")
+            nbrMissBeh <- attr(f, "numberMissingBehavior")
+
+            if (sum(nbrMissNet + nbrNonMissNet) > 0)
+            {
+                z$prmin <- nbrMissNet/ (nbrMissNet + nbrNonMissNet)
+            }
+            else
+            {
+                z$prmin <- rep(0, length(nbrMissNet))
+            }
+            if (sum(nbrMissBeh + nbrNonMissBeh) > 0)
+            {
+                z$prmib <-   nbrMissBeh/ (nbrMissBeh + nbrNonMissBeh)
+            }
+            else
+            {
+                z$prmib <- rep(0, length(nbrMissBeh))
+            }
+            ## cat (z$prmin, z$prmib, '\n')
+            z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prirms,
+                         x$prdrms)
+            cat(z$probs,'\n')
+            ans <- .Call("mlMakeChains", PACKAGE=pkgname, pData, pModel,
+                         simpleRates, z$probs, z$prmin, z$prmib,
+                         x$minimumPermutationLength,
+                         x$maximumPermutationLength,
+                         x$initialPermutationLength)
+
+            f$minimalChain <- ans[[1]]
+            f$chain <- ans[[2]]
+            f$simpleRates <- simpleRates
+            ##  print(nrow(ans[[1]][[1]]))
+            ##  print(nrow(ans[[2]][[1]]))
+            ## browser()
+        }
+        else ## set up the initial chains in the sub processes
+        {
+            ans <- .Call("mlInitializeSubProcesses",
+                         PACKAGE=pkgname, pData, pModel,
+                         simpleRates, z$probs, z$prmin, z$prmib,
+                         x$minimumPermutationLength,
+                         x$maximumPermutationLength,
+                         x$initialPermutationLength, ff$chain, ff$missingChain)
+            f$chain <- ff$chain
+            f$missingChain <- ff$missingChain
+       }
     }
     f$myeffects <- myeffects
     f$myCompleteEffects <- myCompleteEffects
@@ -552,12 +583,16 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         z$f <- f
         z <- initForAlgorithms(z)
         z$periodNos <- attr(data, "periodNos")
-        z$f[1:nGroup] <- NULL
+        z$f$myeffects <- NULL
+        z$f$myCompleteEffects <- NULL
+		if (!returnDeps)
+		{
+			z$f[1:nGroup] <- NULL
+		}
     }
     if (initC || (z$int == 1 && z$int2 == 1 &&
                   (is.null(z$nbrNodes) || z$nbrNodes == 1)))
     {
-
         f[1:nGroup] <- NULL
     }
     FRANstore(f) ## store f in FRANstore
@@ -607,15 +642,15 @@ createEdgeLists<- function(mat, matorig, bipartite)
     ## add attribute of size
     if (bipartite)
     {
-        attr(mat1,'nActors') <- c(nrow(mat), ncol(mat))
-        attr(mat2,'nActors') <- c(nrow(mat), ncol(mat))
-        attr(mat3,'nActors') <- c(nrow(mat), ncol(mat))
+        attr(mat1, 'nActors') <- c(nrow(mat), ncol(mat))
+        attr(mat2, 'nActors') <- c(nrow(mat), ncol(mat))
+        attr(mat3, 'nActors') <- c(nrow(mat), ncol(mat))
     }
     else
     {
-        attr(mat1,'nActors') <- nrow(mat)
-        attr(mat2,'nActors') <- nrow(mat)
-        attr(mat3,'nActors') <- nrow(mat)
+        attr(mat1, 'nActors') <- nrow(mat)
+        attr(mat2, 'nActors') <- nrow(mat)
+        attr(mat3, 'nActors') <- nrow(mat)
     }
 
     list(mat1 = t(mat1), mat2 = t(mat2), mat3 = t(mat3))
@@ -643,8 +678,8 @@ createCovarEdgeList<- function(mat, matorig)
               }, y = matorig)
     mat2 <- do.call(rbind, tmp)
     ## add attribute of size
-    attr(mat1,'nActors1') <- nrow(mat)
-    attr(mat1,'nActors2') <- ncol(mat)
+    attr(mat1, 'nActors1') <- nrow(mat)
+    attr(mat1, 'nActors2') <- ncol(mat)
     list(mat1=t(mat1), mat2=t(mat2))
 }
 ##@unpackOneMode siena07 Reformat data for C++
@@ -986,14 +1021,14 @@ unpackOneMode <- function(depvar, observations, compositionChange)
             if (i < observations)
             {
                 ## recreate distances, as we have none in c++. (no longer true)
-                mymat1 <- depvar[,,i, drop=FALSE]
-                mymat2 <- depvar[,,i + 1,drop=FALSE]
+                mymat1 <- depvar[, ,i, drop=FALSE]
+                mymat2 <- depvar[, ,i + 1, drop=FALSE]
                 ##remove structural values
-                mymat1[mymat1 %in% c(10,11)] <- NA
-                mymat2[mymat2 %in% c(10,11)] <- NA
+                mymat1[mymat1 %in% c(10, 11)] <- NA
+                mymat2[mymat2 %in% c(10, 11)] <- NA
                 ## and the diagonal
-                diag(mymat1[,,1]) <- 0
-                diag(mymat2[,,1]) <- 0
+                diag(mymat1[, ,1]) <- 0
+                diag(mymat2[, ,1]) <- 0
                 mydiff <- mymat2 - mymat1
                 attr(depvar, 'distance')[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
@@ -1354,7 +1389,6 @@ unpackBehavior<- function(depvar, observations)
 {
     beh <- depvar[, 1, ]
     behmiss <- is.na(beh)
-    origbeh <- beh
     allna <- apply(beh, 1, function(x)all(is.na(x)))
     modes <- attr(depvar, "modes")
     ## carry forward missings ### nb otherwise use the mode
@@ -1368,21 +1402,12 @@ unpackBehavior<- function(depvar, observations)
     {
             beh[is.na(beh[, i]), i] <-  beh[is.na(beh[, i]), i +1]
     }
-   #browser()
-   # for (i in seq(2:observations)
-   # {
-   #     if (i == 1)
-   #     {
-   #         beh[is.na(beh[, i]), i] <- modes[1]
-   #     else ##carry missing forward if there
-   #     {
-   #         beh[is.na(beh[, i]), i] <- ifelse(beh[is.na(beh[, i] , i - 1]
-   #             beh[is.na(beh[, i]), i - 1]
-   # }
-    struct <- beh[beh %in% c(10,11)]
-    beh[struct] <- beh[struct] - 10
-    behstruct <- beh
-    behstruct[!struct] <- 0
+    ## need a better definition of structural for behavior variables
+    ## struct <- beh %in% c(10, 11)
+    ## beh[struct] <- beh[struct] - 10
+    ## behstruct <- beh
+    ## behstruct[!struct] <- 0
+
     ## add attribute of nodeset
     attr(beh, 'nodeSet') <- attr(depvar, 'nodeSet')
     ## add attribute of name
@@ -1463,7 +1488,6 @@ unpackCDyad<- function(dycCovar)
 unpackVDyad<- function(dyvCovar, observations)
 {
     edgeLists <- vector('list', observations)
-    varmats <- vector('list', observations)
     sparse <- attr(dyvCovar, 'sparse')
     means <- attr(dyvCovar, "meanp")
     nodeSets <- attr(dyvCovar, "nodeSet")
@@ -1565,7 +1589,6 @@ unpackCompositionChange <- function(compositionChange)
     atts <- attributes(compositionChange)
     events <- atts$events
     activeStart <- atts$activeStart
-    nActors <- nrow(activeStart)
     observations <- ncol(activeStart)
     ## check that there is someone there always
     for (i in 1:(observations - 1))
@@ -1615,108 +1638,217 @@ fixUpEffectNames <- function(effects)
                             effects$effect1 > 0, ]
     if (nrow(interactions) > 0)
     {
-        unspIntNames <- sapply(1:nrow(interactions), function(x, y, z)
-           {
-               y <- y[x, ] ## get the interaction effect
-               twoway <- y$effect3 == 0
-               ## now get the rows which are to interact
-               inter1 <- z[z$effectNumber == y$effect1, ]
-               if (nrow(inter1) != 1 )
+        unspIntNames <-
+            sapply(1:nrow(interactions), function(x, y, z)
                {
-                   stop("invalid interaction specification effect number 1")
-               }
-               inter2 <- z[z$effectNumber == y$effect2, ]
-               if (nrow(inter2) != 1 )
-               {
-                   stop("invalid interaction specification effect number 2")
-               }
-               if (!twoway)
-               {
-                   inter3 <- z[z$effectNumber == y$effect3, ]
-                   if (nrow(inter3) != 1)
+                   y <- y[x, ] ## get the interaction effect
+                   twoway <- y$effect3 == 0
+                   ## now get the rows which are to interact
+                   inter1 <- z[z$effectNumber == y$effect1, ]
+                   if (nrow(inter1) != 1 )
                    {
-                       stop("invalid interaction specification effect number 3")
+                       stop("invalid network interaction specification: ",
+                            "effect number 1")
                    }
-               }
-               else
-               {
-                   inter3 <- z[is.na(z$effectNumber),] ## should be empty row
-               }
-               if (twoway)
-               {
-                   if (inter1$name != inter2$name)
+                   inter2 <- z[z$effectNumber == y$effect2, ]
+                   if (nrow(inter2) != 1 )
                    {
-                       stop("invalid interaction specification: ",
-                            "must be same network")
+                       stop("invalid network interaction specification: ",
+                            "effect number 2")
                    }
-                   if (inter1$type != inter2$type)
+                   if (!twoway)
                    {
-					#   warning("Interaction specification gives effects ",
-					#		   "with different specifications eval/endow/rate ",
-					#		   "trying with experimental code. Remove these ",
-					#		   "Interactions if this does not work.")
-                       stop("invalid interaction specification: ",
-                            "must be same type: evaluation or endowment")
+                       inter3 <- z[z$effectNumber == y$effect3, ]
+                       if (nrow(inter3) != 1)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "effect number 3")
+                       }
                    }
-               }
-               else
-               {
-                   if (inter1$name != inter2$name ||
-                       inter1$name != inter3$name)
+                   else
                    {
-                       stop("invalid interaction specification:",
-                            "must all be same network")
+                       inter3 <- z[is.na(z$effectNumber), ]
+                       ## should be empty row
                    }
-                   if (inter1$type != inter2$type ||
-                       inter1$type != inter3$type)
+                   if (twoway)
                    {
-                       stop("invalid interaction specification:",
-                            "must all be same type: evaluation or endowment")
+                       if (inter1$name != inter2$name)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must all be same network")
+                       }
+                       if (inter1$type != inter2$type)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must all be same type: ",
+                                "evaluation, endowment or creation")
+                       }
                    }
-               }
-               ## check types
-               inters <- rbind(inter1, inter2, inter3)
-               egos <- which(inters$interactionType == "ego")
-               egoCount <- length(egos)
-               dyads <- which(inters$interactionType == "dyadic")
-               dyadCount <- length(dyads)
-               if (twoway)
-               {
-                   if (egoCount < 1 && dyadCount != 2)
+                   else
                    {
-                       stop("invalid interaction specification:",
-                            "must be at least one ego or both dyadic effects")
+                       if (inter1$name != inter2$name ||
+                           inter1$name != inter3$name)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must all be same network")
+                       }
+                       if (inter1$type != inter2$type ||
+                           inter1$type != inter3$type)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must all be ",
+                                "same type: evaluation, endowment or creation ")
+                       }
                    }
-               }
-               else
-               {
-                   if (egoCount < 2 && dyadCount != 3)
+                   ## check types
+                   inters <- rbind(inter1, inter2, inter3)
+                   egos <- which(inters$interactionType == "ego")
+                   egoCount <- length(egos)
+                   dyads <- which(inters$interactionType == "dyadic")
+                   dyadCount <- length(dyads)
+                   if (twoway)
                    {
-                       stop("invalid interaction specification:",
-                            "must be at least two ego or all dyadic effects")
+                       if (egoCount < 1 && dyadCount != 2)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must be at least one ego or both dyadic ",
+                                "effects")
+                       }
                    }
-               }
-               ## construct a name
-               ### make sure the egos are at the front of inters
-               if (egoCount > 0)
-               {
-                   inters <- rbind(inters[egos, ], inters[-egos, ])
-               }
-               tmpname <- paste(inters$effectName, collapse = " x ")
-               if (twoway && nchar(tmpname) < 38)
-               {
-                   tmpname <- paste("int. ", tmpname)
-               }
-               if (!twoway)
-               {
-                   tmpname <- paste("i3.", tmpname)
-               }
-               tmpname
-           }, y=interactions, z=effects)
+                   else
+                   {
+                       if (egoCount < 2 && dyadCount != 3)
+                       {
+                           stop("invalid network interaction specification: ",
+                                "must be at least two ego or all dyadic ",
+                                "effects")
+                       }
+                   }
+                   ## construct a name
+                   ## make sure the egos are at the front of inters
+                   if (egoCount > 0)
+                   {
+                       inters <- rbind(inters[egos, ], inters[-egos, ])
+                   }
+ 				   tmpnames <- inters$effectName
+				   tmpnames[-1] <- sub(paste(inters$name[1], ": ",
+											 sep=""), "", tmpnames[-1])
+				   tmpname <- paste(tmpnames, collapse = " x ")
+                   if (twoway && nchar(tmpname) < 38)
+                   {
+                       tmpname <- paste("int. ", tmpname)
+                   }
+                   if (!twoway)
+                   {
+                       tmpname <- paste("i3.", tmpname)
+                   }
+                   tmpname
+               }, y=interactions, z=effects)
         effects[effects$shortName == "unspInt" & effects$include &
+                !is.na(effects$effect1), c("effectName", "functionName")] <-
+                    unspIntNames
+    }
+    ##validate user-specified behavior interactions
+    interactions <- effects[effects$shortName == "behUnspInt" &
+                            effects$include &
+                            effects$effect1 > 0, ]
+    if (nrow(interactions) > 0)
+    {
+        unspIntNames <-
+            sapply(1:nrow(interactions), function(x, y, z)
+               {
+                   y <- y[x, ] ## get the interaction effect
+                   twoway <- y$effect3 == 0
+                   ## now get the rows which are to interact
+                   inter1 <- z[z$effectNumber == y$effect1, ]
+                   if (nrow(inter1) != 1 )
+                   {
+                       stop("invalid behavior interaction specification: ",
+                            "effect number 1")
+                   }
+                   inter2 <- z[z$effectNumber == y$effect2, ]
+                   if (nrow(inter2) != 1 )
+                   {
+                       stop("invalid behavior interaction specification: ",
+                            "effect number 2")
+                   }
+                   if (!twoway)
+                   {
+                       inter3 <- z[z$effectNumber == y$effect3, ]
+                       if (nrow(inter3) != 1)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "effect number 3")
+                       }
+                   }
+                   else
+                   {
+                       inter3 <- z[is.na(z$effectNumber), ]
+                       ## should be empty row
+                   }
+                   if (twoway)
+                   {
+                       if (inter1$name != inter2$name)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be same behavior variable")
+                       }
+                       if (inter1$type != inter2$type)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must be same type: evaluation, endowment ",
+                                "or creation")
+                       }
+                   }
+                   else
+                   {
+                       if (inter1$name != inter2$name ||
+                           inter1$name != inter3$name)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be same behavior variable")
+                       }
+                       if (inter1$type != inter2$type ||
+                           inter1$type != inter3$type)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be ",
+                                "same type: evaluation, endowment or creation")
+                       }
+                   }
+                   ## check types - all should be OK here
+                   inters <- rbind(inter1, inter2, inter3)
+                   ##if (length(which(inters$interactionType != "OK")) > 1)
+				   ##{
+				   ##	   stop("invalid behavior interaction specification: ",
+				   ##			"at most one effect with interactionType ",
+				   ##			"not OK is allowed")
+                   ##}
+                   if (any(inters$interactionType != "OK"))
+                   {
+                       stop("invalid behavior interaction specification: ",
+                            "only effects with interactionType OK are allowed")
+                   }
+                   ## construct a name
+				   tmpnames <- inters$effectName
+				   tmpnames[-1] <- sub(paste("behavior ", inters$name[1], " ",
+											 sep=""), "", tmpnames[-1])
+				   tmpname <- paste(tmpnames, collapse = " x ")
+                   if (twoway && nchar(tmpname) < 38)
+                   {
+                       tmpname <- paste("int. ", tmpname)
+                   }
+                   if (!twoway)
+                   {
+                       tmpname <- paste("i3.", tmpname)
+                   }
+                   tmpname
+               }, y=interactions, z=effects)
+        effects[effects$shortName == "behUnspInt" & effects$include &
                 !is.na(effects$effect1), c("effectName", "functionName")] <-
                     unspIntNames
     }
     effects
 }
+
 

@@ -8,7 +8,7 @@ PKG_CPPFLAGS=-I.
 
 all: $(SHLIB)
 
-$(OBJECTS): clean
+#$(OBJECTS): clean
 
 clean:
 	@rm -f $(OBJECTS)

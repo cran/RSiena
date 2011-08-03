@@ -8,7 +8,7 @@
 # * Description: This module contains the code to create
 # * Siena data object and group data objects.
 # *****************************************************************************/
-##@addeAttributes DataCreate method for attaching attributes to objects
+##@addAttributes DataCreate method for attaching attributes to objects
 addAttributes <- function(x, name, ...) UseMethod("addAttributes")
 
 ##@addAttributes.coCovar DataCreate
@@ -182,15 +182,12 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
     ##@validNodeSet internal sienaDataCreate
     validNodeSet <- function(nodeSetName, n)
     {
-        if (!nodeSetName == 'Actors')
-        {
-            sub <- match(nodeSetName, nodeSetNames)
-            if (is.na(sub))
-                stop('node set not found')
-            n == length(nodeSets[[sub]])
-        }
-        else
-            TRUE
+		sub <- match(nodeSetName, nodeSetNames)
+		if (is.na(sub))
+		{
+			stop("node set not found")
+		}
+		n == length(nodeSets[[sub]])
     }
     if (getDocumentation)
     {
@@ -288,19 +285,19 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                    compositionChange[[v6]] <- dots[[i]]
                    names(compositionChange)[v6] <- nm[i]
                },
-               stop(paste('invalid object in sienaDataCreate',
+               stop(paste("invalid object in sienaDataCreate",
                           class(dots[[i]])), call.=FALSE)
                )
     if (v1 == 0)
     {
-        stop('need a dependent variable')
+        stop("need a dependent variable")
     }
     depvars <- depvars[1:v1]
     if (is.null(nodeSets))
     {
-        nodeSets <- list(sienaNodeSet(attr(depvars[[1]],'netdims')[1]))
+        nodeSets <- list(sienaNodeSet(attr(depvars[[1]], "netdims")[1]))
     }
-    nodeSetNames <- sapply(nodeSets,function(x) attr(x,'nodeSetName'))
+    nodeSetNames <- sapply(nodeSets,function(x) attr(x,"nodeSetName"))
     names(nodeSets) <- nodeSetNames
     if (v2 == 0)
     {
@@ -471,8 +468,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
             repeat
             {
                 ##process one interval
-                start <- x[xsubs]
-                end <- x[xsubs+1]
+                ##start <- x[xsubs]
+                ##end <- x[xsubs+1]
                 startIndex <- ceiling(x[xsubs])
                 endIndex <- trunc(x[xsubs + 1])
               #  if (startIndex < observations && startIndex <= activeEndIndex)
@@ -766,16 +763,18 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 }
                 ## average degree
                 atts <- attributes(depvars[[i]])
-                ones <- sapply(atts$vals, function(x){
+                ones <- sapply(atts$vals, function(x)
+                           {
                                if (is.na(x["11"]))
-                           {
-                               ones <- x["1"]
-                           }
+                               {
+                                   x["1"]
+                               }
                                else
-                           {
-                               ones <- x["1"] + x["11"]
+                               {
+                                   x["1"] + x["11"]
+                               }
                            }
-                              } )
+                               )
                 density <- ones / atts$nval
                 degree <- (atts$netdims[1] - 1) * ones / atts$nval
                 missings <- 1 - atts$nval/ atts$netdims[1] /
@@ -849,16 +848,18 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
                 }
                  ## average degree
                 atts <- attributes(depvars[[i]])
-                ones <- sapply(atts$vals, function(x){
+                ones <- sapply(atts$vals, function(x)
+                           {
                                if (is.na(x["11"]))
-                           {
-                               ones <- x["1"]
-                           }
+                               {
+                                   x["1"]
+                               }
                                else
-                           {
-                               ones <- x["1"] + x["11"]
+                               {
+                                   x["1"] + x["11"]
+                               }
                            }
-                              } )
+                               )
                 density <- ones / atts$nval
                 degree <- (atts$netdims[2]) * ones / atts$nval
                 missings <- 1 - atts$nval/ atts$netdims[1] /
@@ -999,12 +1000,9 @@ checkConstraints <- function(z)
 rangeAndSimilarity<- function(vals, rvals=NULL)
 {
     vals <- as.matrix(vals)
-    dims <- dim(vals)
-    observations <- dims[2]
-    n <- dims[1]
     if (is.null(rvals))
     {
-        rvals <- range(vals,na.rm=TRUE)
+        rvals <- range(vals, na.rm=TRUE)
     }
     rvals1 <- rvals[2] - rvals[1]
     tmp <- apply(vals, 2, function(v)
@@ -1032,7 +1030,7 @@ rangeAndSimilarity<- function(vals, rvals=NULL)
 groupRangeAndSimilarityAndMean <- function(group)
 {
     atts <- attributes(group)
-    behavs <- atts$types == "behavior"
+    ##behavs <- atts$types == "behavior"
     netnames <- atts$netnames
     bRange <- namedVector(NA, netnames)
     behRange <- matrix(NA, ncol=length(netnames), nrow=2)
@@ -1252,16 +1250,18 @@ groupRangeAndSimilarityAndMean <- function(group)
             }
             sparse <- attr(group[[i]]$dyvCovars[[j]], "sparse")
             vardims <- attr(group[[i]]$dyvCovars[[j]], "vardims")
-            if (attr(group[[i]]$dyvCovars[[j]], "sparse"))
+            if (sparse)
             {
                 for (obs in 1:vardims[3])
                 {
-                    vartotal <- vartotal + sum(group[[i]]$dyvCovars[[j]][[obs]], na.rm=TRUE)
+                    vartotal <- vartotal + sum(group[[i]]$dyvCovars[[j]][[obs]],
+                                               na.rm=TRUE)
                     nonMissingCount <- nonMissingCount +
                         sum(!is.na(group[[i]]$dyvCovars[[j]][[obs]]))
                 }
-                thisrange[, i] <- range(sapply(group[[i]]$dyvCovars[[j]], range, na.rm=TRUE),
-                                            na.rm=TRUE)
+                thisrange[, i] <- range(sapply(group[[i]]$dyvCovars[[j]], range,
+                                               na.rm=TRUE),
+                                        na.rm=TRUE)
             }
             else
             {
@@ -1379,7 +1379,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     {
         dyvCovars <- character(0)
     }
-    nNetnames <- length(netnames)
+    ## nNetnames <- length(netnames)
     anyMissing <- namedVector(FALSE, netnames)
     symmetric <- namedVector(TRUE, netnames)
     structural <- namedVector(FALSE, netnames)
@@ -1615,7 +1615,7 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
                 newcovar <-
                     varDyadCovar(array(const[[j]], dim=c(dim(const[[j]]),
                                                    dim3)),
-                                 nodeSet=attr(const[[j]], "nodeSet"))
+                                 nodeSets=attr(const[[j]], "nodeSet"))
                 attr(newcovar, "vartotal") <- attr(const[[j]], "vartotal")
                 attr(newcovar, "nonMissingCount") <-
                      attr(const[[j]], "nonMissingCount")

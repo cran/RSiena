@@ -19,10 +19,9 @@ DataReport <- function(z, x, f)
     nBehavior <- sum(behavior)
     nBipartites <- sum(bipartite)
     oneModeNames <- attr(f, "netnames")[oneMode]
-    behaviorNames <- attr(f, "netnames")[behavior]
-    bipartiteNames <- attr(f, "netnames")[bipartite]
-    symmetric <- attr(f, "symmetric")[oneMode]
-    nDepVars <- nOneMode + nBehavior
+    ##  behaviorNames <- attr(f, "netnames")[behavior]
+    ##  bipartiteNames <- attr(f, "netnames")[bipartite]
+    nDepVars <- nOneMode + nBehavior + nBipartites
     observations <- attr(f, "observations") ##note this is total number of
     ##  periods to process
     exogenous <- attr(f, 'compositionChange')

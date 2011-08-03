@@ -41,12 +41,13 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   \item{\dots}{Arguments for the simulation function, see
     \code{\link{simstats0c}}:
 	usually, \code{data} and \code{effects}; possibly also
-    \code{prevAns} if a previous reasonable provisional estimate was obtained
-    for the same model specification.}
+    \code{prevAns} if a previous reasonable provisional estimate was
+	obtained for a similar model.}
 }
 \details{
  Runs a Robbins-Monro algorithm for parameter estimation using the three-phase
- implementation in Snijders (2001) and Snijders, Steglich and Schweinberger (2007),
+ implementation in Snijders (2001) and
+ Snijders, Steglich and Schweinberger (2007),
  with derivative estimation as in Schweinberger and Snijders (2007).
  Phase 1 does a few iterations to
  estimate the derivative matrix of the targets with respect to the
@@ -82,20 +83,23 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
        Markov models for digraph panel data: Monte Carlo-based
        derivative estimation.
        Computational Statistics and Data Analysis 51, 4465-4483.
-   \item Snijders, Tom A.B., The statistical evaluation of social network dynamics.
+	   \item Snijders, Tom A.B.,
+	   The statistical evaluation of social network dynamics.
        Pp.  361-395 in Sociological Methodology - 2001,  edited by
        M.E. Sobel and M.P. Becker. Boston and London: Basil Blackwell.
    \item Snijders, Tom A.B., Steglich, Christian E.G., and Schweinberger, Michael,
        Modeling the co-evolution of networks and behavior.
        Pp. 41-71 in Longitudinal models in the behavioral and related sciences,
-       edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum, 2007.
+       edited by Kees van Montfort, Han Oud and Albert Satorra;
+	   Lawrence Erlbaum, 2007.
    \item Further see \url{http://www.stats.ox.ac.uk/~snijders/siena/} .
            }
 }
 \author{Ruth Ripley }
-\seealso{There are print, summary and xtable methods for \code{\link{sienaFit}}
-  objects
-  \code{\link{sienaModelCreate}}, \code{\link{print.sienaFit}}}
+
+\seealso{There are print, summary and xtable
+  methods for \code{\link{sienaFit}}
+  objects \code{\link{sienaModelCreate}}, \code{\link{print.sienaFit}}}
 \examples{
 mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
 # nsub=2 and n3=100 is used here for having a brief computation, not for practice.

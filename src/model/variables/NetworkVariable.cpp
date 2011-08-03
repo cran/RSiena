@@ -74,8 +74,10 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 	this->lprobabilities = new double[numberOfAlters];
 	this->levaluationEffectContribution = new double * [numberOfAlters];
 	this->lendowmentEffectContribution = new double * [numberOfAlters];
+	this->lcreationEffectContribution = new double * [numberOfAlters];
 	this->lsymmetricEvaluationEffectContribution = new double * [2];
 	this->lsymmetricEndowmentEffectContribution = new double * [2];
+	this->lsymmetricCreationEffectContribution = new double * [2];
 
 	for (int i = 0; i < numberOfAlters; i++)
 	{
@@ -85,6 +87,9 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 		this->lendowmentEffectContribution[i] =
 			new double[pSimulation->pModel()->
 				rEndowmentEffects(pData->name()).size()];
+		this->lcreationEffectContribution[i] =
+			new double[pSimulation->pModel()->
+				rCreationEffects(pData->name()).size()];
 	}
 	for (int i = 0; i < 2; i++)
 	{
@@ -94,6 +99,9 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 		this->lsymmetricEndowmentEffectContribution[i] =
 			new double[pSimulation->pModel()->
 				rEndowmentEffects(pData->name()).size()];
+		this->lsymmetricCreationEffectContribution[i] =
+			new double[pSimulation->pModel()->
+				rCreationEffects(pData->name()).size()];
 	}
 
 	this->lpNetworkCache =
@@ -129,23 +137,30 @@ NetworkVariable::~NetworkVariable()
 	{
 		delete[] this->levaluationEffectContribution[i];
 		delete[] this->lendowmentEffectContribution[i];
+		delete[] this->lcreationEffectContribution[i];
 	}
 
 	for (int i = 0; i < 2; i++)
 	{
 		delete[] this->lsymmetricEvaluationEffectContribution[i];
 		delete[] this->lsymmetricEndowmentEffectContribution[i];
+		delete[] this->lsymmetricCreationEffectContribution[i];
 	}
+
 	delete[] this->levaluationEffectContribution;
 	delete[] this->lendowmentEffectContribution;
+	delete[] this->lcreationEffectContribution;
 
 	delete[] this->lsymmetricEvaluationEffectContribution;
 	delete[] this->lsymmetricEndowmentEffectContribution;
+	delete[] this->lsymmetricCreationEffectContribution;
 
 	this->lsymmetricEvaluationEffectContribution = 0;
 	this->lsymmetricEndowmentEffectContribution = 0;
+	this->lsymmetricCreationEffectContribution = 0;
 	this->levaluationEffectContribution = 0;
 	this->lendowmentEffectContribution = 0;
+	this->lcreationEffectContribution = 0;
 	this->lpData = 0;
 	this->lpNetwork = 0;
 	this->lactiveStructuralTieCount = 0;
@@ -483,16 +498,19 @@ void NetworkVariable::makeChange(int actor)
 
 	if (this->pSimulation()->pModel()->modelTypeB())
 	{
-		accept = this->makeModelTypeBChange();
-		if (this->lalter == this->lego)
+		if (this->calculateModelTypeBProbabilities())
 		{
-			// could not do the change. need to indicate to EpochSimulation
-			// so that rate scores will be updated for interval with non-event.
-			this->successfulChange(false);
+			accept = nextDouble() < this->lsymmetricProbability;
+
+			if (this->pSimulation()->pModel()->needScores())
+			{
+				this->accumulateSymmetricModelScores(this->lalter, accept);
+			}
 		}
 		else
 		{
-			this->successfulChange(true);
+			this->successfulChange(false);
+			return;
 		}
 		alter = this->lalter;
 	}
@@ -517,29 +535,63 @@ void NetworkVariable::makeChange(int actor)
 		if (this->pSimulation()->pModel()->modelType() == AAGREE &&
 			!this->lpNetworkCache->outTieExists(alter))
 		{
-			accept = this->checkAlterAgreement(alter);
+			 this->checkAlterAgreement(alter);
+			 double value = nextDouble();
+			 accept = value < this->lsymmetricProbability;
+
+			 if (this->pSimulation()->pModel()->needScores())
+			 {
+				 this->addAlterAgreementScores(accept);
+			 }
 		}
+
 		if (this->pSimulation()->pModel()->needScores())
 		{
 			this->accumulateScores(alter);
 		}
 	}
-	if (accept) // NB this chain does not have all the potential steps in
-		// and the probabilities are wrong...
+//	 NB  the probabilities are probably wrong for !accept
+	if (this->pSimulation()->pModel()->needChain())
 	{
-		if (this->pSimulation()->pModel()->needChain())
+		// add ministep to chain
+		MiniStep * pMiniStep;
+		if (accept)
 		{
-			// add ministep to chain
-			MiniStep * pMiniStep =
-				new NetworkChange(this->lpData, actor, alter);
-			this->pSimulation()->pChain()->insertBefore(pMiniStep,
-				this->pSimulation()->pChain()->pLast());
-			pMiniStep->logChoiceProbability(log(this->
-					lprobabilities[alter]));
+			pMiniStep =
+				new NetworkChange(this->lpData, actor, alter,
+					this->diagonalMiniStep(actor, alter));
+		}
+		else
+		{
+			pMiniStep =
+				new NetworkChange(this->lpData, actor, alter, true);
+		}
+		this->pSimulation()->pChain()->insertBefore(pMiniStep,
+			this->pSimulation()->pChain()->pLast());
+		if (!this->pSimulation()->pModel()->modelTypeB())
+		{
+			pMiniStep->logChoiceProbability(log(this->lprobabilities[alter]));
+			if (this->pSimulation()->pModel()->modelType() == AAGREE)
+			{
+				pMiniStep->logChoiceProbability(pMiniStep->
+					logChoiceProbability() + log(this->lsymmetricProbability));
+			}
+			// TODO: no change contributions copied for the alter agreement.
 			if (this->pSimulation()->pModel()->needChangeContributions())
 			{
 				this->copyChangeContributions(pMiniStep);
 			}
+		}
+		else
+		{
+			// TODO: no change contributions stored for symmetric models.
+			double probability = this->lsymmetricProbability;
+			if (!accept)
+			{
+				probability = 1 - probability;
+			}
+			pMiniStep->logChoiceProbability(log(this->lalterProbability) +
+				log(probability));
 		}
 	}
 	// Make a change if we have a real alter (other than the ego or
@@ -605,17 +657,19 @@ void NetworkVariable::preprocessEgo(int ego)
 {
 	// Let the effects do their preprocessing.
 
-	const Function * pFunction = this->pEvaluationFunction();
+	this->preprocessEgo(this->pEvaluationFunction(), ego);
+	this->preprocessEgo(this->pEndowmentFunction(), ego);
+	this->preprocessEgo(this->pCreationFunction(), ego);
+}
 
-	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
-	{
-		NetworkEffect * pEffect =
-			(NetworkEffect *) pFunction->rEffects()[i];
-		pEffect->preprocessEgo(ego);
-	}
 
-	pFunction = this->pEndowmentFunction();
-
+/**
+ * This method does some preprocessing for each effect of the given
+ * function to speed up subsequent queries regarding
+ * the specified (usually current) ego.
+ */
+void NetworkVariable::preprocessEgo(const Function * pFunction, int ego)
+{
 	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
 	{
 		NetworkEffect * pEffect =
@@ -675,26 +729,37 @@ void NetworkVariable::calculatePermissibleChanges()
 	for (unsigned i = 0; i < this->lpermittedChangeFilters.size(); i++)
 	{
 		PermittedChangeFilter * pFilter = this->lpermittedChangeFilters[i];
+		//	Rprintf(" about to filter %d %d\n ", i, this->lpermitted);
 		pFilter->filterPermittedChanges(this->lego, this->lpermitted);
+		//Rprintf(" filtered %d %d\n ", i, this->lpermitted);
 	}
+	// for (int i = 0; i < m; i++)
+	// {
+	// 	Rprintf("permitted %d %d\n", i, this->lpermitted[i]);
+	// }
 }
 
 
 /**
- * For each alter, this method calculates the contribution of each evaluation
- * and endowment effect if a tie from the ego to this alter was flipped.
+ * For each alter, this method calculates the contribution of each evaluation,
+ * endowment, and tie creation effect if a tie from the ego to this alter was
+ * flipped.
  * These contributions are stored in arrays
- * <code>levaluationEffectContribution</code> and
- * <code>lendowmentEffectContribution</code>.
+ * <code>levaluationEffectContribution</code>,
+ * <code>lendowmentEffectContribution</code>, and
+ * <code>lcreationEffectContribution</code>.
  */
 void NetworkVariable::calculateTieFlipContributions()
 {
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	int creationEffectCount = this->pCreationFunction()->rEffects().size();
 	const vector<Effect *> & rEvaluationEffects =
 		this->pEvaluationFunction()->rEffects();
 	const vector<Effect *> & rEndowmentEffects =
 		this->pEndowmentFunction()->rEffects();
+	const vector<Effect *> & rCreationEffects =
+		this->pCreationFunction()->rEffects();
 	bool twoModeNetwork = !this->oneModeNetwork();
 	int m = this->m();
 
@@ -733,7 +798,7 @@ void NetworkVariable::calculateTieFlipContributions()
 				}
 				else
 				{
-				this->levaluationEffectContribution[alter][i] = 0;
+					this->levaluationEffectContribution[alter][i] = 0;
 				}
 			}
 		}
@@ -756,7 +821,46 @@ void NetworkVariable::calculateTieFlipContributions()
 		{
 			for (int i = 0; i < endowmentEffectCount; i++)
 			{
-				this->lendowmentEffectContribution[alter][i] = R_NaN;
+				if (!this->lpermitted[alter])
+				{
+					this->lendowmentEffectContribution[alter][i] = R_NaN;
+				}
+				else
+				{
+					this->lendowmentEffectContribution[alter][i] = 0;
+				}
+			}
+		}
+
+		// The tie creation effects have non-zero contributions on tie
+		// creation only
+
+		if (!this->lpNetworkCache->outTieExists(alter) &&
+			this->lpermitted[alter] &&
+			(twoModeNetwork || alter != this->lego))
+		{
+			for (int i = 0; i < creationEffectCount; i++)
+			{
+				NetworkEffect * pEffect =
+					(NetworkEffect *) rCreationEffects[i];
+				double contribution =
+					pEffect->calculateContribution(alter);
+
+				this->lcreationEffectContribution[alter][i] = contribution;
+			}
+		}
+		else
+		{
+			for (int i = 0; i < creationEffectCount; i++)
+			{
+				if (!this->lpermitted[alter])
+				{
+					this->lcreationEffectContribution[alter][i] = R_NaN;
+				}
+				else
+				{
+					this->lcreationEffectContribution[alter][i] = 0;
+				}
 			}
 		}
 	}
@@ -770,9 +874,15 @@ void NetworkVariable::calculateTieFlipContributions()
 		{
 			this->levaluationEffectContribution[m][i] = 0;
 		}
+
 		for (int i = 0; i < endowmentEffectCount; i++)
 		{
 			this->lendowmentEffectContribution[m][i] = 0;
+		}
+
+		for (int i = 0; i < creationEffectCount; i++)
+		{
+			this->lcreationEffectContribution[m][i] = 0;
 		}
 	}
 }
@@ -790,6 +900,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	int creationEffectCount = this->pCreationFunction()->rEffects().size();
 
 	double total = 0;
 	int m = this->m();
@@ -819,6 +930,17 @@ void NetworkVariable::calculateTieFlipProbabilities()
 					contribution +=
 						pEffect->parameter() *
 							this->lendowmentEffectContribution[alter][i];
+				}
+			}
+			else
+			{
+				for (int i = 0; i < creationEffectCount; i++)
+				{
+					Effect * pEffect =
+						this->pCreationFunction()->rEffects()[i];
+					contribution +=
+						pEffect->parameter() *
+							this->lcreationEffectContribution[alter][i];
 				}
 			}
 
@@ -854,7 +976,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 
 
 /**
- * Updates the scores for evaluation and endowment function effects according
+ * Updates the scores for effects according
  * to the current step in the simulation.
  */
 void NetworkVariable::accumulateScores(int alter) const
@@ -878,10 +1000,10 @@ void NetworkVariable::accumulateScores(int alter) const
 					this->lprobabilities[j];
 			}
 		}
-
 		this->pSimulation()->score(pEffect->pEffectInfo(),
 			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 	}
+
 	for (unsigned i = 0;
 		 i < this->pEndowmentFunction()->rEffects().size();
 		 i++)
@@ -908,7 +1030,36 @@ void NetworkVariable::accumulateScores(int alter) const
 		this->pSimulation()->score(pEffect->pEffectInfo(),
 			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 	}
+
+	for (unsigned i = 0;
+		i < this->pCreationFunction()->rEffects().size();
+		i++)
+	{
+		Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+
+		double score = 0;
+
+		if (!this->lpNetworkCache->outTieExists(alter))
+		{
+			score += this->lcreationEffectContribution[alter][i];
+		}
+
+		for (int j = 0; j < m; j++)
+		{
+			if (!this->lpNetworkCache->outTieExists(j) &&
+				this->lpermitted[j])
+			{
+				score -=
+					this->lcreationEffectContribution[j][i] *
+						this->lprobabilities[j];
+			}
+		}
+
+		this->pSimulation()->score(pEffect->pEffectInfo(),
+			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
+	}
 }
+
 
 // ----------------------------------------------------------------------------
 // Section: symmetric networks methods
@@ -918,7 +1069,7 @@ void NetworkVariable::accumulateScores(int alter) const
  * Checks whether the alter would like to create the proposed link to the
  * current ego.
  */
-bool NetworkVariable::checkAlterAgreement(int alter)
+void NetworkVariable::checkAlterAgreement(int alter)
 {
 	this->pSimulation()->pCache()->initialize(alter);
 	this->preprocessEgo(alter);
@@ -931,17 +1082,8 @@ bool NetworkVariable::checkAlterAgreement(int alter)
 
 	probability = probability / (1.0 + probability);
 
-	this->lsymmetricProbabilities[1] = probability;
 
-	double value = nextDouble();
-	bool accept = value < probability;
-
-	if (this->pSimulation()->pModel()->needScores())
-	{
-		this->addAlterAgreementScores(accept);
-	}
-
-	return accept;
+	this->lsymmetricProbability = probability;
 }
 
 /**
@@ -950,7 +1092,7 @@ bool NetworkVariable::checkAlterAgreement(int alter)
  */
 void NetworkVariable::addAlterAgreementScores(bool accept)
 {
-	double probability = this->lsymmetricProbabilities[1];
+	double probability = this->lsymmetricProbability;
 	if (accept)
 	{
 		probability = 1 - probability;
@@ -980,6 +1122,7 @@ void NetworkVariable::addAlterAgreementScores(bool accept)
 		Effect * pEffect = this->pEndowmentFunction()->rEffects()[i];
 
 		double score = 0;
+
 		if (this->lpNetworkCache->outTieExists(this->lego))
 		{
 			score = this->lsymmetricEndowmentEffectContribution[1][i]
@@ -988,6 +1131,29 @@ void NetworkVariable::addAlterAgreementScores(bool accept)
 		if (!accept)
  		{
  			score = -1 * score;
+ 		}
+
+		this->pSimulation()->score(pEffect->pEffectInfo(),
+			this->pSimulation()->score(pEffect->pEffectInfo()) + score);
+	}
+
+	for (unsigned i = 0;
+		i < this->pCreationFunction()->rEffects().size();
+		i++)
+	{
+		Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+
+		double score = 0;
+
+		if (!this->lpNetworkCache->outTieExists(this->lego))
+		{
+			score = this->lsymmetricCreationEffectContribution[1][i]
+				* probability;
+		}
+
+		if (!accept)
+ 		{
+ 			score = -score;
  		}
 
 		this->pSimulation()->score(pEffect->pEffectInfo(),
@@ -1041,18 +1207,44 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 				if (accept)
 				{
 					score =
-						this->lsymmetricEvaluationEffectContribution[0][i]
+						this->lsymmetricEndowmentEffectContribution[0][i]
 						* (1 - prEgo);
 				}
 				else
 				{
 					score =  -1  * prEgo *
-						this->lsymmetricEvaluationEffectContribution[0][i];
+						this->lsymmetricEndowmentEffectContribution[0][i];
 				}
 			}
 			this->pSimulation()->score(pEffect->pEffectInfo(),
 				this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 		}
+
+		for (unsigned i = 0;
+			i < this->pCreationFunction()->rEffects().size();
+			i++)
+		{
+			Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+
+			if (!this->lpNetworkCache->outTieExists(alter))
+			{
+				if (accept)
+				{
+					score =
+						this->lsymmetricCreationEffectContribution[0][i] *
+							(1 - prEgo);
+				}
+				else
+				{
+					score =  -prEgo *
+						this->lsymmetricCreationEffectContribution[0][i];
+				}
+			}
+
+			this->pSimulation()->score(pEffect->pEffectInfo(),
+				this->pSimulation()->score(pEffect->pEffectInfo()) + score);
+		}
+
 		break;
 
 	case BAGREE:
@@ -1064,10 +1256,7 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 			 i++)
 		{
 			Effect * pEffect = this->pEvaluationFunction()->rEffects()[i];
-			if ((this->pSimulation()->pModel()->modelType() == BFORCE &&
-				this->lpNetworkCache->outTieExists(alter)) ||
-				(this->pSimulation()->pModel()->modelType() == BAGREE &&
-					!this->lpNetworkCache->outTieExists(alter)))
+			if (!this->lpNetworkCache->outTieExists(alter))
 			{
 				if (accept)
 				{
@@ -1118,51 +1307,60 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 
 			if (this->lpNetworkCache->outTieExists(alter))
 			{
-				if (this->pSimulation()->pModel()->modelType() == BFORCE)
+				if (accept)
 				{
-					if (accept)
-					{
-						score =
-							this->lsymmetricEvaluationEffectContribution[0][i]
-							* (1 - prEgo)  +
-							this->lsymmetricEvaluationEffectContribution[1][i]
-							* (1 - prAlter);
-					}
-					else
-					{
-						score =  -1  * prAlter * prEgo * ((1 - prEgo) *
-							this->lsymmetricEvaluationEffectContribution[0][i] +
-							(1 - prAlter) *
-							this->lsymmetricEvaluationEffectContribution[1][i])
-							/ (1 - prEgo * prAlter);
-					}
-
+					score = (1 - prEgo) * (1 - prAlter) *
+						(this->lsymmetricEndowmentEffectContribution[0][i]
+							* prEgo + this->
+							lsymmetricEndowmentEffectContribution[1][i]
+							* prAlter) /
+						(prEgo + prAlter - prEgo * prAlter);
 				}
 				else
 				{
-					if (accept)
-					{
-						score = (1 - prEgo) * (1 - prAlter) *
-							(this->lsymmetricEvaluationEffectContribution[0][i]
-								* prEgo + this->
-								lsymmetricEvaluationEffectContribution[1][i]
-								* prAlter) /
-							(prEgo + prAlter - prEgo * prAlter);
-					}
-					else
-					{
-						score = -1 *
-							((this->lsymmetricEvaluationEffectContribution[0][i]
-								* prEgo) + (this->
-									lsymmetricEvaluationEffectContribution[1][i]
-									* prAlter));
-					}
+					score = -1 *
+						((this->lsymmetricEndowmentEffectContribution[0][i]
+							* prEgo) + (this->
+								lsymmetricEndowmentEffectContribution[1][i]
+								* prAlter));
 				}
 			}
 
 			this->pSimulation()->score(pEffect->pEffectInfo(),
 				this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 		}
+
+		for (unsigned i = 0;
+			 i < this->pCreationFunction()->rEffects().size();
+			 i++)
+		{
+			Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+
+			if (!this->lpNetworkCache->outTieExists(alter))
+			{
+				if (accept)
+				{
+					score = (1 - prEgo) * (1 - prAlter) *
+						(this->lsymmetricCreationEffectContribution[0][i] *
+							prEgo +
+							this->lsymmetricCreationEffectContribution[1][i] *
+							prAlter) /
+						(prEgo + prAlter - prEgo * prAlter);
+				}
+				else
+				{
+					score = -1 *
+						(this->lsymmetricCreationEffectContribution[0][i] *
+							prEgo +
+							this->lsymmetricCreationEffectContribution[1][i] *
+							prAlter);
+				}
+			}
+
+			this->pSimulation()->score(pEffect->pEffectInfo(),
+				this->pSimulation()->score(pEffect->pEffectInfo()) + score);
+		}
+
 		break;
 	case BJOINT:
 
@@ -1212,6 +1410,30 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 					this->pSimulation()->score(pEffect->pEffectInfo()) + score);
 			}
 		}
+
+		if (!this->lpNetworkCache->outTieExists(alter))
+		{
+			for (unsigned i = 0;
+				 i < this->pCreationFunction()->rEffects().size();
+				 i++)
+			{
+				Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+
+				score = (1 - prSum) *
+					(this->lsymmetricCreationEffectContribution[0][i] +
+						this->lsymmetricCreationEffectContribution[1][i]);
+
+				if (!accept)
+				{
+					score = -score;
+				}
+
+				this->pSimulation()->score(pEffect->pEffectInfo(),
+					this->pSimulation()->score(pEffect->pEffectInfo()) +
+						score);
+			}
+		}
+
 		break;
 
 	case NORMAL:
@@ -1224,23 +1446,28 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 
 /**
  * For the given alter, this method calculates the contribution of each
- * evaluation and endowment effect if a tie from the ego to the alter
+ * effect if a tie from the ego to the alter
  * was flipped. These contributions are stored in arrays
- * <code>lsymmetricEvaluationEffectContribution</code> and
- * <code>lsymmetricEndowmentEffectContribution</code>. The first entry of the
+ * <code>lsymmetricEvaluationEffectContribution</code>,
+ * <code>lsymmetricEndowmentEffectContribution</code>, and
+ * <code>lsymmetricCreationEffectContribution</code>. The first entry of the
  * array is for the ego effects, the second for the alter, controlled by the
  * integer parameter sub (0 or 1), as we need to do it both ways round.
- * Always permitted, never bipartite.
+ * Always permitted, never bipartite. Since always permitted we don't need
+ * nan's to indicate not permitted.
  */
 void NetworkVariable::calculateSymmetricTieFlipContributions(int alter,
 int sub)
 {
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	int creationEffectCount = this->pCreationFunction()->rEffects().size();
 	const vector<Effect *> & rEvaluationEffects =
 		this->pEvaluationFunction()->rEffects();
 	const vector<Effect *> & rEndowmentEffects =
 		this->pEndowmentFunction()->rEffects();
+	const vector<Effect *> & rCreationEffects =
+		this->pCreationFunction()->rEffects();
 
 	for (int i = 0; i < evaluationEffectCount; i++)
 	{
@@ -1259,7 +1486,7 @@ int sub)
 	}
 
 	// The endowment effects have non-zero contributions on tie
-	// withdrawals only
+	// withdrawals only. The opposite is true for tie creation effects.
 
 	if (this->lpNetworkCache->outTieExists(alter) )
 	{
@@ -1270,12 +1497,25 @@ int sub)
 			this->lsymmetricEndowmentEffectContribution[sub][i] =
 				-pEffect->calculateContribution(alter);
 		}
+
+		for (int i = 0; i < creationEffectCount; i++)
+		{
+			this->lsymmetricCreationEffectContribution[sub][i] = 0;
+		}
 	}
 	else
 	{
+		for (int i = 0; i < creationEffectCount; i++)
+		{
+			NetworkEffect * pEffect =
+				(NetworkEffect *) rCreationEffects[i];
+			this->lsymmetricCreationEffectContribution[sub][i] =
+				pEffect->calculateContribution(alter);
+		}
+
 		for (int i = 0; i < endowmentEffectCount; i++)
 		{
-			this->lsymmetricEndowmentEffectContribution[sub][i] = R_NaN;
+			this->lsymmetricEndowmentEffectContribution[sub][i] = 0;
 		}
 	}
 
@@ -1289,6 +1529,7 @@ void NetworkVariable::calculateSymmetricTieFlipProbabilities(int alter, int sub)
 {
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	int creationEffectCount = this->pCreationFunction()->rEffects().size();
 
 	// Calculate the total contribution of all effects
 
@@ -1313,15 +1554,26 @@ void NetworkVariable::calculateSymmetricTieFlipProbabilities(int alter, int sub)
 				this->lsymmetricEndowmentEffectContribution[sub][i];
 		}
 	}
+	else
+	{
+
+		for (int i = 0; i < creationEffectCount; i++)
+		{
+			Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+			contribution +=
+				pEffect->parameter() *
+					this->lsymmetricCreationEffectContribution[sub][i];
+		}
+	}
 
 	this->lsymmetricProbabilities[sub] = contribution;
 
 }
 /**
- * Proposes and possibly makes a change to the network:
- * used for symmetric networks with model types beginning with B only.
+ * Proposes and calculates probabilities for change.
+ * Used for symmetric networks with model types beginning with B only.
  */
-bool NetworkVariable::makeModelTypeBChange()
+bool NetworkVariable::calculateModelTypeBProbabilities()
 {
 	this->preprocessEgo(this->lego);
 	this->calculatePermissibleChanges();
@@ -1355,12 +1607,15 @@ bool NetworkVariable::makeModelTypeBChange()
 		}
 	}
 
+	this->lalterProbability = this->rate(alter) / cumulativeRates[this->n()];
+
 	delete [] cumulativeRates;
 
 	this->lalter = alter;
 //	Rprintf("net ego %d alter %d\n",this->lego, this->lalter);
 
-	if (numberPermitted == 0 ||  (!this->lpermitted[alter]))
+	if (numberPermitted == 0 ||  (!this->lpermitted[alter]) ||
+		alter == this->lego)
 	{
 		return false;
 	}
@@ -1368,7 +1623,6 @@ bool NetworkVariable::makeModelTypeBChange()
 	// calculate the probabilities
 
 	double probability = 0;
-	bool accept = false;
 
 	this->pSimulation()->pCache()->initialize(alter);
 	this->preprocessEgo(alter);
@@ -1396,10 +1650,6 @@ bool NetworkVariable::makeModelTypeBChange()
 		probability = probability / (1.0 + probability);
 		this->lsymmetricProbabilities[1] = probability;
 
-// 		if ((this->pSimulation()->pModel()->modelType() == BFORCE &&
-// 				this->lpNetworkCache->outTieExists(alter)) ||
-// 			(this->pSimulation()->pModel()->modelType() == BAGREE &&
-// 				!this->lpNetworkCache->outTieExists(alter)))
 		if (!this->lpNetworkCache->outTieExists(alter))
 		{
 			probability = this->lsymmetricProbabilities[0] *
@@ -1428,14 +1678,17 @@ bool NetworkVariable::makeModelTypeBChange()
 		break;
 	}
 
-	accept = nextDouble() < probability;
+	this->lsymmetricProbability = probability;
 
-	if (this->pSimulation()->pModel()->needScores())
-	{
-		this->accumulateSymmetricModelScores(alter, accept);
-	}
+	return true;
+	// accept = nextDouble() < probability;
 
-	return accept;
+	// if (this->pSimulation()->pModel()->needScores())
+	// {
+	// 	this->accumulateSymmetricModelScores(alter, accept);
+	// }
+
+	// return accept;
 }
 
 // ----------------------------------------------------------------------------
@@ -1454,31 +1707,50 @@ double NetworkVariable::probability(MiniStep * pMiniStep)
 	NetworkChange * pNetworkChange =
 		dynamic_cast<NetworkChange *>(pMiniStep);
 	this->lego = pNetworkChange->ego();
-	this->calculateTieFlipProbabilities();
-	if (this->pSimulation()->pModel()->needScores())
+	if (this->pSimulation()->pModel()->modelTypeB())
 	{
-		this->accumulateScores(pNetworkChange->alter());
+		this->calculateModelTypeBProbabilities();
+		if (this->pSimulation()->pModel()->needScores())
+		{
+			this->accumulateSymmetricModelScores(pNetworkChange->alter(),
+				!pNetworkChange->diagonal());
+		}
+		// TODO no derivatives for symmetric models yet
+		// if (this->pSimulation()->pModel()->needDerivatives())
+		// {
+		// 	this->accumulateDerivatives();
+		// }
 	}
-	if (this->pSimulation()->pModel()->needDerivatives())
+	else
 	{
-		this->accumulateDerivatives();
-	}
-	if (this->pSimulation()->pModel()->needChangeContributions())
-	{
-		this->copyChangeContributions(pMiniStep);
+		this->calculateTieFlipProbabilities();
+		if (this->pSimulation()->pModel()->needScores())
+		{
+			this->accumulateScores(pNetworkChange->alter());
+		}
+		if (this->pSimulation()->pModel()->needDerivatives())
+		{
+			this->accumulateDerivatives();
+		}
+		if (this->pSimulation()->pModel()->needChangeContributions())
+		{
+			this->copyChangeContributions(pMiniStep);
+		}
 	}
 	return this->lprobabilities[pNetworkChange->alter()];
 }
 
 /**
- * Updates the derivatives for evaluation and endowment function effects
+ * Updates the derivatives for effects
  * according to the current miniStep in the chain.
  */
 void NetworkVariable::accumulateDerivatives() const
 {
 	int totalEvaluationEffects = this->pEvaluationFunction()->rEffects().size();
 	int totalEndowmentEffects = this->pEndowmentFunction()->rEffects().size();
-	int totalEffects = totalEvaluationEffects + totalEndowmentEffects;
+	int totalCreationEffects = this->pCreationFunction()->rEffects().size();
+	int totalEffects =
+		totalEvaluationEffects + totalEndowmentEffects + totalCreationEffects;
 	Effect * pEffect1;
 	Effect * pEffect2;
 	double derivative;
@@ -1486,77 +1758,126 @@ void NetworkVariable::accumulateDerivatives() const
 	double contribution1 = 0.0;
 	double contribution2 = 0.0;
 
+//	Rprintf("%d %d %d\n",totalEvaluationEffects,totalEndowmentEffects,
+//		totalEffects);
 	for (int effect1 = 0; effect1 < totalEffects; effect1++)
 	{
 		product[effect1] = 0.0;
+		int endowment1 = effect1 - totalEvaluationEffects;
+		int creation1 = effect1 - totalEvaluationEffects - totalEndowmentEffects;
 
 		if (effect1 < totalEvaluationEffects)
 		{
 			pEffect1 = this->pEvaluationFunction()->rEffects()[effect1];
 		}
+		else if (effect1 < totalEvaluationEffects + totalEndowmentEffects)
+		{
+			pEffect1 = this->pEndowmentFunction()->rEffects()[endowment1];
+		}
 		else
 		{
-			pEffect1 = this->pEndowmentFunction()->rEffects()[effect1];
+			pEffect1 = this->pCreationFunction()->rEffects()[creation1];
 		}
+
 		for (int alter = 0; alter < this->m(); alter++)
 		{
-			if (effect1 < totalEvaluationEffects)
+			//	Rprintf("accum %d %d %d\n", alter, this->lpermitted[alter], this->lego);
+			if (this->lpermitted[alter])
 			{
-				product[effect1] +=
-					this->levaluationEffectContribution[alter][effect1] *
-					this->lprobabilities[alter];
+				if (effect1 < totalEvaluationEffects)
+				{
+					product[effect1] +=
+						this->levaluationEffectContribution[alter][effect1] *
+						this->lprobabilities[alter];
+				}
+				else if (effect1 < totalEvaluationEffects + totalEndowmentEffects)
+				{
+					product[effect1] +=
+						this->lendowmentEffectContribution[alter][endowment1] *
+						this->lprobabilities[alter];
+				}
+				else
+				{
+					product[effect1] +=
+						this->lcreationEffectContribution[alter][creation1] *
+						this->lprobabilities[alter];
+				}
+
+				//	Rprintf("%d %d %f\n", alter, effect1, product[effect1]);
 			}
-			else
-			{
-				product[effect1] +=
-					this->lendowmentEffectContribution[alter][effect1] *
-					this->lprobabilities[alter];
-			}
-			//	Rprintf("%d %d %f\n", alter, effect1, product[effect1]);
 		}
 		for (int effect2 = effect1; effect2 < totalEffects; effect2++)
 		{
+			int endowment2 = effect2 - totalEvaluationEffects;
+			int creation2 = effect2 - totalEvaluationEffects -
+				totalEndowmentEffects;
 			derivative = 0.0;
-			if (effect2 <= totalEvaluationEffects)
+
+			if (effect2 < totalEvaluationEffects)
 			{
 				pEffect2 = this->pEvaluationFunction()->rEffects()[effect2];
 			}
+			else if (effect2 < totalEvaluationEffects + totalEndowmentEffects)
+			{
+				pEffect2 =
+					this->pEndowmentFunction()->rEffects()[endowment2];
+			}
 			else
 			{
-				pEffect2 = this->pEndowmentFunction()->rEffects()[effect2];
+				pEffect2 = this->pCreationFunction()->rEffects()[creation2];
 			}
 
 			for (int alter = 0; alter < this->m(); alter++)
 			{
-				if (effect1 < totalEvaluationEffects)
+				if (this->lpermitted[alter])
 				{
-					contribution1 =
-						this->levaluationEffectContribution[alter][effect1];
-				}
-				else
-				{
-					contribution1 =
-						this->lendowmentEffectContribution[alter][effect1];
-				}
-				if (effect2 < totalEvaluationEffects)
-				{
-					contribution2 =
-						this->levaluationEffectContribution[alter][effect2];
-				}
-				else
-				{
-					contribution2 =
-						this->lendowmentEffectContribution[alter][effect2];
-				}
+					if (effect1 < totalEvaluationEffects)
+					{
+						contribution1 =
+							this->levaluationEffectContribution[alter][effect1];
+					}
+					else if (effect1 <
+						totalEvaluationEffects + totalEndowmentEffects)
+					{
+						contribution1 =
+							this->lendowmentEffectContribution[alter][endowment1];
+					}
+					else
+					{
+						contribution1 =
+							this->lcreationEffectContribution[alter][creation1];
+					}
 
-				derivative -=
-					contribution1 * contribution2 *	this->lprobabilities[alter];
-				//	Rprintf("deriv 2 %d %d %d %f %f %f %f\n", alter, effect1,
-				//    effect2,
-				//		derivative,
-				//		this->levaluationEffectContribution[alter][effect1],
-				//		this->levaluationEffectContribution[alter][effect2],
-				//		this->lprobabilities[alter]);
+					if (effect2 < totalEvaluationEffects)
+					{
+						contribution2 =
+							this->levaluationEffectContribution[alter][effect2];
+					}
+					else if (effect2 <
+						totalEvaluationEffects + totalEndowmentEffects)
+					{
+						contribution2 =
+							this->lendowmentEffectContribution[alter][endowment2];
+					}
+					else
+					{
+						contribution2 =
+							this->lcreationEffectContribution[alter][creation2];
+					}
+
+
+					derivative -=
+						contribution1 * contribution2 *
+						this->lprobabilities[alter];
+					// Rprintf("deriv 2 %d %d %d %d %d %f %f %f %f %x %x\n",
+					//alter,
+					// 	effect1,
+					// 	effect2, relativeEffect1, relativeEffect2,
+					// 	derivative, contribution1, contribution2,
+					// 	//	this->levaluationEffectContribution[alter][effect1],
+					// 	//this->levaluationEffectContribution[alter][effect2],
+					// 	this->lprobabilities[alter], pEffect1, pEffect2);
+				}
 			}
 
 			this->pSimulation()->derivative(pEffect1->pEffectInfo(),
@@ -1568,31 +1889,48 @@ void NetworkVariable::accumulateDerivatives() const
 
 	for (int effect1 = 0; effect1 < totalEffects; effect1++)
 	{
+		int endowment1 = effect1 - totalEvaluationEffects;
+		int creation1 = effect1 - totalEvaluationEffects - totalEndowmentEffects;
+
 		for (int effect2 = effect1; effect2 < totalEffects; effect2++)
 		{
+			int endowment2 = effect2 - totalEvaluationEffects;
+			int creation2 = effect2 - totalEvaluationEffects -
+				totalEndowmentEffects;
 			if (effect1 < totalEvaluationEffects)
 			{
 				pEffect1 = this->pEvaluationFunction()->rEffects()[effect1];
 			}
+			else if (effect1 < totalEvaluationEffects + totalEndowmentEffects)
+			{
+				pEffect1 = this->pEndowmentFunction()->rEffects()[endowment1];
+			}
 			else
 			{
-				pEffect1 = this->pEndowmentFunction()->rEffects()[effect1];
+				pEffect1 = this->pCreationFunction()->rEffects()[creation1];
 			}
-			if (effect2 <= totalEvaluationEffects)
+
+			if (effect2 < totalEvaluationEffects)
 			{
 				pEffect2 = this->pEvaluationFunction()->rEffects()[effect2];
 			}
+			else if (effect2 < totalEvaluationEffects + totalEndowmentEffects)
+			{
+				pEffect2 = this->pEndowmentFunction()->rEffects()[endowment2];
+			}
 			else
 			{
-				pEffect2 = this->pEndowmentFunction()->rEffects()[effect2];
+				pEffect2 = this->pCreationFunction()->rEffects()[creation2];
 			}
+
 			this->pSimulation()->derivative(pEffect1->pEffectInfo(),
 				pEffect2->pEffectInfo(),
 				this->pSimulation()->derivative(pEffect1->pEffectInfo(),
-					pEffect2->pEffectInfo()) + product[effect1] *
-				product[effect2]);
+						pEffect2->pEffectInfo()) +
+					product[effect1] * product[effect2]);
 		}
 	}
+
 	delete [] product;
 }
 
@@ -1678,7 +2016,8 @@ MiniStep * NetworkVariable::randomMiniStep(int ego)
 	int alter = nextIntWithProbabilities(m, this->lprobabilities);
 
 	MiniStep * pMiniStep =
-		new NetworkChange(this->lpData, ego, alter);
+		new NetworkChange(this->lpData, ego, alter,
+			this->diagonalMiniStep(ego, alter));
 	pMiniStep->logChoiceProbability(log(this->lprobabilities[alter]));
 
 	return pMiniStep;
@@ -1715,8 +2054,8 @@ bool NetworkVariable::structural(const MiniStep * pMiniStep) const
 			this->period());
 }
 /**
- * Copies the change contributions for evaluation and endowment function
- * effects according to the current miniStep.
+ * Copies the change contributions for effects according to the
+ * current miniStep.
  */
 void NetworkVariable::copyChangeContributions(MiniStep * pMiniStep) const
 {
@@ -1725,8 +2064,11 @@ void NetworkVariable::copyChangeContributions(MiniStep * pMiniStep) const
 
 	 int nEvaluationEffects = this->pEvaluationFunction()->rEffects().size();
 	 int nEndowmentEffects = this->pEndowmentFunction()->rEffects().size();
+	 int nCreationEffects = this->pCreationFunction()->rEffects().size();
 	 pNetworkChange->allocateEffectContributionArrays(nEvaluationEffects,
-		 nEndowmentEffects, this->m());
+		 nEndowmentEffects,
+		 nCreationEffects,
+		 this->m());
 
 	 for (int alter = 0; alter < this->m(); alter++)
 	 {
@@ -1744,8 +2086,18 @@ void NetworkVariable::copyChangeContributions(MiniStep * pMiniStep) const
 				this->lendowmentEffectContribution[alter][i], alter, i);
 		}
 
+		for (unsigned i = 0;
+			 i < this->pCreationFunction()->rEffects().size(); i++)
+		{
+			pNetworkChange->creationEffectContribution(
+				this->lcreationEffectContribution[alter][i],
+				alter,
+				i);
+		}
 	}
 }
+
+
 /**
  * Calculates the log probability of the choice of this ministep,
  * using stored change contributions.
@@ -1758,6 +2110,7 @@ const
 		dynamic_cast< const NetworkChange *>(pMiniStep);
 	int evaluationEffectCount = this->pEvaluationFunction()->rEffects().size();
 	int endowmentEffectCount = this->pEndowmentFunction()->rEffects().size();
+	int creationEffectCount = this->pCreationFunction()->rEffects().size();
 
 	double total = 0;
 	double * probabilities = new double[this->m()];
@@ -1782,6 +2135,13 @@ const
 			Effect * pEffect = this->pEndowmentFunction()->rEffects()[i];
 			contribution +=	pEffect->parameter() *
 				pNetworkChange->endowmentEffectContribution(alter, i);
+		}
+
+		for (int i = 0; i < creationEffectCount; i++)
+		{
+			Effect * pEffect = this->pCreationFunction()->rEffects()[i];
+			contribution +=	pEffect->parameter() *
+				pNetworkChange->creationEffectContribution(alter, i);
 		}
 
 		// The selection probability is the exponential of the total
@@ -1859,4 +2219,14 @@ int NetworkVariable::alter() const
 //	Rprintf("in net %d\n", this->lalter);
 	return this->lalter;
 }
+
+/**
+ * Returns whether this is a diagonal step, for non-symmetric cases only
+ */
+bool NetworkVariable::diagonalMiniStep(int ego, int alter) const
+{
+	return (!this->oneModeNetwork() && alter == this->m()) ||
+		(this->oneModeNetwork() && ego == alter);
+}
+
 }

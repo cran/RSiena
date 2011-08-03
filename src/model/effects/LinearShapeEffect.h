@@ -27,7 +27,7 @@ public:
 
 	virtual double calculateChangeContribution(int actor,
 		int difference);
-	virtual double endowmentStatistic(const int * difference,
+	virtual double egoEndowmentStatistic(int ego, const int * difference,
 		double * currentValues);
 	virtual double egoStatistic(int ego, double * currentValues);
 };

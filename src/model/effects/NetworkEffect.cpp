@@ -139,6 +139,21 @@ double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork)
 
 
 /**
+ * Returns the statistic corresponding to this effect as part of
+ * the creation function.
+ */
+double NetworkEffect::creationStatistic(Network * pGainedTieNetwork)
+{
+	// We use a trick here. The creation statistic is very similar to the
+	// endowment statistic, except that the summation is over the gained
+	// ties rather than the lost ties. Normally, you should not override
+	// this method in derived classes.
+
+	return this->endowmentStatistic(pGainedTieNetwork);
+}
+
+
+/**
  * Returns if this effect is an ego effect.
  */
 bool NetworkEffect::egoEffect() const

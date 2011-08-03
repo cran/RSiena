@@ -114,14 +114,14 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
             ttilde <- sum(x1$theta / x1$se^2) / sqrt(sum(1 / x1$se^2))
             Qstat <- Tsq - ttilde^2
             cjplus <- -2 * sum(pnorm(x1$theta / x1$se, lower.tail=FALSE,
-                                     log=TRUE))
-            cjminus <- -2 * sum(pnorm(x1$theta / x1$se, log=TRUE))
+                                     log.p=TRUE))
+            cjminus <- -2 * sum(pnorm(x1$theta / x1$se, log.p=TRUE))
             cjplusp <- 1 - pchisq(cjplus, 2 * nrow(x1))
             cjminusp <- 1 - pchisq(cjminus, 2 * nrow(x1))
             ## ML estimates and confidence intervals
-            maxxlik <- maxlik(x1$theta,x1$se)
-            cmu  <- confint.mu(x1$theta,x1$se,alpha)
-            csig <- confint.sig(x1$theta,x1$se,alpha)
+            maxxlik <- maxlik(x1$theta, x1$se)
+            cmu  <- confint.mu(x1$theta, x1$se, alpha)
+            csig <- confint.sig(x1$theta, x1$se, alpha)
             ret1 <- list(cor.est=check.correl$estimate,
                          cor.pval=check.correl$p.value,
                          cor.meth=check.correl$method,
@@ -133,7 +133,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
                          pttilde=1 - pchisq(Qstat, nrow(x1) - 1),
                          cjplus=cjplus, cjminus=cjminus,
                          cjplusp=cjplusp, cjminusp=cjminusp, n1=nrow(x1),
-                         mu.ml=maxxlik$mu, sigma.ml=maxxlik$sig,
+                         mu.ml=maxxlik$mu, sigma.ml=maxxlik$sigma,
                          mu.ml.se=maxxlik$se.mu,
                          mu.confint=cmu, sigma.confint=csig)
         }
@@ -146,8 +146,8 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
         {
             n <- sum(!is.na(x$scoretests))
             cjplus <- -2 * sum(pnorm(x$scoretests, lower.tail=FALSE,
-                                     log=TRUE), na.rm=TRUE)
-            cjminus <- -2 * sum(pnorm(x$scoretests, log=TRUE),
+                                     log.p=TRUE), na.rm=TRUE)
+            cjminus <- -2 * sum(pnorm(x$scoretests, log.p=TRUE),
                                 na.rm=TRUE)
             cjplusp <- 1 - pchisq(cjplus, 2 * n)
             cjminusp <- 1 - pchisq(cjminus, 2 * n)
@@ -200,10 +200,10 @@ print.sienaMeta <- function(x, file=FALSE, ...)
     {
         Report(openfiles=TRUE, type="n") #initialise with no file
     }
-    projnames <- unique(x$thetadf$projname)
-    nProjects <- length(projnames)
+    ## projnames <- unique(x$thetadf$projname)
+    ## nProjects <- length(projnames)
     effects <- unique(x$thetadf$effects)
-    nEffects <- length(effects)
+    ## nEffects <- length(effects)
     ## results
 
     ## estimates
@@ -283,7 +283,7 @@ print.sienaMeta <- function(x, file=FALSE, ...)
                     ",",
                     format(round(y$mu.confint[2], 4), width=7), "]\n"), outf)
            Report(c("Estimated standard deviation",
-                    ifelse((y$sigma.ml > 0.0001)|(y$sigma.ml < 0.0000001),
+                    ifelse((y$sigma.ml > 0.0001) | (y$sigma.ml < 0.0000001),
                            format(round(y$sigma.ml, 4), width=9), " < 0.0001"),
                      "\n"), outf)
            Report(c(format(round(y$sigma.confint[3], 2), width=4),
@@ -432,7 +432,7 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
         ## do some sums for the heading
 
         namelen <- nchar(projname) + 4
-        linelen <- 80
+        ##linelen <- 80
         astlen <- min(namelen + 10, 80)
         nBlanks <- if (astlen < 80)
         {

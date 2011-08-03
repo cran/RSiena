@@ -10,7 +10,11 @@
 #include <Rinternals.h>
 
 #include <vector>
+#include <stdexcept>
+#include <string>
+
 #include "Chain.h"
+#include "utils/Utils.h"
 #include "utils/Random.h"
 #include "model/State.h"
 #include "model/ml/MiniStep.h"
@@ -22,10 +26,11 @@
 #include "data/Data.h"
 #include "data/BehaviorLongitudinalData.h"
 #include "data/NetworkLongitudinalData.h"
+#include "model/variables/DependentVariable.h"
 
 namespace siena
 {
-SEXP getChainDF(const Chain& chain);
+SEXP getChainDF(const Chain& chain, bool sort);
 SEXP getMiniStepDF(const MiniStep& miniStep);
 
 // ----------------------------------------------------------------------------
@@ -74,6 +79,8 @@ Chain::~Chain()
 	this->lminiSteps.clear();
 	delete this->lpInitialState;
 	this->lpInitialState = 0;
+	deallocateVector(this->linitialStateDifferences);
+	deallocateVector(this->lendStateDifferences);
 }
 
 
@@ -96,7 +103,7 @@ void Chain::setupInitialState(bool copyValues)
 
 /**
  * Removes all ministeps from this chain except for the dummy ministeps
- * at the ends of the chain.
+ * at the ends of the chain. NB Does not alter the initialState
  */
 void Chain::clear()
 {
@@ -170,7 +177,8 @@ void Chain::insertBefore(MiniStep * pNewMiniStep, MiniStep * pExistingMiniStep)
 		pNewMiniStep->diagonalIndex(this->ldiagonalMiniSteps.size() - 1);
 	}
 
-	if (pNewMiniStep->missing(this->lperiod))
+	if (pNewMiniStep->missingEnd(this->lperiod))
+//	if (pNewMiniStep->missing(this->lperiod))
 	{
 		if (pNewMiniStep->networkMiniStep())
 		{
@@ -180,7 +188,7 @@ void Chain::insertBefore(MiniStep * pNewMiniStep, MiniStep * pExistingMiniStep)
 		else
 		{
 			pNewMiniStep->missingIndex(this->lmissingBehaviorMiniSteps.size());
-			this->lmissingBehaviorMiniSteps.push_back(pNewMiniStep);
+				this->lmissingBehaviorMiniSteps.push_back(pNewMiniStep);
 		}
 	}
 
@@ -266,7 +274,8 @@ void Chain::remove(MiniStep * pMiniStep)
 
 	// Update the vectors of ministeps for missing options
 
-	if (pMiniStep->missing(this->lperiod))
+	if (pMiniStep->missingEnd(this->lperiod))
+//	if (pMiniStep->missing(this->lperiod))
 	{
 		vector<MiniStep *> * pVector = &this->lmissingNetworkMiniSteps;
 
@@ -301,7 +310,7 @@ void Chain::remove(MiniStep * pMiniStep)
  * given data object for the given period. The chain is simple in the sense
  * that no two ministeps cancel each other out.
  */
-void Chain::connect(int period)
+void Chain::connect(int period, MLSimulation * pMLSimulation)
 {
 	this->clear();
 	this->lperiod = period;
@@ -344,7 +353,7 @@ void Chain::connect(int period)
 							miniSteps.push_back(
 								new NetworkChange(pNetworkData,
 									i,
-									iter1.actor()));
+									iter1.actor(), false));
 							iter1.next();
 						}
 						else
@@ -364,7 +373,7 @@ void Chain::connect(int period)
 							miniSteps.push_back(
 								new NetworkChange(pNetworkData,
 									i,
-									iter2.actor()));
+									iter2.actor(), false));
 							iter2.next();
 						}
 						else
@@ -415,6 +424,12 @@ void Chain::connect(int period)
 		}
 	}
 
+	// If we have no constraints we can go ahead and add to the chain in a
+	// random order. If we do have contraints we need to make sure our chain
+	// is valid. For now we have two distinct loops:
+
+	if (this->lpData->rNetworkConstraints().size()  == 0)
+	{
 	// Randomize the ministeps
 
 	for (unsigned i = 1; i < miniSteps.size(); i++)
@@ -430,6 +445,131 @@ void Chain::connect(int period)
 	for (unsigned i = 0; i < miniSteps.size(); i++)
 	{
 		this->insertBefore(miniSteps[i], this->lpLast);
+	}
+}
+	else
+	{
+		unsigned count = 0;
+		vector<MiniStep *> remainingMiniSteps;
+		while(miniSteps.size() > 0 &&
+			count < this->lpData->rDependentVariableData().size())
+		{
+			count++;
+
+			for (unsigned i = 0; i < miniSteps.size(); i++)
+			{
+				// first try random insert
+				//const NetworkChange * pNetworkChange =
+				//	dynamic_cast<const NetworkChange *>(miniSteps[i]);
+				MiniStep * pMiniStep =
+					this->randomMiniStep(this->lpFirst->pNext(),
+						this->lpLast);
+				bool valid = false;
+				if (miniSteps[i]->behaviorMiniStep())
+				{
+					valid = true;
+				}
+				else
+				{
+					// get current state at this place
+					pMLSimulation->initialize(this->lperiod);
+					pMLSimulation->executeMiniSteps(this->lpFirst->pNext(),
+						pMiniStep);
+					// see if valid here
+					DependentVariable * pVariable =
+						pMLSimulation->rVariables()[miniSteps[i]->variableId()];
+					//	PrintValue(getMiniStepDF(*miniSteps[i]));
+					//	if (miniSteps[i]->ego() ==2)
+					//	{
+						//		Rprintf("+++++++++++%d %d %x \n", miniSteps[i]->ego(),
+						//		pVariable->validMiniStep(miniSteps[i]), pVariable);
+						//	PrintValue(getMiniStepDF(*miniSteps[i]));
+					//	}
+					if (!pVariable->validMiniStep(miniSteps[i]))
+					{
+						//		Rprintf("first inval\n");
+						// no go, so try to find somewhere else to put it
+						MiniStep * pLastMiniStep =
+							this->pLastMiniStepForLink(miniSteps[i]);
+						if (pLastMiniStep != this->lpFirst)
+						{
+							//		Rprintf("lastl\n");
+							//	PrintValue(getMiniStepDF(*pLastMiniStep));
+							pMiniStep =
+								this->randomMiniStep(pLastMiniStep->pNext(),
+									this->lpLast);
+							//	PrintValue(getMiniStepDF(*pMiniStep));
+					pMLSimulation->initialize(this->lperiod);
+							pMLSimulation->executeMiniSteps(this->lpFirst->
+								pNext(),
+								pMiniStep);
+							// see if valid here
+							if (!pVariable->validMiniStep(miniSteps[i]))
+							{
+								//		Rprintf("second inval\n");
+								// no go, so try to find somewhere else to put
+								// it
+								MiniStep * pFirstMiniStep =
+									this->pFirstMiniStepForLink(miniSteps[i]);
+								//	if (pFirstMiniStep != this->lpFirst)
+								//{
+								//	PrintValue(getMiniStepDF(*pFirstMiniStep));
+								pMiniStep =
+									this->randomMiniStep(this->
+										lpFirst->pNext(),
+										pFirstMiniStep);
+								//	PrintValue(getMiniStepDF(*pMiniStep));
+					pMLSimulation->initialize(this->lperiod);
+								pMLSimulation->
+									executeMiniSteps(pFirstMiniStep,
+										pMiniStep);
+								// see if valid here
+								if (pVariable->validMiniStep(miniSteps[i]))
+								{
+									//	Rprintf("thirsd true inval\n");
+									valid = true;
+								}
+								//	}
+							}
+							else
+							{
+								valid = true;
+							}
+						}
+					}
+					else
+					{
+						valid = true;
+					}
+				}
+				if (valid)
+				{
+					//	Rprintf("this\n");
+					//	PrintValue(getChainDF(*this, false));
+					//	Rprintf("i %d\n", i);
+					//	PrintValue(getMiniStepDF(*miniSteps[i]));
+					//	Rprintf("mini\n");
+					//	PrintValue(getMiniStepDF(*pMiniStep));
+					this->insertBefore(miniSteps[i], pMiniStep);
+				}
+				else
+				{
+					remainingMiniSteps.push_back(miniSteps[i]);
+				}
+			}
+			miniSteps = remainingMiniSteps;
+		}
+		//	PrintValue(getChainDF(*this, false));
+		//	Rprintf("****** count %d\n", count);
+		if (miniSteps.size() > 0)
+		{
+			for (unsigned i = 0; i < miniSteps.size(); i++)
+			{
+				PrintValue(getMiniStepDF(*miniSteps[i]));
+			}
+
+			error("Cannot create minimal chain due to constraints");
+		}
 	}
 }
 
@@ -467,6 +607,8 @@ void Chain::onReciprocalRateChange(const MiniStep * pMiniStep, double newValue)
  */
 void Chain::changeInitialState(const MiniStep * pMiniStep)
 {
+	//Rprintf("%d change\n",this->lperiod);
+//	PrintValue(getMiniStepDF(*pMiniStep));
 	if (pMiniStep->networkMiniStep())
 	{
 		const NetworkChange * pNetworkChange =
@@ -500,6 +642,176 @@ void Chain::changeInitialState(const MiniStep * pMiniStep)
 	}
 }
 
+/**
+ *  Adds a single ministep to the vector of initialStateDifferences
+ */
+void Chain::addInitialStateDifference(MiniStep * pMiniStep)
+{
+	this->linitialStateDifferences.push_back(pMiniStep);
+}
+
+/**
+ *  Updates the initialState of the chain with the ministeps version of the
+ *  differences.
+ */
+
+void Chain::recreateInitialState()
+{
+//	Rprintf("ff %d %d\n", this->linitialStateDifferences.size(), this->lperiod);
+	for (unsigned i= 0; i < this->linitialStateDifferences.size(); i++)
+	{
+//	Rprintf("ff\n");
+	this->changeInitialState(this->linitialStateDifferences[i]);
+	}
+}
+/**
+ * Generates a chain connecting the original and simulated initial
+ * observations of the given data object for the given period.
+ * The chain is simple in the sense that no two ministeps cancel each other out.
+ */
+void Chain::createInitialStateDifferences()
+{
+	this->linitialStateDifferences.clear();
+//	Rprintf("******** %d create initial\n",this->linitialStateDifferences.size() );
+	Data * pData = this->lpData;
+	State * initialState = this->lpInitialState;
+	int period = this->lperiod;
+
+	// Create the required ministeps
+
+	for (unsigned variableIndex = 0;
+		variableIndex < pData->rDependentVariableData().size();
+		variableIndex++)
+	{
+		LongitudinalData * pVariableData =
+			pData->rDependentVariableData()[variableIndex];
+		NetworkLongitudinalData * pNetworkData =
+			dynamic_cast<NetworkLongitudinalData *>(pVariableData);
+		BehaviorLongitudinalData * pBehaviorData =
+			dynamic_cast<BehaviorLongitudinalData *>(pVariableData);
+
+		if (pNetworkData)
+		{
+			const Network * pNetwork1 = pNetworkData->pNetwork(period);
+			const Network * pNetwork2 =
+				initialState->pNetwork(pNetworkData->name());
+
+			for (int i = 0; i < pNetwork1->n(); i++)
+			{
+				IncidentTieIterator iter1 = pNetwork1->outTies(i);
+				IncidentTieIterator iter2 = pNetwork2->outTies(i);
+
+				while (iter1.valid() || iter2.valid())
+				{
+					if (iter1.valid() &&
+						(!iter2.valid() || iter1.actor() < iter2.actor()))
+					{
+						if (!pNetworkData->structural(i, iter1.actor(),
+								period)
+							//	|| !pNetworkData->structural(i, iter1.actor(),
+							//	period + 1)
+							)
+						{
+							NetworkChange * pMiniStep =
+								new NetworkChange(pNetworkData,
+									i,
+									iter1.actor(), false);
+							//		PrintValue(getMiniStepDF(*pMiniStep));
+							this->linitialStateDifferences.
+								push_back(pMiniStep);
+
+							iter1.next();
+							//	PrintValue(getMiniStepDF(
+							//		*this->linitialStateDifferences.back()));
+						}
+						else
+						{
+							// create step in structural subchain?
+						}
+					}
+					else if (iter2.valid() &&
+						(!iter1.valid() || iter2.actor() < iter1.actor()))
+					{
+						if (!pNetworkData->structural(i, iter2.actor(),
+								period)
+							//	|| !pNetworkData->structural(i, iter2.actor(),
+							// period + 1)
+							)
+						{
+							this->linitialStateDifferences.push_back(
+								new NetworkChange(pNetworkData,
+									i,
+									iter2.actor(), false));
+							iter2.next();
+							//PrintValue(getMiniStepDF(
+							//		*this->linitialStateDifferences.back()));
+						}
+						else
+						{
+							// create step in structural subchain?
+						}
+					}
+					else
+					{
+						iter1.next();
+						iter2.next();
+					}
+				}
+			}
+		}
+		else if (pBehaviorData)
+		{
+			for (int i = 0; i < pBehaviorData->n(); i++)
+			{
+				int delta = initialState->
+					behaviorValues(pBehaviorData->name())[i]
+					- pBehaviorData->value(period, i);
+				int singleChange = 1;
+
+				if (delta < 0)
+				{
+					delta = -delta;
+					singleChange = -1;
+				}
+
+				for (int j = 0; j < delta; j++)
+				{
+					if (!pBehaviorData->structural(period, j)
+						//|| !pBehaviorData->structural(period, j + 1)
+						)
+
+					{
+						this->linitialStateDifferences.push_back(
+							new BehaviorChange(pBehaviorData,
+								i,
+								singleChange));
+						//	Rprintf(" %d %d in beh\n", i, singleChange);
+					}
+					else
+					{
+						// create step in structural subchain?
+					}
+				}
+			}
+		}
+	}
+//	Rprintf("xx ********%d %d end create initial diff\n", this->linitialStateDifferences.size(), period);
+}
+/**
+ *  Adds a single ministep to the vector of endStateDifferences
+ */
+void Chain::addEndStateDifference(MiniStep * pMiniStep)
+{
+	this->lendStateDifferences.push_back(pMiniStep);
+}
+
+/**
+ *  Clears the vector of endStateDifferences
+ */
+void Chain::clearEndStateDifferences()
+{
+	this->lendStateDifferences.clear();
+}
 
 /**
  * Assigns new ordering keys for the ministeps of this chain. The new
@@ -637,7 +949,6 @@ const State * Chain::pInitialState() const
 	return this->lpInitialState;
 }
 
-
 /**
  * Returns the number of ministeps of this chain excluding the first,
  * but including the last dummy ministep.
@@ -654,6 +965,24 @@ int Chain::ministepCount() const
 int Chain::diagonalMinistepCount() const
 {
 	return this->ldiagonalMiniSteps.size();
+}
+
+/**
+ * Returns the final (actually the end of the updated set of links)
+ * reciprocal rate in the chain.
+ */
+double Chain::finalReciprocalRate() const
+{
+	return this->lfinalReciprocalRate;
+}
+
+/**
+ * Stores the final (actually the end of the updated set of links)
+ * reciprocal rate in the chain.
+ */
+void Chain::finalReciprocalRate(double value)
+{
+	this->lfinalReciprocalRate = value;
 }
 
 
@@ -686,7 +1015,7 @@ int Chain::consecutiveCancelingPairCount() const
 
 /**
  * Returns the number of network ministeps with missing observed data
- * at either end of the current period.
+ * at the end of the current period.
  */
 int Chain::missingNetworkMiniStepCount() const
 {
@@ -696,13 +1025,31 @@ int Chain::missingNetworkMiniStepCount() const
 
 /**
  * Returns the number of behavior ministeps with missing observed data
- * at either end of the current period.
+ * at the end of the current period.
  */
 int Chain::missingBehaviorMiniStepCount() const
 {
 	return this->lmissingBehaviorMiniSteps.size();
 }
 
+/**
+ * Returns the vector of ministeps representing differences between the
+ * current initial state and the observed data at the start of the
+ * current period.
+ */
+const vector<MiniStep *> & Chain::rInitialStateDifferences() const
+{
+	return this->linitialStateDifferences;
+}
+/**
+ * Returns the vector of ministeps representing differences between the
+ * current end state and the observed data at the end of the
+ * current period.
+ */
+const vector<MiniStep *> & Chain::rEndStateDifferences() const
+{
+	return this->lendStateDifferences;
+}
 
 // ----------------------------------------------------------------------------
 // Section: Random draws
@@ -780,12 +1127,12 @@ MiniStep * Chain::randomMissingBehaviorMiniStep() const
 void  Chain::printConsecutiveCancelingPairs() const
 {
 	// rr debug code for ccps
-		Rprintf("\nStart\n ");
+//		Rprintf("\nStart\n ");
 	for (unsigned i = 0; i < this->lccpMiniSteps.size(); i++)
 	{
 		PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
 	}
-		Rprintf("\nend\n ");
+//		Rprintf("\nend\n ");
 }
 
 // ----------------------------------------------------------------------------
@@ -852,6 +1199,96 @@ MiniStep * Chain::nextMiniStepForOption(const Option & rOption,
 	return pMiniStep;
 }
 // ----------------------------------------------------------------------------
+// Section: Same dyad related
+// ----------------------------------------------------------------------------
+
+/**
+ * Returns the first ministep of the ego, alter, actor set1, actor set 2,
+ * or pLast if there is no such a ministep.
+ */
+MiniStep * Chain::pFirstMiniStepForLink(const MiniStep * pLinkMiniStep) const
+{
+	int ego = pLinkMiniStep->ego();
+	const NetworkChange * pLinkNetworkChange =
+		dynamic_cast<const NetworkChange *>(pLinkMiniStep);
+	int alter = pLinkNetworkChange->alter();
+	const ActorSet * pActorSet1 =
+		this->lpData->pNetworkData(pLinkMiniStep->variableName())->pSenders();
+	const ActorSet * pActorSet2 =
+		this->lpData->pNetworkData(pLinkMiniStep->variableName())->pReceivers();
+	bool done = false;
+	MiniStep * pMiniStep = this->lpFirst->pNext();
+	while (pMiniStep != this->lpLast && !done)
+	{
+		if (pMiniStep->networkMiniStep())
+		{
+			const NetworkChange * pNetworkChange =
+				dynamic_cast<const NetworkChange *>(pMiniStep);
+			if (pMiniStep->ego() == ego &&
+				pNetworkChange->alter() == alter)
+			{
+				NetworkLongitudinalData * pNetwork =
+					this->lpData->pNetworkData(pMiniStep->variableName());
+				if (pNetwork->pSenders() == pActorSet1 &&
+					pNetwork->pReceivers() == pActorSet2)
+				{
+					done = true;
+					break;
+				}
+			}
+		}
+		pMiniStep = pMiniStep->pNext();
+	}
+	if (pMiniStep != this->lpLast)
+	{
+		PrintValue(getMiniStepDF(*pMiniStep));
+	}
+	else
+		Rprintf("last\n");
+	return pMiniStep;
+}
+
+
+/**
+ * Returns the last ministep of the given option in the subchain starting
+ * with the given ministep, or pFirst, if there is no such a ministep.
+ */
+MiniStep * Chain::pLastMiniStepForLink(const MiniStep * pLinkMiniStep) const
+{
+	int ego = pLinkMiniStep->ego();
+	const NetworkChange * pLinkNetworkChange =
+		dynamic_cast<const NetworkChange *>(pLinkMiniStep);
+	int alter = pLinkNetworkChange->alter();
+	const ActorSet * pActorSet1 =
+		this->lpData->pNetworkData(pLinkMiniStep->variableName())->pSenders();
+	const ActorSet * pActorSet2 =
+		this->lpData->pNetworkData(pLinkMiniStep->variableName())->pReceivers();
+	MiniStep * pLastMiniStep = this->lpFirst;
+	MiniStep * pMiniStep = this->lpFirst->pNext();
+
+	while (pMiniStep != this->lpLast)
+	{
+		if (pMiniStep->networkMiniStep())
+		{
+			const NetworkChange * pNetworkChange =
+				dynamic_cast<const NetworkChange *>(pMiniStep);
+			if (pMiniStep->ego() == ego &&
+				pNetworkChange->alter() == alter)
+			{
+				NetworkLongitudinalData * pNetwork =
+					this->lpData->pNetworkData(pMiniStep->variableName());
+				if (pNetwork->pSenders() == pActorSet1 &&
+					pNetwork->pReceivers() == pActorSet2)
+				{
+					pLastMiniStep = pMiniStep;
+				}
+			}
+		}
+		pMiniStep = pMiniStep->pNext();
+	}
+	return pLastMiniStep;
+}
+// ----------------------------------------------------------------------------
 // Section: copy a chain (too difficult (for Ruth!) to do a copy constructor!
 // ----------------------------------------------------------------------------
 
@@ -885,7 +1322,21 @@ Chain * Chain::copyChain() const
 				//		PrintValue(ch2);
 				//	SEXP ch1 = getChainDF(*pChain);
 				//		PrintValue(ch1);
-
+	for(unsigned i=0; i < this->linitialStateDifferences.size(); i++)
+	{
+		pChain->linitialStateDifferences.push_back(
+			this->linitialStateDifferences[i]->createCopyMiniStep());
+	}
+	for(unsigned i=0; i < this->lendStateDifferences.size(); i++)
+	{
+		pChain->lendStateDifferences.push_back(
+			this->lendStateDifferences[i]->createCopyMiniStep());
+	}
+// 	for(int i=0; i< this->linitialStateDifferences.size(); i++)
+// 	{
+// 		PrintValue(getMiniStepDF(*(this->linitialStateDifferences[i])));
+// 		PrintValue(getMiniStepDF(*(pChain->linitialStateDifferences[i])));
+// 	}
 	return pChain;
 	}
 void Chain::dumpChain() const
@@ -910,13 +1361,13 @@ void Chain::dumpChain() const
 	{
 		PrintValue(getMiniStepDF(*this->lmissingBehaviorMiniSteps[i]));
 	}
-	Rprintf("%d\n", this->lfirstMiniStepPerOption.size());
+//	Rprintf("%d\n", this->lfirstMiniStepPerOption.size());
 		map<const Option, MiniStep *>::const_iterator iter;
 		for (iter = this->lfirstMiniStepPerOption.begin(); iter !=
 			 this->lfirstMiniStepPerOption.end();
 		 iter++)
 	{
-		Option myOption = iter->first;
+		//Option myOption = iter->first;
 		if (iter->second)
 		{
 			PrintValue(getMiniStepDF(*iter->second));

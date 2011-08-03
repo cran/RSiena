@@ -54,6 +54,7 @@
 #include "model/ml/MiniStep.h"
 #include "model/ml/NetworkChange.h"
 #include "model/ml/BehaviorChange.h"
+#include "model/State.h"
 
 using namespace std;
 using namespace siena;
@@ -317,9 +318,9 @@ void printOutData(Data *pData)
 	}
 }
 
-/** Create an R vector from a behavior variable for a single period 
+/** Create an R vector from a behavior variable for a single period
  *
- */ 
+ */
 SEXP getBehaviorValues(const BehaviorVariable & behavior)
 {
     SEXP ans;
@@ -335,9 +336,9 @@ SEXP getBehaviorValues(const BehaviorVariable & behavior)
     return ans  ;
 }
 
-/** Create an R matrix from a network variable for a single period 
+/** Create an R matrix from a network variable for a single period
  *
- */ 
+ */
 SEXP getAdjacency(const Network& net)
 {
     SEXP ans;
@@ -356,9 +357,9 @@ SEXP getAdjacency(const Network& net)
     return ans;
 }
 
-/** Create an R 3 column matrix from a network variable for a single period 
+/** Create an R 3 column matrix from a network variable for a single period
  *
- */ 
+ */
 SEXP getEdgeList(const Network& net)
 {
     SEXP ans;
@@ -386,7 +387,7 @@ SEXP getEdgeList(const Network& net)
  */
 namespace siena
 {
-/** Create a data frame with a single row from a ministep. (prints nicely 
+/** Create a data frame with a single row from a ministep. (prints nicely
  * with PrintValue)
  */
 SEXP getMiniStepDF(const MiniStep& miniStep)
@@ -394,7 +395,7 @@ SEXP getMiniStepDF(const MiniStep& miniStep)
 	SEXP MINISTEP, classname, dimnames, colnames;
 	if (miniStep.networkMiniStep() || miniStep.behaviorMiniStep())
 	{
-		PROTECT(colnames = allocVector(STRSXP, 9));
+		PROTECT(colnames = allocVector(STRSXP, 10));
 		SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
 		SET_STRING_ELT(colnames, 1, mkChar("Var"));
 		SET_STRING_ELT(colnames, 2, mkChar("VarName"));
@@ -404,8 +405,9 @@ SEXP getMiniStepDF(const MiniStep& miniStep)
 		SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
 		SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
 		SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+		SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
 
-		PROTECT(MINISTEP = allocVector(VECSXP, 9));
+		PROTECT(MINISTEP = allocVector(VECSXP, 10));
 
 		if (miniStep.networkMiniStep())
 		{
@@ -432,6 +434,8 @@ SEXP getMiniStepDF(const MiniStep& miniStep)
 			ScalarReal(miniStep.logOptionSetProbability()));
 		SET_VECTOR_ELT(MINISTEP, 8,
 			ScalarReal(miniStep.logChoiceProbability()));
+		SET_VECTOR_ELT(MINISTEP, 9,
+			ScalarLogical(miniStep.diagonal()));
 
 		namesgets(MINISTEP, colnames);
 
@@ -451,14 +455,14 @@ SEXP getMiniStepDF(const MiniStep& miniStep)
 	else
 		return R_NilValue;
 }
-/** Create a data frame with chain. (prints nicely with PrintValue)
- *
+/**
+ * Create a data frame from a chain. (prints nicely with PrintValue)
  */
-SEXP getChainDF(const Chain& chain)
+SEXP getChainDF(const Chain& chain, bool sort)
 {
-	SEXP ans, col0, col1, col2, col3, col4, col5, col6, col7, col8,
+	SEXP ans, col0, col1, col2, col3, col4, col5, col6, col7, col8, col9,
 		colnames, dimnames, classname;
-	PROTECT(colnames = allocVector(STRSXP, 9));
+	PROTECT(colnames = allocVector(STRSXP, 10));
 	SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
 	SET_STRING_ELT(colnames, 1, mkChar("Var"));
 	SET_STRING_ELT(colnames, 2, mkChar("VarName"));
@@ -468,34 +472,37 @@ SEXP getChainDF(const Chain& chain)
 	SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
 	SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
 	SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+	SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
 
-	PROTECT(ans = allocVector(VECSXP, 9));
-	PROTECT(col0 = allocVector(STRSXP, chain.ministepCount() - 1));
+	PROTECT(ans = allocVector(VECSXP, 10));
+	int numberRows = chain.ministepCount() - 1;
+	PROTECT(col0 = allocVector(STRSXP, numberRows));
 
-	PROTECT(col1 = allocVector(INTSXP, chain.ministepCount() - 1));
+	PROTECT(col1 = allocVector(INTSXP, numberRows));
 	int * icol1 = INTEGER(col1);
-	PROTECT(col2 = allocVector(STRSXP, chain.ministepCount() - 1));
-	PROTECT(col3 = allocVector(INTSXP, chain.ministepCount() - 1));
+	PROTECT(col2 = allocVector(STRSXP, numberRows));
+	PROTECT(col3 = allocVector(INTSXP, numberRows));
 	int * icol3 = INTEGER(col3);
-	PROTECT(col4 = allocVector(INTSXP, chain.ministepCount() - 1));
+	PROTECT(col4 = allocVector(INTSXP, numberRows));
 	int * icol4 = INTEGER(col4);
-	PROTECT(col5 = allocVector(INTSXP, chain.ministepCount() - 1));
+	PROTECT(col5 = allocVector(INTSXP, numberRows));
 	int * icol5 = INTEGER(col5);
-	PROTECT(col6 = allocVector(REALSXP, chain.ministepCount() - 1));
+	PROTECT(col6 = allocVector(REALSXP, numberRows));
 	double * rcol6 = REAL(col6);
-	PROTECT(col7 = allocVector(REALSXP, chain.ministepCount() - 1));
+	PROTECT(col7 = allocVector(REALSXP, numberRows));
 	double * rcol7 = REAL(col7);
-	PROTECT(col8 = allocVector(REALSXP, chain.ministepCount() - 1));
+	PROTECT(col8 = allocVector(REALSXP, numberRows));
 	double * rcol8 = REAL(col8);
+	PROTECT(col9 = allocVector(LGLSXP, numberRows));
+	int * icol9 = INTEGER(col9);
 
 	MiniStep *pMiniStep = chain.pFirst()->pNext();
-	for (int i = 0; i < chain.ministepCount() - 1; i++)
+	for (int i = 0; i < numberRows; i++)
 	{
 		SEXP ministep;
 		PROTECT(ministep = getMiniStepDF(*pMiniStep));
 		//put them in the data frame
 		//	PrintValue(VECTOR_ELT(ministep, 0));
-		//	Rprintf("%s her at la\n",CHAR(STRING_ELT(VECTOR_ELT(ministep, 0), 0)));
 		SET_STRING_ELT(col0, i, STRING_ELT(VECTOR_ELT(ministep, 0), 0));
 		icol1[i] =  INTEGER(VECTOR_ELT(ministep, 1))[0];
 		SET_STRING_ELT(col2, i, STRING_ELT(VECTOR_ELT(ministep, 2), 0));
@@ -505,6 +512,7 @@ SEXP getChainDF(const Chain& chain)
 		rcol6[i] =  REAL(VECTOR_ELT(ministep, 6))[0];
 		rcol7[i] =  REAL(VECTOR_ELT(ministep, 7))[0];
 		rcol8[i] =  REAL(VECTOR_ELT(ministep, 8))[0];
+		icol9[i] =  INTEGER(VECTOR_ELT(ministep, 9))[0];
 		pMiniStep = pMiniStep->pNext();
 		UNPROTECT(1);
 	}
@@ -517,22 +525,175 @@ SEXP getChainDF(const Chain& chain)
 	SET_VECTOR_ELT(ans, 6, col6);
 	SET_VECTOR_ELT(ans, 7, col7);
 	SET_VECTOR_ELT(ans, 8, col8);
+	SET_VECTOR_ELT(ans, 9, col9);
 
 	namesgets(ans, colnames);
 
 	PROTECT(dimnames = allocVector(INTSXP, 2));
 	int * idimnames = INTEGER(dimnames);
 	idimnames[0] = NA_INTEGER;
-	idimnames[1] = -chain.ministepCount() + 1;
+	idimnames[1] = -numberRows;
 	setAttrib(ans, R_RowNamesSymbol, dimnames);
 
 	PROTECT(classname = allocVector(STRSXP, 1));
 	SET_STRING_ELT(classname, 0, mkChar("data.frame"));
 	classgets(ans, classname);
-	//PrintValue(ans);
-	UNPROTECT(13);
-	return ans;
+
+	// try to sort it by variable, ego and alter
+	SEXP R_fcall1, ordering, R_fcall2, ansnew;
+	PROTECT(R_fcall1 = lang4(install("order"), col1, col3, col4));
+	PROTECT(ordering = eval(R_fcall1, R_GlobalEnv));
+	// now sort the data frame using [.data.frame and ordering
+	PROTECT(R_fcall2 = lang4(install("[.data.frame"),
+			ans, ordering, R_MissingArg));
+	PROTECT(ansnew = eval(R_fcall2, R_GlobalEnv));
+
+	UNPROTECT(18);
+	if (sort)
+	{
+		return ansnew;
+	}
+	else
+	{
+		return ans;
+	}
 }
+/**
+ * Create a data frame from a vector of ministeps.
+ */
+SEXP getDFFromVector(const vector< MiniStep *>& rMiniSteps, bool sort)
+{
+	SEXP ans, col0, col1, col2, col3, col4, col5, col6, col7, col8, col9,
+		colnames, dimnames, classname;
+	PROTECT(colnames = allocVector(STRSXP, 10));
+	SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
+	SET_STRING_ELT(colnames, 1, mkChar("Var"));
+	SET_STRING_ELT(colnames, 2, mkChar("VarName"));
+	SET_STRING_ELT(colnames, 3, mkChar("Ego"));
+	SET_STRING_ELT(colnames, 4, mkChar("Alter"));
+	SET_STRING_ELT(colnames, 5, mkChar("Diff"));
+	SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
+	SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
+	SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+	SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
+
+	PROTECT(ans = allocVector(VECSXP, 10));
+	int numberRows = rMiniSteps.size();
+	PROTECT(col0 = allocVector(STRSXP, numberRows));
+
+	PROTECT(col1 = allocVector(INTSXP, numberRows));
+	int * icol1 = INTEGER(col1);
+	PROTECT(col2 = allocVector(STRSXP, numberRows));
+	PROTECT(col3 = allocVector(INTSXP, numberRows));
+	int * icol3 = INTEGER(col3);
+	PROTECT(col4 = allocVector(INTSXP, numberRows));
+	int * icol4 = INTEGER(col4);
+	PROTECT(col5 = allocVector(INTSXP, numberRows));
+	int * icol5 = INTEGER(col5);
+	PROTECT(col6 = allocVector(REALSXP, numberRows));
+	double * rcol6 = REAL(col6);
+	PROTECT(col7 = allocVector(REALSXP, numberRows));
+	double * rcol7 = REAL(col7);
+	PROTECT(col8 = allocVector(REALSXP, numberRows));
+	double * rcol8 = REAL(col8);
+	PROTECT(col9 = allocVector(LGLSXP, numberRows));
+	int * icol9 = INTEGER(col9);
+
+	for (int i = 0; i < numberRows; i++)
+	{
+		SEXP ministep;
+		PROTECT(ministep = getMiniStepDF(*rMiniSteps[i]));
+		//put them in the data frame
+		//	PrintValue(VECTOR_ELT(ministep, 0));
+		SET_STRING_ELT(col0, i, STRING_ELT(VECTOR_ELT(ministep, 0), 0));
+		icol1[i] =  INTEGER(VECTOR_ELT(ministep, 1))[0];
+		SET_STRING_ELT(col2, i, STRING_ELT(VECTOR_ELT(ministep, 2), 0));
+		icol3[i] =  INTEGER(VECTOR_ELT(ministep, 3))[0];
+		icol4[i] =  INTEGER(VECTOR_ELT(ministep, 4))[0];
+		icol5[i] =  INTEGER(VECTOR_ELT(ministep, 5))[0];
+		rcol6[i] =  REAL(VECTOR_ELT(ministep, 6))[0];
+		rcol7[i] =  REAL(VECTOR_ELT(ministep, 7))[0];
+		rcol8[i] =  REAL(VECTOR_ELT(ministep, 8))[0];
+		icol9[i] =  INTEGER(VECTOR_ELT(ministep, 9))[0];
+		UNPROTECT(1);
+	}
+	SET_VECTOR_ELT(ans, 0, col0);
+	SET_VECTOR_ELT(ans, 1, col1);
+	SET_VECTOR_ELT(ans, 2, col2);
+	SET_VECTOR_ELT(ans, 3, col3);
+	SET_VECTOR_ELT(ans, 4, col4);
+	SET_VECTOR_ELT(ans, 5, col5);
+	SET_VECTOR_ELT(ans, 6, col6);
+	SET_VECTOR_ELT(ans, 7, col7);
+	SET_VECTOR_ELT(ans, 8, col8);
+	SET_VECTOR_ELT(ans, 9, col9);
+
+	namesgets(ans, colnames);
+
+	PROTECT(dimnames = allocVector(INTSXP, 2));
+	int * idimnames = INTEGER(dimnames);
+	idimnames[0] = NA_INTEGER;
+	idimnames[1] = -numberRows;
+	setAttrib(ans, R_RowNamesSymbol, dimnames);
+
+	PROTECT(classname = allocVector(STRSXP, 1));
+	SET_STRING_ELT(classname, 0, mkChar("data.frame"));
+	classgets(ans, classname);
+
+	// sort it by variable, ego and alter
+	SEXP R_fcall1, ordering, R_fcall2, ansnew;
+	PROTECT(R_fcall1 = lang4(install("order"), col1, col3, col4));
+	PROTECT(ordering = eval(R_fcall1, R_GlobalEnv));
+	// now sort the data frame using [.data.frame and ordering
+	PROTECT(R_fcall2 = lang4(install("[.data.frame"),
+			ans, ordering, R_MissingArg));
+	PROTECT(ansnew = eval(R_fcall2, R_GlobalEnv));
+
+	UNPROTECT(18);
+
+	if (sort)
+	{
+		return ansnew;
+	}
+	else
+	{
+		return ans;
+	}
+}
+/**
+ * Create a data-frame-plus from a chain. (prints nicely with PrintValue)
+ */
+SEXP getChainDFPlus(const Chain& chain, bool sort)
+{
+	SEXP main;
+	PROTECT(main = getChainDF(chain, sort));
+
+	SEXP initial;
+	const vector<MiniStep *> & rMiniSteps = chain.rInitialStateDifferences();
+	PROTECT(initial = getDFFromVector(rMiniSteps, false));
+
+	SEXP is;
+	PROTECT(is = install("initialStateDifferences"));
+	setAttrib(main, is, initial);
+
+	SEXP end;
+	PROTECT(end = getDFFromVector(chain.rEndStateDifferences(), false));
+
+	SEXP es;
+	PROTECT(es = install("endStateDifferences"));
+	setAttrib(main, es, end);
+
+	SEXP classname;
+	PROTECT(classname = allocVector(STRSXP, 2));
+	SET_STRING_ELT(classname, 0, mkChar("chains.data.frame"));
+	SET_STRING_ELT(classname, 1, mkChar("data.frame"));
+	classgets(main, classname);
+
+	UNPROTECT(6);
+	return main;
+}
+
+
 
 /** Create a list from a ministep. Easy to create, but prints untidily!
  *
@@ -543,8 +704,9 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 	SEXP MINISTEP, EVAL, ENDOW;
 	int nEvaluationEffects, nEndowmentEffects, nRows;
 	double * reval, * rendow;
-	PROTECT(MINISTEP = allocVector(VECSXP, 12));
+	PROTECT(MINISTEP = allocVector(VECSXP, 13));
 	SET_VECTOR_ELT(MINISTEP, 3, ScalarInteger(miniStep.ego()));
+//	Rprintf("%d\n",epochSimulation.pModel()->needChangeContributions() );
 	nEvaluationEffects =
 		epochSimulation.pModel()->
 		rEvaluationEffects(miniStep.variableName()).size();
@@ -581,7 +743,7 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 			{
 				for (int j = 0; j < nRows; j++)
 				{
-					reval[pos++] = networkChange.
+					rendow[pos++] = networkChange.
 						endowmentEffectContribution(j, i);
 				}
 			}
@@ -620,7 +782,7 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 			{
 				for (int j = 0; j < nRows; j++)
 				{
-					reval[pos++] =
+					rendow[pos++] =
 						behaviorChange.endowmentEffectContribution(j, i);
 				}
 			}
@@ -631,6 +793,7 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 	}
 	SET_VECTOR_ELT(MINISTEP, 1, ScalarInteger(miniStep.variableId()));
 	SET_VECTOR_ELT(MINISTEP, 11, ScalarLogical(miniStep.missing(period)));
+	SET_VECTOR_ELT(MINISTEP, 12, ScalarLogical(miniStep.diagonal()));
 	SET_VECTOR_ELT(MINISTEP, 2, mkString(miniStep.variableName().c_str()));
 	SET_VECTOR_ELT(MINISTEP, 7,	ScalarReal(miniStep.logOptionSetProbability()));
 	SET_VECTOR_ELT(MINISTEP, 8, ScalarReal(miniStep.logChoiceProbability()));
@@ -656,8 +819,117 @@ SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 				epochSimulation));
 		pMiniStep = pMiniStep->pNext();
 	}
-	UNPROTECT(1);
+
+	// Add mu, sigma as attributes
+	SEXP mu, sigma2, finalReciprocalRate;
+	PROTECT(mu = allocVector(REALSXP, 1));
+	REAL(mu)[0] = chain.mu();
+	SEXP muu;
+	PROTECT(muu = install("mu"));
+	setAttrib(ans, muu, mu);
+	PROTECT(sigma2 = allocVector(REALSXP, 1));
+	REAL(sigma2)[0] = chain.sigma2();
+	SEXP sigma;
+	PROTECT(sigma = install("sigma2"));
+	setAttrib(ans, sigma, sigma2);
+	PROTECT(finalReciprocalRate = allocVector(REALSXP, 1));
+	REAL(finalReciprocalRate)[0] = chain.finalReciprocalRate();
+	SEXP frr;
+	PROTECT(frr = install("finalReciprocalRate"));
+	setAttrib(ans, frr, finalReciprocalRate);
+	// get the initial state ministeps
+	SEXP initial;
+	int numberInitial = chain.rInitialStateDifferences().size();
+	PROTECT(initial = allocVector(VECSXP, numberInitial));
+
+	for (int i = 0; i < numberInitial; i++)
+	{
+		const MiniStep * pMiniStep2 = (chain.rInitialStateDifferences())[i];
+		SET_VECTOR_ELT(initial, i,
+			getMiniStepList(*pMiniStep2, chain.period(), epochSimulation));
+	}
+	SEXP init;
+
+	PROTECT(init = install("initialStateDifferences"));
+	setAttrib(ans, init, initial);
+
+	// get the end state ministeps
+	SEXP end;
+	int numberEnd = chain.rEndStateDifferences().size();
+	PROTECT(end = allocVector(VECSXP, numberEnd));
+
+	for (int i = 0; i < numberEnd; i++)
+	{
+		const MiniStep * pMiniStep2 = (chain.rEndStateDifferences())[i];
+		SET_VECTOR_ELT(end, i,
+			getMiniStepList(*pMiniStep2, chain.period(), epochSimulation));
+	}
+	SEXP en;
+
+	PROTECT(en = install("endStateDifferences"));
+	setAttrib(ans, en, end);
+	UNPROTECT(11);
 	return ans;
+}
+
+/** Create a ministep from a single ministep stored as a list (not dataframe).
+ *
+ */
+MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP, int period)
+{
+	if (strcmp(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP, 0), 0)),
+			"Network") == 0)
+	{
+		NetworkChange * pNetworkChange = new NetworkChange
+			(pData->pNetworkData(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP,
+							2), 0))),
+				asInteger(VECTOR_ELT(MINISTEP, 3)),
+				asInteger(VECTOR_ELT(MINISTEP, 4)),
+				asInteger(VECTOR_ELT(MINISTEP, 12)));
+		return pNetworkChange;
+	}
+	else
+	{
+		BehaviorChange * pBehaviorChange = new BehaviorChange
+			(pData->pBehaviorData(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP,
+							2), 0))),
+				asInteger(VECTOR_ELT(MINISTEP, 3)),
+				asInteger(VECTOR_ELT(MINISTEP, 5)));
+		return pBehaviorChange;
+	}
+}
+
+/**
+ * Create a chain from a single chain stored as a list (not dataframe).
+ */
+Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
+{
+	/* create a chain */
+	Chain * pChain = new Chain(pData);
+
+	/* set period */
+	pChain->period(period);
+
+	for (int i = 0; i < length(CHAIN); i++)
+	{
+		SEXP MINISTEP;
+		MINISTEP = VECTOR_ELT(CHAIN, i);
+		pChain->insertBefore(makeMiniStepFromList(pData, MINISTEP, period),
+			pChain->pLast());
+	}
+
+    SEXP init;
+    PROTECT(init = install("initialState"));
+    SEXP initialState = getAttrib(CHAIN, init);
+	for (int i = 0; i < length(initialState); i++)
+	{
+		SEXP MINISTEP;
+		MINISTEP = VECTOR_ELT(initialState, i);
+		pChain->addInitialStateDifference(makeMiniStepFromList(pData,
+				MINISTEP, period));
+	}
+	UNPROTECT(1);
+	return pChain;
 }
 
 

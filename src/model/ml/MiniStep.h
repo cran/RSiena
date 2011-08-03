@@ -48,7 +48,7 @@ public:
 	inline int ego() const;
 	int variableId() const;
 	string variableName() const;
-	
+
 	virtual bool networkMiniStep() const;
 	virtual bool behaviorMiniStep() const;
 
@@ -91,8 +91,10 @@ public:
 	inline void orderingKey(double key);
 
 	virtual void makeChange(DependentVariable * pVariable);
-	virtual bool diagonal() const;
+    bool diagonal() const;
 	virtual bool missing(int period) const;
+	virtual bool missingStart(int period) const;
+	virtual bool missingEnd(int period) const;
 	virtual MiniStep * createReverseMiniStep() const;
 	virtual MiniStep * createCopyMiniStep() const;
 
@@ -100,6 +102,7 @@ public:
 
 protected:
 	void pOption(const Option * pOption);
+    void diagonal(bool value);
 
 private:
 	void pChain(Chain * pChain);
@@ -130,6 +133,13 @@ private:
 	// before this ministep.
 
 	double lreciprocalRate;
+
+	// Does this step result in a change of the dependent variables. Called
+	// diagonal because originally diagonal entries in the adjacency matrices
+	// were used to indicate such steps. Can occur with any actor and alter in
+	// symmetric networks. In bipartite networks indicated by alter=number
+	// of alters.
+	bool ldiagonal;
 
 	// Points to the previous ministep in the same chain
 	MiniStep * lpPrevious;
@@ -339,7 +349,6 @@ void MiniStep::missingIndex(int index)
 {
 	this->lmissingIndex = index;
 }
-
 
 /**
  * Returns the ordering key of this ministep.

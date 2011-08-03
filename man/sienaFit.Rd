@@ -3,6 +3,7 @@
 \alias{print.summary.sienaFit}
 \alias{sienaFit}
 \alias{xtable.sienaFit}
+\alias{print.xtable.sienaFit}
 \alias{print.sienaFit}
 \alias{summary.sienaFit}
 \title{Methods for processing sienaFit objects
@@ -23,17 +24,17 @@ digits = NULL, display = NULL, ...)
 	\code{summary.sienaFit} as appropriate}
   \item{tstat}{Boolean: add the t-statistics for convergence to the report}
   \item{caption}{
-	See documentation for \code{\link{xtable}}}
+	See documentation for \code{\link[xtable]{xtable}}}
   \item{label}{
-  See documentation for \code{\link{xtable}}}
+  See documentation for \code{\link[xtable]{xtable}}}
   \item{align}{
-  See documentation for \code{\link{xtable}}}
+  See documentation for \code{\link[xtable]{xtable}}}
   \item{digits}{
-  See documentation for \code{\link{xtable}}}
+  See documentation for \code{\link[xtable]{xtable}}}
   \item{display}{
-  See documentation for \code{\link{xtable}}}
+  See documentation for \code{\link[xtable]{xtable}}}
 \item{\dots}{
-  Add extra parameters for  \code{\link{print.xtable}} here. e.g.
+  Add extra parameters for  \code{\link[xtable]{print.xtable}} here. e.g.
   \code{type}, \code{file}}
 }
 \description{
@@ -59,7 +60,7 @@ digits = NULL, display = NULL, ...)
 }
 \author{Ruth Ripley}
 
-\seealso{\code{\link{xtable}}, \code{\link{print.xtable}},
+\seealso{\code{\link[xtable]{xtable}}, \code{\link[xtable]{print.xtable}},
   \code{\link{siena07}}}
 \examples{
 mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
@@ -69,6 +70,6 @@ myeff <- getEffects(mydata)
 ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
 ans
 summary(ans)
-xtable(ans, type='html', file='ans.html')
+\donttest{xtable(ans, type='html', file='ans.html')}
 }
 \keyword{method}

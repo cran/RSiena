@@ -59,6 +59,8 @@ public:
 	virtual ~StructuralRateEffect();
 
 	double value(int i);
+	void parameter(double parameterValue);
+	double parameter() const;
 
 private:
 	// The network variable this effect depends on

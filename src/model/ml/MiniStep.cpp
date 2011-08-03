@@ -40,6 +40,7 @@ MiniStep::MiniStep(LongitudinalData * pData, int ego)
 	this->lconsecutiveCancelingPairIndex = -1;
 	this->lmissingIndex = -1;
 	this->lorderingKey = 0;
+	this->ldiagonal = false;
 }
 
 
@@ -120,6 +121,13 @@ void MiniStep::pOption(const Option * pOption)
 	this->lpOption = pOption;
 }
 
+/**
+ * Stores whether this ministep is diagonal.
+ */
+void MiniStep::diagonal(bool value)
+{
+	this->ldiagonal = value;
+}
 
 /**
  * Stores the log probability of choosing the option set of this ministep,
@@ -209,7 +217,7 @@ void MiniStep::makeChange(DependentVariable * pVariable)
  */
 bool MiniStep::diagonal() const
 {
-	return false;
+	return this->ldiagonal;
 }
 
 
@@ -221,7 +229,23 @@ bool MiniStep::missing(int period) const
 {
 	return false;
 }
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the start of the given period.
+ */
+bool MiniStep::missingStart(int period) const
+{
+	return false;
+}
 
+/**
+ * Returns if the observed data for this ministep is missing at
+ * the end of the given period.
+ */
+bool MiniStep::missingEnd(int period) const
+{
+	return false;
+}
 
 /**
  * Returns a new ministep that reverses the effect of this ministep.

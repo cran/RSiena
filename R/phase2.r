@@ -31,8 +31,8 @@ phase2.1<- function(z, x, ...)
         z$phase2fras <- array(0, dim=c(4, z$pp, 1000))
         z$rejectprops <- array(0, dim=c(4, 4, 1000))
     }
-    int <- 1
-    f <- FRANstore()
+    ##  int <- 1
+    ## f <- FRANstore()
     z$Phase <- 2
     z$writefreq <- 1
     if (!is.batch())
@@ -42,7 +42,7 @@ phase2.1<- function(z, x, ...)
         tkconfigure(z$tkvars$subphaselabel,state='normal')
     }
     z$Deriv <- FALSE
-    z$sd <- sqrt(apply(z$sf, 2, function(x) sum(x^2) / z$n1 - mean(x)^2))
+    z$sd <- sqrt(apply(z$sf, 2, function(x) sum(x^2) / nrow(z$sf) - mean(x)^2))
     z$sd[z$fixed] <- 0
     ##   browser()
     Report(paste('\nPhase 2 has', x$nsub, 'subphases.\n'), cf)
@@ -107,7 +107,6 @@ proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
         ## report truncations and positivizations
         if (any(z$truncated))
         {
-            truncations<- (1 : length(z$truncated))[z$truncated]
             msg<- paste('Intervention 2.', subphase,
                         '.1: changes truncated, iterations: ',sep='')
             Report(msg, cf)
@@ -600,9 +599,9 @@ getLikelihoodPhase2 <- function(chain, nactors, lambda)
     nc[names(ncvals)] <- ncvals
     logChoiceProb <- sapply(chain, function(x)x[[9]])
     logOptionSetProb <- sapply(chain, function(x)x[[8]])
-    loglik <- sum(logChoiceProb) # + sum(logOptionSetProb)
+    loglik <- sum(logChoiceProb) + sum(logOptionSetProb)
     #print(sum(logOptionSetProb))
-    loglik <- loglik - sum(nactors * lambda) + sum(nc * log(lambda))
+    #loglik <- loglik - sum(nactors * lambda) + sum(nc * log(lambda))
     loglik
 }
 

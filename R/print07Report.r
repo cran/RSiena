@@ -108,9 +108,11 @@ PrintReport <- function(z, x)
                                                      behEffects$effectName
                }
            }
-           typesp <- ifelse (z$requestedEffects$type== "endow", ": ", ":  ")
-           tmp <- paste(z$requestedEffects$type, typesp,
-                        z$requestedEffects$effectName, sep = '')
+           typesp <- ifelse (z$requestedEffects$type %in% c("eval", "rate"),
+                             ":  ", ": ")
+           typetxt <- ifelse (z$requestedEffects$type == "creation", "creat",
+                              z$requestedEffects$type )
+           tmp <- paste(typetxt, typesp, z$requestedEffects$effectName, sep = '')
            tmp <- paste(sprintf("%2d", 1:length(z$requestedEffects$effectName)),
                         '. ', format(substr(tmp, 1, 50), width=50),
                         theta, ses, '\n', sep='', collapse = '')

@@ -37,22 +37,28 @@ class NetworkChange: public MiniStep
 public:
 	NetworkChange(NetworkLongitudinalData * pData,
 		int ego,
-		int alter);
+		int alter,
+		bool diagonal);
 	virtual ~NetworkChange();
 
 	virtual bool networkMiniStep() const;
 	inline int alter() const;
 	virtual void makeChange(DependentVariable * pVariable);
-	virtual bool diagonal() const;
 	virtual bool missing(int period) const;
+	virtual bool missingStart(int period) const;
+	virtual bool missingEnd(int period) const;
 	virtual MiniStep * createReverseMiniStep() const;
 	virtual MiniStep * createCopyMiniStep() const;
 	double evaluationEffectContribution(int alter, int effect) const;
 	double endowmentEffectContribution(int alter, int effect) const;
-	void allocateEffectContributionArrays(int nEvaluationEffects, 
-		int nEndowmentEffects, int m);
+	double creationEffectContribution(int alter, int effect) const;
+	void allocateEffectContributionArrays(int nEvaluationEffects,
+		int nEndowmentEffects,
+		int nCreationEffects,
+		int m);
 	void evaluationEffectContribution(double value, int alter, int effect);
 	void endowmentEffectContribution(double value, int alter, int effect);
+	void creationEffectContribution(double value, int alter, int effect);
 
 private:
 	// The longitudinal data object for the corresponding network variable
@@ -61,17 +67,23 @@ private:
 	// The alter whose incoming tie is changed
 	int lalter;
 
-	// A vector of change contributions to effects, where one element, 
-	// of length the number of effects in the evaluation function, 
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the evaluation function,
 	// corresponds to each receiver.
 
 	vector<vector <double> > levaluationEffectContribution;
 
-	// A vector of change contributions to effects, where one element, 
-	// of length the number of effects in the endowment function, 
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the endowment function,
 	// corresponds to each receiver.
 
 	vector< vector <double> > lendowmentEffectContribution;
+
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the creation function,
+	// corresponds to each receiver.
+
+	vector< vector <double> > lcreationEffectContribution;
 };
 
 

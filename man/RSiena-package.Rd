@@ -26,12 +26,12 @@ Fits models to longitudinal sets of networks.
 
   More detailed help is available in the manual which you can display
   using \cr
-  \code{RShowDoc("s_man400", package="RSiena")}
+  \code{RShowDoc("RSiena_Manual", package="RSiena")}
 \tabular{ll}{
 Package: \tab RSiena\cr
 Type: \tab Package\cr
-Version: \tab 1.0.12.146\cr
-Date: \tab 2011-05-16\cr
+Version: \tab 1.0.12.167\cr
+Date: \tab 2011-08-03\cr
 License: \tab GPL-2 \cr
 LazyLoad: \tab yes\cr
 }

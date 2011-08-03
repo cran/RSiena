@@ -11,7 +11,8 @@
 ##@simstats0c siena07 Simulation Module
 simstats0c <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                        effects=NULL, fromFiniteDiff=FALSE,
-                       profileData=FALSE, prevAns=NULL, returnDeps=FALSE)
+                       profileData=FALSE, prevAns=NULL, returnDeps=FALSE,
+                       returnChains=FALSE)
 {
     if (INIT || initC)  ## initC is to initialise multiple C processes in phase3
     {
@@ -95,14 +96,15 @@ simstats0c <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
                      fromFiniteDiff, f$pModel, f$myeffects, z$theta,
                      randomseed2, returnDeps, z$FinDiff.method,
                      !is.null(z$cl), z$addChainToStore,
-                     z$needChangeContributions)
+                     z$needChangeContributions, returnChains)
     }
     else
     {
         use <- 1:(min(nrow(callGrid), z$int2))
         anss <- parRapply(z$cl[use], callGrid, doModel,
                           z$Deriv, seeds, fromFiniteDiff, z$theta,
-                          randomseed2, returnDeps, z$FinDiff.method, TRUE)
+                          randomseed2, returnDeps, z$FinDiff.method, TRUE,
+                          returnChains)
         ## reorganize the anss so it looks like the normal one
         ## browser()
         ans <- NULL
@@ -147,7 +149,7 @@ simstats0c <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
     {
         sims <- NULL
     }
-    if (returnDeps)
+    if (returnChains)
     {
         chain <- ans[[7]]
     }
@@ -171,30 +173,28 @@ simstats0c <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
             periodNo <- periodNos[length(periodNos)] + 2
         }
     }
-                                        # browser()
+                                       ## browser()
     list(sc = sc, fra = fra, ntim0 = ntim, feasible = TRUE, OK = TRUE,
          sims=sims, f$seeds, chain=chain)
 }
 doModel <- function(x, Deriv, seeds, fromFiniteDiff, theta, randomseed2,
-                    returnDeps, FinDiff.method, useStreams)
+                    returnDeps, FinDiff.method, useStreams, returnChains)
 {
     f <- FRANstore()
     seeds <- seeds[[x[1]]][[x[2]]]
     .Call("modelPeriod", PACKAGE=pkgname, Deriv, f$pData, seeds,
           fromFiniteDiff, f$pModel, f$myeffects, theta,
           randomseed2, returnDeps, FinDiff.method, useStreams,
-          as.integer(x[1]), as.integer(x[2]))
+          as.integer(x[1]), as.integer(x[2]), returnChains)
 }
 
 ##@clearData siena07 Finalizer to clear Data object in C++
 clearData <- function(pData)
 {
-    ans <- .Call('deleteData', PACKAGE=pkgname,
-                 pData)
+    .Call('deleteData', PACKAGE=pkgname, pData)
 }
 ##@clearModel siena07 Finalizer to clear Model object in C++
 clearModel <- function(pModel)
 {
-    ans <- .Call('deleteModel', PACKAGE=pkgname,
-                 pModel)
+    .Call('deleteModel', PACKAGE=pkgname, pModel)
 }

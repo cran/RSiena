@@ -3,14 +3,14 @@
  *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
  *
- * File: OutTruncEffect.h
+ * File: TruncatedOutdegreeEffect.h
  *
  * Description: This file contains the definition of the
- * OutTruncEffect class.
+ * TruncatedOutdegreeEffect class.
  *****************************************************************************/
 
-#ifndef OUTTRUNCEFFECT_H_
-#define OUTTRUNCEFFECT_H_
+#ifndef TRUNCATEDOUTDEGREEEFFECT_H_
+#define TRUNCATEDOUTDEGREEEFFECT_H_
 
 #include "NetworkEffect.h"
 
@@ -19,13 +19,13 @@ namespace siena
 
 /**
  * This class defines the outdegree activity effect defined by
- * s_i(x)= min{x_{i+},c}. The corresponding statistic is
+ * s_i(x) = min{x_{i+}, c}. The corresponding statistic is
  * the sum of outdegrees truncated at c over all actors.
  */
-class OutTruncEffect : public NetworkEffect
+class TruncatedOutdegreeEffect : public NetworkEffect
 {
 public:
-	OutTruncEffect(const EffectInfo * pEffectInfo);
+	TruncatedOutdegreeEffect(const EffectInfo * pEffectInfo);
 
 	virtual double calculateContribution(int alter) const;
 	virtual double endowmentStatistic(Network * pLostTieNetwork);
@@ -40,4 +40,4 @@ private:
 
 }
 
-#endif /*OUTTRUNCEFFECT_H_*/
+#endif /*TRUNCATEDOUTDEGREEEFFECT_H_*/

@@ -79,5 +79,21 @@ double StructuralRateEffect::value(int i)
 
 	throw new logic_error("Unexpected structural rate effect type");
 }
+/**
+ * Stores the parameter for the structural rate effect.
+ */
+void StructuralRateEffect::parameter(double parameterValue)
+{
+	this->lpTable->parameter(parameterValue);
+}
+
+/**
+ * Returns the parameter for the structural rate effect.
+ */
+double StructuralRateEffect::parameter() const
+{
+	return this->lpTable->parameter();
+}
+
 
 }

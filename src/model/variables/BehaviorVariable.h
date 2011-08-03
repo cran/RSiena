@@ -69,9 +69,12 @@ public:
 
 private:
 	void preprocessEgo();
+	void preprocessEffects(const Function * pFunction);
 	double totalEvaluationContribution(int actor,
 		int difference) const;
 	double totalEndowmentContribution(int actor,
+		int difference) const;
+	double totalCreationContribution(int actor,
 		int difference) const;
 	void accumulateScores(int difference, bool UpPossible,
 		bool downPossible) const;
@@ -96,6 +99,12 @@ private:
 	// endowment function.
 
 	double ** lendowmentEffectContribution;
+
+	// A two-dimensional array of change contributions to effects, where
+	// rows correspond to differences and columns correspond to effects in the
+	// tie creation function.
+
+	double ** lcreationEffectContribution;
 
 	// Selection probability per each difference:
 	// lprobabilities[0] - probability for a downward change

@@ -113,7 +113,7 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
         }
     }
 
-    // Initialize the rate, evaluation, and endowment
+    // Initialize the rate, evaluation, endowment, and creation
     // functions of all variables.
 
     for (unsigned i = 0; i < this->lvariables.size(); i++)
@@ -121,6 +121,7 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel)
     	this->lvariables[i]->initializeRateFunction();
     	this->lvariables[i]->initializeEvaluationFunction();
     	this->lvariables[i]->initializeEndowmentFunction();
+    	this->lvariables[i]->initializeCreationFunction();
     }
 
     // Add network constraints to network variables.
@@ -273,6 +274,16 @@ void EpochSimulation::initialize(int period)
     			period,
     			this->lpCache);
     	}
+
+    	pFunction = this->lvariables[i]->pCreationFunction();
+
+    	for (unsigned j = 0; j < pFunction->rEffects().size(); j++)
+    	{
+    		pFunction->rEffects()[j]->initialize(this->lpData,
+    			this->lpState,
+    			period,
+    			this->lpCache);
+    	}
     }
 
     // Reset the time
@@ -353,6 +364,14 @@ void EpochSimulation::runEpoch(int period)
 	{
 		this->setLeaversBack();
 	}
+	if (this->pModel()->needChain())
+	{
+		this->calculateRates();
+
+		this->pChain()->
+			finalReciprocalRate(1 / this->totalRate());
+
+	}
 }
 
 
@@ -399,7 +418,7 @@ void EpochSimulation::runStep()
 			{
 				if (this->pModel()->needChain())
 				{
-					// update rate probabilities on the final ministep
+					// update rate probabilities on the current final ministep
 					this->lpChain->pLast()->pPrevious()->
 						logOptionSetProbability(log(pSelectedVariable->
 								rate(selectedActor)
@@ -667,7 +686,7 @@ const Model * EpochSimulation::pModel() const
 /**
  * Returns the chain representing the events simulated by this simulation object.
  */
-Chain * EpochSimulation::pChain() const
+Chain * EpochSimulation::pChain()
 {
     return this->lpChain;
 }
@@ -817,11 +836,11 @@ double EpochSimulation::calculateChainProbabilities(Chain * pChain)
 //	Rprintf("%f\n", logprob);
 	return logprob;
 }
-void EpochSimulation::updateParameters()
+void EpochSimulation::updateParameters(int period)
 {
 	for (unsigned i = 0; i < this->lvariables.size(); i++)
 	{
-     	this->lvariables[i]->initializeRateFunction();
+     	this->lvariables[i]->updateBasicRate(period);
 		this->lvariables[i]->updateEffectParameters();
 	}
 

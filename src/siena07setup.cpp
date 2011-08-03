@@ -22,6 +22,7 @@
 #include "data/Data.h"
 #include "data/NetworkLongitudinalData.h"
 #include "model/Model.h"
+#include "model/ml/Chain.h"
 #include "model/State.h"
 #include "model/StatisticCalculator.h"
 #include "data/ActorSet.h"
@@ -641,119 +642,191 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST)
 	UNPROTECT(1);
 	return fra;
 }
-	/** Sets up a minimal chain and does pre burnin and burnin.
-	 * Processes a complete set of data objects, crewating a chain for each
-     * period and storing them on the model object.
-	 */
-    SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
-		SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
-		SEXP MAXIMUMPERM, SEXP INITIALPERM)
-    {
-        /* get hold of the data vector */
-		vector<Data *> * pGroupData = (vector<Data *> *)
-			R_ExternalPtrAddr(DATAPTR);
+/** Sets up a minimal chain and does pre burnin and burnin.
+ * Processes a complete set of data objects, crewating a chain for each
+ * period and storing them on the model object.
+ */
+SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
+	SEXP MAXIMUMPERM, SEXP INITIALPERM)
+{
+	/* get hold of the data vector */
+	vector<Data *> * pGroupData = (vector<Data *> *)
+		R_ExternalPtrAddr(DATAPTR);
+	int nGroups = pGroupData->size();
 
-        int nGroups = pGroupData->size();
+	/* find total number of periods to process */
+	int totObservations = totalPeriods(*pGroupData);
 
-		/* find total number of periods to process */
-		int totObservations = totalPeriods(*pGroupData);
+	/* get hold of the model object */
+	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+	// create chain storage
+	pModel->setupChainStore(totObservations);
 
-		/* get hold of the model object */
-        Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+	/* copy permutation lengths to the model */
 
-		// create chain storage
-		pModel->setupChainStore(totObservations);
+	pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
+	pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
+	pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
+	/* set probability flags */
+	pModel->insertDiagonalProbability(REAL(PROBS)[0]);
+	pModel->cancelDiagonalProbability(REAL(PROBS)[1]);
+	pModel->permuteProbability(REAL(PROBS)[2]);
+	pModel->insertPermuteProbability(REAL(PROBS)[3]);
+	pModel->deletePermuteProbability(REAL(PROBS)[4]);
+	pModel->insertRandomMissingProbability(REAL(PROBS)[5]);
+	PrintValue(PROBS);
+	pModel->deleteRandomMissingProbability(REAL(PROBS)[6]);
 
-		/* copy permutation lengths to the model */
+	double * prmin = REAL(PRMIN);
+	double * prmib = REAL(PRMIB);
 
-		pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
-		pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
-		pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
-		/* set probability flags */
-		pModel->insertDiagonalProbability(REAL(PROBS)[0]);
-		pModel->cancelDiagonalProbability(REAL(PROBS)[1]);
-		pModel->permuteProbability(REAL(PROBS)[2]);
-		pModel->insertPermuteProbability(REAL(PROBS)[3]);
-		pModel->deletePermuteProbability(REAL(PROBS)[4]);
-		pModel->insertRandomMissingProbability(REAL(PROBS)[5]);
-		pModel->deleteRandomMissingProbability(REAL(PROBS)[6]);
+	SEXP minimalChains;
+	PROTECT(minimalChains = allocVector(VECSXP, totObservations));
+	SEXP currentChains;
+	PROTECT(currentChains = allocVector(VECSXP, totObservations));
 
-	    double * prmin = REAL(PRMIN);
-	    double * prmib = REAL(PRMIB);
+	int periodFromStart = 0;
 
-		SEXP minimalChains;
-		PROTECT(minimalChains = allocVector(VECSXP, totObservations));
-		SEXP currentChains;
-	    PROTECT(currentChains = allocVector(VECSXP, totObservations));
+	for (int group = 0; group < nGroups; group++)
+	{
+		Data * pData = (*pGroupData)[group];
+		int observations = pData->observationCount() - 1;
 
-		int periodFromStart = 0;
+		/* create the ML simulation object */
+		MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
 
-		for (int group = 0; group < nGroups; group++)
+		pModel->simpleRates(asInteger(SIMPLERATES));
+		pMLSimulation->simpleRates(pModel->simpleRates());
+
+		for (int period = 0; period < observations; period ++)
 		{
-			Data * pData = (*pGroupData)[group];
-            int observations = pData->observationCount() - 1;
+			// store for later on model
+			pModel->missingNetworkProbability(prmin[periodFromStart]);
+			pModel->missingBehaviorProbability(prmib[periodFromStart]);
 
-			/* create the ML simulation object */
-			MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
+			// put ones for this period on simulation object
+			pMLSimulation->
+				missingNetworkProbability(prmin[periodFromStart]);
+			pMLSimulation->
+				missingBehaviorProbability(prmib[periodFromStart]);
 
-			pModel->simpleRates(asInteger(SIMPLERATES));
-			pMLSimulation->simpleRates(pModel->simpleRates());
+			/* initialize the chain: this also initializes the data */
+			// does not initialise with previous period missing values yet
+			pMLSimulation->connect(period);
 
-			for (int period = 0; period < observations; period ++)
+			SEXP ch;
+			PROTECT(ch = getChainDF(*(pMLSimulation->pChain())));
+			SET_VECTOR_ELT(minimalChains, periodFromStart, ch);
+			UNPROTECT(1);
+
+			/* get the chain up to a reasonable length */
+
+			GetRNGstate();
+
+			pMLSimulation->preburnin();
+
+			/* do some more steps */
+
+			pMLSimulation->setUpProbabilityArray();
+
+			int numSteps = 500;
+			for (int i = 0; i < numSteps; i++)
 			{
-				// store for later on model
-				pModel->missingNetworkProbability(prmin[periodFromStart]);
-				pModel->missingBehaviorProbability(prmib[periodFromStart]);
-
-				// put ones for this period on simulation object
-				pMLSimulation->
-					missingNetworkProbability(prmin[periodFromStart]);
-				pMLSimulation->
-					missingBehaviorProbability(prmib[periodFromStart]);
-
-				/* initialize the chain: this also initializes the data */
-				// does not initialise with previous period
-				pMLSimulation->connect(periodFromStart);
-
-				SEXP ch;
-				PROTECT(ch = getChainDF(*(pMLSimulation->pChain())));
-				//PrintValue(ch);
-				SET_VECTOR_ELT(minimalChains, periodFromStart, ch);
-				UNPROTECT(1);
-
-				/* get the chain up to a reasonable length */
-
-				GetRNGstate();
-
-				pMLSimulation->preburnin();
-
-				/* do some more steps */
-
-				pMLSimulation->setUpProbabilityArray();
-
-				int numSteps = 500;
-				for (int i = 0; i < numSteps; i++)
-				{
-					pMLSimulation->MLStep();
-				}
-
-			/* store chain on Model */
-				pModel->chainStore(*(pMLSimulation->pChain()), periodFromStart);
-				SEXP ch1;
-				PROTECT(ch1 = getChainDF(*(pMLSimulation->pChain())));
-				SET_VECTOR_ELT(currentChains, periodFromStart, ch1);
-				UNPROTECT(1);
-				periodFromStart++;
+				pMLSimulation->MLStep();
 			}
-			delete pMLSimulation;
-		}
 
-		SEXP ans;
-		PROTECT(ans = allocVector(VECSXP, 2));
-		SET_VECTOR_ELT(ans, 0, minimalChains);
-		SET_VECTOR_ELT(ans, 1, currentChains);
-		UNPROTECT(3);
-		PutRNGstate();
-		return ans;
+			/* store chain on Model after creating difference vectors */
+			Chain * pChain = pMLSimulation->pChain();
+			pChain->createInitialStateDifferences();
+			pMLSimulation->createEndStateDifferences();
+			pModel->chainStore(*pChain, periodFromStart);
+
+			/* return chain as a list. */
+ 			SEXP ch1;
+ 			PROTECT(ch1 = getChainList(*pChain,	*pMLSimulation));
+ 			SET_VECTOR_ELT(currentChains, periodFromStart, ch1);
+ 			UNPROTECT(1);
+
+			periodFromStart++;
+		}
+		delete pMLSimulation;
 	}
+
+	SEXP ans;
+	PROTECT(ans = allocVector(VECSXP, 2));
+	SET_VECTOR_ELT(ans, 0, minimalChains);
+	SET_VECTOR_ELT(ans, 1, currentChains);
+	UNPROTECT(3);
+	PutRNGstate();
+	return ans;
 }
+
+/** Sets up a minimal chain and does pre burnin and burnin.
+ * Processes a complete set of data objects, crewating a chain for each
+ * period and storing them on the model object.
+ */
+SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
+	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS, SEXP MISSINGCHAINS)
+{
+	/* get hold of the data vector */
+	vector<Data *> * pGroupData = (vector<Data *> *)
+		R_ExternalPtrAddr(DATAPTR);
+
+	int nGroups = pGroupData->size();
+
+	/* find total number of periods to process */
+	int totObservations = totalPeriods(*pGroupData);
+
+	/* get hold of the model object */
+	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+
+	// create chain storage
+	pModel->setupChainStore(totObservations);
+
+	/* copy permutation lengths to the model */
+
+	pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
+	pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
+	pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
+	/* set probability flags */
+	pModel->insertDiagonalProbability(REAL(PROBS)[0]);
+	pModel->cancelDiagonalProbability(REAL(PROBS)[1]);
+	pModel->permuteProbability(REAL(PROBS)[2]);
+	pModel->insertPermuteProbability(REAL(PROBS)[3]);
+	pModel->deletePermuteProbability(REAL(PROBS)[4]);
+	pModel->insertRandomMissingProbability(REAL(PROBS)[5]);
+	pModel->deleteRandomMissingProbability(REAL(PROBS)[6]);
+
+	double * prmin = REAL(PRMIN);
+	double * prmib = REAL(PRMIB);
+
+	int periodFromStart = 0;
+
+	for (int group = 0; group < nGroups; group++)
+	{
+		Data * pData = (*pGroupData)[group];
+		int observations = pData->observationCount() - 1;
+
+		pModel->simpleRates(asInteger(SIMPLERATES));
+
+		for (int period = 0; period < observations; period ++)
+		{
+			// store for later on model
+			pModel->missingNetworkProbability(prmin[periodFromStart]);
+			pModel->missingBehaviorProbability(prmib[periodFromStart]);
+
+			/* copy the chain for this period onto the model */
+			Chain * pChain = makeChainFromList(pData,
+				VECTOR_ELT(CHAINS, periodFromStart), period);
+			pModel->chainStore(*pChain, periodFromStart);
+
+			periodFromStart++;
+		}
+	}
+
+	return R_NilValue;
+}
+}
+

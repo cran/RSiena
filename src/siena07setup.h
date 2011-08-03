@@ -100,4 +100,19 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
  */
 SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST);
 
+/** Sets up a minimal chain and does pre burnin and burnin.
+ * Processes a complete set of data objects, crewating a chain for each
+ * period and storing them on the model object.
+ */
+SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
+	SEXP MAXIMUMPERM, SEXP INITIALPERM);
+
+/**
+ *
+ */
+SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
+	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS, SEXP MISSINGCHAINS);
+
 #endif /*SIENA07SETUP_H_*/

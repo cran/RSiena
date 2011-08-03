@@ -334,7 +334,6 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
         reportBehaviors <- function()
         {
             Heading(2, outf, "Reading dependent actor variables.")
-            anymissings <- FALSE
             iBehav <- 0
             for (i in 1:length(x$depvars))
             {
@@ -343,10 +342,8 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                     depvar <- x$depvars[[i]]
                     atts <- attributes(depvar)
                     netname <- atts$name
-                    type <- atts$type
 
                     iBehav <- iBehav + 1
-                    mymat <- depvar[, 1, ]
                     mystr <- paste(iBehav, switch(as.character(iBehav),
                                                   "1"=, "21"=, "31"= "st",
                                                   "2"=, "22"=, "32"= "nd",
@@ -718,7 +715,6 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
         reportCompositionChange <- function()
         {
             comps <- x$compositionChange
-            nComps <- length(comps)
             Heading(2, outf, "Reading files with times of composition change.")
             for (i in seq(along=comps))
             {
@@ -1345,7 +1341,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
     }
     printInitialDescription(data, myeff, modelname)
     ##close the files
-    Report(close=TRUE)
+    Report(closefiles=TRUE)
 }
 
 

@@ -1,3 +1,8 @@
 rm -f src/*/*.o
 rm -f src/*/*/*.o
+rm -f src/*/*/*/*.o
 rm -f src/RSiena.dll
+rm -f src/libSn1.a
+rm -f src/libSn2.a
+rm -f src/libSn3.a
+rm -f src/libSn4.a

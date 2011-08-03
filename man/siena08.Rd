@@ -26,11 +26,15 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05)
 \details{
   A meta analysis is performed as described
   in the Siena manual, section `Meta-analysis of Siena results'. This
-  consists of three parts: an iterated weighted least squares 
+  consists of three parts: an iterated weighted least squares
   modification of the method described in the reference below;
   maximum likelihood estimates and confidence intervals based on
   profile likelihoods under normality assumptions;
   and Fisher combinations of left-sided and right-sided p-values.
+
+  Note that the corresponding effects must have the same effect name in each
+  model fit. This implies that at least covariates and behavior variables must
+  have the same name in each model fit.
 }
 \value{An object of class \code{\link{sienaMeta}}.  There are \code{print},
   \code{summary} and \code{plot} methods for this class,
@@ -38,7 +42,7 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05)
   An object of class \code{sienaMeta} is a list containing at least the
   following. (Items \code{cor.est} to
   \code{ns} appear once for each effect.)
-  \item{cor.est}{Spearman rank correlation coefficient between estimates 
+  \item{cor.est}{Spearman rank correlation coefficient between estimates
                  and their standard errors.}
   \item{cor.pval}{p-value for above}
   \item{regfit}{Part of the result of the fit of \code{\link{iwlsm}}.}
@@ -57,9 +61,9 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05)
   \item{mu.ml}{ML estimate of population mean}
   \item{mu.ml.se}{standard error of ML estimate of population mean}
   \item{sigma.ml}{ML estimate of population standard deviation}
-  \item{mu.confint}{confidence interval for population mean 
+  \item{mu.confint}{confidence interval for population mean
                     based on profile likelihood}
-  \item{sigma.confint}{confidence interval for population standard deviation 
+  \item{sigma.confint}{confidence interval for population standard deviation
                     based on profile likelihood}
   \item{n1}{Number of fits on which the meta analysis is based}
   \item{scoreplus}{Test statistic for combination of right one-sided

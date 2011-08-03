@@ -215,13 +215,4 @@ void getScores(SEXP EFFECTSLIST, int period, int group, const Data *pData,
 	const MLSimulation * pMLSimulation,
 	vector<double> * rderiv, vector<double> *rscore);
 
-/**
- *  retrieves the values of the candidate parameters for each of the effects,
- *  for one period.
- */
-void getCandidatesAndShapes(SEXP EFFECTSLIST, int period, int group,
-	const Data *pData,
-	const MLSimulation * pMLSimulation, vector<double> * rcandidates,
-	vector<int> * ibayesshapes, int nBatches);
-
 #endif /*SIENA07INTERNALS_H_*/

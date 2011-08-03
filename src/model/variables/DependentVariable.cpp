@@ -57,6 +57,7 @@ DependentVariable::DependentVariable(string name,
 	this->lcovariateRates = new double[this->n()];
 	this->lpEvaluationFunction = new Function();
 	this->lpEndowmentFunction = new Function();
+	this->lpCreationFunction = new Function();
 }
 
 
@@ -243,7 +244,6 @@ void DependentVariable::initializeRateFunction()
 			}
 		}
 	}
-
 	// If there are no rate effects depending on changing covariates,
     // or behavior variables then the covariate based rates can be calculated
 	// just once.
@@ -256,6 +256,9 @@ void DependentVariable::initializeRateFunction()
 }
 
 
+/**
+ * Creates the evaluation effects and stores them in the evaluation function.
+ */
 void DependentVariable::initializeEvaluationFunction()
 {
 	this->initializeFunction(this->lpEvaluationFunction,
@@ -263,10 +266,23 @@ void DependentVariable::initializeEvaluationFunction()
 }
 
 
+/**
+ * Creates the endowment effects and stores them in the endowment function.
+ */
 void DependentVariable::initializeEndowmentFunction()
 {
 	this->initializeFunction(this->lpEndowmentFunction,
 		this->lpSimulation->pModel()->rEndowmentEffects(this->name()));
+}
+
+
+/**
+ * Creates the tie creation effects and stores them in the creation function.
+ */
+void DependentVariable::initializeCreationFunction()
+{
+	this->initializeFunction(this->lpCreationFunction,
+		this->lpSimulation->pModel()->rCreationEffects(this->name()));
 }
 
 
@@ -291,6 +307,7 @@ DependentVariable::~DependentVariable()
 {
 	delete this->lpEvaluationFunction;
 	delete this->lpEndowmentFunction;
+	delete this->lpCreationFunction;
 	delete[] this->lrate;
 	delete[] this->lcovariateRates;
 
@@ -304,7 +321,7 @@ DependentVariable::~DependentVariable()
 	this->lcovariateRates = 0;
 	this->lpEvaluationFunction = 0;
 	this->lpEndowmentFunction = 0;
-
+	this->lpCreationFunction = 0;
 }
 
 
@@ -1264,8 +1281,16 @@ bool DependentVariable::validMiniStep(const MiniStep * pMiniStep,
 {
 	return true;
 }
+/**
+ * Updates basic rate effect parameters.
+ */
 
-
+void DependentVariable::updateBasicRate(int period)
+{
+	this->lbasicRate =
+		this->lpSimulation->pModel()->basicRateParameter(this->pData(),
+			period);
+}
 /**
  * Updates effect parameters
  */
@@ -1294,152 +1319,76 @@ void DependentVariable::updateEffectParameters()
 		Effect * pEffect = pFunction->rEffects()[i];
 		pEffect->parameter(rEffects2[i]->parameter());
 	}
-}
-/**
- * Updates effect info parameters from the effects (used if accepted)
- */
 
-void DependentVariable::updateEffectInfoParameters()
-{
-	// find the Evaluation effectInfos
-	const vector<EffectInfo *>  rEffects=
-		this->lpSimulation->pModel()->rEvaluationEffects(this->name());
+	// Update the creation effect parameters
 
-	const Function * pFunction = this->pEvaluationFunction();
+	const vector<EffectInfo *> rCreationEffectInfos =
+		this->lpSimulation->pModel()->rCreationEffects(this->name());
+	pFunction = this->pCreationFunction();
 
 	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
 	{
 		Effect * pEffect = pFunction->rEffects()[i];
-		rEffects[i]->parameter(pEffect->parameter());
+		pEffect->parameter(rCreationEffectInfos[i]->parameter());
 	}
-	// find the Endowment effectInfos
-	const vector<EffectInfo *>  rEffects2=
-	 this->lpSimulation->pModel()->rEndowmentEffects(this->name());
 
-	pFunction = this->pEndowmentFunction();
+	// find the Rate effectInfos
+	const vector<EffectInfo *>  rRateEffects =
+		this->lpSimulation->pModel()->rRateEffects(this->name());
 
-	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
+	vector < StructuralRateEffect * >::iterator iter =
+		this->lstructuralRateEffects.begin();
+	const Data * pData = this->lpSimulation->pData();
+
+	for (unsigned i = 0; i < rRateEffects.size(); i++)
 	{
-		Effect * pEffect =	pFunction->rEffects()[i];
-		rEffects2[i]->parameter(pEffect->parameter());
+		EffectInfo * pEffectInfo = rRateEffects[i];
+		string interactionName = pEffectInfo->interactionName1();
+		string rateType = pEffectInfo->rateType();
+
+		if (rateType == "covariate")
+		{
+			ConstantCovariate * pConstantCovariate =
+				pData->pConstantCovariate(interactionName);
+			ChangingCovariate * pChangingCovariate =
+				pData->pChangingCovariate(interactionName);
+			const BehaviorVariable * pBehaviorVariable =
+				(const BehaviorVariable *)
+				this->lpSimulation->pVariable(interactionName);
+
+			if (pConstantCovariate)
+			{
+				this->lconstantCovariateParameters[pConstantCovariate] =
+					pEffectInfo->parameter();
+			}
+			else if (pChangingCovariate)
+			{
+				this->lchangingCovariateParameters[pChangingCovariate] =
+					pEffectInfo->parameter();
+			}
+			else if (pBehaviorVariable)
+			{
+				this->lbehaviorVariableParameters[pBehaviorVariable] =
+					pEffectInfo->parameter();
+			}
+			else
+			{
+				throw logic_error(
+					"No individual covariate named '" +
+					interactionName +
+					"'.");
+			}
+		}
+		else
+		{
+			// assume everything is is the right order!
+			StructuralRateEffect *pEffect = *iter;
+			//	Rprintf("%f %f to effect \n", pEffect->parameter(),
+			//		pEffectInfo->parameter());
+			pEffect->parameter(pEffectInfo->parameter());
+			iter++;
+		}
 	}
-}
-
-/**
- * Samples from distribution for basic rate parameters
- *
- */
-void DependentVariable::sampleBasicRate(int miniStepCount)
-{
-	this->lbasicRate = nextGamma(miniStepCount + 1, 1.0 / this->n());
-	this->sampledBasicRates(this->lbasicRate);
-	this->sampledBasicRatesDistributions(miniStepCount + 1);
-	this->lvalidRates = false;
-}
-/**
- * Samples from distribution for non basic rate parameters
- *
- */
-double DependentVariable::sampleParameters(double scaleFactor)
-{
-	double priorSD = 10000;
-	double priornew = 0;
-	double priorold = 0;
-
-	// need to access this later
-	MLSimulation * pMLSimulation =
-		dynamic_cast<MLSimulation * >(this->pSimulation());
-
-	// create candidate set of parameters and copy them to the effects
-
-	const Function * pFunction = this->pEvaluationFunction();
-
-	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
-	{
-		Effect * pEffect = pFunction->rEffects()[i];
-		double candidate = pEffect->parameter() + nextNormal(0, scaleFactor);
-		priornew += normalDensity(candidate, 0, priorSD, true);
-
-		pMLSimulation->candidates(pEffect->pEffectInfo(), candidate);
-		priorold += normalDensity(pEffect->parameter(), 0, priorSD, true);
-		pEffect->parameter(candidate);
-
-	}
-
-	pFunction = this->pEndowmentFunction();
-
-	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
-	{
-		Effect * pEffect = pFunction->rEffects()[i];
-		double candidate = pEffect->parameter() + nextNormal(0, scaleFactor);
-		priornew += normalDensity(candidate, 0, priorSD, true);
-		pMLSimulation->candidates(pEffect->pEffectInfo(), candidate);
-		priorold += normalDensity(pEffect->parameter(), 0, priorSD,	true);
-		pEffect->parameter(candidate);
-	}
-	return priornew - priorold;
-}
-/**
- * Clears the sampled basic rate parameter store.
- */
-
-void DependentVariable::clearSampledBasicRates()
-{
-  this->lsampledBasicRates.clear();
-}
-/**
- * Returns the sampled basic rate parameter for the given iteration.
- */
-
-double DependentVariable::sampledBasicRates(unsigned iteration) const
-{
-  if (iteration < this->lsampledBasicRates.size())
-	{
-		return this->lsampledBasicRates[iteration];
-	}
-	else
-	{
-		throw std::out_of_range("The number" + toString(iteration) +
-			" is not in the range [0," +
-			toString(this->lsampledBasicRates.size()) + "].");
-	}
-
-}
-/**
- * Stores the sampled basic rate parameter for the next iteration.
- */
-
-void DependentVariable::sampledBasicRates(double value)
-{
-	this->lsampledBasicRates.push_back(value);
-}
-/**
- * Returns the shape parameter used in the sampled basic rate parameter for
- * the given iteration.
- */
-
-int DependentVariable::sampledBasicRatesDistributions(unsigned iteration) const
-{
-	if (iteration < this->lsampledBasicRatesDistributions.size())
-	{
-		return this->lsampledBasicRatesDistributions[iteration];
-	}
-	else
-	{
-		throw std::out_of_range("The number" + toString(iteration) +
-			" is not in the range [0," +
-			toString(this->lsampledBasicRatesDistributions.size()) + "].");
-	}
-
-}
-/**
- * Stores the shape parameter used in the sampled basic rate parameter for the
- * next iteration.
- */
-
-void DependentVariable::sampledBasicRatesDistributions(int value)
-{
-	this->lsampledBasicRatesDistributions.push_back(value);
 }
 // ----------------------------------------------------------------------------
 // Section: Properties

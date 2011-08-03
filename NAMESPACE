@@ -2,13 +2,12 @@ useDynLib(RSiena)
 export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
 siena01Gui, siena07, sienaCompositionChange,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
-sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, #simstats0c,
+sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, xtable.sienaFit,
        varCovar, varDyadCovar, setEffect, includeEffects, includeInteraction,
-       effectsDocumentation, sienaDataConstraint, #maxlikefn,
+       effectsDocumentation, sienaDataConstraint, print.xtable.sienaFit,
        installGui, siena08, iwlsm, sienaTimeTest, includeTimeDummy)
 
 import(Matrix)
-import(xtable)
 
 S3method(print, siena)
 S3method(print, sienaGroup)
@@ -16,8 +15,6 @@ S3method(print, sienaFit)
 S3method(print, summary.sienaFit)
 S3method(print, sienaModel)
 S3method(summary, sienaFit)
-S3method(xtable, sienaFit)
-S3method(print, xtable.sienaFit)
 S3method(print, sienaMeta)
 S3method(print, summary.sienaMeta)
 S3method(summary, sienaMeta)
@@ -42,3 +39,4 @@ S3method(print, sienaEffects)
 S3method(summary, sienaEffects)
 S3method(print, summary.sienaEffects)
 S3method(edit, sienaEffects)
+S3method(print, chains.data.frame)

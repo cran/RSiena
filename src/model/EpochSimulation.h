@@ -34,6 +34,7 @@ class SimulationActorSet;
 class State;
 class Cache;
 class Chain;
+class MiniStep;
 
 
 // ----------------------------------------------------------------------------
@@ -77,9 +78,9 @@ public:
 		const EffectInfo * pEffect2) const;
 	void derivative(const EffectInfo * pEffect1, const EffectInfo * pEffect2,
 		double value);
-	Chain * pChain() const;
+	Chain * pChain();
 	double calculateChainProbabilities(Chain * chain);
-	void updateParameters();
+	void updateParameters(int period);
 
 protected:
     void calculateRates();

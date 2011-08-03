@@ -23,7 +23,10 @@ namespace siena
 class InteractionCovariateEffect : public CovariateDependentBehaviorEffect
 {
 public:
-	InteractionCovariateEffect(const EffectInfo * pEffectInfo);
+	InteractionCovariateEffect(const EffectInfo * pEffectInfo,
+		bool averageSimilarity,
+		bool totalSimilarity,
+		bool averageAlter);
 	virtual ~InteractionCovariateEffect();
 
 	virtual void initialize(const Data * pData,
@@ -34,6 +37,8 @@ public:
 	virtual double calculateChangeContribution(int actor,
 		int difference);
 	virtual double egoStatistic(int ego, double * currentValues);
+	virtual double egoEndowmentStatistic(int ego, const int * difference,
+		double * currentValues);
 
 private:
 	EffectInfo * lpInteractingEffectInfo;

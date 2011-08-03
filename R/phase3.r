@@ -23,28 +23,37 @@ phase3 <- function(z, x, ...)
 
     if (x$checktime) z$ctime <- proc.time()[3]
     ## fix up iteration numbers if using multiple processors
-    if (10 %% int == 0)
+   # if (10 %% int == 0)
+   # {
+   #     firstNit <- 10
+   # }
+  #  else
+   # {
+   #     firstNit <- 10 + int - 10 %% int
+   # }
+   # if ((x$n3 - firstNit) %% int == 0)
+   # {
+   #     endNit <- x$n3
+   # }
+   # else
+   # {
+   #     endNit <- x$n3  + int - (x$n3 - firstNit) %% int
+   # }
+   #  cat("endNit", endNit, "n3 ", x$n3, "\n")
+    if (x$n3 %% int > 0)
     {
-        firstNit <- 10
+        endNit <- x$n3 + int - x$n3 %%int
     }
     else
-    {
-        firstNit <- 10 + int - 10 %% int
-    }
-    if ((x$n3 - firstNit) %% int == 0)
     {
         endNit <- x$n3
     }
-    else
-    {
-        endNit <- x$n3  + int - (x$n3 - firstNit) %% int
-    }
-    z$n3 <- endNit
+   z$n3 <- endNit
     z$sf <- matrix(0, nrow = z$n3, ncol = z$pp)
     z$sf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
-    z$ssc <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
-    z$sdf <- array(0, dim = c(z$n3, z$pp, z$pp))
-    z$sdf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp, z$pp))
+    z$accepts3 <- matrix(0, nrow=z$n3, ncol=7)
+    z$rejects3 <- matrix(0, nrow=z$n3, ncol=7)
+    z$aborted3 <- matrix(0, nrow=z$n3, ncol=7)
     if (!is.null(z$cconditional) && z$cconditional)
     {
         z$ntim <- matrix(NA, nrow=z$n3, ncol=f$observations - 1)
@@ -63,10 +72,20 @@ phase3 <- function(z, x, ...)
         z$FinDiff.method <- x$FinDiff.method
     }
     if (z$FinDiff.method)
-        Report('Estimation of derivatives by the finite difference method.\n\n',outf)
+        Report('Estimation of derivatives by the finite difference method.\n\n',
+               outf)
     else
         Report('Estimation of derivatives by the LR method (type 1).\n\n', outf)
 
+    if (!x$maxlike & !z$FinDiff.method)
+    {
+        z$ssc <- array(0, dim = c(z$n3, f$observations - 1, z$pp))
+    }
+    else
+    {
+        z$sdf <- array(0, dim = c(z$n3, z$pp, z$pp))
+        z$sdf2 <- array(0, dim = c(z$n3, f$observations - 1, z$pp, z$pp))
+    }
     xsmall<- NULL
     zsmall <- makeZsmall(z)
     if (!x$maxlike && !is.null(z$writefreq))
@@ -79,14 +98,16 @@ phase3 <- function(z, x, ...)
     }
     z <- AnnouncePhase(z, x)
     Report('Simulated values, phase 3.\n', cf)
-    if (x$n3 %% int > 0)
-    {
-        endNit <- x$n3 + int - x$n3 %%int
-    }
-    else
-    {
-        endNit <- x$n3
-    }
+    #cat("endNit", endNit, "n3 ", x$n3, "\n")
+    #if (x$n3 %% int > 0)
+    #{
+    #    endNit <- x$n3 + int - x$n3 %%int
+    #}
+    #else
+    #{
+    #    endNit <- x$n3
+    #}
+    #cat("endNit", endNit, "n3", x$n3, "z$n3", z$n3, "\n")
     nits <- seq(1, endNit, int)
     nits11 <- min(c(endNit, nits[nits >= 11]))
     writefreq <- z$writefreq
@@ -190,9 +211,16 @@ phase3 <- function(z, x, ...)
                     }
                     z$sf <- z$sf[1:nit, , drop=FALSE]
                     z$sf2 <- z$sf2[1:nit, , , drop=FALSE]
-                    z$ssc <- z$ssc[1:nit, , , drop=FALSE]
-                    z$sdf <-z$sdf[1:nit, , , drop=FALSE]
-                    z$sdf2 <-z$sdf2[1:nit, , , ,drop=FALSE]
+                    if (!x$maxlike)
+                    {
+                        z$ssc <- z$ssc[1:nit, , , drop=FALSE]
+                    }
+                    else
+                    {
+                        z$sdf <-z$sdf[1:nit, , , drop=FALSE]
+                        z$sdf2 <-z$sdf2[1:nit, , , ,drop=FALSE]
+                    }
+                    z$sims <-z$sims[1:nit]
                     endNit <- nit
                     break
                 }
@@ -281,6 +309,9 @@ doPhase3it<- function(z, x, nit, zsmall, xsmall, ...)
     {
         z$sdf[nit, , ] <- zz$dff
         z$sdf2[nit, , , ] <- zz$dff2
+        z$accepts3[z$nit, ] <- zz$accepts
+        z$rejects3[z$nit, ] <- zz$rejects
+        z$aborted3[z$nit, ] <- zz$aborts
     }
     else
     {
@@ -454,7 +485,6 @@ phase3.2 <- function(z, x, ...)
 ##@CalulateDerivative3 siena07 Calculates derivative at end of phase 3
 CalculateDerivative3<- function(z,x)
 {
-    f <- FRANstore()
     z$mnfra <- colMeans(z$sf)
     if (z$FinDiff.method || x$maxlike)
     {
@@ -479,7 +509,7 @@ CalculateDerivative3<- function(z,x)
     z$msf <- cov(z$sf)
     if (z$Phase3nits > 2)
     {
-       z$sfl <- apply(z$sf, 2, function(x)acf(x, plot=FALSE, lag=1)[[1]][[2]])
+       z$sfl <- apply(z$sf, 2, function(x)acf(x, plot=FALSE, lag.max=1)[[1]][[2]])
    }
     z$dfra1 <- z$dfra
     z$dfra <- dfra

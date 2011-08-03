@@ -68,25 +68,49 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		// The info object of the first interacting effect is defined,
 		// which means that we have a user-defined interaction effect.
 
-		NetworkEffect * pEffect1 =
-			dynamic_cast<NetworkEffect *>(
-				this->createEffect(pEffectInfo->pEffectInfo1()));
-		NetworkEffect * pEffect2 =
-			dynamic_cast<NetworkEffect *>(
-				this->createEffect(pEffectInfo->pEffectInfo2()));
-		NetworkEffect * pEffect3 = 0;
-
+		Effect *pEffect1 = this->createEffect(pEffectInfo->pEffectInfo1());
+		Effect *pEffect2 = this->createEffect(pEffectInfo->pEffectInfo2());
+		Effect *pEffect3 = 0;
 		if (pEffectInfo->pEffectInfo3())
 		{
-			pEffect3 =
-				dynamic_cast<NetworkEffect *>(
-					this->createEffect(pEffectInfo->pEffectInfo3()));
+			pEffect3 = this->createEffect(pEffectInfo->pEffectInfo3());
 		}
 
-		pEffect = new NetworkInteractionEffect(pEffectInfo,
-			pEffect1,
-			pEffect2,
-			pEffect3);
+
+		NetworkEffect * pNetworkEffect1 =
+			dynamic_cast<NetworkEffect *>(pEffect1);
+		BehaviorEffect * pBehaviorEffect1 =
+			dynamic_cast<BehaviorEffect *>(pEffect1);
+
+		if (pNetworkEffect1)
+		{
+			NetworkEffect * pNetworkEffect2 =
+				dynamic_cast<NetworkEffect *>(pEffect2);
+			NetworkEffect * pNetworkEffect3 = 0;
+			if (pEffect3)
+			{
+				 pNetworkEffect3 = dynamic_cast<NetworkEffect *>(pEffect3);
+			}
+			pEffect = new NetworkInteractionEffect(pEffectInfo,
+				pNetworkEffect1,
+				pNetworkEffect2,
+				pNetworkEffect3);
+		}
+		else
+		{
+			BehaviorEffect * pBehaviorEffect2 =
+				dynamic_cast<BehaviorEffect *>(pEffect2);
+			BehaviorEffect * pBehaviorEffect3 = 0;
+			if (pEffect3)
+			{
+				pBehaviorEffect3 = dynamic_cast<BehaviorEffect *>(pEffect3);
+			}
+
+			pEffect = new BehaviorInteractionEffect(pEffectInfo,
+				pBehaviorEffect1,
+				pBehaviorEffect2,
+				pBehaviorEffect3);
+		}
 	}
 	else if (effectName == "density")
 	{
@@ -170,7 +194,7 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "outTrunc")
 	{
-		pEffect = new OutTruncEffect(pEffectInfo);
+		pEffect = new TruncatedOutdegreeEffect(pEffectInfo);
 	}
 	else if (effectName == "outInv")
 	{
@@ -516,9 +540,22 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new MainCovariateEffect(pEffectInfo);
 	}
-	else if (effectName == "inflIntX")
+	// else if (effectName == "inflIntX")
+	// {
+	// 	pEffect = new InteractionCovariateEffect(pEffectInfo, false, false,
+	// 		false);
+	//}
+	else if (effectName == "avSimEgoX")
 	{
-		pEffect = new InteractionCovariateEffect(pEffectInfo);
+		pEffect = new InteractionCovariateEffect(pEffectInfo, true, false, false);
+	}
+	else if (effectName == "totSimEgoX")
+	{
+		pEffect = new InteractionCovariateEffect(pEffectInfo, false, true, false);
+	}
+	else if (effectName == "avAltEgoX")
+	{
+		pEffect = new InteractionCovariateEffect(pEffectInfo, false, false, true);
 	}
 	else if (effectName == "AltsAvAlt")
 	{

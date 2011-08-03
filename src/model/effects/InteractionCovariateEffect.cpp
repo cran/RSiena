@@ -24,7 +24,10 @@ namespace siena
  * Constructor.
  */
 InteractionCovariateEffect::InteractionCovariateEffect(
-	const EffectInfo * pEffectInfo) :
+	const EffectInfo * pEffectInfo,
+	bool averageSimilarity,
+	bool totalSimilarity,
+	bool averageAlter) :
 		CovariateDependentBehaviorEffect(pEffectInfo)
 {
 	this->lpInteractingEffectInfo =
@@ -37,7 +40,7 @@ InteractionCovariateEffect::InteractionCovariateEffect(
 			"",
 			"");
 
-	if (pEffectInfo->internalEffectParameter() == 1)
+	if (averageSimilarity)// || pEffectInfo->internalEffectParameter() == 1)
 	{
 		this->lpInteractingEffect =
 			new SimilarityEffect(this->lpInteractingEffectInfo,
@@ -45,7 +48,7 @@ InteractionCovariateEffect::InteractionCovariateEffect(
 				false,
 				false);
 	}
-	else if (pEffectInfo->internalEffectParameter() == 2)
+	else if (totalSimilarity)// || pEffectInfo->internalEffectParameter() == 2)
 	{
 		this->lpInteractingEffect =
 			new SimilarityEffect(this->lpInteractingEffectInfo,
@@ -53,15 +56,16 @@ InteractionCovariateEffect::InteractionCovariateEffect(
 				false,
 				false);
 	}
-	else if (pEffectInfo->internalEffectParameter() == 3)
+	else if (averageAlter) // || pEffectInfo->internalEffectParameter() == 3)
 	{
 		this->lpInteractingEffect =
 			new AverageAlterEffect(this->lpInteractingEffectInfo);
 	}
 	else
 	{
-		throw invalid_argument(
-			"Internal parameter should be in the range [1,3]");
+		// throw invalid_argument(
+		// 	"Internal parameter should be in the range [1,3]");
+		throw logic_error("Invalid call to Interaction Covariate Effect");
 	}
 }
 
@@ -122,6 +126,26 @@ double InteractionCovariateEffect::egoStatistic(int ego, double * currentValues)
 	{
 		statistic = this->covariateValue(ego) *
 			this->lpInteractingEffect->egoStatistic(ego, currentValues);
+	}
+
+	return statistic;
+}
+/**
+ * Returns the statistic corresponding to the given ego with respect to the
+ * given values of the behavior variable.
+ */
+double InteractionCovariateEffect::egoEndowmentStatistic(int ego,
+	const int * difference,
+	double * currentValues)
+{
+	double statistic = 0;
+
+	if (!this->missingCovariate(ego, this->period()) &&
+		!this->missingCovariate(ego, this->period() + 1))
+	{
+		statistic = this->covariateValue(ego) *
+			this->lpInteractingEffect->egoEndowmentStatistic(ego, difference,
+				currentValues);
 	}
 
 	return statistic;

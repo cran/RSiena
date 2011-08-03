@@ -157,11 +157,11 @@ double SimilarityEffect::egoStatistic(int ego,
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
+ * Returns the statistic corresponding to the given ego as part of
  * the endowment function with respect to the initial values of a
  * behavior variable and the current values.
  */
-double SimilarityEffect::endowmentStatistic(const int * difference,
+double SimilarityEffect::egoEndowmentStatistic(int ego, const int * difference,
 	double * currentValues)
 {
 	if (this->lalterPopularity)
@@ -172,66 +172,62 @@ double SimilarityEffect::endowmentStatistic(const int * difference,
 	}
 
 	double statistic = 0;
-	int n = this->n();
 	const Network * pNetwork = this->pNetwork();
 
 	double similarityMean =  this->similarityMean();
 
-	for (int i = 0; i < n; i++)
+	if (!this->missing(this->period(), ego) &&
+		!this->missing(this->period() + 1, ego))
 	{
-		if (!this->missing(this->period(), i) &&
-			!this->missing(this->period() + 1, i))
+		if (difference[ego] > 0)
 		{
-			if (difference[i] > 0)
+			if (pNetwork->outDegree(ego))
 			{
-				if (pNetwork->outDegree(i))
+				double thisStatistic = 0;
+
+				for (IncidentTieIterator iter = pNetwork->outTies(ego);
+					 iter.valid();
+					 iter.next())
 				{
-					double thisStatistic = 0;
-
-					for (IncidentTieIterator iter = pNetwork->outTies(i);
-						 iter.valid();
-						 iter.next())
-					{
-						double alterValue = currentValues[iter.actor()];
-						double range = this->range();
-						thisStatistic += iter.value() *
-							(1.0 - fabs(alterValue - currentValues[i]) / range);
-						thisStatistic -= similarityMean;
-					}
-
-					if (this->laverage)
-					{
-						thisStatistic /= pNetwork->outDegree(i);
-					}
-
-					statistic += 2 * thisStatistic;
-
-					// do the same using the difference in i's value
-					// rather than current state and subtract it.
-					// not sure whether this is correct.
-
-					thisStatistic = 0;
-
-					for (IncidentTieIterator iter = pNetwork->outTies(i);
-						 iter.valid();
-						 iter.next())
-					{
-						double alterValue = currentValues[iter.actor()];
-						double range = this->range();
-						thisStatistic += iter.value() *
-							(1.0 - fabs(alterValue - (difference[i] +
-									currentValues[i]))
-								/ range);
-						thisStatistic -= similarityMean;
-					}
-
-					if (this->laverage)
-					{
-						thisStatistic /= pNetwork->outDegree(i);
-					}
-
-					statistic -= thisStatistic;
+					double alterValue = currentValues[iter.actor()];
+					double range = this->range();
+					thisStatistic += iter.value() *
+						(1.0 - fabs(alterValue - currentValues[ego]) / range);
+					thisStatistic -= similarityMean;
 				}
+
+				if (this->laverage)
+				{
+					thisStatistic /= pNetwork->outDegree(ego);
+				}
+
+				statistic = thisStatistic;
+
+				// do the same using the current state plus difference
+				// in i's value rather than current state and subtract it.
+				// not sure whether this is correct.
+
+				thisStatistic = 0;
+
+				for (IncidentTieIterator iter = pNetwork->outTies(ego);
+					 iter.valid();
+					 iter.next())
+				{
+					double alterValue = currentValues[iter.actor()];
+					double range = this->range();
+					thisStatistic += iter.value() *
+						(1.0 - fabs(alterValue - (difference[ego] +
+								currentValues[ego]))
+							/ range);
+					thisStatistic -= similarityMean;
+				}
+
+				if (this->laverage)
+				{
+					thisStatistic /= pNetwork->outDegree(ego);
+				}
+
+				statistic -= thisStatistic;
 			}
 		}
 	}

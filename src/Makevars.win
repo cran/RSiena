@@ -15,6 +15,7 @@ PKG_LIBS = libSn1.a libSn2.a libSn3.a libSn4.a libSn1.a libSn2.a libSn3.a libSn4
 
 all: libSn1.a libSn2.a libSn3.a libSn4.a $(SHLIB)
 
+$(SHLIB): libSn1.a libSn2.a libSn3.a libSn4.a $(OBJECTS)
 libSn1.a: $(OBJS1)
 libSn2.a: $(OBJS2)
 libSn3.a: $(OBJS3)

@@ -29,8 +29,8 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
 
     fitEffects <- sienaFit$requestedEffects
 
-	# There must be more than 2 observations (more than 1 wave)
-    # to do a time test!
+	## There must be more than 2 observations (more than 1 wave)
+	## to do a time test!
 	if (nWaves < 2)
 	{
 		stop("You must have at least three time periods to test ",
@@ -62,10 +62,10 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
     {
         use <- !fitEffects$basicRate
     }
-   # if (sienaFit$maxlike || sienaFit$FinDiff.method)
-   # {
-   #     stop("Not yet implemented for finite differences or maxlike")
-   # }
+	## if (sienaFit$maxlike || sienaFit$FinDiff.method)
+	## {
+	##     stop("Not yet implemented for finite differences or maxlike")
+	## }
     ## Identify the effects which will potentially be tested
     baseInFit <- use & !grepl("Dummy", fitEffects$effectName)
 
@@ -76,7 +76,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
     }
 
     fixedDummies <- fitEffects$shortName=='egoX' &
-       fitEffects$fix & grepl("Dummy", fitEffects$effectName)
+	    fitEffects$fix & grepl("Dummy", fitEffects$effectName)
 
     ## establish effects for top left of derivative matrix D
     estimatedInFit <- use &  !fixedDummies
@@ -120,10 +120,10 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
             ## index for the base effect and a time period, so store
             ## this information in rowInD -- this is used
             ## extensively in plot.sienaTimeTest
-             toTest[thisRow, "rowInD"] <-
+			toTest[thisRow, "rowInD"] <-
                 match(fitEffects$effectNumber[i],
                       topleftEffectNumbers)
-       }
+		}
     }
 	##  nEffects, nSims, nameslist, nDummies convert commonly used ingredients
 	##  from sienaFit into an easily accessed form based on the screens
@@ -225,16 +225,17 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
 	rownames(jointTestP) <- "Joint Significant Test"
 	colnames(jointTestP) <- "p-Val"
 	thetaOneStep <- c(sienaFit$theta[estimatedInFit], rep(0, nDummies)) +
-			jointTest$oneStep
-	effectTest <- as.vector(by(toTest, toTest$baseEffect, function (x)
-                 {
-                     doTests <- rep(FALSE, nEffects + nDummies)
-                     if (any(x$toTest))
-                     {
-                         doTests[toTest$baseEffect == x$baseEffect &
-                                 toTest$toTest] <- TRUE
-                         test <- ScoreTest(nEffects + nDummies, D, sigma, fra,
-                                           doTests, FALSE)
+		jointTest$oneStep
+	effectTest <-
+		as.vector(by(toTest, toTest$baseEffect, function (x)
+				 {
+					 doTests <- rep(FALSE, nEffects + nDummies)
+					 if (any(x$toTest))
+					 {
+						 doTests[toTest$baseEffect == x$baseEffect &
+								 toTest$toTest] <- TRUE
+						 test <- ScoreTest(nEffects + nDummies, D, sigma, fra,
+										   doTests, FALSE)
                          test$testresOverall
                      }
                      else
@@ -253,9 +254,9 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
         round(c(2 * (1 -
                      pnorm(abs(sienaFit$theta[estimatedInFit] /
                                sqrt(diag(sienaFit$covtheta)[estimatedInFit])))),
-                     individualTestP), 5)
+				individualTestP), 5)
 	thetaStar <- cbind(c(sienaFit$theta[estimatedInFit], rep(0, nDummies)),
-              thetaOneStep, pvalues)
+					   thetaOneStep, pvalues)
 	colnames(thetaStar) <- c("Initial Est.", "One Step Est.", "p-Value")
 	rownames(thetaStar) <- dimnames(G)[[3]]
     ## put things on toTest to make plot easier
@@ -294,7 +295,8 @@ sienaTimeTest <- function (sienaFit, effects=NULL, condition=FALSE)
                       sqrt(diag(sienaFit$covtheta))[estimatedInFit],
 					  ToTest=toTest,
 					  ScreenedEffects=which(!use),
-                      WaveNumbers=waveNumbers
+                      WaveNumbers=waveNumbers,
+					  IndividualTestsOrthogonalized=condition
 					  )
 	class(returnObj) <- "sienaTimeTest"
 	returnObj
@@ -323,11 +325,19 @@ print.summary.sienaTimeTest <- function(x, ...)
 	cat("\nParameter-wise joint significance tests (i.e. each
 		parameter across all dummies):\n")
 	print(x$EffectTest)
-	if (x$Waves <=2)
+	if (x$Waves <=2 && ! x$IndividualTestsOrthogonalized)
 	{
 		cat("\n\nNote that these parameter-wise tests have a different
 			form than the individual tests, thus testing with 3 observations
 			may yield different individual and parameter-wise values.\n\n")
+	}
+	else
+	{
+		if (x$IndividualTestsOrthogonalized)
+		{
+			cat("\nNote that the individual test statistics were orthogonalized",
+				" with respect to each other (condition=TRUE).")
+		}
 	}
 	tmp <- paste(" (", 1:length(x$BaseRowInD), ") ",
 				 rownames(x$IndividualTest)[x$BaseRowInD], "\n", sep="")
@@ -488,9 +498,9 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 {
     ##@addEffect internal sienaTimeFix add one or more effects
     addEffect <- function(newEffects, i, newname, effectGroup, shortName,
-                          timeDummy, fix=FALSE, include=TRUE)
+                          timeDummy, fix=FALSE, include=TRUE, yName=NULL)
     {
-        tmprows <- createEffects(effectGroup, xName=newname,
+        tmprows <- createEffects(effectGroup, xName=newname, yName=yName,
                                 name=effects$name[i][1],
                                 groupName=effects$groupName[i][1],
                                 group=effects$group[i][1],
@@ -499,7 +509,8 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
                          tmprows$type %in% effects$type[i], ]
         tmprows$fix <- fix
         tmprows$include <- include
-        tmprows$effectNumber <- max(newEffects$effectNumber) + (1:nrow(tmprows))
+        tmprows$effectNumber <- max(newEffects$effectNumber) +
+				(1:nrow(tmprows))
         tmprows$timeDummy <- timeDummy
         rownames(tmprows) <- paste(newname, effects$type[i], sep=".")
         newEffects <- rbind(newEffects, tmprows)
@@ -541,34 +552,24 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
         effects$timeDummy <- ","
     }
 
- # Josh tested these covariate effects, they work as-is for sienaTimeFix.
- #   covar <- effects$interaction1 != ""
- #   if (any(effects$timeDummy[covar] != ","))
- #   {
- #       warning("Time dummy not implemented for covariate effects")
- #       effects$timeDummy[covar] <- ","
- #   }
-   # implemented <- (effects$type == "eval" | effects$shortName == "RateX")
-#	if (any(effects$timeDummy[!implemented] !=","))
-#	{
-#		warning("Time dummy effects are only implemented",
-#                " for network effects of type eval or for RateX.")
-#        effects$timeDummy[!implemented] <- ","
-#	}
-    structuralRate <- effects$type == "rate" & effects$rateType %in% "structural"
+    structuralRate <- effects$type == "rate" & effects$rateType %in%
+			"structural"
     if (any(effects$timeDummy[structuralRate] != ","))
     {
 		warning("Time dummy effects are not implemented",
                 " for structural rate effects.")
         effects$timeDummy[structuralRate] <- ","
     }
-    behaviorNonRateX <- effects$netType =="behavior" & effects$type != "rate"
-    if (any(effects$timeDummy[behaviorNonRateX] != ","))
-    {
-		warning("Time dummy effects are not implemented",
-                " for behavior effects of type eval or endow.")
-        effects$timeDummy[behaviorNonRateX] <- ","
-    }
+ # JAL: Implementing these 20-FEB-2011 in RSeinaTest
+ # TODO: Behavioral interactions need to be implemented for these to work.
+ # Once they are, we can comment lines 575-577 and 717-720 out.
+ ##	behaviorNonRateX <- effects$netType =="behavior" & effects$type != "rate"
+ ##   if (any(effects$timeDummy[behaviorNonRateX] != ","))
+  ##  {
+## 		warning("Time dummy effects are not implemented",
+##                " for behavior effects of type eval or endow.")
+##        effects$timeDummy[behaviorNonRateX] <- ","
+##    }
 
 	if (all(effects$timeDummy == ",") )
 	{
@@ -602,6 +603,10 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 
         timesd <- lapply(timesd, function(x)as.numeric(x[x %in% periodNos]))
         dummiedEffects <- sapply(timesd, function(x)length(x) > 0)
+
+		baseType <- list(number=which(dummiedEffects),
+				type=effects$netType[dummiedEffects],
+				name=effects$name[dummiedEffects])
 
         rateXDummies <- effects$shortName == "RateX" & dummiedEffects
 
@@ -637,7 +642,7 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
                 vdvind <- match(effect$interaction1, atts$vCovars)
                 bdvind <- match(effect$interaction1, atts$netnames)
                 if (is.na(cdvind) && is.na(vdvind) &&
-                    (is.na(bdvind) || atts$types[bdvind] != "behavior"))
+                    (is.na(bdvind))) #|| atts$types[bdvind] != "behavior"))
                 {
                     stop("Having trouble finding the covariate for your rate ",
                          "effect. Please contact the developers.")
@@ -702,10 +707,10 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
         types <- unique(effects$type[use ])
         for (depvar in names(timeslist))
         {
-            if (!is.null(data) && atts$types[[depvar]] == "behavior")
-            {
-                stop ("Function is not specified for behavior effects")
-            }
+            ##if (!is.null(data) && atts$types[[depvar]] == "behavior")
+            ##{
+            ##    stop ("Function is not specified for behavior effects")
+            ##}
             for (p in timeslist[[depvar]])
             {
                 ## create the dummy covariate
@@ -742,29 +747,62 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
                         }
                     }
                 }
-
-                ##find the density rows for this depvar
-                i <- which(effects$name == depvar &
-                           effects$shortName=="density" &
-                           effects$type %in% types)
-
-                if (length(i) == 0)
+                ## This is where the behaviors are treated differently
+				if (baseType$type[baseType$name==depvar][1] == "behavior")
                 {
-                    stop("Cannot find density effect(s) for ", depvar,
-                         " ", types)
-                }
+					##find the linear effect rows for this depvar
+					i <- which(effects$name == depvar &
+                               effects$shortName=="linear" &
+                               effects$type %in% types)
 
-                ## establish whether we want the egoXs included, fixed or not
-                fix <- sapply(timesd[i], function(x)!p %in% x)
-                typesNames <- paste(depvar, effects$type[i], sep=".")
-                includeTypes <- !sapply(timesTypelist[typesNames], is.null)
+					if (length(i) == 0)
+					{
+						stop("Cannot find 'effect from' effect(s) for ", depvar,
+                             " ", types)
+					}
 
-                ## add one or more effects (depending on types requested)
-                newEffects <- addEffect(newEffects, i, dname,
-                                     "covarNonSymmetricObjective", "egoX",
-                                     paste('isDummy', p,
-                                           effects$effectNumber[i], sep=','),
-                                     fix=fix, include=includeTypes)
+					## establish whether we want the effFroms
+					## included, fixed or not
+					fix <- sapply(timesd[i], function(x)!p %in% x)
+					typesNames <- paste(depvar, effects$type[i], sep=".")
+					includeTypes <- !sapply(timesTypelist[typesNames], is.null)
+
+					## add one or more effects (depending on types requested)
+					newEffects <- addEffect(newEffects, i, dname,
+                                            "covarBehaviorObjective", "effFrom",
+                                            paste('isDummy', p,
+                                                  effects$effectNumber[i],
+                                                  sep=','),
+                                            fix=fix, include=includeTypes,
+                                            yName=dname)
+				}
+                else
+                {
+					##find the density rows for this depvar
+					i <- which(effects$name == depvar &
+                               effects$shortName=="density" &
+                               effects$type %in% types)
+
+					if (length(i) == 0)
+					{
+						stop("Cannot find density effect(s) for ", depvar,
+                             " ", types)
+					}
+
+					## establish whether we want the egoXs included,
+                    ## fixed or not
+					fix <- sapply(timesd[i], function(x)!p %in% x)
+					typesNames <- paste(depvar, effects$type[i], sep=".")
+					includeTypes <- !sapply(timesTypelist[typesNames], is.null)
+
+					## add one or more effects (depending on types requested)
+					newEffects <-
+                        addEffect(newEffects, i, dname,
+                                  "covarNonSymmetricObjective", "egoX",
+                                  paste('isDummy', p,
+                                        effects$effectNumber[i], sep=','),
+                                  fix=fix, include=includeTypes)
+				}
             }
 
             ## now the interactions for any dummied effects for this
@@ -772,21 +810,34 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
             for (j in
                  which(dummiedEffects & !rateXDummies &
                        effects$name==depvar &
-                       effects$shortName != "density"))
+                       effects$shortName != "density" &
+					   effects$shortName != "linear"))
             {
                 for (p in timesd[[j]])
                 {
                     dname <- paste("Dummy", p, ":", depvar, sep="")
                     effect <- effects[j, ]
-                    newEffects <-
-                        includeInteraction(newEffects,
-                                           effect$shortName, "egoX",
-                                           character=TRUE,
-                                           type=effect$type,
-                                           interaction1= c(effect$interaction1,
-                                           dname),
-                                           interaction2=effect$interaction2,
-                                           name=depvar, verbose=FALSE)
+					if (baseType$type[baseType$name==depvar][1] == "behavior") {
+						newEffects <-
+								includeInteraction(newEffects,
+										effect$shortName, "effFrom",
+										character=TRUE,
+										type=effect$type,
+										interaction1= c(effect$interaction1,
+												dname),
+										interaction2=effect$interaction2,
+										name=depvar, verbose=FALSE)
+					} else {
+	                    newEffects <-
+	                        includeInteraction(newEffects,
+	                                        effect$shortName, "egoX",
+	                                        character=TRUE,
+	                                        type=effect$type,
+	                                        interaction1= c(effect$interaction1,
+	                                        dname),
+	                                        interaction2=effect$interaction2,
+	                                        name=depvar, verbose=FALSE)
+					}
                     ## find the row altered
                     newrow <- newEffects$effect1 == j &
                     newEffects$effect2 ==

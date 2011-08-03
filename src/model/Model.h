@@ -85,6 +85,7 @@ public:
 	const vector<EffectInfo *> & rRateEffects(string variableName) const;
 	const vector<EffectInfo *> & rEvaluationEffects(string variableName) const;
 	const vector<EffectInfo *> & rEndowmentEffects(string variableName) const;
+	const vector<EffectInfo *> & rCreationEffects(string variableName) const;
 
 	void chainStore(const Chain& chain, int periodFromStart);
 	vector <Chain *> & rChainStore( int periodFromStart);
@@ -171,12 +172,6 @@ public:
 	bool simpleRates() const;
 	void simpleRates(bool simpleRates);
 
-	void numberMHBatches(int value);
-	int numberMHBatches() const;
-
-	void BayesianScaleFactor(double value);
-	double BayesianScaleFactor() const;
-
 private:
 	// Indicates if conditional simulation has to be carried out
 	bool lconditional;
@@ -205,6 +200,9 @@ private:
 
 	// A vector of endowment effects per variable
 	map<string, vector<EffectInfo *> > lendowmentEffects;
+
+	// A vector of creation effects per variable
+	map<string, vector<EffectInfo *> > lcreationEffects;
 
 	// A dummy vector of effect infos in case we need a reference to
 	// non-existent vectors
@@ -254,12 +252,6 @@ private:
 
 	vector <double> lmissingNetworkProbability;
 	vector <double> lmissingBehaviorProbability;
-
-	// number of steps in a MCMC run for ML
-	int lnumberMHBatches;
-
-	// Bayesian scale factor for normal random variates
-	double lBayesianScaleFactor;
 
 	// chain storage: vector of chains for each period for each set of samples
 	// lchainStore[i] is set of entries for periodFromStart <i>,

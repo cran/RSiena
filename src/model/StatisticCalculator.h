@@ -70,6 +70,8 @@ private:
 		NetworkLongitudinalData * pNetworkData);
 	void calculateNetworkEndowmentStatistics(
 		NetworkLongitudinalData * pNetworkData);
+	void calculateNetworkCreationStatistics(
+		NetworkLongitudinalData * pNetworkData);
 	void calculateBehaviorStatistics(BehaviorLongitudinalData * pBehaviorData);
 	void calculateBehaviorRateStatistics(BehaviorLongitudinalData * pBehaviorData);
 	void subtractNetwork(Network * pNetwork,

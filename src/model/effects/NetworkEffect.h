@@ -38,6 +38,7 @@ class Cache;
 class NetworkEffect : public Effect
 {
 	friend class NetworkInteractionEffect;
+	friend class EffectFactory;
 
 public:
 	NetworkEffect(const EffectInfo * pEffectInfo);
@@ -63,6 +64,7 @@ public:
 
 	virtual double evaluationStatistic();
 	virtual double endowmentStatistic(Network * pLostTieNetwork);
+	virtual double creationStatistic(Network * pGainedTieNetwork);
 
 	virtual bool egoEffect() const;
 

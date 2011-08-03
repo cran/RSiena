@@ -57,25 +57,19 @@ double IndegreeEffect::egoStatistic(int ego, double * currentValues)
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
+ * Returns the statistic corresponding to the given ego as part of
  * the endowment function with respect to the initial values of a
  * behavior variable and the current values.
  */
-double IndegreeEffect::endowmentStatistic(const int * difference,
+double IndegreeEffect::egoEndowmentStatistic(int i, const int * difference,
 	double * currentValues)
 {
 	double statistic = 0;
-	int n = this->n();
 
-	for (int i = 0; i < n; i++)
+	if (difference[i] > 0)
 	{
-		if (difference[i] > 0)
-		{
-			statistic += currentValues[i] *
-				this->pNetwork()->inDegree(i);
-				//		-(currentValues[i] + difference[i]) *
-				//	this->pNetworkVariable()->pPredictorNetwork()->inDegree(i);
-		}
+		//	statistic += currentValues[i] * this->pNetwork()->inDegree(i);
+		statistic -= difference[i] * this->pNetwork()->inDegree(i);
 	}
 
 	return statistic;

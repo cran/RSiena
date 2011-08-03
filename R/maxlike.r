@@ -1,33 +1,40 @@
-maxlikefn<- function(z,x,INIT=FALSE,TERM=FALSE, data, effects=NULL,nstart=1000,
-                     pinsdel=0.6,pperm=0.3,prelins=0.1,multfactor=2.0,
-                     promul=0.1,promul0=0.5,pdiaginsdel=0.1,
+maxlikefn<- function(z, x, INIT=FALSE, TERM=FALSE, data, effects=NULL,
+                     nstart=1000,
+                     pinsdel=0.6, pperm=0.3, prelins=0.1, multfactor=2.0,
+                     promul=0.1, promul0=0.5, pdiaginsdel=0.1,
                      fromFiniteDiff=FALSE, noSamples=1, sampInterval=50, int=1)
 {
-    mlInit<- function(z,x,data,effects)
+    mlInit <- function(z, x, data, effects)
     {
         f <- NULL
-        if (!inherits(data, 'siena'))
-            stop('not valid siena data object')
+        if (!inherits(data, "siena"))
+        {
+            stop("not valid siena data object")
+        }
         if (is.null(effects))
+        {
             effects <- getEffects(data)
+        }
         if (!is.data.frame(effects))
+        {
             stop('effects is not a data.frame')
-        effects <- effects[effects$include,]
+        }
+        effects <- effects[effects$include, ]
         z$theta <- effects$initialValue
         z$fixed <- effects$fix
         z$test <- effects$test
         z$pp <- length(z$test)
-        z$posj <- rep(FALSE,z$pp)
+        z$posj <- rep(FALSE, z$pp)
         z$targets <- rep(0, z$pp)
         ##  effectsNames<- getEffectNames(effects)
-        z$posj[grep('basic', effects$effectName)] <- TRUE
-        z$posj[grep('constant', effects$effectName)] <- TRUE
+        z$posj[grep("basic", effects$effectName)] <- TRUE
+        z$posj[grep("constant", effects$effectName)] <- TRUE
         z$BasicRateFunction <- z$posj
         observations <- data$observations
-        mats <- vector('list', observations)
-        f$mynets <- vector('list', observations)
-        types <- sapply(data$depvars, function(x)attr(x,'type'))
-        netsubs <- which(types=='oneMode')
+        mats <- vector("list", observations)
+        f$mynets <- vector("list", observations)
+        types <- sapply(data$depvars, function(x) attr(x, "type"))
+        netsubs <- which(types=="oneMode")
         netsub <- min(netsubs) ### only one for now
         actsubs <- which(types=='behavior')
         for (i in 1:observations)
@@ -35,10 +42,14 @@ maxlikefn<- function(z,x,INIT=FALSE,TERM=FALSE, data, effects=NULL,nstart=1000,
             mats[[i]] <- data$depvars[[netsub]][, , i]
             f$mynets[[i]] <- mats[[i]]
             if (i==1)
-                f$mynets[[i]][is.na(mats[[i]])] <-0
+            {
+                f$mynets[[i]][is.na(mats[[i]])] <- 0
+            }
             else ##carry missing forward!
+            {
                 f$mynets[[i]][is.na(mats[[i]])] <-
                     f$mynets[[i - 1]][is.na(mats[[i]])]
+            }
             f$mynets[[i]][mats[[i]]==10] <- 0
             f$mynets[[i]][mats[[i]]==11] <- 1
         }
@@ -56,28 +67,28 @@ maxlikefn<- function(z,x,INIT=FALSE,TERM=FALSE, data, effects=NULL,nstart=1000,
             f$mats[[i]][mats[[i]]==11] <- 1
             f$mats[[i]][mats[[i]]==10] <- 0
         }
-        if (length(actsubs)>0)
+        if (length(actsubs) > 0)
         {
             acts <- matrix(data$depvars[[actsubs[1]]],
                           ncol=observations)
             f$acts <- acts
             f$myacts <- acts
             f$myacts[is.na(acts)] <- 0
-            f$meanact <- round(mean(acts,na.rm=TRUE))
+            f$meanact <- round(mean(acts, na.rm=TRUE))
         }
         f$observations <- observations
         ## browser()
 
         if (any(z$targets!=0))
         {
-            Report(c('Targets should be zero for maximum likelihood:',
-                     'they have been zeroed\n'))
+            Report(c("Targets should be zero for maximum likelihood:',
+                     'they have been zeroed\n"))
             z$targets <- rep(0, z$pp)
         }
         mat1 <- data$depvars[[netsub]][, , 1]
         mat2 <- data$depvars[[netsub]][, , 2]
-       # f$mat1<- mat1
-       # f$mat2<- mat2
+        ## f$mat1<- mat1
+        ## f$mat2<- mat2
         startmat <- mat1
         startmat[is.na(startmat)] <- 0
         endmat <- mat2
@@ -146,7 +157,7 @@ maxlikefn<- function(z,x,INIT=FALSE,TERM=FALSE, data, effects=NULL,nstart=1000,
     {
         f <- FRANstore()
         niter <- f$niter
-        nactors <- nrow(f$startmat)
+      ##  nactors <- nrow(f$startmat)
         promul <- promul0
       #  int <- x$int
         if (z$Phase==2)
@@ -262,9 +273,9 @@ mhstep <- function(theta, f, promul, prelins)
             tmpnet[ii,jj] <- 1- tmpnet[ii,jj]
         }
         diag(tmpnet)<- 0
-        ps<- calcprobs(i,tmpnet,betapar,nactors)
-        pr<- 1/sum(ps)
-        ndiag<-nrow(chain[chain[,1]==chain[,2],,drop=FALSE])
+        ps <- calcprobs(i,tmpnet,betapar,nactors)
+        pr <- 1/sum(ps)
+        ndiag <- nrow(chain[chain[, 1] == chain[, 2], , drop=FALSE])
         ##   ans <- kappasigmamu(nactors,nrow(chain),lambda,add1=TRUE)
         ##  mu<- ans$mu + 1/lambda/nactors
         ##  sigma2 <- ans$sigma2 + 1/lambda/lambda/nactors/nactors
@@ -328,51 +339,65 @@ mhstep <- function(theta, f, promul, prelins)
             list(ccps=ccps, nc=nc)
         }
         ##fix up numm
-        numm<- f$numm
+        numm <- f$numm
         if (numm > nrow(chain))
+        {
             numm <- nrow(chain)
+        }
         if (numm > 40)
+        {
             numm <- 40
+        }
         if (numm < 2)
+        {
             numm <- 2
+        }
         num <- trunc(numm)
         if (!f$madechain)
+        {
             num <- 0
+        }
         ##  else
         ##      cat('num=', num, 'numm=', numm, '\n')
         if (insdel)
         {
-            mults<-as.matrix(unique(chain[duplicated(chain[,1:2])&
-                                          chain[,1]!=chain[,2],,drop=FALSE]))
-            nmul<- nrow(mults)
+            mults <- as.matrix(unique(chain[duplicated(chain[, 1:2]) &
+                                          chain[, 1]!=chain[, 2], , drop=FALSE]))
+            nmul <- nrow(mults)
             if (is.null(nmul))
                 nmul <- 0
-            if (nmul>0 && runif(1)<promul)
+            if (nmul > 0 && runif(1) < promul)
             {
                 ##choose one of unique duplicates
-                mypair <- mults[sample(1:nmul,1),]
+                mypair <- mults[sample(1:nmul, 1), ]
             }
             else
             {
-                mypair <- sample(1:nactors,2)
+                mypair <- sample(1:nactors, 2)
             }
             from <- mypair[1]
             to <- mypair[2]
-            similar<- chain[chain[,1]==from&chain[,2]==to,,drop=FALSE]
-            nk<- nrow(similar)
+            similar <- chain[chain[, 1] == from & chain[, 2]==to, , drop=FALSE]
+            nk <- nrow(similar)
             ##nk is number of this connection
             tmp <- findCCPs(similar)
             nc <- tmp$nc
             ccps <- tmp$ccps
             ## nc<- nrow(similar[similar[,3]>0,,drop=FALSE])/2
             if (nc < 1)
-                ins<- TRUE
+            {
+                ins <- TRUE
+            }
             else
             {
                 if (runif(1) < prelins)
+                {
                     ins <- TRUE
+                }
                 else
+                {
                     ins <- FALSE
+                }
             }
             del <- !ins
             if (ins)
@@ -389,39 +414,43 @@ mhstep <- function(theta, f, promul, prelins)
                 else
                 {
                     ##   if (nc>0)
-####   {
-                    ##       ccps<- chain[chain[,1]==from&chain[,2]==to&
-                    ##                    chain[,3]>0,]
-                    ##       ccpsubs<- unique(ccps[,3])
-                    ##       subslist<- 1:(max(ccpsubs)+1)
-                    ##       newsub<- min(subslist[!subslist %in% ccpsubs])
+                    ##   {
+                    ##       ccps <- chain[chain[, 1]==from & chain[, 2]==to &
+                    ##                    chain[, 3] > 0, ]
+                    ##       ccpsubs <- unique(ccps[, 3])
+                    ##       subslist <- 1:(max(ccpsubs) + 1)
+                    ##       newsub <- min(subslist[!subslist %in% ccpsubs])
                     ##   }
                     ##   else
-                    ##       newsub<- 1
-                    samplist<- 1:nrow(chain)
-                    samplist<- samplist[!(from==chain[,1]&to==chain[,2])]
-                    samplist<- c(samplist,nrow(chain)+1)
-                    numav1<- length(samplist)
+                    ##   {
+                    ##       newsub <- 1
+                    ##   }
+                    samplist <- 1:nrow(chain)
+                    samplist <- samplist[!(from==chain[, 1] & to==chain[, 2])]
+                    samplist <- c(samplist, nrow(chain) + 1)
+                    numav1 <- length(samplist)
 
-                    k1<- sample(samplist,1)
+                    k1 <- sample(samplist, 1)
                     ## find last previous and next of this kind
-                    thiskind<-(1:nrow(chain))[from==chain[,1]&to==chain[,2]]
-                    k<- max(c(0,thiskind[thiskind<k1]))+1
-                    kk<- min(c(thiskind[thiskind>k1],nrow(chain)+1))
+                    thiskind <- (1:nrow(chain))[from==chain[, 1] & to==chain[, 2]]
+                    k <- max(c(0, thiskind[thiskind<k1])) + 1
+                    kk <- min(c(thiskind[thiskind>k1], nrow(chain) + 1))
                     if (k>nrow(chain))   ##not possible to proceed
-                        return(list(chain=chain,accept=FALSE))
-                    numav2<- kk-k
+                    {
+                        return(list(chain=chain, accept=FALSE))
+                    }
+                    numav2 <- kk - k
 
-                    k2<- sample(1:numav2,1)
+                    k2 <- sample(1:numav2, 1)
                     if (k2==k1)
                     {
                         k2 <- kk
                     }
-                    if (k2<k1)
+                    if (k2 < k1)
                     {
-                        kk<- k2
-                        k2<- k1
-                        k1<- kk
+                        kk <- k2
+                        k2 <- k1
+                        k1 <- kk
                     }
                 }
             }
@@ -649,34 +678,52 @@ mhstep <- function(theta, f, promul, prelins)
         ##cat('probrat ',probrat1,' ')
         ##   probrat <- prdelphi * pp
         ## cat(probrat,' ',probrat-probrat1,'\n')
-        if (insdel&ins)
-            nn<- 3
-        else if (insdel&del)
-            nn<- 4
-        else
-            nn<- 5
-      ##  cat(probrat, '\n')
-        accept<- FALSE
-        if (probrat>1)
+        ## if (insdel & ins)
+        ## {
+        ##    nn <- 3
+        ##  }
+        ##else if (insdel & del)
+        ##{
+        ##    nn <- 4
+        ##}
+        ##else
+        ##{
+        ##    nn <- 5
+        ##}
+        ##  cat(probrat, '\n')
+        accept <- FALSE
+        if (probrat > 1)
         {
-            accept<- TRUE
+            accept <- TRUE
         }
         else
-            if (runif(1)< probrat)
-                accept<- TRUE
-        if (sum(tempchain[,3]==1)%%2!=0)
+        {
+            if (runif(1) < probrat)
+            {
+                accept <- TRUE
+            }
+        }
+        if (sum(tempchain[, 3]==1) %% 2!=0)
+        {
             browser()
+        }
         if (accept)
-            chain<- tempchain
+        {
+            chain <- tempchain
+        }
         ## cat(num,f$numm,accept , insdel,truncated,accept,'\n')
         ##   if (!insdel)
         ##      browser()
         if (accept && !insdel && !truncated)
-            numm<- numm+0.5
+        {
+            numm <- numm + 0.5
+        }
         if (!accept && !insdel && !truncated)
-            numm <- numm-0.5
+        {
+            numm <- numm - 0.5
+        }
         #browser()
-        list(chain=chain,accept=accept,numm=numm)
+        list(chain=chain, accept=accept, numm=numm)
     }##end of procedure
     #########################################################################
     ##start of mhstep

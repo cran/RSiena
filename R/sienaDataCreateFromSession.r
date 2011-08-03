@@ -23,12 +23,12 @@ sessionFromFile <- function(loadfilename, tk=FALSE)
     if (dots > 1)
     {
         extension <- substring(loadfilename, dots + 1)
-        tablename <- substring(loadfilename, 1, (dots - 1))
+   ##     tablename <- substring(loadfilename, 1, (dots - 1))
     }
     else
     {
         extension <- ""
-        tablename <- loadfilename
+    ##    tablename <- loadfilename
     }
    ## if (extension %in% c("xls"))
     ##{
@@ -385,7 +385,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                    perm <- c(2, 1, 3)
                                    myedgelist <- rbind(myedgelist, myedgelist[, perm])
                                }
-                             
+
                                if (network.size(namefiles[[x]]) != nActors)
                                    stop("number of actors inconsistent")
 
@@ -562,7 +562,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
                                              i=myedgelist[, 1],
                                              j=myedgelist[, 2],
                                              x=myedgelist[, 3])
-                           tmp <- coDyadCovar(myval, nodeSet=nodesets)
+                           tmp <- coDyadCovar(myval, nodeSets=nodesets)
                        }
                        assign(objnames[j], tmp, .GlobalEnv)
                    },
@@ -707,7 +707,7 @@ sienaDataCreateFromSession <- function (filename=NULL, session=NULL,
         objlist <- mget(obj, .GlobalEnv)
         nodeSetList <- mget(ActorSets,.GlobalEnv)
         names(nodeSetList) <- NULL
-        arglist <- c(objlist, nodeSets=nodeSetList)
+       ## arglist <- c(objlist, nodeSets=nodeSetList)
         assign(gps[i], do.call(sienaDataCreate,
                                c(objlist, nodeSets=list(nodeSetList))),
                .GlobalEnv)

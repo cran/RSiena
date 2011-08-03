@@ -101,43 +101,41 @@ double AverageAlterEffect::egoStatistic(int i, double * currentValues)
 
 
 /**
- * Returns the statistic corresponding to this effect as part of
+ * Returns the statistic corresponding to the given ego as part of
  * the endowment function with respect to the initial values of a
  * behavior variable and the current values.
  */
-double AverageAlterEffect::endowmentStatistic(const int * difference,
+double AverageAlterEffect::egoEndowmentStatistic(int ego,
+	const int * difference,
 	double * currentValues)
 {
 	double statistic = 0;
-	int n = this->n();
+
 	const Network * pNetwork = this->pNetwork();
 
-	for (int i = n-1; i > -1; i--)
+	if (difference[ego] > 0)
 	{
-		if (difference[i] > 0)
+		if (pNetwork->outDegree(ego))
 		{
-			if (pNetwork->outDegree(i))
+			double thisStatistic = 0;
+			double previousStatistic = 0;
+
+			for (IncidentTieIterator iter = pNetwork->outTies(ego);
+				 iter.valid();
+				 iter.next())
 			{
-				double thisStatistic = 0;
-				double previousStatistic = 0;
-
-				for (IncidentTieIterator iter = pNetwork->outTies(i);
-					 iter.valid();
-					 iter.next())
-				{
-					double alterValue = currentValues[iter.actor()];
-					double alterPreviousValue = currentValues[iter.actor()];
-					// +		difference[iter.actor()];
-					thisStatistic += iter.value() * alterValue;
-					previousStatistic += iter.value() * alterPreviousValue;
-				}
-
-				thisStatistic *= currentValues[i] / pNetwork->outDegree(i);
-				previousStatistic *=
-					(currentValues[i] + difference[i]) /
-						pNetwork->outDegree(i);
-				statistic += thisStatistic - previousStatistic;
+				double alterValue = currentValues[iter.actor()];
+				double alterPreviousValue = currentValues[iter.actor()];
+				// +		difference[iter.actor()];
+				thisStatistic += iter.value() * alterValue;
+				previousStatistic += iter.value() * alterPreviousValue;
 			}
+
+			thisStatistic *= currentValues[ego] / pNetwork->outDegree(ego);
+			previousStatistic *=
+				(currentValues[ego] + difference[ego]) /
+				pNetwork->outDegree(ego);
+			statistic = thisStatistic - previousStatistic;
 		}
 	}
 

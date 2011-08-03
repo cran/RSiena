@@ -33,18 +33,20 @@ public:
 	virtual ~MLSimulation();
 
     void initialize(int period);
+	void initializeInitialState(int period);
 	void connect(int period);
-    void updateProbabilities(const Chain * pChain,
-    	MiniStep * pFirstMiniStep,
-    	MiniStep * pLastMiniStep);
-    void executeMiniSteps(MiniStep * pFirstMiniStep, MiniStep * pLastMiniStep);
 	void preburnin();
 	void runEpoch(int period);
 	void MLStep();
 	void setUpProbabilityArray();
+    void updateProbabilities(Chain * pChain,
+    	MiniStep * pFirstMiniStep,
+    	MiniStep * pLastMiniStep);
+    void executeMiniSteps(MiniStep * pFirstMiniStep, MiniStep * pLastMiniStep);
 
 	int acceptances(int stepType) const;
 	int rejections(int stepType) const;
+	int aborted(int stepType) const;
 	Chain * pChain() const;
 	void pChain(Chain * pChain);
 	void pChainProbabilities(Chain * pChain, int period);
@@ -76,12 +78,7 @@ public:
 
 	void updateCurrentPermutationLength(bool accept);
 
-	// Bayesian routines
-	void initializeMCMCcycle();
-	void MHPstep();
-	int BayesAcceptances(unsigned iteration) const;
-	double candidates(const EffectInfo * pEffect, unsigned iteration) const;
-	void candidates(const EffectInfo * pEffect, double value);
+	void createEndStateDifferences();
 
 private:
 	void setStateBefore(MiniStep * pMiniStep);
@@ -91,7 +88,7 @@ private:
 		const MiniStep * pMiniStepA);
 	bool validDeleteMissingStep(MiniStep * pMiniStepA, bool applyTwice);
 	MiniStep * createMiniStep(const Option * pOption,
-		int difference = 0) const;
+		int difference, bool value) const;
 
 	Chain * lpChain;
 	bool lsimpleRates;
@@ -101,14 +98,13 @@ private:
 	double lprobabilityArray[7];
 	int lacceptances[7];
 	int lrejections[7];
-	vector<int> lBayesAcceptances;
-	map<const EffectInfo *, vector<double> > lcandidates;
+	int laborted[7];
 	double lmissingNetworkProbability;
 	double lmissingBehaviorProbability;
 	// current length of permuted interval
 	double lcurrentPermutationLength;
 	int lthisPermutationLength;
-	bool lphase1;
+
 
 	// A vector of options with missing values in the initial observation
 	vector<const Option *> linitialMissingOptions;

@@ -64,6 +64,7 @@ public:
 	void initializeRateFunction();
 	void initializeEvaluationFunction();
 	void initializeEndowmentFunction();
+	void initializeCreationFunction();
 
 	inline const SimulationActorSet * pActorSet() const;
 	int n() const;
@@ -78,6 +79,7 @@ public:
 
 	inline const Function * pEvaluationFunction() const;
 	inline const Function * pEndowmentFunction() const;
+	inline const Function * pCreationFunction() const;
 
 	virtual void initialize(int period);
 	inline int period() const;
@@ -96,6 +98,7 @@ public:
 	double totalRate() const;
 	double rate(int actor) const;
 	inline double basicRate() const;
+	void updateBasicRate(int period);
 
 	int simulatedDistance() const;
 
@@ -147,17 +150,8 @@ public:
 	void calculateMaximumLikelihoodRateScores(int activeMiniStepCount);
 	void calculateMaximumLikelihoodRateDerivatives(int activeMiniStepCount);
 	double basicRateDerivative() const;
-	virtual double calculateChoiceProbability(const MiniStep * pMiniStep) const = 0;
-
-	// Bayesian related: get new values
-	void sampleBasicRate(int miniStepCount);
-	double sampleParameters(double scaleFactor);
-	// get and set sampled basic rates and shapes
-	double sampledBasicRates(unsigned iteration) const;
-	void sampledBasicRates(double value);
-	int sampledBasicRatesDistributions(unsigned iteration) const;
-	void sampledBasicRatesDistributions(int value);
-	void clearSampledBasicRates();
+	virtual double calculateChoiceProbability(const MiniStep * pMiniStep)
+		const = 0;
 
 protected:
 	inline EpochSimulation * pSimulation() const;
@@ -217,6 +211,9 @@ private:
 
 	// The endowment function for this variable
 	Function * lpEndowmentFunction;
+
+	// The creation function for this variable
+	Function * lpCreationFunction;
 
 	// The distance of this variable from the observed data at the beginning
 	// of the current period
@@ -295,18 +292,8 @@ private:
 
 	int lvalidRates;
 
-	// store for number of acceptances and rejections for non basic rate
-	// parameters in Bayesian modelling
-
-	int lacceptances;
-	int lrejections;
-
 	// flag to indicate we gave up on a step due to uponly and other filters
 	bool lsuccessfulChange;
-	// store for sampled parameters and the shapes used for basic rate
-	// parameters
-	vector<double> lsampledBasicRates;
-	vector<int> lsampledBasicRatesDistributions;
 
 };
 
@@ -348,6 +335,15 @@ const Function * DependentVariable::pEvaluationFunction() const
 const Function * DependentVariable::pEndowmentFunction() const
 {
 	return this->lpEndowmentFunction;
+}
+
+
+/**
+ * Returns the tie creation function of this variable.
+ */
+const Function * DependentVariable::pCreationFunction() const
+{
+	return this->lpCreationFunction;
 }
 
 

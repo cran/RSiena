@@ -21,7 +21,7 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
         sink(fileName, split=TRUE)
     }
 
-    interactions <- x[x$shortName == "unspInt" & x$include &
+    interactions <- x[x$shortName %in% c("unspInt", "behUnspInt") & x$include &
                             x$effect1 > 0, ]
     if (expandDummies)
     {
@@ -44,7 +44,7 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
         nDependents <- length(unique(x$name))
         userSpecifieds <- x$shortName[x$include] %in% c("unspInt", "behUnspInt")
         endowments <- !x$type[x$include] %in% c("rate", "eval")
-        timeDummies <- !x$timeDummies[x$include] == ","
+        timeDummies <- !x$timeDummy[x$include] == ","
         specs <- x[, c("name", "effectName", "include", "fix", "test",
                        "initialValue", "parm")]
         if (includeOnly)
@@ -61,7 +61,7 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
         }
         if (any(timeDummies))
         {
-            specs <- cbind(specs, type=x[x$include, "timeDummies"])
+            specs <- cbind(specs, timeDummy=x[x$include, "timeDummy"])
         }
         if (any(userSpecifieds))
         {

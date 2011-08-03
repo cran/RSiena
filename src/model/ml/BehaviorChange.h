@@ -45,17 +45,21 @@ public:
 
 	virtual bool behaviorMiniStep() const;
 	virtual void makeChange(DependentVariable * pVariable);
-	virtual bool diagonal() const;
 	virtual bool missing(int period) const;
+	virtual bool missingStart(int period) const;
+	virtual bool missingEnd(int period) const;
 	virtual MiniStep * createReverseMiniStep() const;
 	virtual MiniStep * createCopyMiniStep() const;
 	virtual bool firstOfConsecutiveCancelingPair() const;
 	double evaluationEffectContribution(int difference, int effect) const;
 	double endowmentEffectContribution(int difference, int effect) const;
+	double creationEffectContribution(int difference, int effect) const;
 	void allocateEffectContributionArrays(int nEvaluationEffects,
-		int nEndowmentEffects);
+		int nEndowmentEffects,
+		int nCreationEffects);
 	void evaluationEffectContribution(double value, int difference, int effect);
 	void endowmentEffectContribution(double value, int difference, int effect);
+	void creationEffectContribution(double value, int difference, int effect);
 
 private:
 	// The longitudinal data object for the corresponding behavior variable
@@ -64,17 +68,23 @@ private:
 	// The amount of change
 	int ldifference;
 
-	// A vector of change contributions to effects, where one element, 
-	// of length the number of effects in the evaluation function, 
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the evaluation function,
 	// corresponds to each possible difference.
 
 	vector<vector <double> > levaluationEffectContribution;
 
-	// A vector of change contributions to effects, where one element, 
-	// of length the number of effects in the endowment function, 
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the endowment function,
 	// corresponds to each possible difference.
 
 	vector<vector <double> > lendowmentEffectContribution;
+
+	// A vector of change contributions to effects, where one element,
+	// of length the number of effects in the tie creation function,
+	// corresponds to each possible difference.
+
+	vector<vector <double> > lcreationEffectContribution;
 };
 
 

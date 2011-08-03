@@ -127,21 +127,25 @@ calcgrad<- function(pars,Z,startmat,varmat=FALSE)
         grad <- derivs(pars, Z, varmat)
     grad
 }
-kappa1<- function(n,nc,lambda)
+kappa1 <- function(n, nc, lambda)
 {
-    nc<- nc+1
-    mu<- nc/n/lambda
-    sigma2<- nc/n/n/lambda/lambda
-    logp<- -(1-mu)^2/2/sigma2 - log(sigma2)/2 -log(2*pi)/2 -log(n*lambda)
-    pp<-dpois(nc,n*lambda,log=TRUE)
- #   cat(logp,pp,'\n')
-    -logp+nc*log(n)
+    nc <- nc + 1
+    mu <- nc/ n / lambda
+    sigma2 <- nc/ n / n / lambda / lambda
+    logp <- -(1 - mu)^2 / 2 / sigma2 - log(sigma2) / 2 - log(2 * pi) / 2 -
+        log(n * lambda)
+    ##   pp <- dpois(nc, n * lambda, log=TRUE)
+    ##   cat(logp, pp, '\n')
+    -logp + nc * log(n)
 }
-kappasigmamu<- function(n,nc,lambda,add1=FALSE)
+kappasigmamu<- function(n, nc, lambda, add1=FALSE)
 {
-   if (add1) nc<- nc+1
-    mu<- nc/n/lambda
-    sigma2<- nc/n/n/lambda/lambda
-    kappa1<- -(1-mu)^2/2/sigma2 - log(sigma2)/2
-   list(kappa= kappa1,mu=mu,sigma2=sigma2)
+    if (add1)
+    {
+        nc <- nc + 1
+    }
+    mu <- nc / n / lambda
+    sigma2 <- nc / n / n / lambda / lambda
+    kappa1 <- -(1 - mu)^2 / 2 / sigma2 - log(sigma2) / 2
+    list(kappa=kappa1, mu=mu, sigma2=sigma2)
 }

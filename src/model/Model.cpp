@@ -269,37 +269,6 @@ double Model::initialPermutationLength() const
 	return this->linitialPermutationLength;
 }
 
-/**
- * Stores the number of MH batches
- */
-void Model::numberMHBatches(int value)
-{
-	this->lnumberMHBatches = value;
-}
-
-/**
- * Returns the number of MH batches
- */
-int Model::numberMHBatches() const
-{
-	return this->lnumberMHBatches;
-}
-/**
- * Stores the Bayesian scale factor
- */
-void Model::BayesianScaleFactor(double value)
-{
-	this->lBayesianScaleFactor = value;
-}
-
-
-/**
- * Returns the Bayesian scale factor
- */
-double Model::BayesianScaleFactor() const
-{
-	return this->lBayesianScaleFactor;
-}
 // ----------------------------------------------------------------------------
 // Section: Effect management
 // ----------------------------------------------------------------------------
@@ -359,7 +328,8 @@ double Model::basicRateParameter(LongitudinalData * pDependentVariableData,
  * @param[in] variableName the name of the variable this effect is associated
  * with
  * @param[in] effectName the name of the effect
- * @param[in] effectType the type of the effect ("rate", "eval", or "endow")
+ * @param[in] effectType the type of the effect ("rate", "eval", "endow",
+ * or "creation")
  * @param[in] parameter the multiplicative weight of the effect
  * @param[in] internalEffectParameter the internal effect parameter
  * (if applicable)
@@ -404,6 +374,10 @@ EffectInfo * Model::addEffect(string variableName,
 	{
 		this->lendowmentEffects[variableName].push_back(pInfo);
 	}
+	else if (effectType == "creation")
+	{
+		this->lcreationEffects[variableName].push_back(pInfo);
+	}
 	else
 	{
 		throw invalid_argument("Unexpected effect type '" + effectType + "'.");
@@ -420,7 +394,8 @@ EffectInfo * Model::addEffect(string variableName,
  * @param[in] variableName the name of the variable this effect is associated
  * with
  * @param[in] effectName the name of the effect
- * @param[in] effectType the type of the effect ("rate", "eval", or "endow")
+ * @param[in] effectType the type of the effect ("rate", "eval", "endow",
+ * or "creation")
  * @param[in] parameter the multiplicative weight of the effect
  * @param[in] pEffect1 the first of the interacting effects
  * @param[in] pEffect2 the second of the interacting effects
@@ -455,6 +430,10 @@ EffectInfo * Model::addInteractionEffect(string variableName,
 	else if (effectType == "endow")
 	{
 		this->lendowmentEffects[variableName].push_back(pInfo);
+	}
+	else if (effectType == "creation")
+	{
+		this->lcreationEffects[variableName].push_back(pInfo);
 	}
 	else
 	{
@@ -502,7 +481,7 @@ const vector<EffectInfo *> & Model::rEvaluationEffects(string variableName)
 
 
 /**
- * Returns the endowment effectvs for the given dependent variable.
+ * Returns the endowment effects for the given dependent variable.
  */
 const vector<EffectInfo *> & Model::rEndowmentEffects(string variableName)
 	const
@@ -511,6 +490,24 @@ const vector<EffectInfo *> & Model::rEndowmentEffects(string variableName)
 		this->lendowmentEffects.find(variableName);
 
 	if (iter == this->lendowmentEffects.end())
+	{
+		return this->lemptyEffectVector;
+	}
+
+	return iter->second;
+}
+
+
+/**
+ * Returns the creation effects for the given dependent variable.
+ */
+const vector<EffectInfo *> & Model::rCreationEffects(string variableName)
+	const
+{
+	map<string, vector<EffectInfo *> >::const_iterator iter =
+		this->lcreationEffects.find(variableName);
+
+	if (iter == this->lcreationEffects.end())
 	{
 		return this->lemptyEffectVector;
 	}
@@ -662,7 +659,7 @@ ModelType Model::modelType() const
 }
 bool Model::modelTypeB() const
 {
-	return this->lmodelType == BFORCE || 
+	return this->lmodelType == BFORCE ||
 		this->lmodelType == BAGREE || this->lmodelType == BJOINT;
 }
 

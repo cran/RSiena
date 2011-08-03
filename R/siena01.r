@@ -33,7 +33,7 @@ siena01Gui <- function(getDocumentation=FALSE)
     resultsFileID <-  NULL
     estimAns <- NULL
     modelName <- NULL
-    effEdit <- NULL
+   ## effEdit <- NULL
     noFiles <- 0
     filename <- NA
     files <- NULL
@@ -258,8 +258,7 @@ siena01Gui <- function(getDocumentation=FALSE)
             ## try to read in the project object
             savedModelName <- paste(modelName, ".Rdata", sep='')
                                         #browser()
-            if (inherits(resp <- try(load(savedModelName),
-                                     silent=TRUE), "try-error"))
+            if (inherits(try(load(savedModelName), silent=TRUE), "try-error"))
             {
                 tkmessageBox(message="Unable to load saved model", icon="error")
             }
@@ -275,7 +274,7 @@ siena01Gui <- function(getDocumentation=FALSE)
     ##@helpFn internal siena01Gui
     helpFn <- function() ## display the manual
     {
-        RShowDoc("s_man400", package=pkgname)
+        RShowDoc("RSiena_Manual", package=pkgname)
     }
     ##@myStop internal siena01Gui
     myStop<- function()
@@ -396,8 +395,8 @@ siena01Gui <- function(getDocumentation=FALSE)
     {
         rows <- as.numeric(strsplit(tclvalue(tkconfigure(table1,  '-rows')),
                                     " ")[[1]][5])
-        height <- as.numeric(strsplit(tclvalue(tkconfigure(table1,  '-height')),
-                                      " ")[[1]][5])
+        ##height <- as.numeric(strsplit(tclvalue(tkconfigure(table1,  '-height')),
+        ##                              " ")[[1]][5])
         if (tableRows != (rows-1))
             browser()
         if (is.null(session))
@@ -645,7 +644,7 @@ siena01Gui <- function(getDocumentation=FALSE)
         ##@modelhelpFn internal siena01Gui
         modelhelpFn <- function()
         {
-            RShowDoc("s_man400", package=pkgname)
+			RShowDoc("RSiena_Manual", package=pkgname)
         }
         ##@randomseedFn internal siena01Gui
         randomseedFn <- function()
@@ -1167,15 +1166,15 @@ siena01Gui <- function(getDocumentation=FALSE)
                           tkwidget(table1, 'spinbox', state='readonly',
                                    width=20, values=ff, cursor="arrow"))
     ## insert them in the table, and set focus bindings?
-    tmp <- lapply(1:tableRows, function(x)
-              {
-                  mypos <- paste(x, ',',4, sep='')
-                  tkwindow.configure(table1, mypos, window=formatspins[[x]])
-                  tkbind(formatspins[[x]], "<FocusIn>",
-                         function(y){tcl(table1,"activate", "1,4")
-                                     tkXselection.own(selection=y)})
-              }
-                  )
+    lapply(1:tableRows, function(x)
+       {
+           mypos <- paste(x, ',',4, sep='')
+           tkwindow.configure(table1, mypos, window=formatspins[[x]])
+           tkbind(formatspins[[x]], "<FocusIn>",
+                  function(y){tcl(table1,"activate", "1,4")
+                              tkXselection.own(selection=y)})
+       }
+           )
 
     ##create spinboxes for type
     typelist <- c("network", "bipartite", "behavior", "constant covariate",
@@ -1184,7 +1183,7 @@ siena01Gui <- function(getDocumentation=FALSE)
     typespins <- lapply(1:tableRows, function(x)
                         tkwidget(table1, 'spinbox', state='readonly',
                                  width=25, values=typelist, cursor="arrow"))
-    tmp <- lapply(1:tableRows, function(x) {
+    lapply(1:tableRows, function(x) {
         mypos <- paste(x, ',',7, sep='')
         tkwindow.configure(table1, mypos, window=typespins[[x]])
         tkbind(typespins[[x]], "<FocusIn>",
