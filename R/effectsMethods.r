@@ -150,6 +150,10 @@ print.summary.sienaEffects <- function(x, fileName=NULL, ...)
 
 edit.sienaEffects <- function(name, ...)
 {
+	if (!interactive())
+	{
+		return(name)
+	}
     ## store the original column order
     originalNames <- names(name)
     ## move function name and other things out of the way

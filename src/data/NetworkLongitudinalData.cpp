@@ -38,19 +38,23 @@ NetworkLongitudinalData::NetworkLongitudinalData(int id,
 	std::string name,
 	const ActorSet * pSenders,
 	const ActorSet * pReceivers,
-	int observationCount) :
+	int observationCount,
+	bool oneMode) :
 		LongitudinalData(id, name, pSenders, observationCount)
 {
 	this->lpReceivers = pReceivers;
 	this->lnetworks = new Network * [observationCount];
 	this->lstructuralTieNetworks = new Network * [observationCount];
 	this->lmissingTieNetworks = new Network * [observationCount];
+	this->lnetworksLessMissings = new Network * [observationCount];
+	this->lnetworksLessMissingStarts = new Network * [observationCount];
 	this->lmaxDegree = std::numeric_limits<int>::max();
 	this->ldensity = new double[observationCount];
+	this->loneMode = oneMode;
 
 	for (int i = 0; i < observationCount; i++)
 	{
-		if (pSenders == pReceivers)
+		if (oneMode)
 		{
 			this->lnetworks[i] = new OneModeNetwork(pSenders->n(), false);
 			this->lstructuralTieNetworks[i] =
@@ -80,17 +84,23 @@ NetworkLongitudinalData::~NetworkLongitudinalData()
 		delete this->lnetworks[i];
 		delete this->lstructuralTieNetworks[i];
 		delete this->lmissingTieNetworks[i];
+		delete this->lnetworksLessMissings[i];
+		delete this->lnetworksLessMissingStarts[i];
 	}
 
 	delete[] this->lnetworks;
 	delete[] this->lstructuralTieNetworks;
 	delete[] this->lmissingTieNetworks;
 	delete[] this->ldensity;
+	delete[] this->lnetworksLessMissings;
+	delete[] this->lnetworksLessMissingStarts;
 
 	this->lnetworks = 0;
 	this->lstructuralTieNetworks = 0;
 	this->lmissingTieNetworks = 0;
 	this->ldensity = 0;
+	this->lnetworksLessMissings = 0;
+	this->lnetworksLessMissingStarts = 0;
 }
 
 
@@ -99,7 +109,8 @@ NetworkLongitudinalData::~NetworkLongitudinalData()
 // ----------------------------------------------------------------------------
 
 /**
- * Calculates various statistical properties from the stored network data.
+ * Calculates various statistical properties from the stored network data. Also
+ * store various versions of networks less missing or structurals for later use.
  */
 void NetworkLongitudinalData::calculateProperties()
 {
@@ -159,6 +170,23 @@ void NetworkLongitudinalData::calculateProperties()
 		this->lpReceivers->n() * this->observationCount();
 	this->laverageOutDegree /=
 		this->pActorSet()->n() * this->observationCount();
+
+	// data-less-missing-values is used in calculating statistics. Since it
+	// does not change we store it, hoping we have enough space!
+	for (int i = 0; i < this->observationCount(); i++)
+	{
+		this->lnetworksLessMissings[i] = this->pNetwork(i)->clone();
+		this->lnetworksLessMissingStarts[i] = this->pNetwork(i)->clone();
+		subtractNetwork(this->lnetworksLessMissings[i],
+			this->pMissingTieNetwork(i));
+		subtractNetwork(this->lnetworksLessMissingStarts[i],
+			this->pMissingTieNetwork(i));
+	}
+	for (int i = 1; i < this->observationCount(); i++)
+	{
+		subtractNetwork(this->lnetworksLessMissings[i - 1],
+			this->pMissingTieNetwork(i));
+	}
 }
 
 
@@ -212,6 +240,27 @@ const Network * NetworkLongitudinalData::pMissingTieNetwork(int observation)
 	const
 {
 	return this->lmissingTieNetworks[observation];
+}
+
+/**
+ * Returns the network with missing values start or end zeroed, for the given
+ * observation.
+ */
+const Network * NetworkLongitudinalData::pNetworkLessMissing(int observation)
+	const
+{
+	return this->lnetworksLessMissings[observation];
+}
+
+
+/**
+ * Returns the network with missing values at the start zeroed, for the given
+ * observation.
+ */
+const Network * NetworkLongitudinalData::pNetworkLessMissingStart(int observation)
+	const
+{
+	return this->lnetworksLessMissingStarts[observation];
 }
 
 
@@ -379,4 +428,11 @@ double NetworkLongitudinalData::observedDistribution(int value,
 	return frequency;
 }
 
+/**
+ * Returns whether this is a one mode network or not.
+ */
+bool NetworkLongitudinalData::oneModeNetwork() const
+{
+	return this->loneMode;
+}
 }

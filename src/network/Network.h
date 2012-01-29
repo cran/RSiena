@@ -117,6 +117,10 @@ private:
 	// is changed.
 
 	int lmodificationCount;
+
+	// whether this network is one mode or not;
+
+	bool loneMode;
 };
 
 

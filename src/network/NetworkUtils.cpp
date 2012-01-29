@@ -12,6 +12,7 @@
 #include "NetworkUtils.h"
 #include "IncidentTieIterator.h"
 #include "network/CommonNeighborIterator.h"
+#include "network/TieIterator.h"
 #include "network/Network.h"
 
 namespace siena
@@ -88,4 +89,34 @@ Network * symmetricDifference(const Network * pNetwork1,
 	return pDifference;
 }
 
+/**
+ * Creates a network by removing from the first network the ties which are
+ * present in the second network.
+ */
+void subtractNetwork(Network * pNetwork,
+	const Network * pSubtrahendNetwork)
+{
+	for (TieIterator iter = pSubtrahendNetwork->ties();
+		iter.valid();
+		iter.next())
+	{
+		pNetwork->setTieValue(iter.ego(), iter.alter(), 0);
+	}
+}
+
+/**
+ * Replaces the values of the first network with values in the second network
+ * for ties that are present in the third network.
+ */
+void replaceNetwork(Network * pNetwork,
+	const Network * pValueNetwork, const Network * pDecisionNetwork )
+{
+	for (TieIterator iter = pDecisionNetwork->ties();
+		iter.valid();
+		iter.next())
+	{
+		pNetwork->setTieValue(iter.ego(), iter.alter(),
+			pValueNetwork->tieValue(iter.ego(), iter.alter()));
+	}
+}
 }

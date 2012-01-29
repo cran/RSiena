@@ -108,7 +108,7 @@ public:
 	MiniStep * randomMissingNetworkMiniStep() const;
 	MiniStep * randomMissingBehaviorMiniStep() const;
 
-	// copy
+	// Copy
 	Chain * copyChain() const;
 	void dumpChain() const;
 
@@ -145,16 +145,16 @@ private:
 
 	vector<MiniStep *> lminiSteps;
 
-	// Stores the diagonal ministeps in no particular order.
+	// Stores pointers to the diagonal ministeps in no particular order.
 	vector<MiniStep *> ldiagonalMiniSteps;
 
-	// Stores the first ministep of each CCP in no particular order.
+	// Stores pointers to the first ministep of each CCP in no particular order.
 	vector<MiniStep *> lccpMiniSteps;
 
-	// Stores the networks ministeps of missing options
+	// Stores pointers to the networks ministeps of missing options
 	vector<MiniStep *> lmissingNetworkMiniSteps;
 
-	// Storesthe behavior ministeps of missing options
+	// Stores pointers to the behavior ministeps of missing options
 	vector<MiniStep *> lmissingBehaviorMiniSteps;
 
 	// Sum of reciprocal rates over all non-dummy ministeps.
@@ -163,7 +163,7 @@ private:
 	// Sum of squared reciprocal rates over all non-dummy ministeps.
 	double lsigma2;
 
-	// Final reciprocal rate when updating part por all of the probabilities.
+	// Final reciprocal rate when updating part or all of the probabilities.
 	double lfinalReciprocalRate;
 
 	// Maps each option to its first ministep in the chain (if any)

@@ -17,7 +17,7 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = 0,
      prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3, prirms=0.05,
      prdrms=0.05, maximumPermutationLength=40,
      minimumPermutationLength=2, initialPermutationLength=20,
-     modelType=1, mult=4)
+     modelType=1, mult=5)
 }
 \arguments{
   \item{fn}{Function to do one simulation in the Robbins-Monro
@@ -94,10 +94,10 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = 0,
 	Robbins-Monro algorithm.}
   \item{maxrat}{Value used to control the maximum size of the jumps.}
   \item{maxmaxrat}{Value used to control the maximum size of the jumps.}
+  \item{maxlike}{Boolean: is FRAN using maximum likelihood?}
   \item{FRANname}{Name of simulation function FRAN. Is derived by
 	\code{sienaModelCreate} from
                   \code{fn} and \code{maxlike}.}
-  \item{maxlike}{Boolean: is FRAN using maximum likelihood?}
   \item{cconditional}{Boolean: is FRAN using conditional estimation?}
   \item{condvarno}{Number of dependent variable on which to condition.}
   \item{condname}{Name of dependent variable on which to condition.}
@@ -105,8 +105,35 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = 0,
     finite differences?}
   \item{nsub}{Number of subphases in phase 2.}
   \item{diag}{Boolean: use only the diagonal of the derivative matrix?}
-  \item{modelType}{Integer code for model type}
+  \item{modelType}{Type of model to be fitted: 1=directed, 2:6 for
+	symmetric networks: 2=forcing, 3=Initiative model,
+	4=Pairwise forcing model, 5=Pairwise mutual model, 6=Pairwise joint model}
   \item{MaxDegree}{Named vector of maximum degree values, or NULL.}
+  \item{randomSeed}{Integer. Starting value of random seed. Not present
+	unless given in call.}
+  \item{pridg}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{prcdg}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{prper}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{pripr}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{prdpr}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{prirms}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{prdrms}{Real number. Probability used in Metropolis-Hastings
+	routine in ML estimation.}
+  \item{maximumPermutationLength}{Maximum length of permutation in steps in ML
+	estimation}
+  \item{minimumPermutationLength}{Minimum length of permutation in steps in ML
+	estimation}
+  \item{initialPermutationLength}{Initial length of permutation in steps in ML
+	estimation}
+  \item{mult}{Multiplication factor for maximum likelihood. Number of
+	steps per iteration is set to this multiple of the total distance
+	between the observations at start and finish of the wave.}
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }

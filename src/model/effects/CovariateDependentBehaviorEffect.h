@@ -48,6 +48,7 @@ public:
 protected:
 	double covariateValue(int i) const;
 	bool missingCovariate(int i, int observation) const;
+	bool missingCovariateEitherEnd(int i, int observation) const;
 
 private:
 	ConstantCovariate * lpConstantCovariate;

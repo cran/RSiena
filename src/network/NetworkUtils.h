@@ -3,14 +3,14 @@
  *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
  *
- * File: DataUtils.h
+ * File: NetworkUtils.h
  *
  * Description: This module contains some utilities specific to the
- * 'data' library.
+ * 'network' library.
  *****************************************************************************/
 
-#ifndef DATAUTILS_H_
-#define DATAUTILS_H_
+#ifndef NETWORKUTILS_H_
+#define NETWORKUTILS_H_
 
 namespace siena
 {
@@ -40,6 +40,13 @@ class Network;
 int commonActorCount(IncidentTieIterator iter1, IncidentTieIterator iter2);
 Network * symmetricDifference(const Network * pNetwork1,
 	const Network * pNetwork2);
+
+void subtractNetwork(Network * pNetwork,
+	 const Network * pMissingTieNetwork);
+
+void replaceNetwork(Network * pNetwork,
+	const Network * pValueNetwork, const Network * pDecisionNetwork);
+
 }
 
-#endif /*DATAUTILS_H_*/
+#endif /*NETWORKUTILS_H_*/

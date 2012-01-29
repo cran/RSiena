@@ -9,10 +9,14 @@
 # * and for ML making the initial chain.
 # *****************************************************************************/
 ##@initializeFRAN siena07 reformat data and send to C. get targets.
-initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
-                           returnDeps)
+initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
+						   profileData=FALSE, returnDeps=FALSE,
+						   returnChains=FALSE, byGroup=FALSE,
+						   returnDataFrame=FALSE, byWave=FALSE,
+						   returnLoglik=FALSE, onlyLoglik=FALSE)
 {
-    ## fix up the interface so can call from outside robmon framework
+	z$effectsName <- deparse(substitute(effects))
+	## fix up the interface so can call from outside robmon framework
     if (is.null(z$FinDiff.method))
     {
         z$FinDiff.method <- FALSE
@@ -25,12 +29,11 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     {
         z$int2 <- 1
     }
-
     if (!initC) ## ie first time round
     {
-        if (!inherits(data,'siena'))
+        if (!inherits(data,"siena"))
         {
-            stop('not valid siena data object')
+            stop("not valid siena data object")
         }
         ## check the effects object
         defaultEffects <- getEffects(data)
@@ -56,51 +59,22 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
                 stop("invalid effect requested: see above ")
             }
         }
-        if (!inherits(effects, 'data.frame'))
+        if (!inherits(effects, "data.frame"))
         {
-            stop('effects is not a data.frame')
+            stop("effects is not a data.frame")
         }
         if (x$useStdInits)
         {
             if (any(effects$effectName != defaultEffects$effectName))
             {
-                stop('Cannot use standard initialisation with a ',
-                     'different effect list')
+                stop("Cannot use standard initialisation with a ",
+                     "different effect list")
             }
             effects$initialValue <- defaultEffects$initialValue
         }
-        else
-        {
-            if (!is.null(prevAns) && inherits(prevAns, "sienaFit"))
-            {
-                prevEffects <- prevAns$requestedEffects
-                prevEffects$initialValue <- prevAns$theta
-                if (prevAns$cconditional)
-                {
-                    condEffects <- attr(prevAns$f, "condEffects")
-                    condEffects$initialValue <- prevAns$rate
-                    prevEffects <- rbind(prevEffects, condEffects)
-                }
-                oldlist <- apply(prevEffects, 1, function(x)
-                                 paste(x[c("name", "shortName",
-                                           "type", "groupName",
-                                           "interaction1", "interaction2",
-                                           "period")],
-                                       collapse="|"))
-                efflist <- apply(effects, 1, function(x)
-                                 paste(x[c("name", "shortName",
-                                           "type", "groupName",
-                                           "interaction1", "interaction2",
-                                           "period")],
-                                       collapse="|"))
-                use <- efflist %in% oldlist
-                effects$initialValue[use] <-
-                    prevEffects$initialValue[match(efflist, oldlist)][use]
-            }
-        }
         ## get data object into group format to save coping with two
         ## different formats
-        if (inherits(data, 'sienaGroup'))
+        if (inherits(data, "sienaGroup"))
         {
             nGroup <- length(data)
         }
@@ -109,10 +83,17 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             nGroup <- 1
             data <- sienaGroupCreate(list(data), singleOK=TRUE)
         }
-        ## add any effects needed for time dummies
+		## add any effects needed for time dummies
         tmp <- sienaTimeFix(effects, data)
         data <- tmp$data
         effects <- tmp$effects
+		if (!x$useStdInits)
+        {
+			if (!is.null(prevAns) && inherits(prevAns, "sienaFit"))
+			{
+				effects <- updateTheta(effects, prevAns)
+			}
+        }
         ## find any effects not included which are needed for interactions
         tmpEffects <- effects[effects$include, ]
         interactionNos <- unique(c(tmpEffects$effect1, tmpEffects$effect2,
@@ -167,7 +148,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
                 x$condvarno <- 1
             }
         }
-        types <- sapply(data[[1]]$depvars, function(x) attr(x, 'type'))
+        types <- sapply(data[[1]]$depvars, function(x) attr(x, "type"))
         ## now check if conditional estimation is OK and copy to z if so
         z$cconditional <- FALSE
         if (x$cconditional)
@@ -241,7 +222,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             attr(data, "numberNonMissingBehavior")
         attr(f, "numberMissingBehavior") <- attr(data, "numberMissingBehavior")
 
-      #  attr(f, "totalMissings") <- attr(data, "totalMissings")
+		##  attr(f, "totalMissings") <- attr(data, "totalMissings")
 
         if (x$maxlike && x$FinDiff.method)
         {
@@ -272,7 +253,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         {
             attr(f, "change") <-
                 sapply(f, function(xx)attr(xx$depvars[[z$condname]],
-                                           'distance'))
+                                           "distance"))
             attr(f,"condEffects") <- requestedEffects[z$condvar,]
             effcondvar <-
                 (1:nrow(effects))[effects$name==
@@ -280,10 +261,12 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             effects <- effects[-effcondvar, ]
             requestedEffects <- requestedEffects[-z$condvar,]
         }
-        ## use previous dfra only if everything matches
-        if (!is.null(prevAns) && inherits(prevAns, "sienaFit"))
+        ## use previous dfra only if everything matches including method
+        if (!is.null(prevAns) && inherits(prevAns, "sienaFit") &&
+			prevAns$maxlike == z$maxlike)
         {
-            if ((nrow(prevAns$dfra) == nrow(requestedEffects)) &&
+            if (!is.null(prevAns$dfra) &&
+				 nrow(prevAns$dfra) == nrow(requestedEffects) &&
                 all(rownames(prevAns$dfra) == requestedEffects$shortName)
                 && !is.null(prevAns$sf))
             {
@@ -307,26 +290,26 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         nGroup <- f$nGroup
         f[(nGroup + 1): length(f)] <- NULL
     }
-    pData <- .Call('setupData', PACKAGE=pkgname,
+    pData <- .Call("setupData", PACKAGE=pkgname,
                    lapply(f, function(x)(as.integer(x$observations))),
                    lapply(f, function(x)(x$nodeSets)))
-    ans <- .Call('OneMode', PACKAGE=pkgname,
+	ans <- .Call("OneMode", PACKAGE=pkgname,
                  pData, lapply(f, function(x)x$nets))
-    ans <- .Call('Bipartite', PACKAGE=pkgname,
+    ans <- .Call("Bipartite", PACKAGE=pkgname,
                  pData, lapply(f, function(x)x$bipartites))
-    ans <- .Call('Behavior', PACKAGE=pkgname,
+    ans <- .Call("Behavior", PACKAGE=pkgname,
                  pData, lapply(f, function(x)x$behavs))
-    ans <-.Call('ConstantCovariates', PACKAGE=pkgname,
+    ans <-.Call("ConstantCovariates", PACKAGE=pkgname,
                 pData, lapply(f, function(x)x$cCovars))
-    ans <-.Call('ChangingCovariates', PACKAGE=pkgname,
+    ans <-.Call("ChangingCovariates", PACKAGE=pkgname,
                 pData, lapply(f, function(x)x$vCovars))
-    ans <-.Call('DyadicCovariates', PACKAGE=pkgname,
+	ans <-.Call("DyadicCovariates", PACKAGE=pkgname,
                 pData, lapply(f, function(x)x$dycCovars))
-    ans <-.Call('ChangingDyadicCovariates', PACKAGE=pkgname,
+	ans <-.Call("ChangingDyadicCovariates", PACKAGE=pkgname,
                 pData, lapply(f, function(x)x$dyvCovars))
-    ans <-.Call('ExogEvent', PACKAGE=pkgname,
+	ans <-.Call("ExogEvent", PACKAGE=pkgname,
                 pData, lapply(f, function(x)x$exog))
-    ## split the names of the constraints
+   ## split the names of the constraints
     higher <- attr(f, "allHigher")
     disjoint <- attr(f, "allDisjoint")
     atLeastOne <- attr(f, "allAtLeastOne")
@@ -344,9 +327,9 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
 
     if (!initC)
     {
-        storage.mode(effects$parm) <- 'integer'
-        storage.mode(effects$group) <- 'integer'
-        storage.mode(effects$period) <- 'integer'
+        storage.mode(effects$parm) <- "integer"
+        storage.mode(effects$group) <- "integer"
+        storage.mode(effects$period) <- "integer"
         effects$effectPtr <- rep(NA, nrow(effects))
         splitFactor <- factor(effects$name, levels=attr(f, "netnames"))
         if (!all(attr(f,"netnames") %in% effects$name))
@@ -396,7 +379,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         interactionEffectsl <- ff$interactionEffectsl
         types <- ff$types
     }
-    ans <- .Call('effects', PACKAGE=pkgname, pData, basicEffects)
+	ans <- .Call("effects", PACKAGE=pkgname, pData, basicEffects)
     pModel <- ans[[1]][[1]]
     for (i in seq(along=(ans[[2]]))) ## ans[[2]] is a list of lists of
         ## pointers to effects. Each list corresponds to one
@@ -414,7 +397,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             basicEffects[[i]]$effectPtr[match(interactionEffects[[i]]$effect3,
                                               basicEffects[[i]]$effectNumber)]
     }
-    ans <- .Call('interactionEffects', PACKAGE=pkgname,
+    ans <- .Call("interactionEffects", PACKAGE=pkgname,
                  pData, pModel, interactionEffects)
     ## copy these pointers to the interaction effects and then insert in
     ## effects object in the same rows for later use
@@ -441,7 +424,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
                         )
     if (!initC)
     {
-        ans <- .Call("getTargets", PACKAGE=pkgname, pData, pModel, myeffects)
+        ans <- .Call("getTargets", PACKAGE=pkgname, pData, pModel, myeffects,
+					 z$parallelTesting)
+		##stop("done")
+		## create a grid of periods with group names in case want to
+		## parallelize using this or to access chains easily
+		groupPeriods <- attr(f, "groupPeriods")
+		z$callGrid <- cbind(rep(1:nGroup, groupPeriods - 1),
+							as.vector(unlist(sapply(groupPeriods - 1,
+													function(x) 1:x))))
         if (!x$maxlike)
         {
             z$targets <- rowSums(ans)
@@ -455,15 +446,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             z$maxlikeTargets <- rowSums(ans)
             z$maxlikeTargets2 <- ans
             z$mult <- x$mult
-            z$nrunMH <- z$mult * sum(z$maxlikeTargets[z$effects$basicRate])
+            z$nrunMH <-
+				z$mult * colSums(z$maxlikeTargets2[z$requestedEffects$basicRate,
+												   , drop=FALSE ])
+			z$nrunMH < pmax(z$nrunMH, 2)
+			## make the number pretty
+			z$nrunMH <- ifelse (z$nrunMH > 100,
+								 round(z$nrunMH / 100) * 100, z$nrunMH)
             ##thetaMat is to allow different thetas for each group in Bayes
             z$thetaMat <- matrix(z$theta, nrow=nGroup, ncol=z$pp, byrow=TRUE)
-            ## create a grid of periods with group names in case want to
-            ## parallelize using this
-            groupPeriods <- attr(f, "groupPeriods")
-            z$callGrid <- cbind(rep(1:nGroup, groupPeriods - 1),
-                                as.vector(unlist(sapply(groupPeriods - 1,
-                                                        function(x) 1:x))))
         }
     }
 
@@ -483,7 +474,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     {
         CONDVAR <- z$condname
         CONDTARGET <- attr(f, "change")
-        ##   cat(CONDTARGET, '\n')
+        ##   cat(CONDTARGET, "\n")
     }
     else
     {
@@ -491,19 +482,20 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
         CONDTARGET <- NULL
     }
 
-    ans <- .Call("setupModelOptions", PACKAGE=pkgname,
+	simpleRates <- TRUE
+	if (any(!z$effects$basicRate & z$effects$type =="rate"))
+	{
+		## browser()
+		simpleRates <- FALSE
+	}
+	z$simpleRates <- simpleRates
+
+	ans <- .Call("setupModelOptions", PACKAGE=pkgname,
                  pData, pModel, MAXDEGREE, CONDVAR, CONDTARGET,
-                 profileData, z$parallelTesting, x$modelType)
+                 profileData, z$parallelTesting, x$modelType, z$simpleRates)
 
     if (x$maxlike)
     {
-        simpleRates <- TRUE
-        if (any(!z$effects$basicRate & z$effects$type =="rate"))
-        {
-           # browser()
-            simpleRates <- FALSE
-        }
-        z$simpleRates <- simpleRates
         if (!initC)
         {
             ## set up chains and do initial steps
@@ -530,35 +522,33 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
             {
                 z$prmib <- rep(0, length(nbrMissBeh))
             }
-            ## cat (z$prmin, z$prmib, '\n')
+            ## cat (z$prmin, z$prmib, "\n")
             z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prirms,
                          x$prdrms)
-            cat(z$probs,'\n')
+            ##cat(z$probs,"\n")
             ans <- .Call("mlMakeChains", PACKAGE=pkgname, pData, pModel,
-                         simpleRates, z$probs, z$prmin, z$prmib,
+                         z$probs, z$prmin, z$prmib,
                          x$minimumPermutationLength,
                          x$maximumPermutationLength,
                          x$initialPermutationLength)
 
             f$minimalChain <- ans[[1]]
             f$chain <- ans[[2]]
-            f$simpleRates <- simpleRates
             ##  print(nrow(ans[[1]][[1]]))
             ##  print(nrow(ans[[2]][[1]]))
-            ## browser()
         }
         else ## set up the initial chains in the sub processes
         {
-            ans <- .Call("mlInitializeSubProcesses",
+			ans <- .Call("mlInitializeSubProcesses",
                          PACKAGE=pkgname, pData, pModel,
                          simpleRates, z$probs, z$prmin, z$prmib,
                          x$minimumPermutationLength,
                          x$maximumPermutationLength,
-                         x$initialPermutationLength, ff$chain, ff$missingChain)
+                         x$initialPermutationLength, ff$chain)
             f$chain <- ff$chain
-            f$missingChain <- ff$missingChain
        }
     }
+	f$simpleRates <- simpleRates
     f$myeffects <- myeffects
     f$myCompleteEffects <- myCompleteEffects
     if (!initC)
@@ -581,7 +571,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     if (!initC)
     {
         z$f <- f
-        z <- initForAlgorithms(z)
+        ##z <- initForAlgorithms(z)
         z$periodNos <- attr(data, "periodNos")
         z$f$myeffects <- NULL
         z$f$myCompleteEffects <- NULL
@@ -599,7 +589,19 @@ initializeFRAN <- function(z, x, data, effects, prevAns, initC, profileData,
     z$returnDeps <- returnDeps
     z$returnDepsStored <- returnDeps
     z$observations <- f$observations
-    z
+	z$returnChains <- returnChains
+	z$byGroup <- byGroup
+	z$byWave <- byWave
+	z$returnDataFrame <- returnDataFrame
+    z$nDependentVariables <- length(z$f$depNames)
+	if (initC)
+	{
+		NULL
+	}
+	else
+	{
+		z
+	}
 }
 ##@createEdgeLists siena07 Reformat data for C++
 createEdgeLists<- function(mat, matorig, bipartite)
@@ -636,21 +638,21 @@ createEdgeLists<- function(mat, matorig, bipartite)
     mat3[, 3] <- 1
     mat1 <- mat1[!mat1[,3] == 0, , drop=FALSE] ##remove any zeros just created
     ##fix up storage mode to be integer
-    storage.mode(mat1) <- 'integer'
-    storage.mode(mat2) <- 'integer'
-    storage.mode(mat3) <- 'integer'
+    storage.mode(mat1) <- "integer"
+    storage.mode(mat2) <- "integer"
+    storage.mode(mat3) <- "integer"
     ## add attribute of size
     if (bipartite)
     {
-        attr(mat1, 'nActors') <- c(nrow(mat), ncol(mat))
-        attr(mat2, 'nActors') <- c(nrow(mat), ncol(mat))
-        attr(mat3, 'nActors') <- c(nrow(mat), ncol(mat))
+        attr(mat1, "nActors") <- c(nrow(mat), ncol(mat))
+        attr(mat2, "nActors") <- c(nrow(mat), ncol(mat))
+        attr(mat3, "nActors") <- c(nrow(mat), ncol(mat))
     }
     else
     {
-        attr(mat1, 'nActors') <- nrow(mat)
-        attr(mat2, 'nActors') <- nrow(mat)
-        attr(mat3, 'nActors') <- nrow(mat)
+        attr(mat1, "nActors") <- nrow(mat)
+        attr(mat2, "nActors") <- nrow(mat)
+        attr(mat3, "nActors") <- nrow(mat)
     }
 
     list(mat1 = t(mat1), mat2 = t(mat2), mat3 = t(mat3))
@@ -678,15 +680,15 @@ createCovarEdgeList<- function(mat, matorig)
               }, y = matorig)
     mat2 <- do.call(rbind, tmp)
     ## add attribute of size
-    attr(mat1, 'nActors1') <- nrow(mat)
-    attr(mat1, 'nActors2') <- ncol(mat)
+    attr(mat1, "nActors1") <- nrow(mat)
+    attr(mat1, "nActors2") <- ncol(mat)
     list(mat1=t(mat1), mat2=t(mat2))
 }
 ##@unpackOneMode siena07 Reformat data for C++
 unpackOneMode <- function(depvar, observations, compositionChange)
 {
-    edgeLists <- vector('list', observations)
-    networks <- vector('list', observations)
+    edgeLists <- vector("list", observations)
+    networks <- vector("list", observations)
     actorSet <- attr(depvar, "nodeSet")
     compActorSets <- sapply(compositionChange, function(x)attr(x, "nodeSet"))
     thisComp <- match(actorSet, compActorSets)
@@ -703,7 +705,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
     }
     ## sort out composition change
     ##      convertToStructuralZeros()?
-    sparse <- attr(depvar, 'sparse')
+    sparse <- attr(depvar, "sparse")
     if (sparse)
     {
         ## require(Matrix)
@@ -737,7 +739,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
             else
             {
                 netmiss1 <- netmiss[[i]][, 1:2]
-                storage.mode(netmiss1) <- 'integer'
+                storage.mode(netmiss1) <- "integer"
                 networks[[i]][netmiss1[, 1:2]] <-
                     networks[[i-1]][netmiss1[, 1:2]]
             }
@@ -895,13 +897,13 @@ unpackOneMode <- function(depvar, observations, compositionChange)
                 }
             }
             ##fix up storage mode to be integer
-            storage.mode(mat1) <- 'integer'
-            storage.mode(mat2) <- 'integer'
-            storage.mode(mat3) <- 'integer'
+            storage.mode(mat1) <- "integer"
+            storage.mode(mat2) <- "integer"
+            storage.mode(mat3) <- "integer"
             ## add attribute of size
-            attr(mat1,'nActors') <- nActors
-            attr(mat2,'nActors') <- nActors
-            attr(mat3,'nActors') <- nActors
+            attr(mat1,"nActors") <- nActors
+            attr(mat2,"nActors") <- nActors
+            attr(mat3,"nActors") <- nActors
             if (i < observations)
             {
                 ## recreate the distance etc
@@ -917,12 +919,16 @@ unpackOneMode <- function(depvar, observations, compositionChange)
                 diag(mymat1) <- 0
                 diag(mymat2) <- 0
                 mydiff <- mymat2 - mymat1
-                attr(depvar, 'distance')[i] <- sum(mydiff != 0,
+                attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
                 if (all(mydiff@x >= 0, na.rm=TRUE))
-                    attr(depvar, 'uponly')[i] <- TRUE
+				{
+                    attr(depvar, "uponly")[i] <- TRUE
+				}
                 if (all(mydiff@x <= 0, na.rm=TRUE))
-                    attr(depvar, 'downonly')[i] <- TRUE
+				{
+                    attr(depvar, "downonly")[i] <- TRUE
+				}
             }
             edgeLists[[i]] <- list(mat1 = t(mat1), mat2 = t(mat2),
                                    mat3 = t(mat3))
@@ -1030,40 +1036,45 @@ unpackOneMode <- function(depvar, observations, compositionChange)
                 diag(mymat1[, ,1]) <- 0
                 diag(mymat2[, ,1]) <- 0
                 mydiff <- mymat2 - mymat1
-                attr(depvar, 'distance')[i] <- sum(mydiff != 0,
+                attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
                 if (all(mydiff >= 0, na.rm=TRUE))
-                    attr(depvar, 'uponly')[i] <- TRUE
+				{
+                    attr(depvar, "uponly")[i] <- TRUE
+				}
                 if (all(mydiff <= 0, na.rm=TRUE))
-                    attr(depvar, 'downonly')[i] <- TRUE
+				{
+                    attr(depvar, "downonly")[i] <- TRUE
+				}
             }
             diag(networks[[i]]) <- 0
-            edgeLists[[i]] <- createEdgeLists(networks[[i]], depvar[, , i], FALSE)
+            edgeLists[[i]] <- createEdgeLists(networks[[i]], depvar[, , i],
+											  FALSE)
         }
     }
     ## add attribute of nodeset
-    attr(edgeLists, 'nodeSet') <- attr(depvar, 'nodeSet')
+    attr(edgeLists, "nodeSet") <- attr(depvar, "nodeSet")
     ## add attribute of name
-    attr(edgeLists, 'name') <- attr(depvar, 'name')
+    attr(edgeLists, "name") <- attr(depvar, "name")
     ## add attribute of distance
-    attr(edgeLists, 'distance') <- attr(depvar, 'distance')
+    attr(edgeLists, "distance") <- attr(depvar, "distance")
     ## attr uponly and downonly
-    attr(edgeLists, 'uponly') <- attr(depvar, 'uponly')
-    attr(edgeLists, 'downonly') <- attr(depvar, 'downonly')
+    attr(edgeLists, "uponly") <- attr(depvar, "uponly")
+    attr(edgeLists, "downonly") <- attr(depvar, "downonly")
     ## attr symmetric
-    attr(edgeLists, 'symmetric') <- attr(depvar, 'symmetric')
+    attr(edgeLists, "symmetric") <- attr(depvar, "symmetric")
     ## attr balmean
-    attr(edgeLists, 'balmean') <- attr(depvar, 'balmean')
-    attr(edgeLists, 'structmean') <- attr(depvar, 'structmean')
-    attr(edgeLists, 'averageInDegree') <- attr(depvar, 'averageInDegree')
-    attr(edgeLists, 'averageOutDegree') <- attr(depvar, 'averageOutDegree')
+    attr(edgeLists, "balmean") <- attr(depvar, "balmean")
+    attr(edgeLists, "structmean") <- attr(depvar, "structmean")
+    attr(edgeLists, "averageInDegree") <- attr(depvar, "averageInDegree")
+    attr(edgeLists, "averageOutDegree") <- attr(depvar, "averageOutDegree")
     return(edgeLists = edgeLists)
 }
 ##@unpackBipartite siena07 Reformat data for C++
 unpackBipartite <- function(depvar, observations, compositionChange)
 {
-    edgeLists <- vector('list', observations)
-    networks <- vector('list', observations)
+    edgeLists <- vector("list", observations)
+    networks <- vector("list", observations)
     actorSet <- attr(depvar, "nodeSet")
     compActorSets <- sapply(compositionChange, function(x)attr(x, "nodeSet"))
     thisComp <- match(actorSet, compActorSets)
@@ -1080,7 +1091,7 @@ unpackBipartite <- function(depvar, observations, compositionChange)
         ccOption <- 0
         action <- matrix(0, nrow=attr(depvar, "netdims")[1], ncol=observations)
     }
-    sparse <- attr(depvar, 'sparse')
+    sparse <- attr(depvar, "sparse")
     if (sparse)
     {
         ## require(Matrix)
@@ -1112,7 +1123,7 @@ unpackBipartite <- function(depvar, observations, compositionChange)
             else
             {
                 netmiss1 <- netmiss[[i]][, 1:2]
-                storage.mode(netmiss1) <- 'integer'
+                storage.mode(netmiss1) <- "integer"
                 networks[[i]][netmiss1[, 1:2]] <-
                     networks[[i-1]][netmiss1[, 1:2]]
             }
@@ -1239,13 +1250,13 @@ unpackBipartite <- function(depvar, observations, compositionChange)
                 }
             }
             ##fix up storage mode to be integer
-            storage.mode(mat1) <- 'integer'
-            storage.mode(mat2) <- 'integer'
-            storage.mode(mat3) <- 'integer'
+            storage.mode(mat1) <- "integer"
+            storage.mode(mat2) <- "integer"
+            storage.mode(mat3) <- "integer"
             ## add attribute of size
-            attr(mat1,'nActors') <- c(nActors, nReceivers)
-            attr(mat2,'nActors') <- c(nActors, nReceivers)
-            attr(mat3,'nActors') <- c(nActors, nReceivers)
+            attr(mat1,"nActors") <- c(nActors, nReceivers)
+            attr(mat2,"nActors") <- c(nActors, nReceivers)
+            attr(mat3,"nActors") <- c(nActors, nReceivers)
             if (i < observations)
             {
                 ## recreate the distance etc
@@ -1259,12 +1270,16 @@ unpackBipartite <- function(depvar, observations, compositionChange)
                 mymat1@x <- x1
                 mymat2@x <- x2
                 mydiff <- mymat2 - mymat1
-                attr(depvar, 'distance')[i] <- sum(mydiff != 0,
+                attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
                 if (all(mydiff@x >= 0, na.rm=TRUE))
-                    attr(depvar, 'uponly')[i] <- TRUE
+				{
+                    attr(depvar, "uponly")[i] <- TRUE
+				}
                 if (all(mydiff@x <= 0, na.rm=TRUE))
-                    attr(depvar, 'downonly')[i] <- TRUE
+				{
+                    attr(depvar, "downonly")[i] <- TRUE
+				}
             }
             edgeLists[[i]] <- list(mat1 = t(mat1), mat2 = t(mat2),
                                    mat3 = t(mat3))
@@ -1355,33 +1370,37 @@ unpackBipartite <- function(depvar, observations, compositionChange)
                 mymat1[mymat1 %in% c(10,11)] <- NA
                 mymat2[mymat2 %in% c(10,11)] <- NA
                 mydiff <- mymat2 - mymat1
-                attr(depvar, 'distance')[i] <- sum(mydiff != 0,
+                attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                          na.rm = TRUE)
                 if (all(mydiff >= 0, na.rm=TRUE))
-                    attr(depvar, 'uponly')[i] <- TRUE
+				{
+                    attr(depvar, "uponly")[i] <- TRUE
+				}
                 if (all(mydiff <= 0, na.rm=TRUE))
-                    attr(depvar, 'downonly')[i] <- TRUE
+				{
+                    attr(depvar, "downonly")[i] <- TRUE
+				}
             }
 
             edgeLists[[i]] <- createEdgeLists(networks[[i]], depvar[, , i], TRUE)
         }
     }
     ## add attribute of nodeset
-    attr(edgeLists, 'nodeSet') <- attr(depvar, 'nodeSet')
+    attr(edgeLists, "nodeSet") <- attr(depvar, "nodeSet")
     ## add attribute of name
-    attr(edgeLists, 'name') <- attr(depvar, 'name')
+    attr(edgeLists, "name") <- attr(depvar, "name")
     ## add attribute of distance
-    attr(edgeLists, 'distance') <- attr(depvar, 'distance')
+    attr(edgeLists, "distance") <- attr(depvar, "distance")
     ## attr uponly and downonly
-    attr(edgeLists, 'uponly') <- attr(depvar, 'uponly')
-    attr(edgeLists, 'downonly') <- attr(depvar, 'downonly')
+    attr(edgeLists, "uponly") <- attr(depvar, "uponly")
+    attr(edgeLists, "downonly") <- attr(depvar, "downonly")
     ## attr symmetric
-    attr(edgeLists, 'symmetric') <- attr(depvar, 'symmetric')
+    attr(edgeLists, "symmetric") <- attr(depvar, "symmetric")
     ## attr balmean
-    attr(edgeLists, 'balmean') <- attr(depvar, 'balmean')
+    attr(edgeLists, "balmean") <- attr(depvar, "balmean")
     ## attr structmean
-    attr(edgeLists, 'structmean') <- attr(depvar, 'structmean')
-    attr(edgeLists, 'averageOutDegree') <- attr(depvar, 'averageOutDegree')
+    attr(edgeLists, "structmean") <- attr(depvar, "structmean")
+    attr(edgeLists, "averageOutDegree") <- attr(depvar, "averageOutDegree")
     return(edgeLists = edgeLists)
 }
 ##@unpackBehavior siena07 Reformat data for C++
@@ -1409,21 +1428,21 @@ unpackBehavior<- function(depvar, observations)
     ## behstruct[!struct] <- 0
 
     ## add attribute of nodeset
-    attr(beh, 'nodeSet') <- attr(depvar, 'nodeSet')
+    attr(beh, "nodeSet") <- attr(depvar, "nodeSet")
     ## add attribute of name
-    attr(beh, 'name') <- attr(depvar, 'name')
+    attr(beh, "name") <- attr(depvar, "name")
     ## attr uponly and downonly
-    attr(beh, 'uponly') <- attr(depvar, 'uponly')
-    attr(beh, 'downonly') <- attr(depvar, 'downonly')
+    attr(beh, "uponly") <- attr(depvar, "uponly")
+    attr(beh, "downonly") <- attr(depvar, "downonly")
     ## attr symmetric
-    attr(beh, 'symmetric') <- attr(depvar, 'symmetric')
+    attr(beh, "symmetric") <- attr(depvar, "symmetric")
     ## attr distance
-    attr(beh, 'distance') <- attr(depvar, 'distance')
+    attr(beh, "distance") <- attr(depvar, "distance")
     ## attr simMean
-    attr(beh, 'simMean') <- attr(depvar, 'simMean')
+    attr(beh, "simMean") <- attr(depvar, "simMean")
     ## attr simMeans
-    attr(beh, 'simMeans') <- attr(depvar, 'simMeans')
-    storage.mode(beh) <- 'integer'
+    attr(beh, "simMeans") <- attr(depvar, "simMeans")
+    storage.mode(beh) <- "integer"
     list(beh=beh, behmiss=behmiss)
 }
 ##@convertToStructuralZeros Miscellaneous To be implemented
@@ -1434,8 +1453,8 @@ convertToStructuralZeros <- function()
 ##@unpackCDyad siena07 Reformat data for C++
 unpackCDyad<- function(dycCovar)
 {
-    sparse <- attr(dycCovar, 'sparse')
-    nodeSets <- attr(dycCovar, "nodeSet")
+    sparse <- attr(dycCovar, "sparse")
+	bipartite <- attr(dycCovar, "type") == "bipartite"
     if (sparse)
     {
         ## have a list containing 1 sparse matrix in triplet format
@@ -1447,7 +1466,7 @@ unpackCDyad<- function(dycCovar)
             stop("duplicate entries in sparse matrix dyadic covariate")
         }
         ##drop the diagonal, if present - not for bipartite
-        if (nodeSets[1] == nodeSets[2])
+        if (!bipartite)
         {
             varmat <- varmat[varmat[,1] != varmat[, 2],]
         }
@@ -1455,18 +1474,18 @@ unpackCDyad<- function(dycCovar)
         mat1[is.na(varmat[, 3]), 3] <- attr(dycCovar, "mean")
         mat1 <- mat1[!mat1[, 3] == 0, ]
         ## add attribute of dim
-        attr(mat1, 'nActors1') <- nrow(dycCovar[[1]])
-        attr(mat1, 'nActors2') <- ncol(dycCovar[[1]])
+        attr(mat1, "nActors1") <- nrow(dycCovar[[1]])
+        attr(mat1, "nActors2") <- ncol(dycCovar[[1]])
         mat2 <- varmat[is.na(varmat[, 3]), , drop=FALSE]
         mat2[, 3] <- 1
         ## add attribute of dim
-        attr(mat2,'nActors1') <- nrow(dycCovar[[1]])
-        attr(mat2,'nActors2') <- ncol(dycCovar[[1]])
+        attr(mat2,"nActors1") <- nrow(dycCovar[[1]])
+        attr(mat2,"nActors2") <- ncol(dycCovar[[1]])
         edgeLists <-  list(t(mat1), t(mat2))
     }
     else
     {
-        if (nodeSets[1] == nodeSets[2])
+        if (!bipartite)
         {
             diag(dycCovar) <- 0
         }
@@ -1475,11 +1494,13 @@ unpackCDyad<- function(dycCovar)
         edgeLists <- createCovarEdgeList(dycCovar1, dycCovar)
     }
     ## add attribute of nodesets
-    attr(edgeLists, 'nodeSet') <- attr(dycCovar, 'nodeSet')
+    attr(edgeLists, "nodeSet") <- attr(dycCovar, "nodeSet")
+    ## add attribute of type
+    attr(edgeLists, "type") <- attr(dycCovar, "type")
     ## add attribute of name
-    attr(edgeLists, 'name') <- attr(dycCovar, 'name')
+    attr(edgeLists, "name") <- attr(dycCovar, "name")
     ## add attribute of mean
-    attr(edgeLists, 'mean') <- attr(dycCovar, 'mean')
+    attr(edgeLists, "mean") <- attr(dycCovar, "mean")
     return(edgeLists = edgeLists)
 }
 
@@ -1487,10 +1508,10 @@ unpackCDyad<- function(dycCovar)
 ##@unpackVDyad siena07 Reformat data for C++
 unpackVDyad<- function(dyvCovar, observations)
 {
-    edgeLists <- vector('list', observations)
-    sparse <- attr(dyvCovar, 'sparse')
+    edgeLists <- vector("list", observations)
+    sparse <- attr(dyvCovar, "sparse")
     means <- attr(dyvCovar, "meanp")
-    nodeSets <- attr(dyvCovar, "nodeSet")
+	bipartite <- attr(dyvCovar, "type") == "bipartite"
     if (sparse)
     {
         ## have a list of sparse matrices in triplet format
@@ -1500,7 +1521,7 @@ unpackVDyad<- function(dyvCovar, observations)
             thisvar <- dyvCovar[[i]]
             varmat <- cbind(thisvar@i+1, thisvar@j+1, thisvar@x)
             ## drop the diagonal, if present no - bipartite?
-            if (nodeSets[1] == nodeSets[2])
+            if (!bipartite)
             {
                 varmat <- varmat[varmat[,1] != varmat[, 2],]
             }
@@ -1510,10 +1531,10 @@ unpackVDyad<- function(dyvCovar, observations)
             mat2 <- varmat[is.na(varmat[, 3]),, drop=FALSE ]
             mat2[, 3] <- 1
             ## add attribute of size
-            attr(mat1, 'nActors1') <- nrow(dyvCovar[[i]])
-            attr(mat1, 'nActors2') <- ncol(dyvCovar[[i]])
-            attr(mat2, 'nActors1') <- nrow(dyvCovar[[i]])
-            attr(mat2, 'nActors2') <- ncol(dyvCovar[[i]])
+            attr(mat1, "nActors1") <- nrow(dyvCovar[[i]])
+            attr(mat1, "nActors2") <- ncol(dyvCovar[[i]])
+            attr(mat2, "nActors1") <- nrow(dyvCovar[[i]])
+            attr(mat2, "nActors2") <- ncol(dyvCovar[[i]])
             edgeLists[[i]] <- list(t(mat1), t(mat2))
         }
     }
@@ -1521,7 +1542,7 @@ unpackVDyad<- function(dyvCovar, observations)
     {
         for (i in 1:(observations - 1))
         {
-            if (nodeSets[1] == nodeSets[2])
+            if (!bipartite)
             {
                 diag(dyvCovar[, , i]) <- 0
             }
@@ -1531,11 +1552,13 @@ unpackVDyad<- function(dyvCovar, observations)
         }
     }
     ## add attribute of nodeset
-    attr(edgeLists, 'nodeSet') <- attr(dyvCovar, 'nodeSet')
+    attr(edgeLists, "nodeSet") <- attr(dyvCovar, "nodeSet")
+    ## add attribute of type
+    attr(edgeLists, "type") <- attr(dyvCovar, "type")
     ## add attribute of name
-    attr(edgeLists, 'name') <- attr(dyvCovar, 'name')
+    attr(edgeLists, "name") <- attr(dyvCovar, "name")
     ## add attribute of mean
-    attr(edgeLists, 'mean') <- attr(dyvCovar, 'mean')
+    attr(edgeLists, "mean") <- attr(dyvCovar, "mean")
     return(edgeLists = edgeLists)
 }
 
@@ -1544,11 +1567,11 @@ unpackData <- function(data)
 {
     f <- NULL
     observations<- data$observations
-    types <- sapply(data$depvars, function(x) attr(x, 'type'))
+    types <- sapply(data$depvars, function(x) attr(x, "type"))
     f$nDepvars <- length(data$depvars)
-    oneModes <- data$depvars[types == 'oneMode']
-    Behaviors <- data$depvars[types == 'behavior']
-    bipartites <- data$depvars[types == 'bipartite']
+    oneModes <- data$depvars[types == "oneMode"]
+    Behaviors <- data$depvars[types == "behavior"]
+    bipartites <- data$depvars[types == "bipartite"]
     f$nets <- lapply(oneModes, function(x, n, comp) unpackOneMode(x, n, comp),
                      n = observations, comp=data$compositionChange)
     names(f$nets) <- names(oneModes)
@@ -1560,16 +1583,16 @@ unpackData <- function(data)
                         n = observations)
     names(f$behavs) <- names(Behaviors)
     f$observations <- observations
-    f$seed<- vector('list', observations - 1)
+    f$seed<- vector("list", observations - 1)
     f$depvars <- data$depvars
     f$nodeSets <- data$nodeSets
     f$oneModes <- oneModes
     f$Behaviors <- Behaviors
-    f$oneModeUpOnly <- sapply(oneModes, function(x) attr(x, 'uponly'))
-    f$oneModeDownOnly <- sapply(oneModes, function(x) attr(x, 'downonly'))
-    f$behaviorUpOnly <- sapply(Behaviors, function(x) attr(x, 'uponly'))
+    f$oneModeUpOnly <- sapply(oneModes, function(x) attr(x, "uponly"))
+    f$oneModeDownOnly <- sapply(oneModes, function(x) attr(x, "downonly"))
+    f$behaviorUpOnly <- sapply(Behaviors, function(x) attr(x, "uponly"))
     f$behaviorDownOnly <- sapply(Behaviors, function(x) attr(x,
-                                                             'downonly'))
+                                                             "downonly"))
     f$distances <- sapply(data$depvars, function(x) attr(x, "distance"))
     f$cCovars <- data$cCovars
     f$vCovars <- data$vCovars
@@ -1816,19 +1839,19 @@ fixUpEffectNames <- function(effects)
                                 "same type: evaluation, endowment or creation")
                        }
                    }
-                   ## check types - all should be OK here
+                   ## check types - at most one should be not OK here
                    inters <- rbind(inter1, inter2, inter3)
-                   ##if (length(which(inters$interactionType != "OK")) > 1)
-				   ##{
-				   ##	   stop("invalid behavior interaction specification: ",
-				   ##			"at most one effect with interactionType ",
-				   ##			"not OK is allowed")
-                   ##}
-                   if (any(inters$interactionType != "OK"))
-                   {
-                       stop("invalid behavior interaction specification: ",
-                            "only effects with interactionType OK are allowed")
+                   if (length(which(inters$interactionType != "OK")) > 1)
+				   {
+				   	   stop("invalid behavior interaction specification: ",
+				   			"at most one effect with interactionType ",
+				   			"not OK is allowed")
                    }
+                   ##if (any(inters$interactionType != "OK"))
+                   ##{
+                   ##    stop("invalid behavior interaction specification: ",
+                   ##         "only effects with interactionType OK are allowed")
+                   ##}
                    ## construct a name
 				   tmpnames <- inters$effectName
 				   tmpnames[-1] <- sub(paste("behavior ", inters$name[1], " ",
@@ -1851,4 +1874,39 @@ fixUpEffectNames <- function(effects)
     effects
 }
 
-
+##@updateTheta siena07 Copy theta values from previous fit
+updateTheta <- function(effects, prevAns)
+{
+	if (!inherits(effects, "data.frame"))
+	{
+		stop("effects is not a data.frame")
+	}
+	if (!inherits(prevAns, "sienaFit"))
+	{
+		stop("prevAns is not an RSiena fit object")
+	}
+	prevEffects <- prevAns$requestedEffects
+	prevEffects$initialValue <- prevAns$theta
+	if (prevAns$cconditional)
+	{
+		condEffects <- attr(prevAns$f, "condEffects")
+		condEffects$initialValue <- prevAns$rate
+		prevEffects <- rbind(prevEffects, condEffects)
+	}
+	oldlist <- apply(prevEffects, 1, function(x)
+					 paste(x[c("name", "shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period")],
+						   collapse="|"))
+	efflist <- apply(effects, 1, function(x)
+					 paste(x[c("name", "shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period")],
+						   collapse="|"))
+	use <- efflist %in% oldlist
+	effects$initialValue[use] <-
+		prevEffects$initialValue[match(efflist, oldlist)][use]
+	effects
+}

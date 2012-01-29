@@ -9,7 +9,7 @@
 # * collection of Siena fits.
 # *****************************************************************************/
 ##@siena08 siena08
-siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
+siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 {
     dots <- as.list(substitute(list(...)))[-1] ##first entry is the word 'list'
     if (length(dots) == 0)
@@ -62,9 +62,9 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
                                              projname=rep(projnames[i], n),
                                              theta=x$theta,
                                              effects=
-                                             paste(format(x$effects$type,
+                                             paste(format(x$requestedEffects$type,
                                                           width=5),
-                                                   x$effects$effectName,
+                                                   x$requestedEffects$effectName,
                                                    sep=": "),
                                              tconv=x$tconv,
                                              version=rep(x$version, n),
@@ -102,7 +102,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05)
                                            method="no correlation test")
             }
             regfit <- iwlsm(theta ~ 1, psi=psi.iwlsm, data=x1,
-                            ses=x1$se^2)
+                            ses=x1$se^2, maxit=maxit)
             regfit$terms <- NA
             regfit$model <- NULL
             regfit$psi <- NULL

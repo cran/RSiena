@@ -37,7 +37,6 @@
 using namespace std;
 using namespace siena;
 
-
 extern "C"
 {
 
@@ -48,8 +47,7 @@ extern "C"
 SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	SEXP FROMFINITEDIFF, SEXP MODELPTR, SEXP EFFECTSLIST,
 	SEXP THETA, SEXP RANDOMSEED2, SEXP RETURNDEPS, SEXP NEEDSEEDS,
-	SEXP USESTREAMS, SEXP ADDCHAINTOSTORE, SEXP NEEDCHANGECONTRIBUTIONS,
-	SEXP RETURNCHAINS)
+	SEXP USESTREAMS, SEXP ADDCHAINTOSTORE, SEXP RETURNCHAINS, SEXP RETURNLOGLIK)
 {
 	SEXP NEWRANDOMSEED; /* for parallel testing only */
 	PROTECT(NEWRANDOMSEED = duplicate(RANDOMSEED2));
@@ -72,7 +70,6 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	int useStreams = asInteger(USESTREAMS);
 
 	int addChainToStore = 0;
-	int needChangeContributions = 0;
 
 	int returnDependents = asInteger(RETURNDEPS);
 
@@ -86,27 +83,28 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 		addChainToStore = asInteger(ADDCHAINTOSTORE);
 	}
 
-	if (!isNull(NEEDCHANGECONTRIBUTIONS))
+
+	int returnLoglik = 0;
+	if (!isNull(RETURNLOGLIK))
 	{
-		needChangeContributions = asInteger(NEEDCHANGECONTRIBUTIONS);
+		returnLoglik = asInteger(RETURNLOGLIK);
 	}
 	int deriv = asInteger(DERIV);
 	int needSeeds = asInteger(NEEDSEEDS);
 
 	/* set the deriv flag on the model */
 	pModel->needScores(deriv);
-	pModel->needChangeContributions((addChainToStore == 1) ||
-		(needChangeContributions == 1));
 
 	/* set the chain flag on the model */
-	pModel->needChain(returnChains == 1 || addChainToStore == 1);
+	pModel->needChain(returnChains == 1 || addChainToStore == 1 ||
+		returnLoglik == 1);
 
 	/* update the parameters */
 	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
 
 	/* ans will be the return value */
 	SEXP ans;
-	PROTECT(ans = allocVector(VECSXP, 7));
+	PROTECT(ans = allocVector(VECSXP, 8));
 
 	/* count up the total number of parameters */
 	int dim = 0;
@@ -128,7 +126,8 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	{
 		rfra[i] = 0;
 	}
-	/* ntim is the total time taken in each period */
+	/* ntim is the total time taken in each period (relevant for conditional
+ estimation) */
 	SEXP ntim;
 	double * rntim;
 	PROTECT(ntim = allocVector(REALSXP, totObservations));
@@ -166,6 +165,12 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 					observationCount() - 1));
 		}
 	}
+
+	/* loglik will be the returned log likelihoods */
+	SEXP logliks;
+	double * Rlogliks;
+	PROTECT(logliks = allocVector(REALSXP, totObservations));
+	Rlogliks = REAL(logliks);
 
 	/* seed store is a list to save the random states */
 	SEXP seedstore;
@@ -207,12 +212,11 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 		PROTECT(STREAMS = eval(R_fcall1, R_GlobalEnv));
 	}
 
-
 	/* group loop here */
 	for (int group = 0; group < nGroups; group++)
 	{
 		/* random states need store (not fromFiniteDiff)
-		   and restore (fromFiniteDiff) for each period
+		   or restore (fromFiniteDiff) for each period
 		   within each  group */
 		SEXP seeds = R_NilValue;
 		if (fromFiniteDiff)
@@ -307,6 +311,11 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 					}
 				}
 			}
+			/* only needed for forward chains */
+			if (pModel->needChain())
+			{
+				pEpochSimulation->clearChain();
+			}
 			/* run the epoch simulation for this period */
 			pEpochSimulation->runEpoch(period);
 			State State(pEpochSimulation);
@@ -366,8 +375,6 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 			}
 			if (returnChains)
 			{
-				pModel->needChangeContributions(addChainToStore == 0 &&
-					needChangeContributions == 1);
 
 				SEXP thisChain =
 					getChainList(*(pEpochSimulation->pChain()),
@@ -375,9 +382,13 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 
 				SET_VECTOR_ELT(VECTOR_ELT(chains, group), period,
 					thisChain);
-				pModel->needChangeContributions(addChainToStore == 1 ||
-					needChangeContributions == 1);
 
+			}
+			if (returnLoglik)
+			{
+				pEpochSimulation->simpleRates(pModel->simpleRates());
+				Rlogliks[periodFromStart - 1] =
+					pEpochSimulation->calculateLikelihood();
 			}
 			if (addChainToStore)
 			{
@@ -420,244 +431,8 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 		UNPROTECT(3);
 	}
 	SET_VECTOR_ELT(ans, 6, chains);
-	UNPROTECT(9);
-	return(ans);
-}
-
-/** Does one forward simulation for a specified group and period.
- *  Not recommended as it seems slow. Does not currently return chains.
- */
-SEXP modelPeriod(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
-	SEXP FROMFINITEDIFF, SEXP MODELPTR, SEXP EFFECTSLIST,
-	SEXP THETA, SEXP RANDOMSEED2, SEXP RETURNDEPS, SEXP NEEDSEEDS,
-	SEXP USESTREAMS, SEXP GROUP, SEXP PERIOD, SEXP RETURNCHAINS)
-{
-	/* create a simulation and return the observed statistics and scores */
-
-	/* get hold of the data vector */
-	vector<Data *> * pGroupData = (vector<Data *> *)
-		R_ExternalPtrAddr(DATAPTR);
-	int group = asInteger(GROUP) - 1;
-
-	int period = asInteger(PERIOD) - 1;
-
-	Data * pData = (*pGroupData)[group];
-
-	/* get hold of the model object */
-	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
-
-	int fromFiniteDiff = asInteger(FROMFINITEDIFF);
-	int useStreams = asInteger(USESTREAMS); /* always true */
-	if (!useStreams)
-	{
-		error("function modelPeriod called with useStreams FALSE");
-	}
-
-	int returnDependents = asInteger(RETURNDEPS);
-
-	int returnChains = 0;
-	if (!isNull(RETURNCHAINS))
-	{
-		returnChains = asInteger(RETURNCHAINS);
-	}
-
-	int deriv = asInteger(DERIV);
-	int needSeeds = asInteger(NEEDSEEDS);
-
-	/* set the deriv flag on the model */
-	pModel->needScores(deriv);
-
-	/* set the chain flag on the model */
-	pModel->needChain(returnChains);
-
-	/* update the parameters */
-	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
-
-	/* count up the total number of parameters */
-	int dim = 0;
-	for (int i = 0; i < length(EFFECTSLIST); i++)
-	{
-		dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
-	}
-
-	/* fra will contain the simulated statistics and must be initialised
-	   to 0. Use rfra to reduce function evaluations. */
-	SEXP fra;
-	double * rfra;
-	PROTECT(fra = allocVector(REALSXP, dim));
-	rfra = REAL(fra);
-	for (int i = 0; i < length(fra); i++)
-	{
-		rfra[i] = 0;
-	}
-
-	/* ntim is the total time taken in this period */
-	SEXP ntim;
-	double * rntim;
-	PROTECT(ntim = allocVector(REALSXP, 1));
-	rntim = REAL(ntim);
-	rntim[0] = 0.0;
-
-	/* ans will be the return value */
-	SEXP ans;
-	PROTECT(ans = allocVector(VECSXP, 7));
-
-	/* sims will be the returned simulated dependent variables */
-	SEXP sims;
-	int nVariables = (*pGroupData)[0]->rDependentVariableData().size();
-	PROTECT(sims = allocVector(VECSXP, nVariables));
-
-	/* seed store is a list to save the random state */
-	SEXP seedstore;
-	PROTECT(seedstore = allocVector(VECSXP, 1));
-
-	/* scores will hold the return values of the scores */
-	SEXP scores;
-	double *rscores;
-	PROTECT(scores = allocVector(REALSXP, dim));
-	rscores = REAL(scores);
-	for (int i = 0; i < length(scores); i++)
-		rscores[i] = 0.0;
-
-	/* random states need store (not fromFiniteDiff)
-	   and restore (fromFiniteDiff) for each period
-	   within each  group */
-
-	/* create my epochsimulation object */
-	EpochSimulation * pEpochSimulation  = new
-		EpochSimulation(pData, pModel);
-
-	SEXP Cgstr, ans2, ans3, ans4, STREAMS, R_fcall1, R_fcall2,
-		R_fcall3, R_fcall4;
-
-	// create an R character string
-	PROTECT(Cgstr = allocVector(STRSXP,1));
-	SET_STRING_ELT(Cgstr, 0, mkChar("Cg"));
-
-	// find out which stream we are using
-	PROTECT(R_fcall1 = lang1(install(".lec.GetStreams")));
-	PROTECT(STREAMS = eval(R_fcall1, R_GlobalEnv));
-
-	if (!isNull(RANDOMSEED2))
-	{
-		error("non null randomseed2");
-	}
-	else
-	{
-		if (fromFiniteDiff) /* restore state */
-		{
-			// overwrite the current state in R
-			PROTECT(R_fcall2 = lang4(install("[[<-"),
-					install(".lec.Random.seed.table"), Cgstr,
-					VECTOR_ELT(SEEDS, 0)));
-			PROTECT(ans2 = eval(R_fcall2, R_GlobalEnv));
-			// get the overwritten state into C table
-			PROTECT(R_fcall3 = lang2(install(".lec.CurrentStream"),
-					STREAMS));
-			PROTECT(ans3 = eval(R_fcall3, R_GlobalEnv));
-			UNPROTECT(4);
-		}
-		else /* save state */
-		{
-			if (needSeeds)
-			{
-				// move on to next substream in R copy of our stream
-				PROTECT(R_fcall2 =
-					lang2(install(".lec.ResetNextSubstream"),
-						STREAMS));
-				PROTECT(ans2 = eval(R_fcall2, R_GlobalEnv));
-				// now make this stream the current one so C table
-				// contains these values
-				PROTECT(R_fcall3 = lang2(install(".lec.CurrentStream"),
-						STREAMS));
-				PROTECT(ans3 = eval(R_fcall3, R_GlobalEnv));
-				// get the relevant current state from R
-				PROTECT(R_fcall4 = lang3(install("[["),
-						install(".lec.Random.seed.table"), Cgstr));
-				PROTECT(ans4 = eval(R_fcall4, R_GlobalEnv));
-				// store the Cg values
-				SET_VECTOR_ELT(seedstore, 0, ans4);
-				UNPROTECT(6);
-			}
-		}
-	}
-
-	/* run the epoch simulation for this period */
-	pEpochSimulation->runEpoch(period);
-
-	State State(pEpochSimulation);
-	StatisticCalculator Calculator(pData, pModel, &State,
-		period);
-	vector<double> statistic(dim);
-	vector<double> score(dim);
-	getStatistics(EFFECTSLIST, &Calculator,
-		period, group, pData, pEpochSimulation,
-		&statistic, &score);
-	/* fill up vector for  return value list */
-	for (unsigned effectNo = 0; effectNo < statistic.size();
-		 effectNo++)
-	{
-		rfra[effectNo] = statistic[effectNo];
-
-		rscores[effectNo] = score[effectNo];
-	}
-	if (pModel->conditional())
-	{
-		rntim[0] = pEpochSimulation->time();
-	}
-	// get simulated network
-	if (returnDependents)
-	{
-		const vector<DependentVariable *> rVariables =
-			pEpochSimulation->rVariables();
-		for (unsigned i = 0; i < rVariables.size(); i++)
-		{
-			NetworkVariable * pNetworkVariable =
-				dynamic_cast<NetworkVariable *>(rVariables[i]);
-			BehaviorVariable * pBehaviorVariable =
-				dynamic_cast<BehaviorVariable *>(rVariables[i]);
-
-			if (pNetworkVariable)
-			{
-				const Network * pNetwork =
-					pNetworkVariable->pNetwork();
-				SEXP thisEdge = getEdgeList(*pNetwork);
-				SET_VECTOR_ELT(sims, i, thisEdge);
-			}
-			else if (pBehaviorVariable)
-			{
-				SEXP theseValues =
-					getBehaviorValues(*pBehaviorVariable);
-				SET_VECTOR_ELT(sims, i, theseValues);
-			}
-			else
-			{
-				throw domain_error("Unexpected class of dependent variable");
-			}
-		}
-	}
-	delete pEpochSimulation;
-
-	/* set up the return object */
-	if (!fromFiniteDiff)
-	{
-		if (needSeeds)
-		{
-			SET_VECTOR_ELT(ans, 2, seedstore);
-		}
-	}
-	if (deriv)
-	{
-		SET_VECTOR_ELT(ans, 1, scores);
-	}
-	if (returnDependents)
-	{
-		SET_VECTOR_ELT(ans, 5, sims);/* not done in phase 2 !!!!test this*/
-	}
-	SET_VECTOR_ELT(ans, 0, fra);
-	SET_VECTOR_ELT(ans, 3, ntim);
-
-	UNPROTECT(9);
+	SET_VECTOR_ELT(ans, 7, logliks);
+	UNPROTECT(10);
 	return(ans);
 }
 
@@ -667,12 +442,13 @@ SEXP modelPeriod(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
  * better to do it in C unless parallel processing.
  */
 SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
-	SEXP THETA, SEXP RETURNDEPS, SEXP GROUP, SEXP PERIOD,
-	SEXP NRUNMH, SEXP ADDCHAINTOSTORE, SEXP NEEDCHANGECONTRIBUTIONS,
-	SEXP RETURNDATAFRAME, SEXP RETURNCHAINS)
+	SEXP THETA, SEXP GROUP, SEXP PERIOD,
+	SEXP NRUNMH, SEXP ADDCHAINTOSTORE,
+	SEXP RETURNDATAFRAME, SEXP RETURNCHAINS,
+	SEXP RETURNLOGLIK, SEXP ONLYLOGLIK)
 {
-	/* do some MH steps and return the scores and derivs of the chain
-	   at the end */
+	/* do some MH steps and return some or all of the scores and derivs
+	   of the chain at the end or the calculated log likelihood*/
 
 	/* get hold of the data vector */
 	vector<Data *> * pGroupData = (vector<Data *> *)
@@ -680,7 +456,6 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 
 	int group = asInteger(GROUP) - 1;
 	int period = asInteger(PERIOD) - 1;
-
 	int groupPeriod = periodFromStart(*pGroupData, group, period);
 
 	Data * pData = (*pGroupData)[group];
@@ -694,7 +469,11 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	/* create the ML simulation object */
 	MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
 
+	/* initialize some data from model */
 	pMLSimulation->simpleRates(pModel->simpleRates());
+
+	pMLSimulation->currentPermutationLength(
+		pModel->currentPermutationLength(period));
 
 	// next calls are ambiguous unless I use a const pModel
 	const Model * pConstModel = pModel;
@@ -709,85 +488,47 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	// get chain for this period from model
 	Chain * pChain = pModel->rChainStore(groupPeriod).back();
 
-	// then copy the chain to the MLSimulation object.
+	// then copy the chain to the MLSimulation object. (deleting new one first)
 	pMLSimulation->pChain(pChain->copyChain());
-
-	// prepare to recreate after the simulation
-	pModel->deleteLastChainStore(groupPeriod);
+	//	Rprintf(" %d\n", pMLSimulation->pChain()->ministepCount());
 
 	int addChainToStore = 0;
-	int needChangeContributions = 0;
-
-//	int returnDependents = asInteger(RETURNDEPS);
-	int returnDataFrame = 0;
-	if (!isNull(RETURNDATAFRAME))
+	if (!isNull(ADDCHAINTOSTORE))
 	{
-		returnDataFrame = asInteger(RETURNDATAFRAME);
+		addChainToStore = asInteger(ADDCHAINTOSTORE);
 	}
+	// prepare to recreate after the simulation
+	if (!addChainToStore)
+	{
+		pModel->deleteLastChainStore(groupPeriod);
+	}
+
 	int returnChains = 0;
 	if (!isNull(RETURNCHAINS))
 	{
 		returnChains = asInteger(RETURNCHAINS);
 	}
-	if (!isNull(ADDCHAINTOSTORE))
+	int returnDataFrame = 0;
+	if (!isNull(RETURNDATAFRAME))
 	{
-		addChainToStore = asInteger(ADDCHAINTOSTORE);
-	}
-
-	if (!isNull(NEEDCHANGECONTRIBUTIONS))
-	{
-		needChangeContributions = asInteger(NEEDCHANGECONTRIBUTIONS);
+		returnDataFrame = asInteger(RETURNDATAFRAME);
 	}
 
 	int deriv = asInteger(DERIV);
-
-	pModel->needChangeContributions((addChainToStore == 1) ||
-		(needChangeContributions == 1));
-	/* set the chain flag on the model */
-	pModel->needChain(returnChains == 1 || addChainToStore == 1);
-
-	/* count up the total number of parameters */
-	int dim = 0;
-	for (int i = 0; i < length(EFFECTSLIST); i++)
+	int returnLoglik = 0;
+	if (!isNull(RETURNLOGLIK))
 	{
-		dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		returnLoglik = asInteger(RETURNLOGLIK);
 	}
-
-	/* fra will contain the scores and must be initialised
-	   to 0. Use rfra to reduce function evaluations. */
-	SEXP fra;
-	double * rfra;
-	PROTECT(fra = allocVector(REALSXP, dim));
-	rfra = REAL(fra);
-	for (int i = 0; i < length(fra); i++)
+	int onlyLoglik = 0;
+	if (!isNull(ONLYLOGLIK))
 	{
-		rfra[i] = 0;
-	}
-
-	/* ans will be the return value */
-	SEXP ans;
-	PROTECT(ans = allocVector(VECSXP, 10));
-
-	/* sims will be the returned chain */
-	SEXP sims;
-	PROTECT(sims = allocVector(VECSXP, 1));
-
-	/* rs will allow us to access or set the .Random.seed in R */
-	SEXP rs;
-	PROTECT(rs = install(".Random.seed"));
-
-	/* dff will hold the return values of the derivatives */
-	SEXP dff;
-	double *rdff;
-	PROTECT(dff = allocVector(REALSXP, dim * dim));
-	rdff = REAL(dff);
-	for (int i = 0; i < length(dff); i++)
-	{
-		rdff[i] = 0.0;
+		onlyLoglik = asInteger(ONLYLOGLIK);
 	}
 
 	// get the value from .Random.seed into memory
 	GetRNGstate();
+
 	pModel->needScores(false);
 	pModel->needDerivatives(false);
 
@@ -799,138 +540,82 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 
 	/* run through current state of chain and calculate
 	   scores and derivatives */
-	PutRNGstate();
-	pModel->needScores(true);
+	pModel->needScores(!onlyLoglik);
 	pModel->needDerivatives(deriv);
 
 	pMLSimulation->updateProbabilities(pMLSimulation->pChain(),
 		pMLSimulation->pChain()->pFirst()->pNext(),
 		pMLSimulation->pChain()->pLast()->pPrevious());
 
-    pMLSimulation->createEndStateDifferences();
-	/* collect the scores and derivatives */
-	vector<double> derivs(dim * dim);
-	vector<double> score(dim);
+	double loglik = 0;
+	if (returnLoglik)
+	{
+		loglik =
+			pMLSimulation->calculateLikelihood();
+	}
 
-	getScores(EFFECTSLIST, 	period, group, pData, pMLSimulation,
-		&derivs, &score);
+ 	/* store chain on Model */
+	pChain = pMLSimulation->pChain();
+	pChain->createInitialStateDifferences();
+	pMLSimulation->createEndStateDifferences();
+	pModel->chainStore(*pChain, groupPeriod);
+
+	/* and current permutation length */
+	pModel->currentPermutationLength(period,
+		pMLSimulation->currentPermutationLength());
 
 	/* get hold of the statistics for accept and reject */
+	const vector < DependentVariable * > & rVariables =
+		pMLSimulation->rVariables();
+	int numberVariables = rVariables.size();
+
 	SEXP accepts;
-	PROTECT(accepts = allocVector(INTSXP, 7));
+	PROTECT(accepts = allocMatrix(INTSXP, numberVariables, 9));
 	SEXP rejects;
-	PROTECT(rejects = allocVector(INTSXP, 7));
+	PROTECT(rejects = allocMatrix(INTSXP, numberVariables, 9));
 	SEXP aborts;
-	PROTECT(aborts = allocVector(INTSXP, 7));
+	PROTECT(aborts = allocVector(INTSXP, 9));
 	int * iaccepts = INTEGER(accepts);
 	int * irejects = INTEGER(rejects);
 	int * iaborts = INTEGER(aborts);
-
-	for (int i = 0; i < 7; i++)
+	for (int i = 0; i < 9; i++)
 	{
-		iaccepts[i] = pMLSimulation->acceptances(i);
-		irejects[i] = pMLSimulation->rejections(i);
 		iaborts[i] = pMLSimulation->aborted(i);
+		for (int j = 0; j < numberVariables; j++)
+		{
+			iaccepts[i + 9 * j] = rVariables[j]->acceptances(i);
+			irejects[i + 9 * j] = rVariables[j]->rejections(i);
+		}
 	}
 
-	/* fill up vectors for  return value list */
-	for (unsigned effectNo = 0; effectNo < score.size();
-		 effectNo++)
-	{
-		rfra[effectNo] = score[effectNo];
-	}
+	/* sims will be the returned chain */
+	SEXP sims;
+	PROTECT(sims = allocVector(VECSXP, 1));
+	int nProtects = 4;
 
-	for (unsigned ii = 0; ii < derivs.size(); ii++)
-	{
-		rdff[ii] = derivs[ii];
-	}
 	// get chain
 	if (returnChains)
 	{
 		SEXP theseValues;
 		if (returnDataFrame)
 		{
-			theseValues = getChainDFPlus(*(pMLSimulation->pChain()), true);
+			PROTECT(theseValues =
+				duplicate(getChainDFPlus(*(pMLSimulation->pChain()), true)));
 		}
 		else
 		{
-			theseValues =
-				getChainList(*(pMLSimulation->pChain()), *pMLSimulation);
+			PROTECT(theseValues =
+				duplicate(getChainList(*(pMLSimulation->pChain()),
+						*pMLSimulation)));
 		}
+		nProtects++;
 		SET_VECTOR_ELT(sims, 0, theseValues);
 	}
 
-	/* set up the return object */
-	if (deriv)
-	{
-		SET_VECTOR_ELT(ans, 6, dff);
-	}
-	if (returnChains)
-	{
-		SET_VECTOR_ELT(ans, 5, sims);/* not done in phase 2 !!!!test this*/
-	}
-	SET_VECTOR_ELT(ans, 0, fra);
-	SET_VECTOR_ELT(ans, 7, accepts);
-	SET_VECTOR_ELT(ans, 8, rejects);
-	SET_VECTOR_ELT(ans, 9, aborts);
+	/* ans will be the return value */
+	SEXP ans;
 
-	/* store chain on Model */
-	pChain = pMLSimulation->pChain();
-	pChain->createInitialStateDifferences();
-	pModel->chainStore(*pChain, groupPeriod);
-
-//	PrintValue(getChainDF(*pChain, true));
-
-	delete pMLSimulation;
-
-	UNPROTECT(8);
-	return(ans);
-}
-
-/** Recalculates the probabilities for a single chain, corresponding to a
- * specific group and period. Optionally returns the scores and derivatives
- * also.
- *
- */
-SEXP getChainProbabilitiesList(SEXP CHAIN, SEXP DATAPTR, SEXP MODELPTR,
-	SEXP GROUP, SEXP PERIOD, SEXP EFFECTSLIST, SEXP THETA,
-	SEXP NEEDSCORES)
-{
-	/* need to make sure the parameters have been updated first */
-	/* get hold of the data vector */
-	vector<Data *> * pGroupData = (vector<Data *> *)
-		R_ExternalPtrAddr(DATAPTR);
-	int group = asInteger(GROUP) - 1;
-	int period = asInteger(PERIOD) - 1;
-	Data * pData = (*pGroupData)[group];
-
-	/* get hold of the model object */
-	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
-
-	/* See if we need the scores too */
-	int needScores = asInteger(NEEDSCORES);
-	pModel->needScores(needScores);
-
-	/* chain is a list: aspect, varname, ego, alter, diff */
-
-	/* create a chain */
-	Chain * pChain = makeChainFromList(pData, CHAIN, period);
-
-	/* update the parameters */
-	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
-
-	/* create an ml simulation object */
-	MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
-
-	/* calculate the probabilities: this uses runEpoch so we need to
-	   set the number of steps to zero first */
-	pModel->numberMLSteps(0);
-	pMLSimulation->pChainProbabilities(pChain, period);
-
-	SEXP returnval;
-	PROTECT(returnval = allocVector(VECSXP, 2));
-
-	if (needScores)
+	if (!onlyLoglik)
 	{
 		/* count up the total number of parameters */
 		int dim = 0;
@@ -938,176 +623,226 @@ SEXP getChainProbabilitiesList(SEXP CHAIN, SEXP DATAPTR, SEXP MODELPTR,
 		{
 			dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 		}
-		/* scores will hold the return values of the scores */
-		SEXP scores;
-		double *rscores;
-		PROTECT(scores = allocVector(REALSXP, dim));
-		rscores = REAL(scores);
+
+
+		/* dff will hold the return values of the derivatives */
+		SEXP dff = R_NilValue;
+		double *rdff = 0;
+		if (deriv)
+		{
+			PROTECT(dff = allocVector(REALSXP, dim * dim));
+			nProtects++;
+			rdff = REAL(dff);
+			for (int i = 0; i < length(dff); i++)
+			{
+				rdff[i] = 0.0;
+			}
+		}
+		/* collect the scores and derivatives */
+		vector<double> derivs(dim * dim);
+		vector<double> score(dim);
+
+		getScores(EFFECTSLIST, 	period, group, pData, pMLSimulation,
+			&derivs, &score);
+
+		/* fra will contain the scores and must be initialised
+		   to 0. Use rfra to reduce function evaluations. */
+		SEXP fra;
+		double * rfra;
+		PROTECT(fra = allocVector(REALSXP, dim));
+		nProtects++;
+		rfra = REAL(fra);
+		for (int i = 0; i < length(fra); i++)
+		{
+			rfra[i] = 0;
+		}
+		/* fill up vectors for  return value list */
+		for (unsigned effectNo = 0; effectNo < score.size();
+			 effectNo++)
+		{
+			rfra[effectNo] = score[effectNo];
+		}
+		if (deriv)
+		{
+			for (unsigned ii = 0; ii < derivs.size(); ii++)
+			{
+				rdff[ii] = derivs[ii];
+			}
+		}
+		PROTECT(ans = allocVector(VECSXP, 11));
+		nProtects++;
+
+		/* set up the return object */
+		if (deriv)
+		{
+			SET_VECTOR_ELT(ans, 6, dff);
+		}
+		if (returnChains)
+		{
+			SET_VECTOR_ELT(ans, 5, sims);/* not done in phase 2 !!!!test this*/
+		}
+		SET_VECTOR_ELT(ans, 0, fra);
+		SET_VECTOR_ELT(ans, 7, accepts);
+		SET_VECTOR_ELT(ans, 8, rejects);
+		SET_VECTOR_ELT(ans, 9, aborts);
+		SET_VECTOR_ELT(ans, 10, ScalarReal(loglik));
+
+//	PrintValue(getChainDF(*pChain, true));
+	}
+	else
+	{
+		PROTECT(ans = allocVector(VECSXP, 5));
+		nProtects++;
+		SET_VECTOR_ELT(ans, 0, ScalarReal(loglik));
+		SET_VECTOR_ELT(ans, 1, accepts);
+		SET_VECTOR_ELT(ans, 2, rejects);
+		SET_VECTOR_ELT(ans, 3, aborts);
+		SET_VECTOR_ELT(ans, 4, sims);
+	}
+
+	PutRNGstate();
+	delete pMLSimulation;
+	UNPROTECT(nProtects);
+	return(ans);
+}
+
+/**
+ * Clears the chains that have been stored on a model for a particular period
+ * from start,  Leave KEEP ones for reuse
+ */
+SEXP clearStoredChains(SEXP MODELPTR, SEXP KEEP, SEXP GROUPPERIOD)
+{
+	int keep = asInteger(KEEP);
+	int groupPeriod = asInteger(GROUPPERIOD) - 1;
+
+	/* get hold of the model object */
+	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+	pModel->clearChainStore(keep, groupPeriod);
+
+	return R_NilValue;
+}
+
+
+/** Recalculates the probabilities for a stored chain
+ * corresponding to a specific group and period and
+ * (negative) index. (index 1 is final).
+ */
+SEXP getChainProbabilities(SEXP DATAPTR, SEXP MODELPTR,
+	SEXP GROUP, SEXP PERIOD, SEXP INDEX, SEXP EFFECTSLIST, SEXP THETA,
+	SEXP GETSCORES)
+{
+	/* need to make sure the parameters have been updated first */
+
+	/* get hold of the data vector */
+	vector<Data *> * pGroupData = (vector<Data *> *)
+		R_ExternalPtrAddr(DATAPTR);
+
+	int group = asInteger(GROUP) - 1;
+	int period = asInteger(PERIOD) - 1;
+	int groupPeriod = periodFromStart(*pGroupData, group, period);
+	Data * pData = (*pGroupData)[group];
+	/* get hold of the model object */
+	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+
+	/* update the parameters */
+	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
+
+	/* create the ML simulation object */
+	MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
+
+	pMLSimulation->simpleRates(pModel->simpleRates());
+
+	// get chain for this period from model
+	int index = pModel->rChainStore(groupPeriod).size() - asInteger(INDEX);
+	//Rprintf(" %d \n",pModel->rChainStore(groupPeriod).size());
+	if (index < 0)
+	{
+		error("index invalid");
+	}
+	Chain * pChain = pModel->rChainStore(groupPeriod)[index];
+	// then copy the chain to the MLSimulation object. (deleting new one first)
+	pMLSimulation->pChain(pChain->copyChain());
+
+	int needScores = asInteger(GETSCORES);
+	int deriv = 0;
+	pModel->needScores(needScores);
+	pModel->needDerivatives(deriv);
+
+	/* set the number of steps to zero */
+	pModel->numberMLSteps(0);
+
+	/* run the epoch simulation for this period (do initialization) */
+	pMLSimulation->runEpoch(period);
+
+	SEXP ans;
+	PROTECT(ans = allocVector(VECSXP, 3));
+
+	double loglik = pMLSimulation->calculateLikelihood();
+
+	SET_VECTOR_ELT(ans, 0, ScalarReal(loglik));
+
+	if (needScores)
+	{
+		int dim = 0;
+		for (int i = 0; i < length(EFFECTSLIST); i++)
+		{
+			dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		}
+
+		/* fra will contain the scores and must be initialised
+		   to 0. Use rfra to reduce function evaluations. */
+		SEXP fra;
+		double * rfra;
+		PROTECT(fra = allocVector(REALSXP, dim));
+		rfra = REAL(fra);
+		for (int i = 0; i < length(fra); i++)
+		{
+			rfra[i] = 0;
+		}
+
+		/* dff will hold the return values of the derivatives */
+		SEXP dff;
+		double *rdff;
+		if (deriv)
+		{
+			PROTECT(dff = allocVector(REALSXP, dim * dim));
+			rdff = REAL(dff);
+			for (int i = 0; i < length(dff); i++)
+			{
+				rdff[i] = 0.0;
+			}
+		}
 
 		/* collect the scores and derivatives */
 		vector<double> derivs(dim * dim);
 		vector<double> score(dim);
 		getScores(EFFECTSLIST, 	period, group, pData, pMLSimulation,
 			&derivs, &score);
-
+		/* fill up vectors for  return value list */
 		for (unsigned effectNo = 0; effectNo < score.size();
 			 effectNo++)
 		{
-			rscores[effectNo] = score[effectNo];
+			rfra[effectNo] = score[effectNo];
 		}
-		SET_VECTOR_ELT(returnval, 1, scores);
+		if (deriv)
+		{
+			for (unsigned ii = 0; ii < derivs.size(); ii++)
+			{
+				rdff[ii] = derivs[ii];
+			}
+		}
+		SET_VECTOR_ELT(ans, 1, fra);
+		UNPROTECT(1);
+		if (deriv)
+		{
+			SET_VECTOR_ELT(ans, 2, dff);
+			UNPROTECT(1);
+		}
 	}
-	/* get the chain with probs */
-	SEXP ans;
-	PROTECT(ans = getChainList(*(pMLSimulation->pChain()), *pMLSimulation));
 
 	delete pMLSimulation;
 
-	SET_VECTOR_ELT(returnval, 0, ans);
-	if (needScores)
-	{
-		UNPROTECT(2);
-	}
-	UNPROTECT(2);
-	return  returnval;
-}
-
-/** Calculates the updated probabilities for a set of chains for a single period
- * which have been stored on the model object. Should probably be extended to
- * deal with multiple periods. Uses an EpochSimulation object rather than
- * an MLSimulation object, as needs initialization the same as a forward
- * simulation.
- */
-SEXP getStoredChainProbabilities(SEXP DATAPTR, SEXP MODELPTR,
-	SEXP GROUP, SEXP PERIOD, SEXP EFFECTSLIST, SEXP THETA)
-{
-	/* need to make sure the parameters have been updated first */
-	/* get hold of the data vector */
-	vector<Data *> * pGroupData = (vector<Data *> *)
-		R_ExternalPtrAddr(DATAPTR);
-	int group = asInteger(GROUP) - 1;
-	int period = asInteger(PERIOD) - 1;
-	Data * pData = (*pGroupData)[group];
-
-	/* get hold of the model object */
-	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
-
-	/* update the parameters */
-	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
-
-	/* create a simulation  object */
-	EpochSimulation * pEpochSimulation = new
-		EpochSimulation(pData, pModel);
-
-	/* initialize for this period */
-	pEpochSimulation->initialize(period);
-
-	int periodNo = periodFromStart(*pGroupData, group, period);
-	unsigned numberChains = (pModel->rChainStore(periodNo)).size();
-	SEXP logprob;
-	PROTECT(logprob = allocVector(REALSXP, numberChains));
-	double * rlogprob = REAL(logprob);
-
-	/* get the probabilities: */
-
-	for (unsigned i = 0; i < numberChains; i++)
- 	{
-		vector<Chain *> rChainStore = pModel->rChainStore(periodNo);
- 		Chain * pChain = rChainStore[i];
- 		rlogprob[i] = pEpochSimulation->
- 			calculateChainProbabilities(pChain);
- 	}
 	UNPROTECT(1);
-	delete pEpochSimulation;
-	return logprob;
-}
-
-/**
- * Clears the chains that have been stored on a model. Leave final one for ML.
- */
-SEXP clearStoredChains(SEXP MODELPTR, SEXP MAXLIKE)
-{
-	int maxlike = asInteger(MAXLIKE);
-	/* get hold of the model object */
-	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
-	if (maxlike > 0)
-	{
-		pModel->partClearChainStore();
-	}
-	else
-	{
-		pModel->clearChainStore();
-	}
-	return R_NilValue;
-}
-
-/**
- * Reads a chain from a data frame into C, updates theta and recalculates
- * the probabilities.
- */
-SEXP getChainProbabilities(SEXP CHAIN, SEXP DATAPTR, SEXP MODELPTR,
-	SEXP GROUP, SEXP PERIOD, SEXP EFFECTSLIST, SEXP THETA)
-{
-	/* need to make sure the parameters have been updated first */
-	/* get hold of the data vector */
-	vector<Data *> * pGroupData = (vector<Data *> *)
-		R_ExternalPtrAddr(DATAPTR);
-	int group = asInteger(GROUP) - 1;
-	int period = asInteger(PERIOD) - 1;
-	Data * pData = (*pGroupData)[group];
-
-	/* get hold of the model object */
-	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
-
-	/* update the parameters */
-	updateParameters(EFFECTSLIST, THETA, pGroupData, pModel);
-
-	/* create an ml simulation object */
-	MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
-
-	/* chain is a data.frame: aspect, varname, ego, alter, diff */
-	SEXP ASPECT = VECTOR_ELT(CHAIN, 0);
-	SEXP VARNAME = VECTOR_ELT(CHAIN, 2);
-	SEXP EGO = VECTOR_ELT(CHAIN, 3);
-	SEXP ALTER = VECTOR_ELT(CHAIN, 4);
-	SEXP DIFF = VECTOR_ELT(CHAIN, 5);
-	int * ego = INTEGER(EGO);
-	int * alter = INTEGER(ALTER);
-	int * difference = INTEGER(DIFF);
-
-	/* create a chain */
-	Chain * pChain = new Chain(pData);
-
-	/* set period */
-	pChain->period(period);
-
-	for (int i = 0; i < length(ASPECT); i++)
-	{
-		if (strcmp(CHAR(STRING_ELT(ASPECT, i)), "Network") == 0)
-		{
-			NetworkChange * pNetworkChange = new NetworkChange
-				(pData->pNetworkData(CHAR(STRING_ELT(VARNAME, i))),
-					ego[i], alter[i], true);
-			pChain->insertBefore(pNetworkChange, pChain->pLast());
-		}
-		else
-		{
-			BehaviorChange * pBehaviorChange = new BehaviorChange
-				(pData->pBehaviorData(CHAR(STRING_ELT(VARNAME, i))),
-					ego[i], difference[i]);
-			pChain->insertBefore(pBehaviorChange, pChain->pLast());
-		}
-	}
-
-	/* calculate the probabilities: this uses runEpoch so we need to
-	   set the number of steps to zero first */
-	pModel->numberMLSteps(0);
-	pMLSimulation->pChainProbabilities(pChain, period);
-
-	/* get the chain with probs */
-	SEXP ans;
-	ans = getChainDF(*(pMLSimulation->pChain()));
-	delete pMLSimulation;
 	return  ans;
 }
 

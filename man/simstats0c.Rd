@@ -1,30 +1,50 @@
 \name{simstats0c}
 \alias{simstats0c}
-\title{A version of FRAN}
+\alias{maxlikec}
+\alias{initializeFRAN}
+\alias{terminateFRAN}
+\title{Versions of FRAN}
 \description{
- The function to be called as 'FRAN' by \code{\link{siena07}}
- in case of estimation by Method of Moments. Calls compiled C++.
+ The functions to be called as 'FRAN' by \code{\link{siena07}}.
+ They call compiled C++.
 }
 \usage{
-simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
-           data=NULL, effects=NULL, fromFiniteDiff=FALSE,
-           profileData=FALSE, prevAns=NULL, returnDeps=FALSE,
-           returnChains=FALSE)
+simstats0c(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
+           returnDeps=FALSE, returnChains=FALSE, byWave=FALSE,
+           returnDataFrame=FALSE, returnLoglik=FALSE)
+maxlikec(z, x, data=NULL, effects=NULL,
+           returnChains=FALSE, byGroup = FALSE, byWave=FALSE,
+           returnDataFrame=FALSE, returnLoglik=FALSE,
+           onlyLoglik=FALSE)
+initializeFRAN(z, x, data, effects, prevAns = NULL, initC,
+           profileData = FALSE, returnDeps = FALSE, returnChains =
+           FALSE, byGroup = FALSE, returnDataFrame = FALSE,
+           byWave = FALSE, returnLoglik = FALSE,  onlyLoglik = FALSE)
+terminateFRAN(z, x)
 }
 \arguments{
   \item{z}{Control object, passed in automatically in  \code{\link{siena07}}.}
   \item{x}{Model object, passed in automatically in  \code{\link{siena07}}.}
-  \item{INIT}{If TRUE, do initial processing. May be required to set up z.}
-  \item{TERM}{If TRUE, do end processing. }
-  \item{initC}{If TRUE, call is to setup the data and model in C++. For
-	use with multiple processes only.}
   \item{data}{A sienaData object as returned by \code{\link{sienaDataCreate}}.}
-  \item{effects}{List of sienaEffects objects as
+  \item{effects}{A sienaEffects object as
 	returned by \code{\link{getEffects}}.}
   \item{fromFiniteDiff}{Boolean used during calculation of derivatives
 	by finite differences. Not for user use.}
-  \item{profileData}{Boolean to force dumping of the data for profiling
-	with \command{sienaProfile.exe}.}
+  \item{returnDeps}{Boolean. Whether to return the simulated networks in
+	Phase 3.}
+  \item{returnChains}{Boolean. Whether to return the chains.}
+  \item{byWave}{Boolean. Whether to return the finite difference or
+	maximum likelihood
+	derivatives by wave (uses a great deal of memory). Only necessary
+	for \code{\link{sienaTimeTest}}}
+  \item{byGroup}{Boolean. For internal use: allows different thetas for each
+	group to be used in \code{\link{bayes}}.}
+  \item{returnDataFrame}{Boolean. Whether to return the chains as
+	lists or data frames.}
+  \item{returnLoglik}{Boolean. Whether to return the log likelihood of
+	the simulated chain.}
+   \item{onlyLoglik}{Boolean: whether to return just the likelihood for
+	the simulated chain, plus details of steps accepted and rejected. }
   \item{prevAns}{An object of class "sienaFit" as returned by
    \code{\link{siena07}}, from which scaling
 	information (derivative matrix and standard deviation of the
@@ -36,34 +56,60 @@ simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
 	the new model will be used as initial
 	values, but phase 1 will still be carried out.
 	If the results used as \code{prevAns} are a reasonable starting point,
-	this will increase efficiency of the algorithm. }
-  \item{returnDeps}{Boolean. Whether to return the simulated networks in
-	Phase 3.}
-  \item{returnChains}{Boolean. Whether to return the chains.}
+	this will increase the efficiency of the algorithm. }
+  \item{initC}{If TRUE, call is to setup the data and model in C++. For
+	use with multiple processes only.}
+ \item{profileData}{Boolean to force dumping of the data for profiling
+	with \command{sienaProfile.exe}.}
 }
 \details{
-  This should be used for the element FRAN of the model object in case of
-  estimation by Method of Moments.
+  The name of \code{simstats0c} or \code{maxlikec}
+  should be used for the element FRAN of the model object, the former  when using
+  estimation by forward simulation, the latter for maximum likelihood estimation.
   The arguments with no defaults must be passed in on the call to
   \code{\link{siena07}}.
+  \code{initializeFRAN} and \code{terminateFRAN} are called in both
+cases. \code{initializeFRAN} is also called in \code{\link{bayes}}
 }
-\value{Depends on the call. If \code{INIT} or \code{initC} or
-  \code{TERM}
-  are true, returns \code{z}, the control object. Otherwise,
-  returns a list containing:
+\value{\code{simstats0c} returns a list containing:
   \item{fra}{Simulated statistics.}
   \item{sc}{Scores with which to calculate the derivative (not phase 2
     or if using finite differences or maximum likelihood).}
-  \item{dff}{For maximum likelihood, 2nd deriv??}
+  \item{dff}{Contributions to the derivative if finite differences}
   \item{ntim}{For conditional processing, time taken.}
   \item{feasible}{Currently set to TRUE.}
   \item{OK}{Could be set to FALSE if serious error has occurred.}
-  \item{sims}{A list of simulation results, one for each iteration. Each
+  \item{sims}{A list of simulation results, one for each period. Each
 	list consists of a list for each data object, each of which consists of
 	a list for each network, each of which consists of a list for each period,
 	each component of which is an edgelist in matrix form (the columns
 	are from, to, value) (or vector for behavior variables).
 	Only if \code{returnDeps} is TRUE.}
+  \code{maxlikec} returns a list containing:
+  \item{fra}{Simulated scores.}
+   \item{dff}{Simulated Hessians: stored as lower triangular matrices}
+  \item{ntim}{NULL, compatibility only}
+  \item{feasible}{Currently set to TRUE.}
+  \item{OK}{Could be set to FALSE if serious error has occurred.}
+  \item{dff}{Simulated Hessian}
+  \item{sims}{NULL, for compatibility only}
+  \item{chain}{A list of sampled chains, one for each period. Each
+	list consists of a list for each data object, each of which consists of
+	a list for each network, each of which consists of a list for each period,
+	each component of which is a list or a data frame depending on the
+	value of \code{returnDataFrame}.
+	Only if \code{returnChainss} is TRUE.}
+ \item{accepts}{Number of accepted MH steps by dependent variable
+	(permute steps are counted under first dependent variable)}
+  \item{rejects}{Number of rejected MH steps by dependent variable
+ 	(permute steps are counted under first dependent variable)}
+  \item{aborts}{Number of aborted MH steps counted under first dependent
+	variable.}
+	\item{loglik}{Loglikelihood of the simulations. Only if
+	\code{returnLoglik} is TRUE. If \code{onlyLoglik} is TRUE, only
+	\code{loglik}, \code{accepts},\code{rejects} and \code{aborts} are returned.}
+	\code{initializeFRAN} and \code{terminateFRAN} return the control
+object \code{z}.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }
@@ -72,10 +118,9 @@ simstats0c(z, x, INIT = FALSE, TERM = FALSE, initC=FALSE,
 
 mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
-myeff<- getEffects(mydata)
-myeff[myeff$effectName=='transitive triplets'&
-            myeff$type=='eval','include']<- TRUE
-mymodel<- sienaModelCreate(fn = simstats0c, nsub=2, n3=100)
-ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE)
+myeff <- getEffects(mydata)
+myeff <- includeEffects(myeff, transTrip)
+mymodel <- sienaModelCreate(nsub=2, n3=100)
+ans <- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE)
 }
 \keyword{models}

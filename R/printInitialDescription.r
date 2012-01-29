@@ -72,7 +72,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 {
                     nties <- nties / 2
                 }
-                periodFromStart <- data[[group]]$observations
+                periodFromStart <- periodFromStart + data[[group]]$observations
             }
             ## now do the format
             tmp <- rbind(format(round(density, 3), nsmall=3, width=7),

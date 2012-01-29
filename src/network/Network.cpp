@@ -135,7 +135,9 @@ Network & Network::operator=(const Network & rNetwork)
 	return *this;
 }
 
-
+/**
+ * This method creates a copy of this network.
+ */
 Network * Network::clone() const
 {
 	return new Network(*this);

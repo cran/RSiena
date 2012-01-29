@@ -385,7 +385,7 @@ void setupOneModeObservations(SEXP ONEMODES,
     	setupOneModeNetwork(VECTOR_ELT(ONEMODES, period),
 			pOneModeNetworkLongitudinalData,
 			period);
-   }
+	}
     UNPROTECT(2);
 }
 /**
@@ -585,7 +585,7 @@ void setupBipartiteGroup(SEXP BIPARTITEGROUP, Data * pData)
 		// Once all network data has been stored, calculate some
 		// statistical properties of that data.
 
-		//pNetworkLongitudinalData->calculateProperties();
+		pNetworkLongitudinalData->calculateProperties();
         UNPROTECT(3);
     }
 }
@@ -694,7 +694,7 @@ void setupConstantCovariate(SEXP COCOVAR, ConstantCovariate *
     for (int actor = 0; actor < nActors; actor++)
     {
 		double value = *start++;
-		if (ISNA(value))
+		if (ISNAN(value))
 		{
 			pConstantCovariate->value(actor, 0);
 			pConstantCovariate->missing(actor, 1);
@@ -780,7 +780,7 @@ void setupChangingCovariate(SEXP VARCOVAR,
 		for (int actor = 0; actor < nActors; actor++)
 		{
 			double value = *start++;
-			if (ISNA(value))
+			if (ISNAN(value))
 			{
 				pChangingCovariate->value(actor, period,
 					0);
@@ -1164,13 +1164,13 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 
 				Data * pData = (*pGroupData)[group];
 
-				if (strcmp(netType, "oneMode") == 0)
+				if (strcmp(netType, "behavior") != 0)
 				{
 					NetworkLongitudinalData * pNetwork =
 						pData->pNetworkData(networkName);
 					pModel->basicRateParameter(pNetwork, period, initialValue);
 				}
-				else if (strcmp(netType, "Behavior") == 0)
+				else //if (strcmp(netType, "Behavior") == 0)
 				{
 					BehaviorLongitudinalData * pNetwork =
 						pData->pBehaviorData(networkName);

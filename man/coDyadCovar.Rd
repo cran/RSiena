@@ -6,13 +6,15 @@
 }
 \usage{
 coDyadCovar(val, nodeSets=c("Actors", "Actors"),
-    sparse=is(val,"dgTMatrix"))
+    sparse=is(val,"dgTMatrix"), type=c("oneMode", "bipartite"))
 }
 \arguments{
   \item{val}{Matrix of covariate values. May be sparse, of type "dgTMatrix" }
   \item{nodeSets}{The name of the node sets with which this
     covariate is associated.}
   \item{sparse}{Boolean: whether a sparse matrix or not}
+  \item{type}{OneMode or Bipartite: whether the matrix refers to a one Mode
+  or a bipartite network.}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be

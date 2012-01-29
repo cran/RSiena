@@ -49,16 +49,6 @@ public:
 	virtual bool missingEnd(int period) const;
 	virtual MiniStep * createReverseMiniStep() const;
 	virtual MiniStep * createCopyMiniStep() const;
-	double evaluationEffectContribution(int alter, int effect) const;
-	double endowmentEffectContribution(int alter, int effect) const;
-	double creationEffectContribution(int alter, int effect) const;
-	void allocateEffectContributionArrays(int nEvaluationEffects,
-		int nEndowmentEffects,
-		int nCreationEffects,
-		int m);
-	void evaluationEffectContribution(double value, int alter, int effect);
-	void endowmentEffectContribution(double value, int alter, int effect);
-	void creationEffectContribution(double value, int alter, int effect);
 
 private:
 	// The longitudinal data object for the corresponding network variable
@@ -67,23 +57,6 @@ private:
 	// The alter whose incoming tie is changed
 	int lalter;
 
-	// A vector of change contributions to effects, where one element,
-	// of length the number of effects in the evaluation function,
-	// corresponds to each receiver.
-
-	vector<vector <double> > levaluationEffectContribution;
-
-	// A vector of change contributions to effects, where one element,
-	// of length the number of effects in the endowment function,
-	// corresponds to each receiver.
-
-	vector< vector <double> > lendowmentEffectContribution;
-
-	// A vector of change contributions to effects, where one element,
-	// of length the number of effects in the creation function,
-	// corresponds to each receiver.
-
-	vector< vector <double> > lcreationEffectContribution;
 };
 
 

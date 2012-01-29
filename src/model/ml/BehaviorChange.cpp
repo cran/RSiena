@@ -130,8 +130,6 @@ MiniStep * BehaviorChange::createCopyMiniStep() const
 {
 	BehaviorChange * pBehaviorChange=  new BehaviorChange(this->lpData,
 		this->ego(), this->difference());
-	pBehaviorChange->levaluationEffectContribution =
-			this->levaluationEffectContribution;
 
 	return pBehaviorChange;
 }
@@ -152,87 +150,6 @@ bool BehaviorChange::firstOfConsecutiveCancelingPair() const
 	}
 
 	return rc;
-}
-
-/**
- * Returns the evaluationEffectContribution for this effect and difference for
- * this ministep.
- */
-double BehaviorChange::evaluationEffectContribution(int difference, int effect)
-const
-{
-	return this->levaluationEffectContribution[difference][effect];
-}
-
-/**
- * Returns the endowmentEffectContribution for this effect and difference
- * for this ministep.
- */
-double BehaviorChange::endowmentEffectContribution(int difference, int effect)
-const
-{
-	return this->lendowmentEffectContribution[difference][effect];
-}
-
-
-/**
- * Returns the creationEffectContribution for this effect and difference
- * for this ministep.
- */
-double BehaviorChange::creationEffectContribution(int difference, int effect)
-	const
-{
-	return this->lcreationEffectContribution[difference][effect];
-}
-
-
-/**
- * Stores the evaluationEffectContribution for this difference, this effect and
- * this ministep.
- */
-void BehaviorChange::evaluationEffectContribution(double value, int difference,
-	int effect)
-{
-	this->levaluationEffectContribution[difference][effect] = value;
-}
-
-/**
- * Stores the endowmentEffectContribution for this difference, this effect and
- * this ministep.
- */
-void BehaviorChange::endowmentEffectContribution(double value, int difference,
-	int effect)
-{
-	this->lendowmentEffectContribution[difference][effect] = value;
-}
-
-
-/**
- * Stores the creationEffectContribution for this difference, this effect and
- * this ministep.
- */
-void BehaviorChange::creationEffectContribution(double value,
-	int difference,
-	int effect)
-{
-	this->lcreationEffectContribution[difference][effect] = value;
-}
-
-
-/**
- * Creates arrays for the evaluation and endowment Effect Contributions for
- * this ministep.
- */
-void BehaviorChange::allocateEffectContributionArrays(int nEvaluationEffects,
-	int nEndowmentEffects,
-	int nCreationEffects)
-{
-	this->levaluationEffectContribution.resize(3,
-		vector <double> (nEvaluationEffects));
-	this->lendowmentEffectContribution.resize(3,
-		vector <double> (nEvaluationEffects));
-	this->lcreationEffectContribution.resize(3,
-		vector <double> (nCreationEffects));
 }
 
 

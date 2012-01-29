@@ -33,6 +33,7 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
             type <- match.arg(type)
             beverbose <<- verbose
             besilent <<- silent
+			noReportFile <<- FALSE
             if (type =='w')
             {
                 x$outf <<- file(paste(projname, ".out", sep=""), open="w")
@@ -166,14 +167,20 @@ Heading<- function(level=1, dest, text, fill=FALSE)
 ##@PrtOutMat Reporting
 PrtOutMat<- function(mat, dest)
 {
+	if (is.null(mat))
+	{
+		return()
+	}
+	testing <- Sys.getenv("RSIENATESTING")
+	testing <- testing != ""
     if (missing(dest))
     {
-        Report(format(t(mat), scientific=FALSE),
+        Report(format(t(mat), scientific=testing),
                sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
     }
     else
     {
-        Report(format(t(mat), scientific=FALSE),
+        Report(format(t(mat), scientific=testing),
                sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
                hdest=deparse(substitute(dest)))
         Report("\n", hdest=deparse(substitute(dest)))

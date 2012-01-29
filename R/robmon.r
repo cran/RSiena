@@ -13,12 +13,12 @@
 ## returns updated z
 ##@robmon siena07 Controls MOM process
 robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
-                   clusterIter, ...)
+                   clusterIter, clusterType, ...)
 {
     z$FinDiff.method<- x$FinDiff.method
     z$n <- 0
     z$OK <-  TRUE
-    z$error<- FALSE
+    z$error <- FALSE
     z$restarted <- FALSE
     z$DerivativeProblem <- FALSE
     z$ForceFinDifPhase1 <- FALSE
@@ -28,14 +28,22 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$gain <- x$firstg
     z$haveDfra <- FALSE
     z$maxlike <- x$maxlike
+	if (z$maxlike && !is.batch())
+	{
+		tkconfigure(z$tkvars$phaselabel, text="MCMC Burnin")
+	}
     #######################################################
     ##do initial setup call of FRAN
     #######################################################
     if (!is.function(x$FRAN))
     {
-        x$FRAN <- getFromNamespace(x$FRANname, pos=grep("RSiena", search())[1])
+        x$FRAN <- getFromNamespace(x$FRANname, pkgname)
     }
-    z <- x$FRAN(z, x, INIT=TRUE, initC=FALSE, ...)
+    z <- initializeFRAN(z, x, initC=FALSE, ...)
+	if (z$maxlike && !is.batch())
+	{
+		tkconfigure(z$tkvars$phaselabel, text="Phase")
+	}
     ##
     ##if conditional, FRAN changes z$theta etc
     #######################################################
@@ -49,14 +57,34 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         {
             stop("Not enough observations to use the nodes")
         }
-        cl <- makeCluster(clusterString, type = "SOCK",
+		if (clusterType == "FORK")
+		{
+			cl <- makeCluster(nbrNodes, type = clusterType,
                           outfile = "cluster.out")
+		}
+		else
+		{
+			cl <- makeCluster(clusterString, type = clusterType,
+                          outfile = "cluster.out")
+		}
         clusterCall(cl, library, pkgname, character.only = TRUE)
-        clusterSetupRNG(cl, seed = as.integer(runif(6, max=.Machine$integer.max)))
+		##parLapply(cl, c('f1','f2'), sink)
+		z$oldRandomNumbers <- .Random.seed
+		if (R.version$minor < 14.0) ## fake this to recreate old results
+	##	if (TRUE)
+		{
+			clusterSetupRNG(cl, seed = as.integer(runif(6,
+								max=.Machine$integer.max)))
+		}
+		else
+		{
+			clusterSetRNGStream(cl, iseed = as.integer(runif(1,
+								max=.Machine$integer.max)))
+		}
         clusterCall(cl, storeinFRANstore,  FRANstore())
         if (initC)
         {
-            clusterCall(cl, usesim, z, x, INIT=FALSE, initC = initC)
+			clusterCall(cl, initializeFRAN, z, x, initC=initC)
         }
         z$cl <- cl
     }
@@ -66,7 +94,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     }
     z$newFixed <- rep(FALSE, z$pp)
     z$AllNowFixed <- FALSE
-    z$dinv <- matrix(NA, nrow = z$pp, ncol = z$pp)
+    if (!z$haveDfra)
+    {
+        z$dinv <- matrix(NA, nrow = z$pp, ncol = z$pp)
+    }
     z$scale <- rep(0.1, z$pp)
     Report('\n', outf)
     Report('\nStochastic approximation algorithm.\n', cf)
@@ -79,13 +110,15 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     }
     Report(c('Initial value for gain parameter = ', format(z$gain),
              '.\nStart of the algorithm.\n'), cf, sep='')
-    Report('Target function values are \n', cf)
-    ftargets <- format(z$targets, width = 10, nsmall = 4)
-    fnum<- format(1 : z$pp, width = 3)
+    Report('Observed function values are \n', cf)
+	targets <- if (!z$maxlike) z$targets else z$maxlikeTargets
+    ftargets <- format(targets, width = 10, nsmall = 4)
+    fnum <- format(1 : z$pp, width = 3)
     Report(c(paste(fnum, '. ', ftargets, sep = '')), cf, fill=80)
     z$epsilon<- pmin(0.1,z$scale)
-    z$epsilon[z$posj]<- 0.1 * z$theta[z$posj]
-    z$theta0<- z$theta ## store starting value without any conditioning variables
+    z$epsilon[z$posj] <- 0.1 * z$theta[z$posj]
+    z$theta0 <- z$theta
+	## store starting value without any conditioning variables
     z$anyposj <- any(z$posj)
     z$resist <- rep(1, z$pp)
     z$n1 <- 7 + 3 * z$pp
@@ -275,7 +308,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     ## #####################################################
     ## do final call of FRAN
     ## #####################################################
-    z <- x$FRAN(z, x, TERM=TRUE,...)
+    z <- terminateFRAN(z, x)
     ## #####################################################
     ## call to FRAN changes covariance matrix for conditional estimation
     z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)

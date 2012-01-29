@@ -76,25 +76,13 @@ void NetworkChange::makeChange(DependentVariable * pVariable)
 }
 
 
-// /**
-//  * Returns if this ministep is diagonal, namely, it does not change
-//  * the dependent variables.
-//  */
-// bool NetworkChange::diagonal() const
-// {
-// 	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
-// 	return (oneMode && this->ego() == this->lalter) || (!oneMode &&
-// 		this->lalter ==	this->lpData->pReceivers()->n());
-// }
-
-
 /**
  * Returns if the observed data for this ministep is missing at
  * either end of the given period.
  */
 bool NetworkChange::missing(int period) const
 {
-	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+	bool oneMode = this->lpData->oneModeNetwork();
 
 	if (oneMode || this->alter() <
 		this->lpData->pReceivers()->n())
@@ -118,7 +106,7 @@ bool NetworkChange::missing(int period) const
  */
 bool NetworkChange::missingStart(int period) const
 {
-	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+	bool oneMode = this->lpData->oneModeNetwork();
 
 	if (oneMode || this->alter() <
 		this->lpData->pReceivers()->n())
@@ -140,10 +128,9 @@ bool NetworkChange::missingStart(int period) const
  */
 bool NetworkChange::missingEnd(int period) const
 {
-	bool oneMode = this->lpData->pSenders() == this->lpData->pReceivers();
+	bool oneMode = this->lpData->oneModeNetwork();
 
-	if (oneMode || this->alter() <
-		this->lpData->pReceivers()->n())
+	if (oneMode || this->alter() < this->lpData->pReceivers()->n())
 	{
 		// return this->lpData->missing(this->ego(), this->lalter, period) ||
 		// 	this->lpData->missing(this->ego(), this->lalter, period + 1);
@@ -173,89 +160,7 @@ MiniStep * NetworkChange::createCopyMiniStep() const
 {
 	NetworkChange * pNetworkChange =  new NetworkChange(this->lpData,
 		this->ego(), this->lalter, this->diagonal());
-	// copy the contribution changes
-	pNetworkChange->levaluationEffectContribution =
-		this->levaluationEffectContribution;
 	return pNetworkChange;
-}
-
-/**
- * Returns the evaluationEffectContribution for this effect and alter for
- * this ministep.
- */
-double NetworkChange::evaluationEffectContribution(int alter, int effect) const
-{
-	return this->levaluationEffectContribution[alter][effect];
-}
-
-/**
- * Returns the endowmentEffectContribution for this effect and alter for
- * this ministep.
- */
-double NetworkChange::endowmentEffectContribution(int alter, int effect) const
-{
-	return this->lendowmentEffectContribution[alter][effect];
-}
-
-
-/**
- * Returns the creationEffectContribution for this effect and alter for
- * this ministep.
- */
-double NetworkChange::creationEffectContribution(int alter, int effect) const
-{
-	return this->lcreationEffectContribution[alter][effect];
-}
-
-
-/**
- * Stores the evaluationEffectContribution in the next spot for this alter for
- * this ministep.
- */
-void NetworkChange::evaluationEffectContribution(double value, int alter,
-	int effect)
-{
-	this->levaluationEffectContribution[alter][effect] = value;
-}
-
-/**
- * Stores the endowmentEffectContribution for this effect and alter for
- * this ministep.
- */
-void NetworkChange::endowmentEffectContribution(double value, int alter,
-	int effect)
-{
-	this->lendowmentEffectContribution[alter][effect] = value;
-}
-
-
-/**
- * Stores the creationEffectContribution for this effect and alter for
- * this ministep.
- */
-void NetworkChange::creationEffectContribution(double value,
-	int alter,
-	int effect)
-{
-	this->lcreationEffectContribution[alter][effect] = value;
-}
-
-
-/**
- * Creates arrays for the effect Contributions for
- * this ministep.
- */
-void NetworkChange::allocateEffectContributionArrays(int nEvaluationEffects,
-	int nEndowmentEffects,
-	int nCreationEffects,
-	int m)
-{
-	this->levaluationEffectContribution.resize(m,
-		vector <double> (nEvaluationEffects));
-	this->lendowmentEffectContribution.resize(m,
-		vector <double> (nEndowmentEffects));
-	this->lcreationEffectContribution.resize(m,
-		vector <double> (nCreationEffects));
 }
 
 }

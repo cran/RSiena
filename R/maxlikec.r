@@ -7,50 +7,17 @@
 # *
 # * Description: This module contains the code for simulating the process,
 # * communicating with C++. For use with maximum likelihood method, so
-# * never conditional or from finite differences, or parallel testing!
+# * never conditional or from finite differences, or parallel testing.
 # *****************************************************************************/
 ##@maxlikec siena07 ML Simulation Module
-maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
-                     effects=NULL, profileData=FALSE, prevAns=NULL,
-                     returnDeps=FALSE, returnChains=FALSE, byGroup=FALSE,
-                     returnDataFrame=FALSE)
+maxlikec <- function(z, x, data=NULL, effects=NULL,
+                     returnChains=FALSE, byGroup=FALSE, byWave=FALSE,
+					 returnDataFrame=FALSE,
+					 returnLoglik=FALSE, onlyLoglik=FALSE)
 {
-    if (INIT || initC)  ## initC is to initialise multiple C processes in phase3
-    {
-        z <- initializeFRAN(z, x, data, effects, prevAns, initC,
-                            profileData=profileData, returnDeps=returnDeps)
-        z$returnDataFrame <- returnDataFrame
-        z$returnChains <- returnChains
-        if (initC)
-        {
-            return(NULL)
-        }
-        else
-        {
-            return(z)
-        }
-    }
-    if (TERM)
-    {
-        z <- terminateFRAN(z, x)
-        return(z)
-    }
-    ######################################################################
-    ## iteration entry point
-    ######################################################################
     ## retrieve stored information
     f <- FRANstore()
-    if (z$Phase == 2)
-    {
-        returnDeps <- FALSE
-    }
-    else
-    {
-        returnDeps <- z$returnDeps
-    }
     callGrid <- z$callGrid
-    ## z$int2 is the number of processors if iterating by period, so 1 means
-    ## we are not. Can only parallelize by period at the moment.
     if (nrow(callGrid) == 1)
     {
 		if (byGroup)
@@ -61,110 +28,91 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
 		{
 			theta <- z$theta
 		}
-        ans <- .Call('mlPeriod', PACKAGE=pkgname, z$Deriv, f$pData,
+        ans <- .Call("mlPeriod", PACKAGE=pkgname, z$Deriv, f$pData,
                      f$pModel, f$myeffects, theta,
-                     returnDeps, 1, 1, z$nrunMH, z$addChainToStore,
-                     z$needChangeContributions, z$returnDataFrame,
-                     z$returnChains)
-        ans[[6]] <- list(ans[[6]])
-        ans[[7]] <- list(ans[[7]])
-        if (byGroup)
-        {
-			ans[[8]] <- list(ans[[8]])
-			ans[[9]] <- list(ans[[9]])
-			ans[[10]] <- list(ans[[10]])
-        }
-   }
+					 1, 1, z$nrunMH, z$addChainToStore,
+                     z$returnDataFrame,
+                     z$returnChains, returnLoglik, onlyLoglik)
+		if (!onlyLoglik)
+		{
+			ans[[6]] <- list(ans[[6]])
+			ans[[7]] <- list(ans[[7]])
+			if (byGroup)
+			{
+				ans[[8]] <- list(ans[[8]])
+				ans[[9]] <- list(ans[[9]])
+				ans[[10]] <- list(ans[[10]])
+			}
+		}
+		else
+		{
+			ans[[2]] <- list(ans[[2]])
+			ans[[3]] <- list(ans[[3]])
+			ans[[4]] <- list(ans[[4]])
+
+		}
+	}
     else
     {
+		## z$int2 is the number of processors if iterating by period, so 1 means
+		## we are not. Can only parallelize by period withmaxlike.
         if (z$int2 == 1)
         {
-            anss <- apply(callGrid, 1, doMLModel, z$Deriv, z$thetaMat,
-                          returnDeps,  z$nrunMH, z$addChainToStore,
-                          z$needChangeContributions, z$returnDataFrame,
-                          z$returnChains, byGroup, z$theta)
+            anss <- apply(cbind(callGrid, 1:nrow(callGrid)),
+						  1, doMLModel, z$Deriv, z$thetaMat,
+                          z$nrunMH, z$addChainToStore,
+                          z$returnDataFrame,
+                          z$returnChains, byGroup, z$theta, returnLoglik,
+						  onlyLoglik)
         }
         else
         {
             use <- 1:(min(nrow(callGrid), z$int2))
-            anss <- parRapply(z$cl[use], callGrid, doMLModel, z$Deriv,
-                              z$thetaMat,
-                              returnDeps, z$nrunMH, z$addChainToStore,
-                              z$needChangeContributions,
-                              z$returnDataFrame, z$returnChains, byGroup, z$theta)
+            anss <- parRapply(z$cl[use], cbind(callGrid, 1:nrow(callGrid)),
+							  doMLModel, z$Deriv, z$thetaMat,
+                              z$nrunMH, z$addChainToStore,
+                              z$returnDataFrame, z$returnChains, byGroup,
+							  z$theta, returnLoglik, onlyLoglik)
         }
         ## reorganize the anss so it looks like the normal one
-        ans <- NULL
-        ans[[1]] <- sapply(anss, "[[", 1) ## statistics
-        ans[[2]] <- NULL ## scores
-        ans[[3]] <- NULL ## seeds
-        ans[[4]] <- NULL ## ntim
-        ans[[5]] <- NULL # randomseed
-        ##   if (returnDeps) ## this is for dependent variables but
-        ##       ## these are not returned yet
-        ##   {
-        ##       fff <- lapply(anss, "[[", 6)
-        ##       fff <- split(fff, callGrid[1, ]) ## split by group
-        ##       ans[[6]] <-
-        ##           lapply(fff, function(x)
-        ##              {
-        ##                  lapply(1:length(f$depNames), function(x, z)
-        ##                          lapply(z, "[[", x), z=x)
-        ##               }
-        ##                   )
-        ##    }
-        ##    else
-        ##    {
-        ##        ans[[6]] <-  NULL
-        ##    }
-       ## browser()
-        if (returnChains)
-        {
-            ##TODO put names on these?
-            fff <- lapply(anss, function(x) x[[6]][[1]])
-            fff <- split(fff, callGrid[, 1 ]) ## split by group
-            ans[[6]] <- fff
-        }
-        ans[[7]] <- lapply(anss, "[[", 7) ## derivative
-        ans[[8]] <- lapply(anss, "[[", 8)
-        ans[[9]] <- lapply(anss, "[[", 9)
-        ans[[10]] <- lapply(anss, "[[", 10)
-        if (!byGroup)
-        {
-            ans[[8]] <- Reduce("+",  ans[[8]]) ## accepts
-            ans[[9]] <- Reduce("+",  ans[[9]]) ## rejects
-            ans[[10]] <- Reduce("+",  ans[[10]]) ## aborts
-        }
+        ans <- list()
+ 		if (!onlyLoglik)
+		{
+			ans[[1]] <- sapply(anss, "[[", 1) ## statistics
+			ans[[2]] <- NULL ## scores
+			ans[[3]] <- NULL ## seeds
+			ans[[4]] <- NULL ## ntim
+			ans[[5]] <- NULL # randomseed
+			if (z$returnChains)
+			{
+				fff <- lapply(anss, function(x) x[[6]][[1]])
+				fff <- split(fff, callGrid[, 1 ]) ## split by group
+				ans[[6]] <- fff
+			}
+			ans[[7]] <- lapply(anss, "[[", 7) ## derivative
+			ans[[8]] <- lapply(anss, "[[", 8)
+			ans[[9]] <- lapply(anss, "[[", 9)
+			ans[[10]] <- lapply(anss, "[[", 10)
+			if (!byGroup)
+			{
+				ans[[8]] <- Reduce("+",  ans[[8]]) ## accepts
+				ans[[9]] <- Reduce("+",  ans[[9]]) ## rejects
+				ans[[10]] <- Reduce("+",  ans[[10]]) ## aborts
+			}
+			ans[[11]] <- sapply(anss, "[[", 11)
+		}
+		else ##onlyLoglik is always byGroup (bayes)
+		{
+			ans[[1]] <- sum(sapply(anss, '[[', 1))## loglik
+			ans[[2]] <- lapply(anss, "[[", 2)
+			ans[[3]] <- lapply(anss, "[[", 3)
+			ans[[4]] <- lapply(anss, "[[", 4)
+		}
     }
-
-    fra <- -t(ans[[1]]) ##note sign change
 
     FRANstore(f)
 
-    ##   if (returnDeps)
-    ##      sims <- ans[[6]]
-    ## else
-    sims <- NULL
-
-    ##print(length(sims[[1]]))
-    ##if (returnDeps) ## this is not finished yet!
-    ##{
-    ##    ## attach the names
-    ##    names(sims) <- f$groupNames
-    ##    periodNo <- 1
-    ##    for (i in 1:length(sims))
-    ##    {
-    ##        names(sims[[i]]) <- f$depNames
-    ##        for (j in 1:length(sims[[i]]))
-    ##        {
-    ##            periodNos <- periodNo:(periodNo  + length(sims[[i]][[j]]) - 1)
-    ##            names(sims[[i]][[j]]) <- periodNos
-    ##       }
-    ##        periodNo <- periodNos[length(periodNos)] + 2
-    ##   }
-    ##}
-
-    if (z$Deriv) ## need to reformat the derivatives
+    if (z$Deriv && !onlyLoglik) ## need to reformat the derivatives
     {
         resp <- reformatDerivs(z, f, ans[[7]])
         dff <- resp[[1]]
@@ -175,18 +123,26 @@ maxlikec <- function(z, x, INIT=FALSE, TERM=FALSE, initC=FALSE, data=NULL,
         dff <- NULL
         dff2 <- NULL
     }
-    ## browser()
-    ##print(length(ans[[6]][[1]][[1]]))
-    list(fra = fra, ntim0 = NULL, feasible = TRUE, OK = TRUE,
-         sims=sims, dff = dff, dff2=dff2,
-         chain = ans[[6]], accepts=ans[[8]],
-         rejects= ans[[9]], aborts=ans[[10]])
+	if (!onlyLoglik)
+	{
+		fra <- -t(ans[[1]]) ##note sign change
+
+		list(fra = fra, ntim0 = NULL, feasible = TRUE, OK = TRUE,
+			 sims=NULL, dff = dff, dff2=dff2,
+			 chain = ans[[6]], accepts=ans[[8]],
+			 rejects= ans[[9]], aborts=ans[[10]], loglik=ans[[11]])
+	}
+	else
+	{
+		list(loglik=ans[[1]], accepts=ans[[2]],
+			 rejects= ans[[3]], aborts=ans[[4]])
+	}
 }
 
 ##@doMLModel Maximum likelihood
-doMLModel <- function(x, Deriv, thetaMat, returnDeps, nrunMH, addChainToStore,
-                      needChangeContributions, returnDataFrame, returnChains,
-					  byGroup, theta)
+doMLModel <- function(x, Deriv, thetaMat, nrunMH, addChainToStore,
+                      returnDataFrame, returnChains,
+					  byGroup, theta, returnLoglik, onlyLoglik)
 {
     f <- FRANstore()
 	if (byGroup)
@@ -198,20 +154,27 @@ doMLModel <- function(x, Deriv, thetaMat, returnDeps, nrunMH, addChainToStore,
 		theta <- theta
 	}
     .Call("mlPeriod", PACKAGE=pkgname, Deriv, f$pData,
-          f$pModel, f$myeffects, theta, returnDeps,
-          as.integer(x[1]), as.integer(x[2]), nrunMH, addChainToStore,
-          needChangeContributions, returnDataFrame, returnChains)
+          f$pModel, f$myeffects, theta,
+          as.integer(x[1]), as.integer(x[2]), nrunMH[x[3]], addChainToStore,
+		  returnDataFrame, returnChains,
+		  returnLoglik, onlyLoglik)
 }
 
+##@reformatDerivs Maximum likelihood move this back to inline or internal function
 reformatDerivs <- function(z, f, derivList)
 {
     ## current format is a list of vectors of the lower? triangle
     ## of the matrix. Need to be put into a symmetric matrix.
     ## Tricky part is getting the rates in the right place!
     ## Note that we do not yet deal with rate effects other than the basic
-    dff <- matrix(0, nrow=z$pp, ncol=z$pp)
+    dff <- as(Matrix(0, z$pp, z$pp), "dsyMatrix")
     nPeriods <- length(derivList)
-    dff2 <- array(0, dim=c(nPeriods, z$pp, z$pp))
+	dff2 <- vector("list", nPeriods)
+	if (z$byWave)
+	{
+		tmp <- as(Matrix(0, z$pp, z$pp), "dsyMatrix")
+		dff2[] <- tmp
+	}
     for (period in 1:nPeriods)
     {
         dffraw <- derivList[[period]]
@@ -250,7 +213,10 @@ reformatDerivs <- function(z, f, derivList)
             rawsub <- rawsub + nonRates * nonRates
             dffPeriod <- dffPeriod + t(dffPeriod)
             diag(dffPeriod) <- diag(dffPeriod) / 2
-            dff2[period , , ] <- dff2[period, , ] - dffPeriod
+			if (z$byWave)
+			{
+				dff2[[period]] <- dff2[[period]] - dffPeriod
+			}
             dff <- dff - dffPeriod
         }
     }

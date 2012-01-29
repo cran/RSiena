@@ -7,7 +7,7 @@ Function to perform a meta analysis of a collection of Siena fits.
 Estimates a meta analysis based on  a collection of Siena fits.
 }
 \usage{
-siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05)
+siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 }
 \arguments{
   \item{\dots}{names of Siena fit objects, returned from
@@ -22,7 +22,11 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05)
 }
 \item{alpha}{
   1 minus confidence level of confidence intervals.
-}}
+}
+\item{maxit}{
+  Number of iterations of iterated least squares procedure.
+}
+}
 \details{
   A meta analysis is performed as described
   in the Siena manual, section `Meta-analysis of Siena results'. This

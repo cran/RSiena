@@ -12,9 +12,10 @@
 
 ##@siena07 siena07
 siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
-                   useCluster = FALSE, nbrNodes = 2, initC=TRUE,
-                   clusterString=rep("localhost", nbrNodes), tt=NULL,
-                   parallelTesting=FALSE, clusterIter=!x$maxlike, ...)
+					useCluster = FALSE, nbrNodes = 2, initC=TRUE,
+					clusterString=rep("localhost", nbrNodes), tt=NULL,
+					parallelTesting=FALSE, clusterIter=!x$maxlike,
+					clusterType=c("PSOCK", "FORK"), ...)
 {
     exitfn <- function()
     {
@@ -24,6 +25,7 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
        }
        ## close the report file
        Report(closefiles=TRUE)
+       RNGkind("default")
     }
     on.exit(exitfn())
 
@@ -39,8 +41,22 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
         {
             stop("cannot parallel test with multiple processes")
         }
-        require(snow, warn.conflicts=FALSE)
-        require(rlecuyer)
+		clusterType <- match.arg(clusterType)
+		if (.Platform$OS.type == "windows" && clusterType != "PSOCK")
+		{
+			stop("cannot use forking processes on Windows")
+		}
+		if (R.version$minor < 14.0) ## fake this to recreate old results
+	##	if (TRUE)
+		{
+			require(snow, warn.conflicts=FALSE)
+			require(rlecuyer)
+			clusterType <- "SOCK"
+		}
+		else
+		{
+			require(parallel)
+		}
         if (clusterIter)
         {
             x$firstg <- x$firstg * sqrt(nbrNodes)
@@ -63,37 +79,61 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
         set.seed(1, kind='Wich')
         ## randomseed2 is for second generator needed only for parallel testing
         randomseed2 <- .Random.seed
-      #  .Random.seed[2:4] <- as.integer(c(1,2,3))
-       # randomseed2[2:4] <- as.integer(c(3,2,1))
+		## .Random.seed[2:4] <- as.integer(c(1,2,3))
+		## randomseed2[2:4] <- as.integer(c(3,2,1))
         randomseed2[2:4] <- as.integer(c(1, 2, 3))
         seed <- 1
         newseed <- 1
         z$parallelTesting <- TRUE
     }
-    else
+	else
     {
         randomseed2 <-  NULL
         ## x$randomSeed is the user seed, if any
         if (!is.null(x$randomSeed))
         {
-            set.seed(x$randomSeed)
+            set.seed(x$randomSeed, kind="default")
             seed <- x$randomSeed
         }
         else
-        {
-            if (exists(".Random.seed"))
-            {
-                rm(.Random.seed, pos=1)
-            }
-            newseed <- trunc(runif(1) * 1000000)
-            set.seed(newseed)  ## get R to create a random number seed for me.
-            seed <- NULL
-        }
-    }
+		{
+			if (!nzchar(Sys.getenv("RSIENA_TESTING")))
+			{
+				if (exists(".Random.seed"))
+				{
+					rm(.Random.seed, pos=1)
+				}
+				newseed <- trunc(runif(1) * 1000000)
+				set.seed(newseed)  ## get R to create a random number seed for me.
+				seed <- NULL
+			}
+			else
+			{
+				newseed <- NULL
+				seed <- NULL
+			}
+		}
+	}
     z$randomseed2 <- randomseed2
 
     ## set the global is.batch
-    is.batch(batch)
+	batchUse <- batch
+	if (!batch)
+	{
+		if (.Platform$OS.type != "windows")
+		{
+			if (!capabilities("X11"))
+			{
+				batchUse <- TRUE
+				cat("No X11 device available, forcing use of batch mode")
+			}
+		}
+		if(nzchar(Sys.getenv("RSIENA_TESTING")))
+		{
+			silent <- TRUE
+		}
+	}
+    is.batch(batchUse)
 
     ## open the output file
     Report(openfiles=TRUE, projname=x$projname, verbose=verbose, silent=silent)
@@ -115,14 +155,18 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
     }
 
     z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,
-                clusterIter, ...)
+                clusterIter, clusterType, ...)
 
     time1 <-  proc.time()['elapsed']
     Report(c("Total computation time", round(time1 - time0, digits=2),
              "seconds.\n"), outf)
 
     if (useCluster)
+	{
         stopCluster(z$cl)
+		## need to reset the random number type to the normal one
+		assign(".Random.seed", z$oldRandomNumbers, pos=1)
+	}
 
     class(z) <- "sienaFit"
     z$tkvars <- NULL
@@ -156,7 +200,10 @@ InitReports <- function(z, seed, newseed)
     if (is.null(seed))
     {
         Report("Random initialization of random number stream.\n", outf)
-        Report(sprintf("Current random number seed is %d.\n", newseed), outf)
+		if (!is.null(newseed))
+		{
+			Report(sprintf("Current random number seed is %d.\n", newseed), outf)
+		}
     }
     else
     {

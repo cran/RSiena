@@ -38,6 +38,8 @@ BehaviorLongitudinalData::BehaviorLongitudinalData(int id,
 	this->lvalues = new int * [observationCount];
 	this->lmissing = new bool * [observationCount];
 	this->lstructural = new bool * [observationCount];
+	this->lvaluesLessMissings = new int * [observationCount];
+	this->lvaluesLessMissingStarts = new int * [observationCount];
 	this->lobservedDistributions = new map<int, double>[observationCount];
 
 	for (int i = 0; i < observationCount; i++)
@@ -45,12 +47,16 @@ BehaviorLongitudinalData::BehaviorLongitudinalData(int id,
 		this->lvalues[i] = new int[pActorSet->n()];
 		this->lmissing[i] = new bool[pActorSet->n()];
 		this->lstructural[i] = new bool[pActorSet->n()];
+		this->lvaluesLessMissings[i] = new int[pActorSet->n()];
+		this->lvaluesLessMissingStarts[i] = new int[pActorSet->n()];
 
 		for (int actor = 0; actor < pActorSet->n(); actor++)
 		{
 			this->lvalues[i][actor] = 0;
 			this->lmissing[i][actor] = false;
 			this->lstructural[i][actor] = false;
+			this->lvaluesLessMissings[i][actor] = 0;
+			this->lvaluesLessMissingStarts[i][actor] = 0;
 		}
 	}
 }
@@ -109,6 +115,24 @@ const int * BehaviorLongitudinalData::values(int observation) const
 	return this->lvalues[observation];
 }
 
+/**
+ * Returns the whole array of observed values for the given observation with
+ * missing values at either end zeroed.
+ */
+const int * BehaviorLongitudinalData::valuesLessMissings(int observation) const
+{
+	return this->lvaluesLessMissings[observation];
+}
+
+/**
+ * Returns the whole array of observed values for the given observation with
+ * missing values at the start zeroed.
+ */
+const int * BehaviorLongitudinalData::valuesLessMissingStarts(int observation)
+const
+{
+	return this->lvaluesLessMissingStarts[observation];
+}
 
 /**
  * Returns if the value of the behavioral variable is missing for the given
@@ -320,6 +344,25 @@ void BehaviorLongitudinalData::calculateProperties()
 		throw logic_error(
 			"All observed values are equal for the behavior variable " +
 			this->name());
+	}
+
+	// create copies with missings excluded
+	for (int i = 0; i < this->observationCount(); i++)
+	{
+		for (int actor = 0; actor < this->n(); actor++)
+		{
+			this->lvaluesLessMissings[i][actor] = this->lvalues[i][actor];
+			this->lvaluesLessMissingStarts[i][actor] = this->lvalues[i][actor];
+			if (this->lmissing[i][actor])
+			{
+				this->lvaluesLessMissings[i][actor] = 0;
+				this->lvaluesLessMissingStarts[i][actor] = 0;
+			}
+			if (i < this->observationCount() - 1 && this->lmissing[i + 1][actor])
+			{
+				this->lvaluesLessMissings[i][actor] = 0;
+			}
+		}
 	}
 }
 

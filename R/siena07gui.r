@@ -95,7 +95,8 @@ siena07Gui <- function(tt, getDocumentation=FALSE)
   # cat('here\n')
     list(tt=tt, pb=progressbar, earlyEndPhase2=button2, current=text1,
          quasi=text2, deviations=text3, phase=phase, subphase=subphase,
-         iteration=iteration, subphaselabel=subphaselabel)
+         iteration=iteration, subphaselabel=subphaselabel,
+		 phaselabel=phaselabel)
 }
 
 

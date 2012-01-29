@@ -13,6 +13,7 @@
 #include <cmath>
 #include <R_ext/Error.h>
 #include <R_ext/Print.h>
+#include <R_ext/Arith.h>
 #include <Rinternals.h>
 #include "EpochSimulation.h"
 #include "utils/Random.h"
@@ -41,6 +42,7 @@ namespace siena
 {
 SEXP getMiniStepList(const MiniStep& miniStep, int period,
 	const EpochSimulation& epochSimulation);
+SEXP getMiniStepDF(const MiniStep& miniStep);
 
 // ----------------------------------------------------------------------------
 // Section: Constructors and destructors
@@ -309,7 +311,7 @@ void EpochSimulation::initialize(int period)
     // Reset derivatives
     this->lderivatives.clear();
 	// reset chain
-	this->lpChain->clear();
+	//this->lpChain->clear(); make the user do this
 	this->lpChain->period(period);
 }
 
@@ -692,6 +694,25 @@ Chain * EpochSimulation::pChain()
 }
 
 /**
+ * Sets the chain representing the events simulated by this object to the
+ * given chain.
+ */
+void EpochSimulation::pChain(Chain * pChain)
+{
+	delete this->lpChain;
+	this->lpChain = pChain;
+}
+
+/**
+ * Clears the chain representing the events simulated by this object to the
+ * given chain.
+ */
+void EpochSimulation::clearChain()
+{
+	this->lpChain->clear();
+}
+
+/**
  * Returns the dependent variable with the given name if it exists;
  * otherwise 0 is returned.
  */
@@ -808,36 +829,111 @@ double EpochSimulation::derivative(const EffectInfo * pEffect1,
 
 	return derivative;
 }
-/**
- * Returns the sum of the logChoiceProb for the chain.
- */
-double EpochSimulation::calculateChainProbabilities(Chain * pChain)
-{
-//	Rprintf("  %x\n", pChain);
-	MiniStep *pMiniStep = pChain->pFirst()->pNext();
-	double logprob=0;
 
-//	Rprintf("%d %x %x\n", pChain->ministepCount(), pMiniStep, pChain->pLast());
-	int i = 0;
-	while(pMiniStep != pChain->pLast())
+/**
+ * Calculates the likelihood from the chain ignoring the log factorial for
+ * constant rates.
+ */
+double EpochSimulation::calculateLikelihood() const
+{
+	//Rprintf("here\n");
+	double sumLogOptionSetProbabilities = 0;
+	double sumLogChoiceProbabilities = 0;
+	double loglik = 0;
+//	Rprintf(" %d\n", this->lpChain->ministepCount());
+	// set up array to store counts of structurally active ministeps by variable
+	int *counts = new int[this->lvariables.size()];
+	for (unsigned i = 0; i < this->lvariables.size(); i++)
 	{
-		i ++;
+		counts[i] = 0;
+	}
+
+	// create array to store number of actors by variable
+	int *nActors = new int[this->lvariables.size()];
+	for (unsigned i = 0; i < this->lvariables.size(); i++)
+	{
+		nActors[i] = this->lvariables[i]->n();
+	}
+
+	MiniStep *pMiniStep = this->lpChain->pFirst()->pNext();
+
+//Rprintf("%d %x %x\n", this->lpChain->ministepCount(),
+// pMiniStep, this->lpChain->pLast());
+
+	while(pMiniStep != this->lpChain->pLast())
+	{
 		DependentVariable * pVariable =
     		this->lvariables[pMiniStep->variableId()];
+		sumLogOptionSetProbabilities += pMiniStep->logOptionSetProbability();
+		sumLogChoiceProbabilities += pMiniStep->logChoiceProbability();
+		//	if (!R_finite(pMiniStep->logChoiceProbability()))
+		//{
+		//		PrintValue(getMiniStepDF(*pMiniStep));
+		//	Rprintf(" epcoh %f %f\n", pMiniStep->logOptionSetProbability(),
+		//	pMiniStep->logChoiceProbability() );
+		//}
+		if (!pVariable->structural(pMiniStep))
+		{
+			counts[pMiniStep->variableId()] ++;
+		}
 
-		logprob +=
-			pVariable->calculateChoiceProbability(pMiniStep);
-		//	Rprintf(" i epoch %d %f %x\n", i, logprob, pMiniStep);
-		//const EpochSimulation *xx = this;
-		//	PrintValue(getMiniStepList(*pMiniStep,this->lperiod, *xx ));
-		//	if (i > 1) error("what now");
 		pMiniStep = pMiniStep->pNext();
 	}
-//	Rprintf("%f\n", logprob);
-	return logprob;
+
+	loglik += sumLogChoiceProbabilities ;
+	if (!R_finite(pMiniStep->logChoiceProbability()))
+	{
+		Rprintf("sum choice %f",loglik);
+	}
+	if (this->lsimpleRates)
+	{
+		for (unsigned i = 0; i < this->lvariables.size(); i++)
+		{
+			DependentVariable * pVariable = this->lvariables[i];
+			double lambda = pVariable->basicRate();
+			loglik += counts[i] * log(lambda) - lambda * pVariable->n()
+				- this->lnFactorial(counts[i]);
+			// if (!R_finite(loglik))
+			// {
+			// 	Rprintf("basic rate %f count %d log %f %f\n",lambda, counts[0],
+			// 		log(lambda), loglik);
+			// }
+		}
+	}
+	else
+	{
+		loglik +=  sumLogOptionSetProbabilities +
+			normalDensity(1, this->lpChain->mu(),
+				sqrt(this->lpChain->sigma2()), 1)
+			+ log(this->lpChain->finalReciprocalRate());
+	}
+
+	delete [] counts;
+	delete [] nActors;
+	return loglik;
+
+}
+double EpochSimulation::lnFactorial(int a) const
+{
+int y;
+double z;
+      if (a == 1)
+          return 0;
+      else
+      {
+          z = 0;
+
+        for (y = 2; y<=a; y++ )
+
+        z = log(y)+z;
+
+
+          return z;
+      }
 }
 void EpochSimulation::updateParameters(int period)
 {
+	Rprintf("ever used?\n");
 	for (unsigned i = 0; i < this->lvariables.size(); i++)
 	{
      	this->lvariables[i]->updateBasicRate(period);
@@ -890,6 +986,22 @@ Cache * EpochSimulation::pCache() const
 double EpochSimulation::totalRate() const
 {
 	return this->ltotalRate;
+}
+/**
+ * Stores if simple rates should be used in simulations.
+ */
+void EpochSimulation::simpleRates(bool flag)
+{
+	this->lsimpleRates = flag;
+}
+
+
+/**
+ * Returns if simple rates should be used in simulations.
+ */
+bool EpochSimulation::simpleRates() const
+{
+	return this->lsimpleRates;
 }
 
 }

@@ -11,6 +11,18 @@
 ##@DataReport siena07 Print report
 DataReport <- function(z, x, f)
 {
+	if (!is.null(z$effectsName))
+	{
+		Report(c("Effects object used:", z$effectsName, "\n"), outf)
+	}
+
+	if (z$maxlike)
+	{
+		Report(c(z$nrunMH,
+				 "MCMC steps per RM step (multiplication factor =",
+				 x$mult), outf)
+		Report(")\n", outf)
+	}
     ## f could be a group, but has attributes like a group even if not!
     oneMode <- attr(f, "types") == "oneMode"
     bipartite <- attr(f, "types") == "bipartite"
@@ -25,7 +37,7 @@ DataReport <- function(z, x, f)
     observations <- attr(f, "observations") ##note this is total number of
     ##  periods to process
     exogenous <- attr(f, 'compositionChange')
-    exoOptions <- attr(f, 'exoptions')
+    exoOptions <- attr(f, 'exooptions')
     if (nOneMode > 0)
     {
         for (i in 1:nOneMode)
@@ -88,18 +100,18 @@ DataReport <- function(z, x, f)
                       width = 4), '.\n'),sep='',  outf)
         }
     }
-    else
+    else if (!z$maxlike)
     {
         Report("unconditional moment estimation.\n", outf)
 
-        if (exogenous)
-        {
-            Report("Changing composition: no conditional moment estimation.\n",
-                   outf)
-            ## TODO report separately for different node sets if appropriate
-            Report(c("Joiners/leavers option:", exoOptions, "\n"), sep="",
-                   outf)
-        }
+        #if (exogenous)
+        #{
+        #    Report("Changing composition: no conditional moment estimation.\n",
+        #           outf)
+        #    ## TODO report separately for different node sets if appropriate
+        #    Report(c("Joiners/leavers option:", exoOptions, "\n"), sep="",
+        #           outf)
+        #}
         Report('\nTime duration for simulations ', outf)
         if (observations >= 2)
         {
@@ -107,6 +119,17 @@ DataReport <- function(z, x, f)
         }
         Report('is 1.0.\n', outf)
     }
+	else
+	{
+		Report("Maximum likelihood estimation\n", outf)
+	}
+	if (exogenous)
+	{
+		Report("Changing composition.\n",  outf)
+		## TODO report separately for different node sets if appropriate
+		Report(c("Joiners/leavers option: ", exoOptions, "\n"), sep="",
+			   outf)
+        }
     if (z$FinDiff.method)
     {
         Report(c('Standard errors are estimated with the finite difference',
@@ -199,11 +222,19 @@ DataReport <- function(z, x, f)
     Report(tmp, outf)
     ## targets:
     Report("\n\nObserved values of target statistics are\n", outf)
+	if (z$maxlike)
+	{
+		targets <- z$maxlikeTargets
+	}
+	else
+	{
+		targets <- z$targets
+	}
     tmp <- paste(sprintf("%3d",1:length(z$requestedEffects$effectName)), '. ',
                  format(z$requestedEffects$functionName, width = 66),
                  sprintf("%9.4f",
-                         ifelse(z$requestedEffects$type=='endow', -z$targets,
-                                z$targets)),
+                         ifelse(z$requestedEffects$type=='endow', -targets,
+                                targets)),
                  '\n', sep = '', collapse = '')
     Report(tmp, outf)
     Report(c('\n', nrow(z$requestedEffects), 'parameters,',

@@ -74,12 +74,6 @@ private:
 		NetworkLongitudinalData * pNetworkData);
 	void calculateBehaviorStatistics(BehaviorLongitudinalData * pBehaviorData);
 	void calculateBehaviorRateStatistics(BehaviorLongitudinalData * pBehaviorData);
-	void subtractNetwork(Network * pNetwork,
-		const Network * pMissingTieNetwork) const;
-
-	void replaceNetwork(Network * pNetwork,
-		const Network * pValueNetwork,
-		const Network * pStructuralTieNetwork) const;
 
 	// The data to be used for calculating the statistics
 	const Data * lpData;
@@ -100,6 +94,8 @@ private:
 	map<LongitudinalData *, int *> ldistances;
 
 	State * lpPredictorState;
+
+    State * lpStateLessMissingsEtc;
 };
 
 }

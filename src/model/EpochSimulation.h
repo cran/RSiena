@@ -79,9 +79,15 @@ public:
 	void derivative(const EffectInfo * pEffect1, const EffectInfo * pEffect2,
 		double value);
 	Chain * pChain();
-	double calculateChainProbabilities(Chain * chain);
+	void  pChain(Chain * pChain);
+	void clearChain();
 	void updateParameters(int period);
+    double calculateLikelihood() const;
 
+	void simpleRates(bool flag);
+	bool simpleRates() const;
+
+	double lnFactorial(int a) const;
 protected:
     void calculateRates();
     double totalRate() const;
@@ -155,6 +161,7 @@ private:
     Cache * lpCache;
 
 	Chain * lpChain;
+	bool lsimpleRates;
 
 };
 

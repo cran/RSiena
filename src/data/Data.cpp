@@ -116,7 +116,8 @@ NetworkLongitudinalData * Data::createNetworkData(std::string name,
 			name,
 			pSenders,
 			pReceivers,
-			this->lobservationCount);
+			this->lobservationCount,
+			false);
 	this->ldependentVariableData.push_back(pNetworkData);
 	return pNetworkData;
 }

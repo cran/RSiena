@@ -38,7 +38,8 @@ public:
 		std::string name,
 		const ActorSet * pSenders,
 		const ActorSet * pReceivers,
-		int observationCount);
+		int observationCount,
+		bool oneMode);
 	virtual ~NetworkLongitudinalData();
 
 	const ActorSet * pSenders() const;
@@ -46,6 +47,8 @@ public:
 	const Network * pNetwork(int observation) const;
 	const Network * pStructuralTieNetwork(int observation) const;
 	const Network * pMissingTieNetwork(int observation) const;
+	const Network * pNetworkLessMissing(int observation) const;
+	const Network * pNetworkLessMissingStart(int observation) const;
 
 	int tieValue(int i, int j, int observation) const;
 	void tieValue(int i, int j, int observation, int value);
@@ -65,6 +68,8 @@ public:
 	void averageOutDegree(double val);
 	virtual double observedDistribution(int value, int observation) const;
 
+	bool oneModeNetwork() const;
+
 private:
 	// The set of actors receiving the ties of the network
 	const ActorSet * lpReceivers;
@@ -77,10 +82,16 @@ private:
 
 	Network ** lstructuralTieNetworks;
 
-	// Structural tie indicators per each observation stored as
+	// Missing tie indicators per each observation stored as
 	// binary networks for efficiency
 
 	Network ** lmissingTieNetworks;
+
+	// A collection of networks, one per each observation
+	Network ** lnetworksLessMissings;
+
+	// A collection of networks, one per each observation
+	Network ** lnetworksLessMissingStarts;
 
 	// The maximum permitted out-degree of an actor. Infinity by default.
 	int lmaxDegree;
@@ -95,6 +106,10 @@ private:
 	// values excluded from the calculation.
 
 	double * ldensity;
+
+	// Flag: is this data object bipartite or oneMode.
+
+	bool loneMode;
 };
 
 }

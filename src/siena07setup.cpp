@@ -23,10 +23,12 @@
 #include "data/NetworkLongitudinalData.h"
 #include "model/Model.h"
 #include "model/ml/Chain.h"
+#include "model/ml/MiniStep.h"
 #include "model/State.h"
 #include "model/StatisticCalculator.h"
 #include "data/ActorSet.h"
 #include "model/ml/MLSimulation.h"
+#include "model/variables/DependentVariable.h"
 
 using namespace std;
 using namespace siena;
@@ -498,7 +500,7 @@ SEXP deleteModel(SEXP RpModel)
  */
 SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 	SEXP CONDVAR, SEXP CONDTARGETS, SEXP PROFILEDATA, SEXP PARALLELRUN,
-	SEXP MODELTYPE)
+	SEXP MODELTYPE, SEXP SIMPLERATES)
 {
 	/* get hold of the data vector */
 	vector<Data *> * pGroupData = (vector<Data *> *)
@@ -563,6 +565,9 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 	{
 		printOutData((*pGroupData)[0]);
 	}
+
+	pModel->simpleRates(asInteger(SIMPLERATES));
+
 	return R_NilValue;
 
 }
@@ -570,7 +575,8 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
  *  Gets target values relative to the input data
  */
 
-SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST)
+SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
+	SEXP PARALLELRUN)
 {
 	/* get hold of the data vector */
 	vector<Data *> * pGroupData = (vector<Data *> *)
@@ -578,6 +584,11 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST)
 
 	/* get hold of the model object */
 	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
+
+	if (!isNull(PARALLELRUN))
+	{
+		pModel->parallelRun(true);
+	}
 
 	int nGroups = pGroupData->size();
 
@@ -642,11 +653,12 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST)
 	UNPROTECT(1);
 	return fra;
 }
-/** Sets up a minimal chain and does pre burnin and burnin.
- * Processes a complete set of data objects, crewating a chain for each
- * period and storing them on the model object.
+/**
+ * Sets up a minimal chain and does pre burnin and burnin.
+ * Processes a complete set of data objects, creating a chain for each
+ * period and returning the address.
  */
-SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
 	SEXP MAXIMUMPERM, SEXP INITIALPERM)
 {
@@ -668,6 +680,7 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
 	pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
 	pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
+	pModel->initializeCurrentPermutationLength();
 	/* set probability flags */
 	pModel->insertDiagonalProbability(REAL(PROBS)[0]);
 	pModel->cancelDiagonalProbability(REAL(PROBS)[1]);
@@ -675,8 +688,9 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	pModel->insertPermuteProbability(REAL(PROBS)[3]);
 	pModel->deletePermuteProbability(REAL(PROBS)[4]);
 	pModel->insertRandomMissingProbability(REAL(PROBS)[5]);
-	PrintValue(PROBS);
+	//PrintValue(PROBS);
 	pModel->deleteRandomMissingProbability(REAL(PROBS)[6]);
+
 
 	double * prmin = REAL(PRMIN);
 	double * prmib = REAL(PRMIB);
@@ -685,6 +699,13 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	PROTECT(minimalChains = allocVector(VECSXP, totObservations));
 	SEXP currentChains;
 	PROTECT(currentChains = allocVector(VECSXP, totObservations));
+	SEXP accepts;
+	PROTECT(accepts = allocVector(VECSXP, totObservations));
+	SEXP rejects;
+	PROTECT(rejects = allocVector(VECSXP, totObservations));
+	SEXP aborts;
+	PROTECT(aborts = allocVector(VECSXP, totObservations));
+	GetRNGstate();
 
 	int periodFromStart = 0;
 
@@ -696,7 +717,6 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 		/* create the ML simulation object */
 		MLSimulation * pMLSimulation = new MLSimulation(pData, pModel);
 
-		pModel->simpleRates(asInteger(SIMPLERATES));
 		pMLSimulation->simpleRates(pModel->simpleRates());
 
 		for (int period = 0; period < observations; period ++)
@@ -713,21 +733,17 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 
 			/* initialize the chain: this also initializes the data */
 			// does not initialise with previous period missing values yet
+			pMLSimulation->pChain()->clear();
 			pMLSimulation->connect(period);
-
 			SEXP ch;
-			PROTECT(ch = getChainDF(*(pMLSimulation->pChain())));
+			PROTECT(ch =
+				duplicate(getChainDFPlus(*(pMLSimulation->pChain()), true)));
 			SET_VECTOR_ELT(minimalChains, periodFromStart, ch);
-			UNPROTECT(1);
 
 			/* get the chain up to a reasonable length */
-
-			GetRNGstate();
-
 			pMLSimulation->preburnin();
 
 			/* do some more steps */
-
 			pMLSimulation->setUpProbabilityArray();
 
 			int numSteps = 500;
@@ -738,37 +754,72 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 
 			/* store chain on Model after creating difference vectors */
 			Chain * pChain = pMLSimulation->pChain();
+			pMLSimulation->updateProbabilities(pChain,
+				pChain->pFirst()->pNext(),
+				pChain->pLast()->pPrevious());
 			pChain->createInitialStateDifferences();
 			pMLSimulation->createEndStateDifferences();
 			pModel->chainStore(*pChain, periodFromStart);
 
-			/* return chain as a list. */
+			/* return chain as a list */
  			SEXP ch1;
- 			PROTECT(ch1 = getChainList(*pChain,	*pMLSimulation));
- 			SET_VECTOR_ELT(currentChains, periodFromStart, ch1);
- 			UNPROTECT(1);
+ 			PROTECT(ch1 = duplicate(getChainList(*pChain, *pMLSimulation)));
+  			//PROTECT(ch1 = getChainDFPlus(*pChain, true));
+			SET_VECTOR_ELT(currentChains, periodFromStart, ch1);
 
+			/* get hold of the statistics for accept and reject */
+			const vector < DependentVariable * > & rVariables =
+				pMLSimulation->rVariables();
+			int numberVariables = rVariables.size();
+
+			SEXP accepts1;
+			PROTECT(accepts1 = allocMatrix(INTSXP, numberVariables, 9));
+			SEXP rejects1;
+			PROTECT(rejects1 = allocMatrix(INTSXP, numberVariables, 9));
+			SEXP aborts1;
+			PROTECT(aborts1 = allocVector(INTSXP, 9));
+			int * iaccepts = INTEGER(accepts1);
+			int * irejects = INTEGER(rejects1);
+			int * iaborts = INTEGER(aborts1);
+			for (int i = 0; i < 9; i++)
+			{
+				iaborts[i] = pMLSimulation->aborted(i);
+				for (int j = 0; j < numberVariables; j++)
+				{
+					iaccepts[i + 9 * j] = rVariables[j]->acceptances(i);
+					irejects[i + 9 * j] = rVariables[j]->rejections(i);
+				}
+			}
+			SET_VECTOR_ELT(accepts, periodFromStart, accepts1);
+			SET_VECTOR_ELT(rejects, periodFromStart, rejects1);
+			SET_VECTOR_ELT(aborts, periodFromStart, aborts1);
 			periodFromStart++;
+			pModel->currentPermutationLength(period,
+				pMLSimulation->currentPermutationLength());
 		}
 		delete pMLSimulation;
 	}
 
 	SEXP ans;
-	PROTECT(ans = allocVector(VECSXP, 2));
+	PROTECT(ans = allocVector(VECSXP, 5));
 	SET_VECTOR_ELT(ans, 0, minimalChains);
 	SET_VECTOR_ELT(ans, 1, currentChains);
-	UNPROTECT(3);
+	SET_VECTOR_ELT(ans, 2, accepts);
+	SET_VECTOR_ELT(ans, 3, rejects);
+	SET_VECTOR_ELT(ans, 4, aborts);
+
+	int nbrProtects = 6 + 5 * totObservations;
+	UNPROTECT(nbrProtects);
 	PutRNGstate();
 	return ans;
 }
 
-/** Sets up a minimal chain and does pre burnin and burnin.
- * Processes a complete set of data objects, crewating a chain for each
- * period and storing them on the model object.
+/**
+ * Sets up chains in sub processes by copying them from input
  */
 SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
-	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS, SEXP MISSINGCHAINS)
+	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS)
 {
 	/* get hold of the data vector */
 	vector<Data *> * pGroupData = (vector<Data *> *)
@@ -790,6 +841,7 @@ SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	pModel->maximumPermutationLength(REAL(MAXIMUMPERM)[0]);
 	pModel->minimumPermutationLength(REAL(MINIMUMPERM)[0]);
 	pModel->initialPermutationLength(REAL(INITIALPERM)[0]);
+	pModel->initializeCurrentPermutationLength();
 	/* set probability flags */
 	pModel->insertDiagonalProbability(REAL(PROBS)[0]);
 	pModel->cancelDiagonalProbability(REAL(PROBS)[1]);
@@ -808,8 +860,6 @@ SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
 	{
 		Data * pData = (*pGroupData)[group];
 		int observations = pData->observationCount() - 1;
-
-		pModel->simpleRates(asInteger(SIMPLERATES));
 
 		for (int period = 0; period < observations; period ++)
 		{

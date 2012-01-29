@@ -287,25 +287,49 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
                             Report(c("\nFor observation moment ",
                                      k + periodFromStart,
                                      ", number of missing values ",
-                                     "are:\nNodes\n"),
+                                     "are:\n"),
                                    sep="", outf)
-                            tmp <- format(cbind(1:atts$netdims[1],
-                                                missrow, misscol))
-                            Report(tmp[, 1], fill=60, outf)
-                            Report("missing in rows\n", outf)
-                            Report(tmp[, 2], fill=60, outf)
-                            Report("missing in columns\n", outf)
-                            Report(tmp[, 3], fill=60, outf)
-                            Report(c("Total number of missing data: ",
-                                     sum(missrow),
-                                     ", corresponding to a fraction of ",
-                                     format(round(sum(missrow)/atts$netdims[1] /
-                                           (atts$netdims[1] - 1), 3), nsmall=3),
-                                     ".\n"), sep="", outf)
-                            if (k > 1)
-                                Report(c("In reported in- and outdegrees,",
-                                         "missings are not counted.\n"), outf)
-                            Report("\n", outf)
+							if (attr(depvar, "type") != "bipartite")
+							{
+								Report("Nodes\n", outf)
+								tmp <- format(cbind(1:atts$netdims[1],
+													missrow, misscol))
+								Report(tmp[, 1], fill=60, outf)
+								Report("missing in rows\n", outf)
+								Report(tmp[, 2], fill=60, outf)
+								Report("missing in columns\n", outf)
+								Report(tmp[, 3], fill=60, outf)
+								mult <- atts$netdims[1] - 1
+							}
+							else
+							{
+								Report("Senders\n", outf)
+								tmp <- format(cbind(1:atts$netdims[1],
+													missrow))
+								Report(tmp[, 1], fill=60, outf)
+								Report("missing in rows\n", outf)
+								Report(tmp[, 2], fill=60, outf)
+								tmp <- format(cbind(1:atts$netdims[2],
+													misscol))
+								Report("Receivers\n", outf)
+								Report(tmp[, 1], fill=60, outf)
+								Report("missing in columns\n", outf)
+								Report(tmp[, 2], fill=60, outf)
+								mult <- atts$netdims[2]
+							}
+							Report(c("Total number of missing data: ",
+									 sum(missrow),
+									 ", corresponding to a fraction of ",
+									 format(round(sum(missrow)/
+												  atts$netdims[1] /
+												  mult, 3),
+											nsmall=3),
+									 ".\n"), sep="", outf)
+
+							if (k > 1)
+								Report(c("In reported in- and outdegrees,",
+										 "missings are not counted.\n"), outf)
+							Report("\n", outf)
                         }
                         else
                         {

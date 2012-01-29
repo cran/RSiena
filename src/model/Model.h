@@ -89,9 +89,7 @@ public:
 
 	void chainStore(const Chain& chain, int periodFromStart);
 	vector <Chain *> & rChainStore( int periodFromStart);
-	void partClearChainStore();
-	void clearChainStore();
-	void clearChainStore(int periodFromStart);
+	void clearChainStore(int keep, int periodFromStart);
 	void setupChainStore(int numberOfPeriods);
 	void deleteLastChainStore(int periodFromStart);
 	void numberOfPeriods(int numberOfPeriods);
@@ -117,9 +115,6 @@ public:
 	void needDerivatives(bool flag);
 	bool needDerivatives() const;
 
-	void needChangeContributions(bool flag);
-	bool needChangeContributions() const;
-
 	void parallelRun(bool flag);
 	bool parallelRun() const;
 
@@ -140,6 +135,10 @@ public:
 
 	void initialPermutationLength(double value);
 	double initialPermutationLength() const;
+
+	void initializeCurrentPermutationLength();
+	double currentPermutationLength(int period) const;
+	void currentPermutationLength(int period, double value);
 
 	void insertDiagonalProbability(double probability);
 	double insertDiagonalProbability() const;
@@ -195,13 +194,13 @@ private:
 	// A vector of rate effects (except the basic rate effects) per variable
 	map<string, vector<EffectInfo *> > lrateEffects;
 
-	// A vector of evaluation effects per variable
+	// A vector of pointers to evaluation effects per variable
 	map<string, vector<EffectInfo *> > levaluationEffects;
 
-	// A vector of endowment effects per variable
+	// A vector of pointers to endowment effects per variable
 	map<string, vector<EffectInfo *> > lendowmentEffects;
 
-	// A vector of creation effects per variable
+	// A vector of pointers to creation effects per variable
 	map<string, vector<EffectInfo *> > lcreationEffects;
 
 	// A dummy vector of effect infos in case we need a reference to
@@ -238,6 +237,9 @@ private:
 
 	// initial length of permuted interval
 	double linitialPermutationLength;
+
+	// current length of permuted interval: varies by period
+	vector <double> lcurrentPermutationLength;
 
 	// probabilities of the different ML steps
 	double linsertDiagonalProbability;

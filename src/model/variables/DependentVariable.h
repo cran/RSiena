@@ -13,6 +13,7 @@
 #define DEPENDENTVARIABLE_H_
 
 #include <map>
+#include <vector>
 #include <string>
 #include "utils/NamedObject.h"
 #include "model/Function.h"
@@ -150,8 +151,13 @@ public:
 	void calculateMaximumLikelihoodRateScores(int activeMiniStepCount);
 	void calculateMaximumLikelihoodRateDerivatives(int activeMiniStepCount);
 	double basicRateDerivative() const;
-	virtual double calculateChoiceProbability(const MiniStep * pMiniStep)
-		const = 0;
+
+	void incrementAcceptances(int stepType);
+	void incrementRejections(int stepType);
+	void incrementAborts(int stepType);
+	int acceptances(int stepType) const;
+	int rejections(int stepType) const;
+	int aborts(int stepType) const;
 
 protected:
 	inline EpochSimulation * pSimulation() const;
@@ -294,6 +300,10 @@ private:
 
 	// flag to indicate we gave up on a step due to uponly and other filters
 	bool lsuccessfulChange;
+
+	vector <int> lacceptances;
+	vector <int> lrejections;
+	vector <int> laborts;
 
 };
 

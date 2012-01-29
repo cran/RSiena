@@ -6,7 +6,7 @@
 }
 \usage{
 varDyadCovar(val, nodeSets=c("Actors", "Actors"),
-    sparse=is.list(val))
+    sparse=is.list(val), type=c("oneMode", "bipartite"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -14,6 +14,8 @@ varDyadCovar(val, nodeSets=c("Actors", "Actors"),
 	time. Alternatively, a list of sparse matrices of type "dgTMatrix"}
   \item{nodeSets}{Names (character string) of the associated node sets}
   \item{sparse}{Boolean: whether sparse matrices or not.}
+  \item{type}{OneMode or Bipartite: whether the matrix refers to a one Mode
+  or a bipartite network.}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be

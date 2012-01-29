@@ -3,7 +3,7 @@
  *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
  *
- * File: sienaPrintUtils.cpp
+ * File: siena07Utilities.cpp
  *
  * Description: This module contains various utilities, including:
  *
@@ -51,6 +51,7 @@
 #include "model/variables/BehaviorVariable.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/ml/Chain.h"
+#include "model/ml/MLSimulation.h"
 #include "model/ml/MiniStep.h"
 #include "model/ml/NetworkChange.h"
 #include "model/ml/BehaviorChange.h"
@@ -701,18 +702,9 @@ SEXP getChainDFPlus(const Chain& chain, bool sort)
 SEXP getMiniStepList(const MiniStep& miniStep, int period,
 	const EpochSimulation& epochSimulation)
 {
-	SEXP MINISTEP, EVAL, ENDOW;
-	int nEvaluationEffects, nEndowmentEffects, nRows;
-	double * reval, * rendow;
+	SEXP MINISTEP;
 	PROTECT(MINISTEP = allocVector(VECSXP, 13));
 	SET_VECTOR_ELT(MINISTEP, 3, ScalarInteger(miniStep.ego()));
-//	Rprintf("%d\n",epochSimulation.pModel()->needChangeContributions() );
-	nEvaluationEffects =
-		epochSimulation.pModel()->
-		rEvaluationEffects(miniStep.variableName()).size();
-	nEndowmentEffects =
-		epochSimulation.pModel()->
-		rEndowmentEffects(miniStep.variableName()).size();
 	if (miniStep.networkMiniStep())
 	{
 		const NetworkChange& networkChange =
@@ -720,37 +712,6 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 		SET_VECTOR_ELT(MINISTEP, 0, mkString("Network"));
 		SET_VECTOR_ELT(MINISTEP, 4, ScalarInteger(networkChange.alter()));
 		SET_VECTOR_ELT(MINISTEP, 5, ScalarInteger(0));
-		if (epochSimulation.pModel()->needChangeContributions())
-		{
-			nRows = epochSimulation.pVariable(miniStep.variableName())->m();
-			PROTECT(EVAL = allocMatrix(REALSXP, nRows, nEvaluationEffects));
-			PROTECT(ENDOW = allocMatrix(REALSXP, nRows, nEndowmentEffects));
-			reval = REAL(EVAL);
-			int pos = 0;
-			for (int i = 0; i < nEvaluationEffects; i++)
-			{
-				for (int j = 0; j < nRows; j++)
-				{
-					reval[pos++] = networkChange.
-						evaluationEffectContribution(j, i);
-// 					Rprintf(" %f\n", networkChange.
-// 						evaluationEffectContribution(j, i));
-				}
-			}
-			rendow = REAL(ENDOW);
-			pos = 0;
-			for (int i = 0; i < nEndowmentEffects; i++)
-			{
-				for (int j = 0; j < nRows; j++)
-				{
-					rendow[pos++] = networkChange.
-						endowmentEffectContribution(j, i);
-				}
-			}
-			SET_VECTOR_ELT(MINISTEP, 9, EVAL);
-			SET_VECTOR_ELT(MINISTEP, 10, ENDOW);
-			UNPROTECT(2);
-		}
 	}
 	else
 	{
@@ -761,35 +722,6 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 		SET_VECTOR_ELT(MINISTEP,
 			5,
 			ScalarInteger(behaviorChange.difference()));
-		if (epochSimulation.pModel()->needChangeContributions())
-		{
-			nRows = 3;
-			PROTECT(EVAL = allocMatrix(REALSXP, nRows, nEvaluationEffects));
-			PROTECT(ENDOW = allocMatrix(REALSXP, nRows, nEndowmentEffects));
-			reval = REAL(EVAL);
-			int pos = 0;
-			for (int i = 0; i < nEvaluationEffects; i++)
-			{
-				for (int j = 0; j < nRows; j++)
-				{
-					reval[pos++] =
-						behaviorChange.evaluationEffectContribution(j, i);
-				}
-			}
-			rendow = REAL(ENDOW);
-			pos = 0;
-			for (int i = 0; i < nEndowmentEffects; i++)
-			{
-				for (int j = 0; j < nRows; j++)
-				{
-					rendow[pos++] =
-						behaviorChange.endowmentEffectContribution(j, i);
-				}
-			}
-			SET_VECTOR_ELT(MINISTEP, 9, EVAL);
-			SET_VECTOR_ELT(MINISTEP, 10, ENDOW);
-			UNPROTECT(2);
-		}
 	}
 	SET_VECTOR_ELT(MINISTEP, 1, ScalarInteger(miniStep.variableId()));
 	SET_VECTOR_ELT(MINISTEP, 11, ScalarLogical(miniStep.missing(period)));
@@ -803,8 +735,8 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 	return MINISTEP;
 }
 
-/** Create a list from a chain. Easy to create, but prints untidily!
- *
+/**
+ * Create a list from a chain. Easy to create, but prints untidily!
  */
 SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 {
@@ -919,7 +851,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	}
 
     SEXP init;
-    PROTECT(init = install("initialState"));
+    PROTECT(init = install("initialStateDifferences"));
     SEXP initialState = getAttrib(CHAIN, init);
 	for (int i = 0; i < length(initialState); i++)
 	{

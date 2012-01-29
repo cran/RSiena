@@ -38,6 +38,8 @@ public:
 	bool structural(int observation, int actor) const;
 	void structural(int observation, int actor, bool flag);
 	const int * values(int observation) const;
+	const int * valuesLessMissings(int observation) const;
+	const int * valuesLessMissingStarts(int observation) const;
 
 	int min() const;
 	int max() const;
@@ -60,6 +62,12 @@ private:
 
 	// Structural value indicators
 	bool ** lstructural;
+
+	// An array of values per each observation
+	int ** lvaluesLessMissings;
+
+	// An array of values per each observation
+	int ** lvaluesLessMissingStarts;
 
 	// The smallest non-missing value
 	int lmin;

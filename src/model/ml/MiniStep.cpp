@@ -268,9 +268,17 @@ MiniStep * MiniStep::createCopyMiniStep() const
  */
 bool MiniStep::firstOfConsecutiveCancelingPair() const
 {
-	return !this->diagonal() &&
+	//Rprintf(" first ccp %x\n", this->pChain());
+	bool missing = false;
+	if (this->pChain())
+	{
+		missing = this->missing(this->pChain()->period());
+	}
+	return
+		!this->diagonal() &&
 		this->lpNextWithSameOption &&
-		this->lpNextWithSameOption != this->lpNext;
+		this->lpNextWithSameOption != this->lpNext &&
+		!missing;
 }
 
 }

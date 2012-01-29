@@ -430,23 +430,23 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 
 	if (this->lpData->rNetworkConstraints().size()  == 0)
 	{
-	// Randomize the ministeps
+		// Randomize the ministeps
 
-	for (unsigned i = 1; i < miniSteps.size(); i++)
-	{
-		int j = nextInt(i + 1);
-		MiniStep * pTempMiniStep = miniSteps[i];
-		miniSteps[i] = miniSteps[j];
-		miniSteps[j] = pTempMiniStep;
+		for (unsigned i = 1; i < miniSteps.size(); i++)
+		{
+			int j = nextInt(i + 1);
+			MiniStep * pTempMiniStep = miniSteps[i];
+			miniSteps[i] = miniSteps[j];
+			miniSteps[j] = pTempMiniStep;
+		}
+
+		// And finally add the ministeps to this chain
+
+		for (unsigned i = 0; i < miniSteps.size(); i++)
+		{
+			this->insertBefore(miniSteps[i], this->lpLast);
+		}
 	}
-
-	// And finally add the ministeps to this chain
-
-	for (unsigned i = 0; i < miniSteps.size(); i++)
-	{
-		this->insertBefore(miniSteps[i], this->lpLast);
-	}
-}
 	else
 	{
 		unsigned count = 0;
@@ -479,12 +479,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 					DependentVariable * pVariable =
 						pMLSimulation->rVariables()[miniSteps[i]->variableId()];
 					//	PrintValue(getMiniStepDF(*miniSteps[i]));
-					//	if (miniSteps[i]->ego() ==2)
-					//	{
-						//		Rprintf("+++++++++++%d %d %x \n", miniSteps[i]->ego(),
-						//		pVariable->validMiniStep(miniSteps[i]), pVariable);
-						//	PrintValue(getMiniStepDF(*miniSteps[i]));
-					//	}
+
 					if (!pVariable->validMiniStep(miniSteps[i]))
 					{
 						//		Rprintf("first inval\n");
@@ -499,10 +494,9 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 								this->randomMiniStep(pLastMiniStep->pNext(),
 									this->lpLast);
 							//	PrintValue(getMiniStepDF(*pMiniStep));
-					pMLSimulation->initialize(this->lperiod);
+							pMLSimulation->initialize(this->lperiod);
 							pMLSimulation->executeMiniSteps(this->lpFirst->
-								pNext(),
-								pMiniStep);
+								pNext(), pMiniStep);
 							// see if valid here
 							if (!pVariable->validMiniStep(miniSteps[i]))
 							{
@@ -519,14 +513,14 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 										lpFirst->pNext(),
 										pFirstMiniStep);
 								//	PrintValue(getMiniStepDF(*pMiniStep));
-					pMLSimulation->initialize(this->lperiod);
+								pMLSimulation->initialize(this->lperiod);
 								pMLSimulation->
 									executeMiniSteps(pFirstMiniStep,
 										pMiniStep);
 								// see if valid here
 								if (pVariable->validMiniStep(miniSteps[i]))
 								{
-									//	Rprintf("thirsd true inval\n");
+									Rprintf("thirsd true val\n");
 									valid = true;
 								}
 								//	}
@@ -544,12 +538,6 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 				}
 				if (valid)
 				{
-					//	Rprintf("this\n");
-					//	PrintValue(getChainDF(*this, false));
-					//	Rprintf("i %d\n", i);
-					//	PrintValue(getMiniStepDF(*miniSteps[i]));
-					//	Rprintf("mini\n");
-					//	PrintValue(getMiniStepDF(*pMiniStep));
 					this->insertBefore(miniSteps[i], pMiniStep);
 				}
 				else
@@ -671,8 +659,8 @@ void Chain::recreateInitialState()
  */
 void Chain::createInitialStateDifferences()
 {
-	this->linitialStateDifferences.clear();
-//	Rprintf("******** %d create initial\n",this->linitialStateDifferences.size() );
+	deallocateVector(this->linitialStateDifferences);
+	//Rprintf("******** %d create initial\n",this->linitialStateDifferences.size() );
 	Data * pData = this->lpData;
 	State * initialState = this->lpInitialState;
 	int period = this->lperiod;
@@ -810,7 +798,7 @@ void Chain::addEndStateDifference(MiniStep * pMiniStep)
  */
 void Chain::clearEndStateDifferences()
 {
-	this->lendStateDifferences.clear();
+	deallocateVector(this->lendStateDifferences);
 }
 
 /**
@@ -1341,6 +1329,7 @@ Chain * Chain::copyChain() const
 	}
 void Chain::dumpChain() const
 {
+	Rprintf(" period %d %x\n",this->lperiod, this->lpInitialState);
 	for (unsigned i = 0; i < this->lminiSteps.size(); i++)
 	{
 		PrintValue(getMiniStepDF(*this->lminiSteps[i]));
@@ -1377,5 +1366,10 @@ void Chain::dumpChain() const
 		//PrintValue(getMiniStepDF(*iter->second));
 	}
 
+	for(unsigned i = 0; i < this->linitialStateDifferences.size(); i++)
+ 	{
+ 		PrintValue(getMiniStepDF(*(this->linitialStateDifferences[i])));
 }
+}
+
 }

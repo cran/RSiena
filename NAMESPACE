@@ -1,11 +1,11 @@
 useDynLib(RSiena)
 export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
-siena01Gui, siena07, sienaCompositionChange,
+siena01Gui, siena07, sienaCompositionChange, bayes, updateTheta,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
 sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, xtable.sienaFit,
        varCovar, varDyadCovar, setEffect, includeEffects, includeInteraction,
        effectsDocumentation, sienaDataConstraint, print.xtable.sienaFit,
-       installGui, siena08, iwlsm, sienaTimeTest, includeTimeDummy)
+       installGui, siena08, iwlsm, sienaTimeTest, includeTimeDummy, xtable)
 
 import(Matrix)
 

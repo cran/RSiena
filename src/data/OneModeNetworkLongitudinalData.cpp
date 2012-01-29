@@ -30,7 +30,7 @@ OneModeNetworkLongitudinalData::OneModeNetworkLongitudinalData(int id,
 	std::string name,
 	const ActorSet * pActors,
 	int observationCount) :
-		NetworkLongitudinalData(id, name, pActors, pActors, observationCount)
+	NetworkLongitudinalData(id, name, pActors, pActors, observationCount, true)
 {
 	this->lsymmetric = false;
 	this->lbalanceMean = 0;

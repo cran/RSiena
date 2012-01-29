@@ -117,4 +117,30 @@ bool CovariateDependentBehaviorEffect::missingCovariate(int i,
 	return missing;
 }
 
+/**
+ * Returns if the covariate value for the given actor is missing at the
+ * given observation or the next one. The next one is only used for
+ * behavior variable. It may not exist for changing covariate so is never used.
+ */
+bool CovariateDependentBehaviorEffect::missingCovariateEitherEnd(int i,
+	int observation) const
+{
+	bool missing = false;
+
+	if (this->lpConstantCovariate)
+	{
+		missing = this->lpConstantCovariate->missing(i);
+	}
+	else if (this->lpChangingCovariate)
+	{
+		missing = this->lpChangingCovariate->missing(i, observation);
+	}
+	else
+	{
+		missing = this->lpBehaviorData->missing(observation, i) ||
+		this->lpBehaviorData->missing(observation + 1, i);
+	}
+
+	return missing;
+}
 }

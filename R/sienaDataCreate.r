@@ -376,7 +376,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
     for (i in seq(along=dycCovars))
     {
         nattr <- attr(dycCovars[[i]], 'nodeSet')
-        bipartite <- nattr[1] != nattr[2]
+        bipartite <- attr(dycCovars[[i]], "type") == "bipartite"
         if (attr(dycCovars[[i]], "sparse"))
         {
             thisdycCovar <- dycCovars[[i]][[1]]
@@ -386,10 +386,14 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
             thisdycCovar <- dycCovars[[i]]
         }
         if (!validNodeSet(nattr[1], nrow(thisdycCovar)))
-            stop('dyadic covariate incorrect nbr rows', names(dycCovars)[i])
+		{
+            stop("dyadic covariate incorrect nbr rows", names(dycCovars)[i])
+		}
         if (!validNodeSet(nattr[2], ncol(thisdycCovar)))
-             stop('dyadic covariate incorrect nbr columns',
+		{
+             stop("dyadic covariate incorrect nbr columns",
                   names(dycCovars)[i])
+		 }
         dycCovars[[i]] <- addAttributes(dycCovars[[i]], names(dycCovars)[i],
                                         bipartite)
     }
@@ -401,7 +405,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         }
         nattr <- attr(dyvCovars[[i]],'nodeSet')
         sparse <- attr(dyvCovars[[i]], "sparse")
-        bipartite <- nattr[1] != nattr[2]
+        bipartite <- attr(dyvCovars[[i]], "type") == "bipartite"
         vardims <- attr(dyvCovars[[i]], "vardims")
         if (!validNodeSet(nattr[1], vardims[1]))
         {
@@ -563,11 +567,12 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         attr(depvars[[i]], 'vals') <- vector("list", observations)
         attr(depvars[[i]], 'nval') <- rep(NA, observations)
         attr(depvars[[i]], 'noMissing') <- rep(0, observations)
-        attr(depvars[[i]], 'noMissingEither') <- rep(0, observations -1)
-        attr(depvars[[i]], 'nonMissingEither') <- rep(0, observations -1)
+        attr(depvars[[i]], 'noMissingEither') <- rep(0, observations - 1)
+        attr(depvars[[i]], 'nonMissingEither') <- rep(0, observations - 1)
         if (type == 'behavior')
         {
             attr(depvars[[i]], 'noMissing') <- FALSE
+            attr(depvars[[i]], 'symmetric') <- NA
             for (j in 1:(observations - 1))
             {
                 myvector1 <- myarray[, , j]
@@ -894,6 +899,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 checkConstraints <- function(z)
 {
     types <- sapply(z$depvars, function(x)attr(x, "type"))
+    symmetrics <- sapply(z$depvars, function(x)attr(x, "symmetric"))
     sparse <- sapply(z$depvars, function(x)attr(x, "sparse"))
     nodeSets <- lapply(z$depvars, function(x)attr(x, "nodeSet"))
     nNets <- length(z$depvars)
@@ -943,7 +949,11 @@ checkConstraints <- function(z)
             nodes1 <- relates[net1, "nodeSets"]
             nodes2 <- relates[net2, "nodeSets"]
 
-            if (type1 == type2 && type1 != "behavior" && nodes1 == nodes2)
+            symmetric1 <- symmetrics[net1]
+            symmetric2 <- symmetrics[net2]
+
+            if (type1 == type2 && type1 != "behavior" && nodes1 == nodes2
+                && symmetric1 == symmetric2)
             {
                 higher[i] <- TRUE
                 disjoint[i] <- TRUE
@@ -1399,6 +1409,8 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
     cvnodeSets <- namedVector(NA, vCovars)
     dycnodeSets <- namedVector(NA, dycCovars, listType=TRUE)
     dyvnodeSets <- namedVector(NA, dyvCovars, listType=TRUE)
+    dyctype <- namedVector(NA, dycCovars)
+    dyvtype <- namedVector(NA, dyvCovars)
   #  totalMissings <- namedVector(0, netnames, listType=TRUE)
   #  nonMissingCount <- namedVector(0, netnames, listType=TRUE)
     observations <- 0
@@ -1550,11 +1562,19 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             if (is.null(dycnodeSets[[covarsub]]))
             {
                 dycnodeSets[[covarsub]] <- attribs[['nodeSet']]
+                dyctype[[covarsub]] <- attribs[['type']]
             }
-            else if (any(dycnodeSets[[covarsub]] != attribs[['nodeSet']]))
-            {
-                stop('Inconsistent node Sets')
-            }
+            else
+			{
+				if (any(dycnodeSets[[covarsub]] != attribs[['nodeSet']]))
+				{
+					stop('Inconsistent node Sets')
+				}
+				if (dyctype[[covarsub]] != attribs[['type']])
+				{
+					stop("Inconsistent constant dyadic covariate types")
+				}
+			}
         }
         for (j in seq(along=objlist[[i]]$dyvCovars))
         {
@@ -1568,12 +1588,20 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
             if (is.null(dyvnodeSets[[covarsub]]))
             {
                 dyvnodeSets[[covarsub]] <- attribs[['nodeSet']]
-            }
-            else if (any(dyvnodeSets[[covarsub]] != attribs[['nodeSet']]))
-            {
-                stop('Inconsistent node Sets')
-            }
-        }
+				dyvtype[[covarsub]] <- attribs[['type']]
+			}
+            else
+			{
+				if (any(dyvnodeSets[[covarsub]] != attribs[['nodeSet']]))
+				{
+					stop('Inconsistent node Sets')
+				}
+ 				if (dyvtype[[covarsub]] != attribs[['type']])
+				{
+					stop("Inconsistent changing dyadic covariate types")
+				}
+			}
+		}
         observations <- observations + objlist[[i]]$observations - 1
         groupPeriods[i] <- newobs
     }

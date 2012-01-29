@@ -14,7 +14,7 @@ namespace siena
 
 /**
  * Creates a state of variables as of the given observation of the given
- * Data object. The values may be copied of referenced directly as indicated
+ * Data object. The values may be copied or referenced directly as indicated
  * by the parameter <code>copyValues</code>.
  */
 State::State(const Data * pData, int observation, bool copyValues)

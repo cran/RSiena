@@ -116,8 +116,8 @@ includeInteraction <- function(myeff, ...,
     if (length(shortNames) > 2)
     {
         shortName <- shortNames[3]
-        interact1 <- ifelse (length(interaction1) > 2, interaction1[2], "")
-        interact2 <- ifelse (length(interaction2) > 2, interaction2[2], "")
+        interact1 <- ifelse (length(interaction1) > 2, interaction1[3], "")
+        interact2 <- ifelse (length(interaction2) > 2, interaction2[3], "")
         use <- myeff$shortName == shortName &
         myeff$type==type &
         myeff$name==name &
@@ -125,11 +125,11 @@ includeInteraction <- function(myeff, ...,
         myeff$interaction2 == interact2
         if (sum(use) == 0)
         {
-            stop("Second effect not found")
+            stop("Third effect not found")
         }
         if (sum(use) > 1)
         {
-            stop("Second effect not unique")
+            stop("Third effect not unique")
         }
         effect3 <- myeff[use, "effectNumber"]
     }

@@ -15,9 +15,10 @@
  the \code{timeDummy} column within the effects object, you may specify
  which time dummy interacted parameters are to be estimated.
 
- Note that this function is only appropriate for sienaFit objects which
- use the score function method of derivative estimation of Schwienberger
- and Snijders (2007a).
+ If you wish to use this function with sienaFit objects which use the finite
+ differences method of derivative estimation, or which use maximum
+ likelihood estimation, you must request the derivatives to be returned
+ by wave using the \code{byWave=TRUE} option to \code{\link{siena07}}.
  }
 
  \usage{

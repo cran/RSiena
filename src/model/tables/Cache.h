@@ -18,10 +18,20 @@ using namespace std;
 namespace siena
 {
 
+// ----------------------------------------------------------------------------
+// Section: Forward declarations
+// ----------------------------------------------------------------------------
+
 class TwoNetworkCache;
 class NetworkCache;
 class Network;
+// ----------------------------------------------------------------------------
+// Section: Cache class
+// ----------------------------------------------------------------------------
 
+/**
+ * This class provides cache objects
+ */
 
 class Cache
 {

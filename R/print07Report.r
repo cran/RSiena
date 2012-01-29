@@ -162,8 +162,8 @@ PrintReport <- function(z, x)
            Report(c("covariance/correlation matrix of X can be found using\n",
                     "summary(ans) within R,",
            " or by using the 'verbose' option in Siena07.\n "), sep = "", outf)
-           Report(c('Derivative matrix of expected statistics X by',
-                    'parameters:\n\n '), lf)
+           Report(c("Derivative matrix of expected statistics X by",
+                    "parameters:\n\n"), lf)
            PrtOutMat(z$dfrac, lf)
            Report('Covariance matrix of X (correlations below the diagonal):\n',
                   lf)

@@ -26,7 +26,7 @@ sienaModelCreate <-
              pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
              prirms=0.05, prdrms=0.05, maximumPermutationLength=40,
              minimumPermutationLength=2, initialPermutationLength=20,
-             modelType=1, mult=4)
+             modelType=1, mult=5)
 {
     model <- NULL
     model$projname <- projname

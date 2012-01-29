@@ -58,6 +58,9 @@ DependentVariable::DependentVariable(string name,
 	this->lpEvaluationFunction = new Function();
 	this->lpEndowmentFunction = new Function();
 	this->lpCreationFunction = new Function();
+	this->lacceptances.resize(NBRTYPES, 0);
+	this->lrejections.resize(NBRTYPES, 0);
+	this->laborts.resize(NBRTYPES, 0);
 }
 
 
@@ -443,7 +446,7 @@ void DependentVariable::calculateRates()
 			{
 				this->calculateScoreSumTerms();
 			}
-			if(this->pSimulation()->pModel()->modelTypeB())
+			if(this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				this->ltotalRate = this->totalRate() * this->totalRate() -
 					sumRatesSquared;
@@ -669,15 +672,16 @@ void DependentVariable::accumulateRateScores(double tau,
 	if (this == pSelectedVariable)
 	{
 		this->lbasicRateScore += 1.0 / this->basicRate();
-		if (this->pSimulation()->pModel()->modelTypeB())
+		if (this->symmetric() &&
+			this->pSimulation()->pModel()->modelTypeB())
 		{
 			throw logic_error("model type b");
-			this->lbasicRateScore += 1.0 / this->basicRate();
+			//this->lbasicRateScore += 1.0 / this->basicRate();
 		}
 	}
 	this->lbasicRateScore -= this->totalRate() * tau / this->basicRate();
 
-	if (this->pSimulation()->pModel()->modelTypeB())
+	if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 	{
 		throw logic_error("model type b");
 		this->lbasicRateScore -= this->totalRate() * tau / this->basicRate();
@@ -941,7 +945,7 @@ void DependentVariable::calculateScoreSumTerms()
 		for (int i = 0; i < this->n(); i++)
 		{
 			timesRate += pCovariate->value(i) * this->lrate[i];
-			if (this->pSimulation()->pModel()->modelTypeB())
+			if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				timesRateSquared += pCovariate->value(i) * this->lrate[i] *
 					this->lrate[i];
@@ -963,7 +967,7 @@ void DependentVariable::calculateScoreSumTerms()
 		for (int i = 0; i < this->n(); i++)
 		{
 			timesRate += pCovariate->value(i, this->period()) * this->lrate[i];
-			if (this->pSimulation()->pModel()->modelTypeB())
+			if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				timesRateSquared += pCovariate->value(i, this->period()) *
 					this->lrate[i] * this->lrate[i];
@@ -986,7 +990,7 @@ void DependentVariable::calculateScoreSumTerms()
 		for (int i = 0; i < this->n(); i++)
 		{
 			timesRate += pBehavior->value(i) * this->lrate[i];
-			if (this->pSimulation()->pModel()->modelTypeB())
+			if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				timesRateSquared += pBehavior->value(i) * this->lrate[i] *
 					this->lrate[i];
@@ -1026,7 +1030,7 @@ void DependentVariable::calculateScoreSumTerms()
 		for (int i = 0; i < this->n(); i++)
 		{
 			timesRate += pNetwork->outDegree(i) * this->lrate[i];
-			if (this->pSimulation()->pModel()->modelTypeB())
+			if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				timesRateSquared += pNetwork->outDegree(i) * this->lrate[i] *
 					this->lrate[i];
@@ -1065,7 +1069,7 @@ void DependentVariable::calculateScoreSumTerms()
 		for (int i = 0; i < this->n(); i++)
 		{
 			timesRate += invertor(pNetwork->outDegree(i)) * this->lrate[i];
-			if (this->pSimulation()->pModel()->modelTypeB())
+			if (this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 			{
 				timesRateSquared += invertor(pNetwork->outDegree(i)) *
 					this->lrate[i] * this->lrate[i];
@@ -1455,4 +1459,59 @@ void DependentVariable::successfulChange(bool success)
 {
 	this->lsuccessfulChange = success;
 }
+
+// ----------------------------------------------------------------------------
+// Section: MH step counts
+// ----------------------------------------------------------------------------
+
+/**
+ * increments the number of acceptances for the given steptype for this variable
+ */
+void DependentVariable::incrementAcceptances(int stepType)
+{
+	this->lacceptances[stepType]++;
+}
+
+/**
+ * increments the number of rejections for the given steptype for this variable
+ */
+void DependentVariable::incrementRejections(int stepType)
+{
+	this->lrejections[stepType]++;
+}
+
+/**
+ * increments the number of aborted steps
+ * for the given steptype for this variable
+ */
+void DependentVariable::incrementAborts(int stepType)
+{
+	this->laborts[stepType]++;
+}
+
+/**
+ * returns the number of accepted steps
+ * for the given steptype for this variable
+ */
+int DependentVariable::acceptances(int stepType) const
+{
+	return this->lacceptances[stepType];
+}
+/**
+ * returns the number of rejected steps
+ * for the given steptype for this variable
+ */
+int DependentVariable::rejections(int stepType) const
+{
+	return this->lrejections[stepType];
+}
+/**
+ * returns the number of aborted steps
+ * for the given steptype for this variable
+ */
+int DependentVariable::aborts(int stepType) const
+{
+	return this->laborts[stepType];
+}
+
 }

@@ -12,15 +12,24 @@ namespace siena
 
 enum Aspect {NETWORK, BEHAVIOR};
 
+/**
+ * This enumeration defines the possible types of MH step
+ */
+
+enum MHStepType {INSDIAG, CANCDIAG, PERMUTE, INSPERM, DELPERM, INSMISS,
+				 DELMISS, INSMISDAT, DELMISDAT, NBRTYPES};
 
 // ----------------------------------------------------------------------------
 // Section: Forward declarations
 // ----------------------------------------------------------------------------
 
-class Chain;
 class MiniStep;
 class Option;
 
+/**
+ * This class provides the functionality necessary for simulating an ML model
+ * between two observations.
+ */
 
 // ----------------------------------------------------------------------------
 // Section: Class definition
@@ -47,9 +56,6 @@ public:
 	int acceptances(int stepType) const;
 	int rejections(int stepType) const;
 	int aborted(int stepType) const;
-	Chain * pChain() const;
-	void pChain(Chain * pChain);
-	void pChainProbabilities(Chain * pChain, int period);
 
     // Metropolis-Hastings steps
 
@@ -64,21 +70,21 @@ public:
 	bool missingData() const;
 	Aspect aspect() const;
 
-	void simpleRates(bool flag);
-	bool simpleRates() const;
-
 	void missingNetworkProbability(double probability);
 	double missingNetworkProbability() const;
 
 	void missingBehaviorProbability(double probability);
 	double missingBehaviorProbability() const;
 
-	void currentPermutationLength(int period, double value);
-	double currentPermutationLength(int period) const;
+	void currentPermutationLength(double value);
+	double currentPermutationLength() const;
 
 	void updateCurrentPermutationLength(bool accept);
 
 	void createEndStateDifferences();
+
+	void recordOutcome(const MiniStep & miniStep, bool accept,
+		int stepType, bool misdat);
 
 private:
 	void setStateBefore(MiniStep * pMiniStep);
@@ -90,15 +96,13 @@ private:
 	MiniStep * createMiniStep(const Option * pOption,
 		int difference, bool value) const;
 
-	Chain * lpChain;
-	bool lsimpleRates;
 	double lproposalProbability;
 	bool lmissingData;
 	Aspect laspect;
 	double lprobabilityArray[7];
-	int lacceptances[7];
-	int lrejections[7];
-	int laborted[7];
+	int lacceptances[NBRTYPES];
+	int lrejections[NBRTYPES];
+	int laborted[NBRTYPES];
 	double lmissingNetworkProbability;
 	double lmissingBehaviorProbability;
 	// current length of permuted interval

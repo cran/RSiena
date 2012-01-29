@@ -13,7 +13,8 @@
 siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
         useCluster=FALSE, nbrNodes=2, initC=TRUE,
         clusterString=rep("localhost", nbrNodes), tt=NULL,
-        parallelTesting=FALSE, clusterIter=!x$maxlike, ...)
+        parallelTesting=FALSE, clusterIter=!x$maxlike,
+        clusterType=c("PSOCK", "FORK"), ...)
       }
 \arguments{
   \item{x}{A control object, of class \code{\link{sienaModel} }}
@@ -38,6 +39,11 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   \item{clusterIter}{Boolean. If TRUE, multiple processes execute
    complete iterations at each call.
    If FALSE, multiple processes execute a single wave at each call.}
+  \item{clusterType}{Either "PSOCK" or "FORK". On Windows, must be
+  "PSOCK". On a single non-Windows machine may be "FORK", and
+  subprocesses will be formed by forking. If "PSOCK" subprocesses are
+  formed using \R scripts. If FALSE, multiple processes execute a
+  single wave at each call.}
   \item{\dots}{Arguments for the simulation function, see
     \code{\link{simstats0c}}:
 	usually, \code{data} and \code{effects}; possibly also

@@ -56,7 +56,12 @@ void LowerFilter::filterPermittedChanges(int ego, bool * permitted)
 		bool tieExists1 = iter1.valid() && iter1.actor() == j;
 		bool tieExists2 = iter2.valid() && iter2.actor() == j;
 
-		if (!tieExists1 && !tieExists2)
+		int noChange = ego;
+		if (!this->pVariable()->oneModeNetwork())
+		{
+			noChange = pNetwork1->m();
+		}
+		if (!tieExists1 && !tieExists2 && j != noChange)
 		{
 			permitted[j] = false;
 		}

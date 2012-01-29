@@ -43,8 +43,7 @@ double MainCovariateEffect::egoStatistic(int ego, double * currentValues)
 {
 	double statistic = 0;
 
-	if (!this->missingCovariate(ego, this->period()) &&
-		!this->missingCovariate(ego, this->period() + 1))
+	if (!this->missingCovariateEitherEnd(ego, this->period()))
 	{
 		statistic = currentValues[ego] * this->covariateValue(ego);
 	}
