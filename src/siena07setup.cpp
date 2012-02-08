@@ -263,7 +263,6 @@ SEXP ExogEvent(SEXP RpData, SEXP EXOGEVENTLIST)
 			(*pGroupData)[group]);
 	}
 	return R_NilValue;
-
 }
 
 /**
@@ -364,7 +363,7 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 			createEffects(VECTOR_ELT(EFFECTSLIST, i), pModel, pGroupData,
 				networkName, effectCol, parmCol, int1Col,
 				int2Col, initValCol, typeCol, groupCol,
-				periodCol, pointerCol, rateTypeCol, netTypeCol);
+				periodCol, rateTypeCol, netTypeCol);
 
 		SET_VECTOR_ELT(pointers, i, ptrs);
 
@@ -391,11 +390,9 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
  *  creates the requested interaction effects
  */
 
-SEXP interactionEffects(SEXP RpData, SEXP RpModel, SEXP EFFECTSLIST)
+SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST)
 {
-	vector<Data *> * pGroupData = (vector<Data *> *)
-		R_ExternalPtrAddr(RpData);
-	Model * pModel = (Model *) R_ExternalPtrAddr(RpModel);
+   	Model * pModel = (Model *) R_ExternalPtrAddr(RpModel);
 
 	// get the column names from the names attribute
 
@@ -439,10 +436,7 @@ SEXP interactionEffects(SEXP RpData, SEXP RpModel, SEXP EFFECTSLIST)
 
 			SEXP ptrs =
 				createInteractionEffects(VECTOR_ELT(EFFECTSLIST, i),
-					pModel, pGroupData,
-					networkName, effectCol, parmCol, int1Col,
-					int2Col, initValCol, typeCol, groupCol,
-					periodCol, pointerCol, rateTypeCol, netTypeCol,
+					pModel,	networkName, effectCol, initValCol, typeCol,
 					intptr1Col, intptr2Col, intptr3Col);
 
 			SET_VECTOR_ELT(pointers, i, ptrs);
@@ -571,10 +565,10 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 	return R_NilValue;
 
 }
+
 /**
  *  Gets target values relative to the input data
  */
-
 SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	SEXP PARALLELRUN)
 {
@@ -653,6 +647,7 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	UNPROTECT(1);
 	return fra;
 }
+
 /**
  * Sets up a minimal chain and does pre burnin and burnin.
  * Processes a complete set of data objects, creating a chain for each
@@ -763,7 +758,7 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 
 			/* return chain as a list */
  			SEXP ch1;
- 			PROTECT(ch1 = duplicate(getChainList(*pChain, *pMLSimulation)));
+ 			PROTECT(ch1 = duplicate(getChainList(*pChain)));
   			//PROTECT(ch1 = getChainDFPlus(*pChain, true));
 			SET_VECTOR_ELT(currentChains, periodFromStart, ch1);
 
@@ -817,7 +812,7 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 /**
  * Sets up chains in sub processes by copying them from input
  */
-SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP SIMPLERATES,
+SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR,
 	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
 	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS)
 {

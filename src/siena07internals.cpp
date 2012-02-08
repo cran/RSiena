@@ -1123,7 +1123,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 					   const char *networkName, int effectCol,
 					   int parmCol, int int1Col, int int2Col,
 					   int initValCol, int typeCol, int groupCol,
-					   int periodCol, int pointerCol, int rateTypeCol,
+					   int periodCol, int rateTypeCol,
 					   int netTypeCol)
     {
         // find out how many effects there are
@@ -1201,10 +1201,8 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
  *  Creates all the interaction effects for one network
  */
 SEXP createInteractionEffects(SEXP EFFECTS, Model *pModel,
-	vector<Data *> * pGroupData, const char *networkName,
-	int effectCol, int parmCol, int int1Col, int int2Col, int initValCol,
-	int typeCol, int groupCol,	int periodCol, int pointerCol, int rateTypeCol,
-	int netTypeCol, int intptr1Col, int intptr2Col, int intptr3Col)
+	const char *networkName, int effectCol, int initValCol,
+	int typeCol, int intptr1Col, int intptr2Col, int intptr3Col)
 {
 	// find out how many effects there are
 	int nEffects = length(VECTOR_ELT(EFFECTS, 0));
@@ -1556,7 +1554,7 @@ void getStatistics(SEXP EFFECTSLIST,
  *  for one period. The call will relate to one group only, although all effects
  *  are the same apart from the basic rates. Only used in maximum likelihood.
  */
-void getScores(SEXP EFFECTSLIST, int period, int group, const Data *pData,
+void getScores(SEXP EFFECTSLIST, int period, int group,
 	const MLSimulation * pMLSimulation,
 	vector<double> * rderiv, vector<double> *rscore)
 {

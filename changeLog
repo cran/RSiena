@@ -1,3 +1,56 @@
+2012-02-08 R-forge revision 201 (RSienaTest only)
+
+	* R/sienatable.r: added property eol-style=native.
+	* src/model/StatisticCalculator.cpp,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/NetworkVariable.cpp: fix some memory leaks in
+	settings model.
+
+2012-02-07 R-forge revision 200
+
+	* src/model/variables/DependentVariable.cpp: removing
+	networkVariable conditions so score sum terms are calculated for
+	behaviour rate effects. (As RSienaTest Revision 199)
+	* src/model/EpochSimulation.cpp: remove automatic cast in call to
+	log.
+	* tests/scripts.R: alter order of testing so less output produced
+	when scripts are not tested.
+	* src/siena07setup.cpp, src/siena07internals.cpp,
+	src/siena07internals.h, src/network/NetworkUtils.cpp,
+	src/network/NetworkUtils.h, src/model/Model/cpp,
+	src/model/Model.h, src/model/StatisticCalculator.cpp,
+	src/model/StatisticCalculator.h,
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/DependentVariable.h,
+	src/model/variables/NetworkVariable.cpp,
+	src/model/variables/NetworkVariable.h,
+	src/data/ChangingDyadicCovariate.cpp,
+	src/data/ChangingCovariate.h,
+	src/data/NetworkLongitudinalData.cpp,
+	src/data/NetworkLongitudinalModel.h,
+	R/initializeFRAN.r: settings Model. RSienaTest only
+	* R/phase3.r: formatting, suppress error problems
+	* R/phase1.r: stop if cannot get a derivative matrix in phase 1.
+	* R/initializeFRAN.r, src/siena07utilities.cpp, src/siena07utilities.h,
+	src/siena07setup.cpp, src/siena07setup.h, src/siena07models.cpp,
+	src/siena07sinternals.cpp, src/siena07internals.h: remove
+	redundant parameters
+	* doc/RSienaDeveloper.tex: fix typo (RSienaTest only)
+
+2012-02-07 R-forge revision 199 (RSienaTest only)
+
+	* src/model/variables/DependentVariable.cpp,
+	src/model/variables/EffectValueTable.h,
+	src/model/variables/DiffusionEffectValueTable.h: removing
+	backslashes from within comments.
+	* src/model/variables/DependentVariable.cpp: removing
+	networkVariable conditions so score sum terms are calculated for
+	behaviour rate effects.
+	* src/model/variables/DependentVariable.cpp,
+	src/model/variables/DiffusionEffectValueTable.cpp: correction
+	calculation of average exposure diffusion rate effect.
+	* R/sienatable.r: removal of superfluous variables.
+
 2012-01-29 R-forge revision 198
 
 	* src/siena07internals.cpp: fix a bug causing initialisation of ML

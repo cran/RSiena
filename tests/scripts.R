@@ -1,6 +1,5 @@
 #print(Sys.getenv("RSIENA_TESTING"))
 #print(.libPaths())
-if(!nzchar(Sys.getenv("RSIENA_TESTING"))) q("no")
 
 runone <- function(f)
 {
@@ -47,12 +46,6 @@ for (f in files)
 		file.append("scriptfile.R", f)
 	}
 }
-
-## now run it
-res <- 0L
-runone("scriptfile.R")
-
-## now look at the differences
 ## code within extra braces because we execute it in batch mode
 {if (.Platform$OS.type == "windows")
 {
@@ -62,11 +55,15 @@ else
 {
 	previousFile <- "scriptfile.Rout.save"
 }}
-#system("diff scriptfile.Rout scriptfile.Rout.save")
 library(tools)
-Rdiff("scriptfile.Rout", previousFile)
+if(!nzchar(Sys.getenv("RSIENA_TESTING"))) q("no")
 
-proc.time()
+## now run it
+res <- 0L
+runone("scriptfile.R")
+
+## now look at the differences
+Rdiff("scriptfile.Rout", previousFile)
 
 if (res > 0)
 {

@@ -84,8 +84,10 @@ phase3.2 <- function(z, x, ...)
 {
     z$timePhase3 <- (proc.time()['elapsed'] - z$ctime) / z$Phase3nits
     if (x$checktime)
+	{
         Report(c('Time per iteration in phase 3   = ',
                  format(z$timePhase3, nsmall=4, digits=4), '\n'), lf)
+	}
     z <- CalculateDerivative3(z, x)
     z <- PotentialNR(z, x, FALSE)
     if (any(z$newfixed))
@@ -104,21 +106,33 @@ phase3.2 <- function(z, x, ...)
     Report(c('Parameter estimates based on', z$n - z$Phase3nits,
              'iterations,\n'), outf)
     if (!x$maxlike && z$cconditional)
+	{
         Report(c('basic rate parameter',
                  c('', 's')[as.integer(z$f$observations > 2) + 1],
                  ' as well as \n'), sep='', outf)
-    Report(c('convergence diagnostics, covariance and derivative matrices ',
+	}
+	Report(c('convergence diagnostics, covariance and derivative matrices ',
 			 'based on ', z$Phase3nits, ' iterations.\n\n'), sep='', outf)
     Report('Information for convergence diagnosis.\n', outf)
     Report(c('Averages, standard deviations, ',
            'and t-ratios for deviations from targets:\n'), sep='', outf)
   #  Report(c(date(),'\n'),bof)
     if (x$maxlike)
+	{
         Report('\nMaximum Likelihood estimation.', bof)
-    else if (z$cconditional)
-        Report('\nconditional moment estimation.', bof)
+	}
     else
-        Report('\nunconditional moment estimation.', bof)
+	{
+		if (z$cconditional)
+		{
+			Report('\nconditional moment estimation.', bof)
+
+		}
+		else
+		{
+			Report('\nunconditional moment estimation.', bof)
+		}
+	}
     Report('\nInformation for convergence diagnosis.\n', bof)
     Report(c('Averages, standard deviations, ',
         'and t-ratios for deviations from targets:\n'), bof, sep='')
@@ -146,24 +160,35 @@ phase3.2 <- function(z, x, ...)
     z$tconv <- tstat
     error <- (abs(tmax) > 4.0 / sqrt(z$Phase3nits)) && (abs(tmax) > 0.3)
     if (tmax >= 0.4 & !z$error)
+	{
         z$error <- TRUE
-    Report('Good convergence is indicated by the t-ratios ', outf)
-    if (any(z$fixed)) Report('of non-fixed parameters ', outf)
+	}
+	Report('Good convergence is indicated by the t-ratios ', outf)
+    if (any(z$fixed))
+	{
+		Report('of non-fixed parameters ', outf)
+	}
     Report('being close to zero.\n', outf)
     if (z$Phase3nits < 100)
+	{
         Report(c('(Since the diagnostic checks now are based only on ',
                  z$Phase3nits,
                  ' iterations', '\nThey are not reliable.)'), sep='', outf)
+	}
     if (error) ## also test subphase here but not relevant to phase 3, I think
     {
         Report('One or more of the t-statistics are rather large.\n', outf)
         if (tmax > 0.5)
+		{
             Report('Convergence of the algorithm is doubtful.\n', outf)
-        ## removed repfortotal loop possibility here as not functioning now
+		}
+		## removed repfortotal loop possibility here as not functioning now
         if (z$Phase3nits <= 50)
+		{
             Report(c('However, the standard deviations are based on',
                      'few simulations.\n'), outf)
-    }
+		}
+	}
     if (x$maxlike)
     {
         Report('Autocorrelations during phase 3 : \n', outf)
@@ -176,18 +201,23 @@ phase3.2 <- function(z, x, ...)
                      format(z$sfl, width=8, digits=4),
                      '\n', collapse=""), cf)
         Report ('\n', cf)
-
     }
     for (j in 1:z$pp)
+	{
         if (z$diver[j]) ### don't understand this condition, as AllFixed is true
         {
             Report(c('Warning. Extremely large standard error of parameter',j,
                      '.\n'), outf)
             if (sf[j] < 0.5 * sqrt(dmsf[j]))
+			{
                 Report('Presumably this parameter must be fixed.\n', outf)
-            else
+			}
+			else
+			{
                 Report('Maybe the algorithm diverged.\n', outf)
-    }
+			}
+		}
+	}
     if (x$maxlike)
     {
         Report('Estimated complete data information matrix: \n', cf)
@@ -255,7 +285,7 @@ CalculateDerivative3<- function(z,x)
     {
 		dfra <- t(as.matrix(Reduce("+", z$sdf) / length(z$sdf)))
     }
-   else
+	else
     {
         dfra <-  derivativeFromScoresAndDeviations(z$ssc, z$sf2)
         if (any(diag(dfra) < 0))
@@ -270,8 +300,10 @@ CalculateDerivative3<- function(z,x)
     }
     z$diver <- rep(FALSE, z$pp)
     if (z$AllUserFixed & any(abs(diag(dfra)) < 1e-6))
+	{
         z$diver[abs(diag(dfra)) < 1e-6] <- TRUE
-    z$msf <- cov(z$sf)
+	}
+	z$msf <- cov(z$sf)
     if (z$Phase3nits > 2)
     {
         z$sfl <- apply(z$sf, 2,
@@ -306,7 +338,8 @@ PotentialNR <-function(z,x,MakeStep=FALSE)
             Report(c('Warning. After phase 3, derivative matrix non-invertible',
                      'even with a ridge.\n'), cf)
             fchange <- 0
-            z$dinv <- NULL
+            z$dinv <- z$dfrac
+			z$dinv[,] <- 999
         }
         else
         {

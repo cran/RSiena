@@ -377,8 +377,7 @@ SEXP model(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 			{
 
 				SEXP thisChain =
-					getChainList(*(pEpochSimulation->pChain()),
-								   *pEpochSimulation);
+					getChainList(*(pEpochSimulation->pChain()));
 
 				SET_VECTOR_ELT(VECTOR_ELT(chains, group), period,
 					thisChain);
@@ -605,8 +604,7 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 		else
 		{
 			PROTECT(theseValues =
-				duplicate(getChainList(*(pMLSimulation->pChain()),
-						*pMLSimulation)));
+				duplicate(getChainList(*(pMLSimulation->pChain()))));
 		}
 		nProtects++;
 		SET_VECTOR_ELT(sims, 0, theseValues);
@@ -642,7 +640,7 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 		vector<double> derivs(dim * dim);
 		vector<double> score(dim);
 
-		getScores(EFFECTSLIST, 	period, group, pData, pMLSimulation,
+		getScores(EFFECTSLIST, 	period, group, pMLSimulation,
 			&derivs, &score);
 
 		/* fra will contain the scores and must be initialised
@@ -816,7 +814,7 @@ SEXP getChainProbabilities(SEXP DATAPTR, SEXP MODELPTR,
 		/* collect the scores and derivatives */
 		vector<double> derivs(dim * dim);
 		vector<double> score(dim);
-		getScores(EFFECTSLIST, 	period, group, pData, pMLSimulation,
+		getScores(EFFECTSLIST, 	period, group, pMLSimulation,
 			&derivs, &score);
 		/* fill up vectors for  return value list */
 		for (unsigned effectNo = 0; effectNo < score.size();

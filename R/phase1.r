@@ -179,9 +179,10 @@ phase1.2 <- function(z, x, ...)
         Report('Intervention 1.4.1: ridge added after phase 1.\n', cf)
         if (inherits(try(dinv <- solve(z$dfra)), "try-error"))
         {
-            Report(c('Warning. After phase 1, derivative matrix non-invertible',
+            Report(c('Error. After phase 1, derivative matrix non-invertible',
                      'even with a ridge.\n'), cf)
             fchange <- 0
+			stop("Cannot proceed: derivative matrix not invertible")
         }
         else
         {

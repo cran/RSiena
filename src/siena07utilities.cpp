@@ -3,7 +3,7 @@
  *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
  *
- * File: siena07Utilities.cpp
+ * File: siena07utilities.cpp
  *
  * Description: This module contains various utilities, including:
  *
@@ -699,8 +699,7 @@ SEXP getChainDFPlus(const Chain& chain, bool sort)
 /** Create a list from a ministep. Easy to create, but prints untidily!
  *
  */
-SEXP getMiniStepList(const MiniStep& miniStep, int period,
-	const EpochSimulation& epochSimulation)
+SEXP getMiniStepList(const MiniStep& miniStep, int period)
 {
 	SEXP MINISTEP;
 	PROTECT(MINISTEP = allocVector(VECSXP, 13));
@@ -738,7 +737,7 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period,
 /**
  * Create a list from a chain. Easy to create, but prints untidily!
  */
-SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
+SEXP getChainList(const Chain& chain)
 {
 	SEXP ans;
 
@@ -747,8 +746,7 @@ SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 	MiniStep *pMiniStep = chain.pFirst()->pNext();
 	for (int i = 0; i < chain.ministepCount() - 1; i++)
 	{
-		SET_VECTOR_ELT(ans, i, getMiniStepList(*pMiniStep, chain.period(),
-				epochSimulation));
+		SET_VECTOR_ELT(ans, i, getMiniStepList(*pMiniStep, chain.period()));
 		pMiniStep = pMiniStep->pNext();
 	}
 
@@ -778,7 +776,7 @@ SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 	{
 		const MiniStep * pMiniStep2 = (chain.rInitialStateDifferences())[i];
 		SET_VECTOR_ELT(initial, i,
-			getMiniStepList(*pMiniStep2, chain.period(), epochSimulation));
+			getMiniStepList(*pMiniStep2, chain.period()));
 	}
 	SEXP init;
 
@@ -794,7 +792,7 @@ SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 	{
 		const MiniStep * pMiniStep2 = (chain.rEndStateDifferences())[i];
 		SET_VECTOR_ELT(end, i,
-			getMiniStepList(*pMiniStep2, chain.period(), epochSimulation));
+			getMiniStepList(*pMiniStep2, chain.period()));
 	}
 	SEXP en;
 
@@ -807,7 +805,7 @@ SEXP getChainList(const Chain& chain, const EpochSimulation& epochSimulation)
 /** Create a ministep from a single ministep stored as a list (not dataframe).
  *
  */
-MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP, int period)
+MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP)
 {
 	if (strcmp(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP, 0), 0)),
 			"Network") == 0)
@@ -846,7 +844,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	{
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(CHAIN, i);
-		pChain->insertBefore(makeMiniStepFromList(pData, MINISTEP, period),
+		pChain->insertBefore(makeMiniStepFromList(pData, MINISTEP),
 			pChain->pLast());
 	}
 
@@ -858,7 +856,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(initialState, i);
 		pChain->addInitialStateDifference(makeMiniStepFromList(pData,
-				MINISTEP, period));
+				MINISTEP));
 	}
 	UNPROTECT(1);
 	return pChain;

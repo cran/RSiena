@@ -63,12 +63,10 @@ namespace siena
 	SEXP getChainDF(const Chain& chain, bool sort=true);
 	SEXP getChainDFPlus(const Chain & chain, bool sort=true);
 	SEXP getDFFromVector(const vector<MiniStep *> & rMiniSteps, bool sort=true);
-	SEXP getMiniStepList(const MiniStep & miniStep, int period,
-		const EpochSimulation & epochSimulation);
-	SEXP getChainList(const Chain & chain,
-		const EpochSimulation & epochSimulation);
+	SEXP getMiniStepList(const MiniStep & miniStep, int period);
+	SEXP getChainList(const Chain & chain);
 	Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period);
-	MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP, int period);
+	MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP);
 	Chain * createMissingChain(int period, Data * data,
 		const State& initialState);
 }

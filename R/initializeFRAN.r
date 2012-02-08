@@ -398,7 +398,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
                                               basicEffects[[i]]$effectNumber)]
     }
     ans <- .Call("interactionEffects", PACKAGE=pkgname,
-                 pData, pModel, interactionEffects)
+                 pModel, interactionEffects)
     ## copy these pointers to the interaction effects and then insert in
     ## effects object in the same rows for later use
     for (i in 1:length(ans[[1]])) ## ans is a list of lists of
@@ -541,7 +541,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
         {
 			ans <- .Call("mlInitializeSubProcesses",
                          PACKAGE=pkgname, pData, pModel,
-                         simpleRates, z$probs, z$prmin, z$prmib,
+                         z$probs, z$prmin, z$prmib,
                          x$minimumPermutationLength,
                          x$maximumPermutationLength,
                          x$initialPermutationLength, ff$chain)

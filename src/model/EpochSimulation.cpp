@@ -40,8 +40,7 @@
 
 namespace siena
 {
-SEXP getMiniStepList(const MiniStep& miniStep, int period,
-	const EpochSimulation& epochSimulation);
+SEXP getMiniStepList(const MiniStep& miniStep, int period);
 SEXP getMiniStepDF(const MiniStep& miniStep);
 
 // ----------------------------------------------------------------------------
@@ -915,21 +914,20 @@ double EpochSimulation::calculateLikelihood() const
 }
 double EpochSimulation::lnFactorial(int a) const
 {
-int y;
-double z;
-      if (a == 1)
-          return 0;
-      else
-      {
-          z = 0;
+	int y;
+	double z;
+	if (a == 1)
+		return 0;
+	else
+	{
+		z = 0;
 
-        for (y = 2; y<=a; y++ )
+        for (y = 2; y <= a; y++ )
 
-        z = log(y)+z;
+			z = log(static_cast<double>(y)) + z;
 
-
-          return z;
-      }
+		return z;
+	}
 }
 void EpochSimulation::updateParameters(int period)
 {

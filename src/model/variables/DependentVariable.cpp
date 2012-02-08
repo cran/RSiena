@@ -440,18 +440,17 @@ void DependentVariable::calculateRates()
 			sumRatesSquared += this->lrate[i] * this->lrate[i];
 
 		}
-		if (networkVariable())
+
+		if (this->pSimulation()->pModel()->needScores())
 		{
-			if (this->pSimulation()->pModel()->needScores())
-			{
-				this->calculateScoreSumTerms();
-			}
-			if(this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
-			{
-				this->ltotalRate = this->totalRate() * this->totalRate() -
-					sumRatesSquared;
-			}
+			this->calculateScoreSumTerms();
 		}
+		if(this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
+		{
+			this->ltotalRate = this->totalRate() * this->totalRate() -
+				sumRatesSquared;
+		}
+
 		this->lvalidRates = true;
 	}
 

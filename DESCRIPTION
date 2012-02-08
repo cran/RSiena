@@ -1,8 +1,8 @@
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.0.12.198
-Date: 2012-01-29
+Version: 1.0.12.201
+Date: 2012-02-08
 Author: Various
 Depends: R (>= 2.10.0)
 Imports: Matrix
@@ -16,6 +16,8 @@ LazyLoad: yes
 LazyData: yes
 BuildResaveData: no
 URL: http://www.stats.ox.ac.uk/~snijders/siena
-Packaged: 2012-02-04 13:26:45 UTC; ruth
 Repository: CRAN
-Date/Publication: 2012-02-04 14:24:13
+Repository/R-Forge/Project: rsiena
+Repository/R-Forge/Revision: 201
+Packaged: 2012-02-08 16:18:09 UTC; rforge
+Date/Publication: 2012-02-10 14:15:00
