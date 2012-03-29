@@ -605,6 +605,9 @@ vector<Chain *> & Model::rChainStore(int periodFromStart)
 	return this->lchainStore[periodFromStart];
 }
 
+/**
+ * Reduces the stored chains for this period to the requested number.
+ */
 void Model::clearChainStore(int keep, int groupPeriod)
 {
 	int size = this->lchainStore[groupPeriod].size();
@@ -632,35 +635,58 @@ void Model::clearChainStore(int keep, int groupPeriod)
 
 }
 
+/**
+ * Creates vector of stored chains of the requested size for this period.
+ */
 void Model::setupChainStore(int numberPeriods)
 {
 	this->lchainStore.resize(numberPeriods);
 }
 
+/**
+ * Deletes final stored chain for this period.
+ */
 void Model::deleteLastChainStore(int periodFromStart)
 {
 	delete this->lchainStore[periodFromStart].back();
 	this->lchainStore[periodFromStart].pop_back();
 }
 
+/**
+ * Sets the total number of periods (across groups).
+ */
 void Model::numberOfPeriods(int numberOfPeriods)
 {
 	this->lnumberOfPeriods = numberOfPeriods;
 }
+
+/**
+ * Returns the number of periods.
+ */
 int Model::numberOfPeriods()
 {
 	return this->lnumberOfPeriods;
 }
 
+/**
+ * Sets the model type.
+ */
 void Model::modelType(int type)
 {
 	this->lmodelType = ModelType(type);
 }
 
+/**
+ * Returns the model type.
+ */
 ModelType Model::modelType() const
 {
 	return this->lmodelType;
 }
+/**
+ * Returns whether the model type is one of the symmetric type b models.
+ */
+
 bool Model::modelTypeB() const
 {
 	return this->lmodelType == BFORCE ||

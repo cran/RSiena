@@ -72,16 +72,23 @@ BehaviorLongitudinalData::~BehaviorLongitudinalData()
 		delete[] this->lvalues[i];
 		delete[] this->lmissing[i];
 		delete[] this->lstructural[i];
+		delete[] this->lvaluesLessMissings[i];
+		delete[] this->lvaluesLessMissingStarts[i];
 	}
 
 	delete[] this->lvalues;
 	delete[] this->lmissing;
 	delete[] this->lstructural;
 	delete[] this->lobservedDistributions;
+	delete[] this->lvaluesLessMissings;
+	delete[] this->lvaluesLessMissingStarts;
+
 	this->lvalues = 0;
 	this->lmissing = 0;
 	this->lstructural = 0;
 	this->lobservedDistributions = 0;
+	this->lvaluesLessMissings = 0;
+	this->lvaluesLessMissingStarts = 0;
 }
 
 

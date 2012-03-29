@@ -903,8 +903,15 @@ double EpochSimulation::calculateLikelihood() const
 	{
 		loglik +=  sumLogOptionSetProbabilities +
 			normalDensity(1, this->lpChain->mu(),
-				sqrt(this->lpChain->sigma2()), 1)
+				sqrt(std::max(0.00, this->lpChain->sigma2())), 1)
 			+ log(this->lpChain->finalReciprocalRate());
+			 // if (!R_finite(loglik))
+			 // {
+			 // 	Rprintf("mu %f sigma2 %f final %f sumop %f loglik %f\n",
+			 // 		this->lpChain->mu(), this->lpChain->sigma2(),
+			 // 		this->lpChain->finalReciprocalRate(),
+			 // 		sumLogOptionSetProbabilities, loglik);
+			 // }
 	}
 
 	delete [] counts;
@@ -912,6 +919,9 @@ double EpochSimulation::calculateLikelihood() const
 	return loglik;
 
 }
+/**
+ * Calculates log factorial of its integer argument
+ */
 double EpochSimulation::lnFactorial(int a) const
 {
 	int y;
@@ -929,6 +939,9 @@ double EpochSimulation::lnFactorial(int a) const
 		return z;
 	}
 }
+/**
+ * Updates parameters. Probably legacy code and not used.
+ */
 void EpochSimulation::updateParameters(int period)
 {
 	Rprintf("ever used?\n");

@@ -137,6 +137,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
         requestedEffects$functionName <- effects[effects$requested,
                                                  "functionName"]
 
+		if (attr(data, "compositionChange"))
+		{
+			if (x$maxlike)
+			{
+				stop("Not possible to use maximum likelihood estimation ",
+					 "with composition change")
+			}
+		}
+
         ## if not specified whether conditional or nor, set to conditional
         ## iff there is only one dependent variable (therefore number 1)
         ## and not maxlike
@@ -446,10 +455,9 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
             z$maxlikeTargets <- rowSums(ans)
             z$maxlikeTargets2 <- ans
             z$mult <- x$mult
-            z$nrunMH <-
-				z$mult * colSums(z$maxlikeTargets2[z$requestedEffects$basicRate,
-												   , drop=FALSE ])
-			z$nrunMH < pmax(z$nrunMH, 2)
+            z$nrunMH <- floor(z$mult *
+					colSums(z$maxlikeTargets2[z$requestedEffects$basicRate,
+												   , drop=FALSE ]))
 			## make the number pretty
 			z$nrunMH <- ifelse (z$nrunMH > 100,
 								 round(z$nrunMH / 100) * 100, z$nrunMH)
@@ -489,7 +497,6 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		simpleRates <- FALSE
 	}
 	z$simpleRates <- simpleRates
-
 	ans <- .Call("setupModelOptions", PACKAGE=pkgname,
                  pData, pModel, MAXDEGREE, CONDVAR, CONDTARGET,
                  profileData, z$parallelTesting, x$modelType, z$simpleRates)
@@ -522,20 +529,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
             {
                 z$prmib <- rep(0, length(nbrMissBeh))
             }
-            ## cat (z$prmin, z$prmib, "\n")
             z$probs <- c(x$pridg, x$prcdg, x$prper, x$pripr, x$prdpr, x$prirms,
                          x$prdrms)
-            ##cat(z$probs,"\n")
             ans <- .Call("mlMakeChains", PACKAGE=pkgname, pData, pModel,
                          z$probs, z$prmin, z$prmib,
                          x$minimumPermutationLength,
                          x$maximumPermutationLength,
                          x$initialPermutationLength)
-
             f$minimalChain <- ans[[1]]
             f$chain <- ans[[2]]
-            ##  print(nrow(ans[[1]][[1]]))
-            ##  print(nrow(ans[[2]][[1]]))
         }
         else ## set up the initial chains in the sub processes
         {

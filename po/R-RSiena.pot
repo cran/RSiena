@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: R 2.14.0\n"
+"Project-Id-Version: R 2.14.1\n"
 "Report-Msgid-Bugs-To: bugs@r-project.org\n"
-"POT-Creation-Date: 2011-12-13 23:51\n"
+"POT-Creation-Date: 2012-02-29 17:29\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,6 +51,12 @@ msgid "Cannot use standard initialisation with a"
 msgstr ""
 
 msgid "different effect list"
+msgstr ""
+
+msgid "Not possible to use maximum likelihood estimation"
+msgstr ""
+
+msgid "with composition change"
 msgstr ""
 
 msgid "Conditional estimation is not possible with"
@@ -146,7 +152,10 @@ msgstr ""
 msgid "or creation"
 msgstr ""
 
-msgid "only effects with interactionType OK are allowed"
+msgid "at most one effect with interactionType"
+msgstr ""
+
+msgid "not OK is allowed"
 msgstr ""
 
 msgid "prevAns is not an RSiena fit object"
@@ -194,6 +203,9 @@ msgstr ""
 msgid "columns of 'contrast.obj' must define a contrast (sum to zero)"
 msgstr ""
 
+msgid "Cannot proceed: derivative matrix not invertible"
+msgstr ""
+
 msgid "Negative minima not allowed for dependent actor"
 msgstr ""
 
@@ -216,6 +228,12 @@ msgid "network names not consistent"
 msgstr ""
 
 msgid "sparse matrix has duplicate triples"
+msgstr ""
+
+msgid "Incompatible RSiena versions for sub process: exit R"
+msgstr ""
+
+msgid "and restart"
 msgstr ""
 
 msgid "Not enough observations to use the nodes"
@@ -287,10 +305,10 @@ msgstr ""
 msgid "dyadic covariate incorrect nbr columns"
 msgstr ""
 
-msgid "dyadic changing covariate incorrect nbr rows"
+msgid "dyadic changing covariate incorrect number of rows"
 msgstr ""
 
-msgid "dyadic changing covariate incorrect nbr columns"
+msgid "dyadic changing covariate incorrect number of columns"
 msgstr ""
 
 msgid "Dyadic changing covariate not enough observations"
@@ -348,6 +366,12 @@ msgid "Inconsistent node Sets"
 msgstr ""
 
 msgid "covariate names inconsistent"
+msgstr ""
+
+msgid "Inconsistent constant dyadic covariate types"
+msgstr ""
+
+msgid "Inconsistent changing dyadic covariate types"
 msgstr ""
 
 msgid "Can only read csv, txt (tab delimited)"
@@ -614,6 +638,12 @@ msgstr ""
 msgid "nodeSets must be a vector of character strings"
 msgstr ""
 
+msgid "bipartite covariate needs two different node sets"
+msgstr ""
+
+msgid "Both node sets must be the same for a oneMode covariate"
+msgstr ""
+
 msgid "val must be a 3d array"
 msgstr ""
 
@@ -642,6 +672,9 @@ msgid "need 2 node sets for a bipartite network"
 msgstr ""
 
 msgid "nodesets should be character strings"
+msgstr ""
+
+msgid "nodesets should be different from each other"
 msgstr ""
 
 msgid "only one node set for this network"

@@ -121,8 +121,9 @@ double InteractionCovariateEffect::egoStatistic(int ego, double * currentValues)
 {
 	double statistic = 0;
 
-	if (!this->missingCovariate(ego, this->period()) &&
-		!this->missingCovariate(ego, this->period() + 1))
+	// if (!this->missingCovariate(ego, this->period()) &&
+	// 	!this->missingCovariate(ego, this->period() + 1))
+	if (!this->missingCovariateEitherEnd(ego, this->period()))
 	{
 		statistic = this->covariateValue(ego) *
 			this->lpInteractingEffect->egoStatistic(ego, currentValues);
@@ -140,8 +141,7 @@ double InteractionCovariateEffect::egoEndowmentStatistic(int ego,
 {
 	double statistic = 0;
 
-	if (!this->missingCovariate(ego, this->period()) &&
-		!this->missingCovariate(ego, this->period() + 1))
+	if (!this->missingCovariateEitherEnd(ego, this->period()))
 	{
 		statistic = this->covariateValue(ego) *
 			this->lpInteractingEffect->egoEndowmentStatistic(ego, difference,

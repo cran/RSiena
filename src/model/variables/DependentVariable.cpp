@@ -90,15 +90,15 @@ void DependentVariable::initializeRateFunction()
 			//	Rprintf("covariate\n");
 			// Covariate-dependent rate effect
 
-			//	if (parameter != 0)
-			//	{
+			//if (parameter != 0)
+			//{
 				ConstantCovariate * pConstantCovariate =
 					pData->pConstantCovariate(interactionName);
 				ChangingCovariate * pChangingCovariate =
 					pData->pChangingCovariate(interactionName);
 				const BehaviorVariable * pBehaviorVariable =
 					(const BehaviorVariable *)
-						this->lpSimulation->pVariable(interactionName);
+					this->lpSimulation->pVariable(interactionName);
 
 				if (pConstantCovariate)
 				{
@@ -149,7 +149,7 @@ void DependentVariable::initializeRateFunction()
 						"No individual covariate named '" +
 						interactionName +
 						"'.");
-				//	}
+				//}
 		}
 		else
 		{
@@ -443,11 +443,11 @@ void DependentVariable::calculateRates()
 
 		if (this->pSimulation()->pModel()->needScores())
 		{
-			this->calculateScoreSumTerms();
+		    this->calculateScoreSumTerms();
 		}
 		if(this->symmetric() && this->pSimulation()->pModel()->modelTypeB())
 		{
-			this->ltotalRate = this->totalRate() * this->totalRate() -
+		    this->ltotalRate = this->totalRate() * this->totalRate() -
 				sumRatesSquared;
 		}
 
@@ -538,7 +538,7 @@ void DependentVariable::updateCovariateRates()
 
 	// Add the contributions of each constant covariate with non-zero parameter
 	// for the rate functions. The contribution of a constant covariate v to
-	// the rate function of an actor i is exp(\alpha v[i]), where \alpha is
+	// the rate function of an actor i is exp(alpha v[i]), where alpha is
 	// the corresponding parameter. The calculation of the exponentials is
 	// postponed, though.
 
@@ -558,7 +558,7 @@ void DependentVariable::updateCovariateRates()
 
 	// Add the contributions of each changing covariate with non-zero parameter
 	// for the rate functions. The contribution of a changing covariate v to
-	// the rate function of an actor i is exp(\alpha v[i][h]), where \alpha is
+	// the rate function of an actor i is exp(alpha v[i][h]), where alpha is
 	// the corresponding parameter, and h is the current period.
 	// Again, the calculation of the exponentials is postponed.
 
@@ -578,7 +578,7 @@ void DependentVariable::updateCovariateRates()
 
 	// Add the contributions of each behavior variable with non-zero parameter
 	// for the rate functions. The contribution of a behavior variable v to
-	// the rate function of an actor i is exp(\alpha v[i]), where \alpha is
+	// the rate function of an actor i is exp(alpha v[i]), where alpha is
 	// the corresponding parameter.
 	// Again, the calculation of the exponentials is postponed.
 
@@ -631,7 +631,7 @@ double DependentVariable::behaviorVariableRate(int i) const
 {
 	// Add the contributions of each behavior variable with non-zero parameter
 	// for the rate functions. The contribution of a behavior variable v to
-	// the rate function of an actor i is exp(\alpha v[i]), where \alpha is
+	// the rate function of an actor i is exp(alpha v[i]), where alpha is
 	// the corresponding parameter.
 
 	double rate = 0;

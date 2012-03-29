@@ -651,7 +651,7 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
                  "\nScore tests:\nFisher combination\n",
                  paste(rep("-", 65), collapse=""), "\n"), sep="", outf)
 
-        by(x$thetadf, x$thetadf$effects, function(x, y)
+        invisible(by(x$thetadf, x$thetadf$effects, function(x, y)
        {
            i <- match(x$effects[1], effects)
            y <- y[[effects[i]]]
@@ -676,7 +676,7 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
                         " (d.f. = ", 2 * y$ns, "), ",
                         reportp(y$scoreminusp, 3), "\n"), sep="", outf)
            }
-       }, y=x)
+       }, y=x))
     }
 }
 

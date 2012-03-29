@@ -495,7 +495,7 @@ SEXP getChainDF(const Chain& chain, bool sort)
 	PROTECT(col8 = allocVector(REALSXP, numberRows));
 	double * rcol8 = REAL(col8);
 	PROTECT(col9 = allocVector(LGLSXP, numberRows));
-	int * icol9 = INTEGER(col9);
+	int * icol9 = LOGICAL(col9);
 
 	MiniStep *pMiniStep = chain.pFirst()->pNext();
 	for (int i = 0; i < numberRows; i++)
@@ -513,7 +513,7 @@ SEXP getChainDF(const Chain& chain, bool sort)
 		rcol6[i] =  REAL(VECTOR_ELT(ministep, 6))[0];
 		rcol7[i] =  REAL(VECTOR_ELT(ministep, 7))[0];
 		rcol8[i] =  REAL(VECTOR_ELT(ministep, 8))[0];
-		icol9[i] =  INTEGER(VECTOR_ELT(ministep, 9))[0];
+		icol9[i] =  LOGICAL(VECTOR_ELT(ministep, 9))[0];
 		pMiniStep = pMiniStep->pNext();
 		UNPROTECT(1);
 	}
@@ -703,6 +703,7 @@ SEXP getMiniStepList(const MiniStep& miniStep, int period)
 {
 	SEXP MINISTEP;
 	PROTECT(MINISTEP = allocVector(VECSXP, 13));
+	// unused elements (9, 10) used to contain the change contributions.
 	SET_VECTOR_ELT(MINISTEP, 3, ScalarInteger(miniStep.ego()));
 	if (miniStep.networkMiniStep())
 	{

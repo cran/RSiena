@@ -380,7 +380,7 @@ void MLSimulation::recordOutcome(const MiniStep & miniStep, bool accept,
 	{
 		pVariable->incrementAcceptances(stepType);
 	}
-	else if (this->lproposalProbability > 0)
+	else if (!R_IsNaN(this->lproposalProbability))
 	{
 		pVariable->incrementRejections(stepType);
 	}

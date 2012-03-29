@@ -73,7 +73,7 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
 				 fromFiniteDiff, f$pModel, f$myeffects, z$theta,
 				 randomseed2, returnDeps, z$FinDiff.method,
 				 !is.null(z$cl) && useStreams, z$addChainToStore,
-				  returnChains, returnLoglik)
+				  z$returnChains, returnLoglik)
     if (!fromFiniteDiff)
     {
         if (z$FinDiff.method)

@@ -194,12 +194,12 @@ phase3.2 <- function(z, x, ...)
         Report('Autocorrelations during phase 3 : \n', outf)
         Report(paste(format(1:z$pp, width=3), '. ',
                      format(z$sfl, width=8, digits=4),
-                     '\n', collapse=""), outf)
+                     '\n', collapse="", sep=""), outf)
         Report ('\n', outf)
         Report('Autocorrelations during phase 3 : \n', cf)
         Report(paste(format(1:z$pp, width=3), '. ',
                      format(z$sfl, width=8, digits=4),
-                     '\n', collapse=""), cf)
+                     '\n', collapse="", sep=""), cf)
         Report ('\n', cf)
     }
     for (j in 1:z$pp)

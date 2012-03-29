@@ -1,6 +1,6 @@
 
-R version 2.14.1 (2011-12-22)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.14.2 (2012-02-29)
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: i386-apple-darwin9.8.0/i386 (32-bit)
 
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 
 > #print(Sys.getenv("RSIENA_TESTING"))
 > #print(.libPaths())
-> if(!nzchar(Sys.getenv("RSIENA_TESTING"))) q("no")
 > 
 > runone <- function(f)
 + {
@@ -46,7 +45,7 @@ Type 'q()' to quit R.
 > file.copy(files1, ".", overwrite=TRUE)
  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
 [16] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-[31] TRUE TRUE
+[31] TRUE TRUE TRUE
 > files1 <- list.files(datafiles, pattern="\\.DAT$", full.names=TRUE)
 > file.copy(files1, ".", overwrite=TRUE)
  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
@@ -70,14 +69,6 @@ Type 'q()' to quit R.
 + 		file.append("scriptfile.R", f)
 + 	}
 + }
-> 
-> ## now run it
-> res <- 0L
-> runone("scriptfile.R")
-  Running 'scriptfile.R'
-[1] 0
-> 
-> ## now look at the differences
 > ## code within extra braces because we execute it in batch mode
 > {if (.Platform$OS.type == "windows")
 + {
@@ -87,34 +78,5 @@ Type 'q()' to quit R.
 + {
 + 	previousFile <- "scriptfile.Rout.save"
 + }}
-> #system("diff scriptfile.Rout scriptfile.Rout.save")
 > library(tools)
-> Rdiff("scriptfile.Rout", previousFile)
-
-490c490
-< Packaged:             2012-01-20 15:00:55 UTC; ruth
----
-> Packaged:             2012-01-20 14:53:50 UTC; ruth
-492c492
-<                       15:01:02 UTC; unix
----
->                       14:54:06 UTC; unix
-2686c2686
-< % Fri Jan 20 15:04:14 2012
----
-> % Fri Jan 20 14:57:23 2012
-2714c2714
-< <!-- Fri Jan 20 15:04:14 2012 -->
----
-> <!-- Fri Jan 20 14:57:23 2012 -->
-[1] 1
-> 
-> proc.time()
-   user  system elapsed 
- 86.492   0.276  88.932 
-> 
-> if (res > 0)
-+ {
-+ 	stop("scripts failed")
-+ }
-> 
+> if(!nzchar(Sys.getenv("RSIENA_TESTING"))) q("no")

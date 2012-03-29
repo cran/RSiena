@@ -296,7 +296,8 @@ print.sienaModel <- function(x, ...)
 	{
 		if (is.na(x$cconditional) || !x$cconditional)
 		{
-			cat(" Unconditional simulation\n")
+			cat(" Unconditional simulation if more than one dependent",
+				"variable\n")
 		}
 		else
 		{

@@ -409,12 +409,12 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
         vardims <- attr(dyvCovars[[i]], "vardims")
         if (!validNodeSet(nattr[1], vardims[1]))
         {
-            stop('dyadic changing covariate incorrect nbr rows',
+            stop('dyadic changing covariate incorrect number of rows ',
                  names(dyvCovars)[i])
         }
         if (!validNodeSet(nattr[2], vardims[2]))
         {
-            stop('dyadic changing covariate incorrect nbr columns',
+            stop('dyadic changing covariate incorrect number of columns ',
                  names(dyvCovars)[i])
         }
         if (vardims[3] < (observations - 1))

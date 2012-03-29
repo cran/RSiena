@@ -1,3 +1,145 @@
+2012-03-29 R-forge revision 212
+   * update of RSiena_Manual.tex, RSiena.bib (both packages)
+
+2012-03-29 R-forge revision 211
+
+	* doc/RSiena_Manual.tex, doc/siena1.png, doc/siena2.png,
+	doc/siena3.png, doc/ilcampo.jpg, doc/RSiena.bib moved to inst/doc/
+	and copied to RSiena to comply with GPL. Both packages now include
+	these files in the tarball but not the binary.
+	* .Rinstignore: added
+	* .Rbuildignore: added to RSiena and updated in RSienaTest to
+	exclude temporary latex files from the tar ball.
+	* R/effectsDocumentation.r: bug fix for newly added groups.
+	* inst/doc/effects.pdf: updated
+
+2012-03-29 R-forge revision 210 NB new version number sequence. 1.1.210
+
+	* src.siena07utilities.cpp, siena07setup.cpp: changes to R/C++
+	interface code. Moved a call to PutRNGstate to _before_ the
+	UNPROTECT to fix an intermittent error.
+	* tests/effectsTest.R: changes to comments only
+	* doc/RSienaDeveloper.tex, tests/scripts.Rout.save: updated output
+	file, minor additions to documentation.
+	* tests/testrefs/M44compare.out, tests/testrefs/M45compare.out:
+	updated test outputs. (RSienaTest only)
+	* tests/testrefs/*compare.out: some files got missed last time
+
+2012-03-28 R-forge revision 209 (RSienaTest only)
+
+	* src/model/effects/DiffusionRateEffect.cpp: bug fix
+
+2012-03-25 R-forge revision 208
+
+	* src/data/BehaviorLongitudinalData.cpp: fix memory leak
+	* src/model/effects/generic/CovariateDistance2NetworkFunction.cpp:
+	fix memory leak
+	* src/model/variables/NetworkVariable.cpp: fix bug in endowment
+	and creation effect scores for no change.
+	* data/allEffects.csv, R/effects.r, R/effectsDocumentation.r:
+	split behavior network effects between symmetric and other networks.
+	* src/model/model.cpp (RSiena only),
+	src/model/variables/DependentVariable.cpp,
+	src/model/variables/EffectValueTable.h (RSiena only): added
+	comments, formatting
+	* src/model/effects/DiffusionRateEffect.cpp: bug fix (RSienaTest
+	only)
+	* doc/RSienaDeveloper.tex: updated doc (RSienaTest only)
+	* doc/MCMCandRM.pdf: added
+	* tests/effectsTest.R, tests/sampson.r, testrefs/*,
+	.Rbuildignore: new testing files added, not to be included in tar
+	ball. (RSienaTest only)
+	* inst/examples/Sampson_t2.txt, inst/examples/Sampson_t3.txt,
+	inst/examples/Sampson_t4.txt, inst/examples/vtextexoreal.dat:
+	added.
+	* src/effects.r: correct bug causing crash with sparse matrices
+	with changes all in one direction.
+	* src/model/EpochSimulation.cpp: added comments
+	* src/model/ml/MLSimulation.cpp: correct test when storing
+	rejection numbers.
+	* src/model/StatisticCalculator.h: formatting (RSienaTest only)
+	* src/model/ml/chain.cpp: initialize finalReciprocalRate explicitly.
+
+2012-03-21 R-forge revision 207 (RSienaTest only)
+	* siena07internals.cpp, DependentVariable.h,
+	DependentVariable.cpp: changed calculation of scores for diffusion
+	rate effects
+	* StatisticCalculator.h, StatisticCalculator.cpp, DependentVariable.h,
+	DependentVariable.cpp, DiffusionRateEffect.h,
+	DiffusionRateEffect.cpp: added a function to calculate value of
+	a type of diffusion rate effect
+
+2012-03-16 R-forge revision 206 (RSienaTest only)
+
+	* R/effects.R, R/effectsDocumentation.R: added a new behavior rate
+	effectGroup covarBehaviorOneModeRate
+	* data/allEffects.csv, siena07internals.cpp,
+	StatisticCalculator.cpp, DependentVariable.cpp,
+	DependentVariable.h, DiffusionRateEffect.cpp,
+	DiffusionRateEffect.h: added new diffusion behavior rate effects
+	susceptAvIn, susceptAvCovar, infectIn, infectOut, infectCovar,
+	totExposure
+
+2012-03-07 R-forge revision 205
+
+	* src/model/effects/CovariateDistance2AlterEffect.cpp,
+	src/model/effects/CovariateDistance2AlterEffect.h,
+	src/model/effects/CovariateDistance2NetworkEffect.cpp,
+	src/model/effects/CovariateDistance2NetworkEffect.h,
+	src/model/effects/CovariateDistance2SimilarityEffect.cpp,
+	src/model/effects/CovariateDistance2SimilarityEffect.h: removed as
+	no longer used
+	* src/model/effects/allEffects.h: remove the .h's from previous
+	entry
+	* src/model/effects/CovariateAndNetworkBehaviorEffect.cpp: correct
+	memory leak.
+	* src/model/effects/generic/CovariateDistance2NetworkFunction.cpp:
+	adjust preprocessEgo method.
+	* src/model/effects/InteractionCovariateEffect.cpp: amend test for
+	missing as in revision 197.
+	* src/model/variables/NetworkVariable.cpp: correct calculation of
+	this->lalterProbability.
+
+2012-02-29 R-forge revision 204
+
+	* src/model/effects/SimilarityEffect.cpp: fixed bugs in
+	endowment/creation statistics.
+	* src/model/ml/Chain.cpp: fixed bug causing failure in connect
+	with constraints
+	* src/model/EpochSimulation.cpp: allow for underflow of sigma2
+	when taking square root.
+	* src/model/variables/NetworkVariable.cpp: fix bug in creation and
+	endowment effect scores for pairwise symmetric network models.
+	* R/simstatsc.r: fix bug which stopped chains being returned
+	* R/sienaprint.r: amend model print
+	* R/sienaDataCreate.r: amend error message for incorrect dyadic
+	covariate.
+	* R/siena08.r: suppress printed NULLS at end of summary.
+	* R/robmon.r: remove cluster.out before using it again.
+	* R/phase3.r: change format of report of autocorrelations in phase
+	3.
+	* R/initializeFRAN.r: forbid maximum likelihood estimation with
+	composition change, round calculation of number of MH steps.
+	* R/bayes.r: fix incorrect condition, allow to work with non
+	constant rates if a dfra is provided, minor reformatting.
+	* doc/missingEtc.tex: minor update.
+	* po/R-RSiena.pot, po/R-RSienaTest.pot: updated error message
+	files
+
+2012-02-19 R-forge revision 203
+
+	* src/siena07setup.cpp: initialize permutation length correctly in
+	setup phase of ML.
+	* R/robmon.r, R/zzz.r: add check for same package if using
+	multiple processes.
+	* doc/RSiena_manual.tex: 1) removed details about snow and rlecuyer
+	packages 2) amended code to make sparse matrices. (RSienaTest only)
+	* tests/scripts.Rout.save: update for reduced diffs.
+
+2012-02-10 R-forge revision 202 (RSienaTest only)
+
+	* doc/RSienaDeveloper.tex: updated various details. Reformatted pages
+
 2012-02-08 R-forge revision 201 (RSienaTest only)
 
 	* R/sienatable.r: added property eol-style=native.

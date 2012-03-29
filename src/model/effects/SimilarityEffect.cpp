@@ -189,11 +189,16 @@ double SimilarityEffect::egoEndowmentStatistic(int ego, const int * difference,
 					 iter.valid();
 					 iter.next())
 				{
-					double alterValue = currentValues[iter.actor()];
-					double range = this->range();
-					thisStatistic += iter.value() *
-						(1.0 - fabs(alterValue - currentValues[ego]) / range);
-					thisStatistic -= similarityMean;
+					if (!this->missing(this->period(), iter.actor()) &&
+						!this->missing(this->period() + 1, iter.actor()))
+					{
+						double alterValue = currentValues[iter.actor()];
+						double range = this->range();
+						thisStatistic += iter.value() *
+							(1.0 - fabs(alterValue - currentValues[ego]) /
+								range);
+						thisStatistic -= similarityMean;
+					}
 				}
 
 				if (this->laverage)
@@ -201,6 +206,10 @@ double SimilarityEffect::egoEndowmentStatistic(int ego, const int * difference,
 					thisStatistic /= pNetwork->outDegree(ego);
 				}
 
+				if (this->legoPopularity)
+				{
+					thisStatistic *= pNetwork->inDegree(ego);
+				}
 				statistic = thisStatistic;
 
 				// do the same using the current state plus difference
@@ -213,18 +222,27 @@ double SimilarityEffect::egoEndowmentStatistic(int ego, const int * difference,
 					 iter.valid();
 					 iter.next())
 				{
-					double alterValue = currentValues[iter.actor()];
-					double range = this->range();
-					thisStatistic += iter.value() *
-						(1.0 - fabs(alterValue - (difference[ego] +
-								currentValues[ego]))
-							/ range);
-					thisStatistic -= similarityMean;
+					if (!this->missing(this->period(), iter.actor()) &&
+						!this->missing(this->period() + 1, iter.actor()))
+					{
+						double alterValue = currentValues[iter.actor()] +
+							difference[iter.actor()];
+						double range = this->range();
+						thisStatistic += iter.value() *
+							(1.0 - fabs(alterValue - (difference[ego] +
+									currentValues[ego]))
+								/ range);
+						thisStatistic -= similarityMean;
+					}
 				}
 
 				if (this->laverage)
 				{
 					thisStatistic /= pNetwork->outDegree(ego);
+				}
+				if (this->legoPopularity)
+				{
+					thisStatistic *= pNetwork->inDegree(ego);
 				}
 
 				statistic -= thisStatistic;

@@ -15,7 +15,10 @@ imagepath <- ''
 ## or .onAttach?
 ##@pkgpath Objects/Path Path for installation of siena.exe
 pkgpath <- ''
+##@pkgname Objects/Package name of package (RSiena or RSienaTest)
 pkgname <- ""
+##@pkgversion Objects/Package version of package
+pkgvers <- ""
 ##@.onLoad Miscellaneous Start-up processing
 .onLoad <- function(libname,pkgname){
 #   dllpath <<- if (nzchar(.Platform$r_arch))
@@ -28,6 +31,7 @@ pkgname <- ""
    imagepath <<- file.path(libname, pkgname, paste('ilcampo.gif'))
    pkgpath<<- file.path(libname, pkgname)
    pkgname <<- pkgname
+   pkgvers <<- utils::packageDescription(pkgname, fields=c("Version", "Date"))
 #cat(pkgname,pkgpath,'\n')
  ##  csvpath<<- file.path(libname,pkgname)
  #   library.dynam("RSiena",package=pkgname)

@@ -60,6 +60,7 @@ Chain::Chain(Data * pData)
 
 	this->lmu = 0;
 	this->lsigma2 = 0;
+	this->lfinalReciprocalRate = 0;
 }
 
 
@@ -131,6 +132,7 @@ void Chain::clear()
 
 	this->lmu = 0;
 	this->lsigma2 = 0;
+	this->lfinalReciprocalRate = 0;
 }
 
 
@@ -455,7 +457,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 			count < this->lpData->rDependentVariableData().size())
 		{
 			count++;
-
+			remainingMiniSteps.clear();
 			for (unsigned i = 0; i < miniSteps.size(); i++)
 			{
 				// first try random insert

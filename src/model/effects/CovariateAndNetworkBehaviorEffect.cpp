@@ -65,6 +65,14 @@ void CovariateAndNetworkBehaviorEffect::initialize(const Data * pData,
 		throw logic_error("Network '" + networkName + "' expected.");
 	}
 	// initialize extras if any
+	if (this->laverageAlterValues)
+	{
+		delete [] this->laverageAlterValues;
+	}
+	if (this->laverageAlterMissing)
+	{
+		delete [] this->laverageAlterMissing;
+	}
 	this->laverageAlterValues = new double[this->lpNetwork->n()];
 	this->laverageAlterMissing = new bool[this->lpNetwork->n()];
 }

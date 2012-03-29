@@ -87,7 +87,7 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
             update <- number < 3
             z$scaleFactors[update] <<- z$scaleFactors[update] * ans[update]
             cat(actual, ans, z$scaleFactors, '\n')
-            if (all(success) | iter == maxiter)
+            if (all(success) || iter == maxiter)
             {
                 break
             }
@@ -186,9 +186,9 @@ bayes <- function(data, effects, model, nwarm=100, nmain=100, nrunMHBatches=20,
 		z$thetaMat <<- thetaNew
 		logpNew <- getProbabilitiesFromC(z)[[1]]
 		proposalProbability <- priorNew - priorOld + logpNew - logpOld
-##cat(proposalProbability, priorNew, priorOld, logpNew, logpOld, '\n')
-
-		z$accept <<- log(runif(length(proposalProbability))) < proposalProbability
+		##cat(proposalProbability, priorNew, priorOld, logpNew, logpOld, '\n')
+		z$accept <<- log(runif(length(proposalProbability))) <
+			proposalProbability
 		thetaOld[, z$basicRate] <- exp(thetaOld[, z$basicRate])
 		if (!change)
 		{
@@ -422,7 +422,7 @@ initializeBayes <- function(data, effects, model, nbrNodes, priorSigma,
 	}
    	z$FRAN <- getFromNamespace(model$FRANname, pkgname)
     z <- initializeFRAN(z, model, data=data, effects=effects,
-                prevAns=prevAns, initC=FALSE)
+                prevAns=prevAns, initC=FALSE, onlyLoglik=TRUE)
 	z$basicRate <- z$effects$basicRate
     z$nGroup <- z$f$nGroup
 	is.batch(TRUE)

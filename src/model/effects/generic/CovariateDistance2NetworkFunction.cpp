@@ -47,6 +47,14 @@ void CovariateDistance2NetworkFunction::initialize(const Data * pData,
 {
 	CovariateNetworkAlterFunction::initialize(pData, pState, period, pCache);
 
+	if (this->laverageAlterValues)
+	{
+		delete [] this->laverageAlterValues;
+	}
+	if (this->laverageAlterMissing)
+	{
+		delete[] this->laverageAlterMissing;
+	}
 	this->laverageAlterValues = new double[this->pNetwork()->n()];
 	this->laverageAlterMissing = new bool[this->pNetwork()->n()];
 }
@@ -78,7 +86,7 @@ bool CovariateDistance2NetworkFunction::missingDummy(int alter) const
  */
 void CovariateDistance2NetworkFunction::preprocessEgo(int ego)
 {
-	CovariateNetworkAlterFunction::preprocessEgo(ego);
+	AlterFunction::preprocessEgo(ego);
 
 	// set up the covariate based on current values of the network
 

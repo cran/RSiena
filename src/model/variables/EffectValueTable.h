@@ -19,7 +19,7 @@ namespace siena
  * This class provides a look-up table supporting effective calculation of
  * structural effects on rate functions. The value of the effect for an
  * argument <i>i</i> in [0, <i>n</i>) is defined as
- * exp(\alpha <i>f</i>(<i>i</i>)), where \alpha is a parameter associated
+ * exp(alpha <i>f</i>(<i>i</i>)), where alpha is a parameter associated
  * with this effect and <i>f</i> is an arbitrary function. Since calculating
  * exponentials is expensive, the values are stored for each <i>i</i> for
  * later reuse as long as the parameter remains unchanged.

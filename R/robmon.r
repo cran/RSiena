@@ -49,6 +49,18 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     #######################################################
     if (useCluster)
     {
+		## check the version has not been updated since we started R: possible
+		## on linux and Mac. Not very stringent check, as environment
+		## variables or path could lead to different R or different RSiena.
+		packageVersion <- packageDescription(pkgname,
+											 fields=c("Version", "Date"))
+		if (packageVersion$Version != pkgvers$Version ||
+			packageVersion$Date != pkgvers$Date)
+
+		{
+			stop(c("Incompatible RSiena versions for sub process: exit R ",
+				 "and restart"))
+		}
        # if (!is.null(x$FRANname) && x$FRANname != "simstats0c")
        # {
        #     stop("Multiple processors only for simstats0c at present")
@@ -57,6 +69,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         {
             stop("Not enough observations to use the nodes")
         }
+		unlink("cluster.out")
 		if (clusterType == "FORK")
 		{
 			cl <- makeCluster(nbrNodes, type = clusterType,
