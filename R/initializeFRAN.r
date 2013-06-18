@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: initializeFRAN.r
 # *
@@ -94,6 +94,22 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 				effects <- updateTheta(effects, prevAns)
 			}
         }
+		## add any effects needed for settings model
+# this now is replaced by adding the settings in getEffects,
+# which is the more logical place.
+# If all works, this can be deleted,
+# and also the function addSettingsEffects can be deleted.
+# I used this function as a template for the change to getEffects.
+# I wonder why the next 8 lines cannot be dropped;
+# gives error message "cannot find setting col".
+		if (!is.null(x$settings))
+		{
+			effects <- addSettingsEffects(effects, x)
+		}
+		else
+		{
+			effects$setting <- rep("", nrow(effects))
+		}
         ## find any effects not included which are needed for interactions
         tmpEffects <- effects[effects$include, ]
         interactionNos <- unique(c(tmpEffects$effect1, tmpEffects$effect2,
@@ -160,7 +176,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
         types <- sapply(data[[1]]$depvars, function(x) attr(x, "type"))
         ## now check if conditional estimation is OK and copy to z if so
         z$cconditional <- FALSE
-        if (x$cconditional)
+        if ((x$cconditional) & (!(attr(data, "compositionChange"))))
         {
             if (x$maxlike)
             {
@@ -204,7 +220,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
         }
 
         ## unpack data and put onto f anything we may need next time round.
-        f <- lapply(data, function(x) unpackData(x))
+        f <- lapply(data, function(xx, x) unpackData(xx, x), x=x)
 
         attr(f, "netnames") <- attr(data, "netnames")
         attr(f, "symmetric") <- attr(data, "symmetric")
@@ -276,13 +292,42 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
         {
             if (!is.null(prevAns$dfra) &&
 				 nrow(prevAns$dfra) == nrow(requestedEffects) &&
-                all(rownames(prevAns$dfra) == requestedEffects$shortName)
-                && !is.null(prevAns$sf))
+                 all(rownames(prevAns$dfra) == requestedEffects$shortName) &&
+				 all(prevAns$fix == requestedEffects$fix) &&
+				 !is.null(prevAns$sf))
             {
                 z$haveDfra <- TRUE
                 z$dfra <- prevAns$dfra
                 z$dinv <- prevAns$dinv
-                z$sf <- prevAns$sf
+				# z$dinvv must not be taken from prevAns,
+				# because the value of diagonalize
+				# is defined in x and may have changed.
+				# Therefore here we copy the corresponding lines
+				# from phase1.r.
+				if (!x$diagg)
+				{
+					# Partial diagonalization of derivative matrix
+					# for use if 0 < x$diagonalize < 1.
+					temp <- (1-x$diagonalize)*z$dfra +
+							x$diagonalize*diag(diag(z$dfra))
+					temp[z$fixed, ] <- 0.0
+					temp[, z$fixed] <- 0.0
+					diag(temp)[z$fixed] <- 1.0
+					# Invert this matrix
+					z$dinvv <- solve(temp)
+				}
+				z$sf <- prevAns$sf
+				# check for backward compatibility with pre-1.1-220 versions:
+				if (is.null(prevAns$regrCoef))
+				{
+					z$regrCoef <- rep(0, z$pp)
+					z$regrCor <- rep(0, z$pp)
+				}
+				else
+				{
+					z$regrCoef <- prevAns$regrCoef
+					z$regrCor <- prevAns$regrCor
+				}
             }
         }
         z$effects <- effects
@@ -475,7 +520,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
     }
     else
     {
-        MAXDEGREE <- as.integer(x$MaxDegree)
+        MAXDEGREE <- x$MaxDegree
         storage.mode(MAXDEGREE) <- "integer"
     }
     if (z$cconditional)
@@ -500,7 +545,6 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 	ans <- .Call("setupModelOptions", PACKAGE=pkgname,
                  pData, pModel, MAXDEGREE, CONDVAR, CONDTARGET,
                  profileData, z$parallelTesting, x$modelType, z$simpleRates)
-
     if (x$maxlike)
     {
         if (!initC)
@@ -708,6 +752,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
     ## sort out composition change
     ##      convertToStructuralZeros()?
     sparse <- attr(depvar, "sparse")
+	allowOnly <- attr(depvar, "allowOnly")
     if (sparse)
     {
         ## require(Matrix)
@@ -923,13 +968,16 @@ unpackOneMode <- function(depvar, observations, compositionChange)
                 mydiff <- mymat2 - mymat1
                 attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
-                if (all(mydiff@x >= 0, na.rm=TRUE))
+				if (allowOnly)
 				{
-                    attr(depvar, "uponly")[i] <- TRUE
-				}
-                if (all(mydiff@x <= 0, na.rm=TRUE))
-				{
-                    attr(depvar, "downonly")[i] <- TRUE
+					if (all(mydiff@x >= 0, na.rm=TRUE))
+					{
+						attr(depvar, "uponly")[i] <- TRUE
+					}
+					if (all(mydiff@x <= 0, na.rm=TRUE))
+					{
+						attr(depvar, "downonly")[i] <- TRUE
+					}
 				}
             }
             edgeLists[[i]] <- list(mat1 = t(mat1), mat2 = t(mat2),
@@ -1040,13 +1088,16 @@ unpackOneMode <- function(depvar, observations, compositionChange)
                 mydiff <- mymat2 - mymat1
                 attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
-                if (all(mydiff >= 0, na.rm=TRUE))
+				if (allowOnly)
 				{
-                    attr(depvar, "uponly")[i] <- TRUE
-				}
-                if (all(mydiff <= 0, na.rm=TRUE))
-				{
-                    attr(depvar, "downonly")[i] <- TRUE
+					if (all(mydiff >= 0, na.rm=TRUE))
+					{
+						attr(depvar, "uponly")[i] <- TRUE
+					}
+					if (all(mydiff <= 0, na.rm=TRUE))
+					{
+						attr(depvar, "downonly")[i] <- TRUE
+					}
 				}
             }
             diag(networks[[i]]) <- 0
@@ -1070,6 +1121,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
     attr(edgeLists, "structmean") <- attr(depvar, "structmean")
     attr(edgeLists, "averageInDegree") <- attr(depvar, "averageInDegree")
     attr(edgeLists, "averageOutDegree") <- attr(depvar, "averageOutDegree")
+	attr(edgeLists, "settings") <- attr(depvar, "settings")
     return(edgeLists = edgeLists)
 }
 ##@unpackBipartite siena07 Reformat data for C++
@@ -1094,6 +1146,7 @@ unpackBipartite <- function(depvar, observations, compositionChange)
         action <- matrix(0, nrow=attr(depvar, "netdims")[1], ncol=observations)
     }
     sparse <- attr(depvar, "sparse")
+	allowOnly <- attr(depvar, "allowOnly")
     if (sparse)
     {
         ## require(Matrix)
@@ -1274,13 +1327,16 @@ unpackBipartite <- function(depvar, observations, compositionChange)
                 mydiff <- mymat2 - mymat1
                 attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                    na.rm = TRUE)
-                if (all(mydiff@x >= 0, na.rm=TRUE))
+				if (allowOnly)
 				{
-                    attr(depvar, "uponly")[i] <- TRUE
-				}
-                if (all(mydiff@x <= 0, na.rm=TRUE))
-				{
-                    attr(depvar, "downonly")[i] <- TRUE
+					if (all(mydiff@x >= 0, na.rm=TRUE))
+					{
+						attr(depvar, "uponly")[i] <- TRUE
+					}
+					if (all(mydiff@x <= 0, na.rm=TRUE))
+					{
+						attr(depvar, "downonly")[i] <- TRUE
+					}
 				}
             }
             edgeLists[[i]] <- list(mat1 = t(mat1), mat2 = t(mat2),
@@ -1374,13 +1430,16 @@ unpackBipartite <- function(depvar, observations, compositionChange)
                 mydiff <- mymat2 - mymat1
                 attr(depvar, "distance")[i] <- sum(mydiff != 0,
                                                          na.rm = TRUE)
-                if (all(mydiff >= 0, na.rm=TRUE))
+				if (allowOnly)
 				{
-                    attr(depvar, "uponly")[i] <- TRUE
-				}
-                if (all(mydiff <= 0, na.rm=TRUE))
-				{
-                    attr(depvar, "downonly")[i] <- TRUE
+					if (all(mydiff >= 0, na.rm=TRUE))
+					{
+						attr(depvar, "uponly")[i] <- TRUE
+					}
+					if (all(mydiff <= 0, na.rm=TRUE))
+					{
+						attr(depvar, "downonly")[i] <- TRUE
+					}
 				}
             }
 
@@ -1565,7 +1624,7 @@ unpackVDyad<- function(dyvCovar, observations)
 }
 
 ##@unpackData siena07 Reformat data for C++
-unpackData <- function(data)
+unpackData <- function(data, x)
 {
     f <- NULL
     observations<- data$observations
@@ -1574,7 +1633,20 @@ unpackData <- function(data)
     oneModes <- data$depvars[types == "oneMode"]
     Behaviors <- data$depvars[types == "behavior"]
     bipartites <- data$depvars[types == "bipartite"]
-    f$nets <- lapply(oneModes, function(x, n, comp) unpackOneMode(x, n, comp),
+	## add the settings
+	oneModes <- lapply(oneModes, function(depvar)
+	   {
+		   name <- attr(depvar, "name")
+		   if (name %in% names(x$settings))
+		   {
+			   attr(depvar, "settings") <- c("universal", "primary",
+											 x$settings[[name]])
+		   }
+		   depvar
+	   }
+		   )
+    f$nets <- lapply(oneModes, function(x, n, comp)
+					 unpackOneMode(x, n, comp),
                      n = observations, comp=data$compositionChange)
     names(f$nets) <- names(oneModes)
     f$bipartites <- lapply(bipartites, function(x, n, comp)
@@ -1912,3 +1984,49 @@ updateTheta <- function(effects, prevAns)
 		prevEffects$initialValue[match(efflist, oldlist)][use]
 	effects
 }
+
+##@addSettingseffects siena07 add extra rate effects for settings model
+addSettingsEffects <- function(effects, x)
+{
+	## need a list of settings (constant dyadic covariate name) for some or all
+	## dependent networks. If symmetric this is equivalent to a forcing model.
+	## The covariate actor sets should match the network actor sets.
+	## ?? would it ever make sense for bipartites? Allow it here for now and see!
+	## maybe better to add the settings pars to the data object but for now
+	## they are on the model with maxdegree. TODO write some validation
+	varNames <- names(x$settings)
+	nbrSettings <- sapply(x$settings, length)
+	tmp <-
+		lapply(1:length(x$settings), function(i)
+		   {
+			   ## find effects for this variable
+			   varEffects <- effects[effects$name == varNames[i], ]
+			   ## find relevant rate effects
+			   dupl <- varEffects[varEffects$basicRate, ]
+			   ## make extra copies
+			   newEffects <- dupl[rep(1:nrow(dupl),
+									  each = nbrSettings[i] + 2), ]
+			   newEffects <- split(newEffects, list(newEffects$group,
+								   newEffects$period))
+			   newEffects <- lapply(newEffects, function(dd)
+				  {
+					  dd$setting <- c("universal", "primary",
+											  x$settings[[i]])
+					  i1 <- regexpr("rate", dd$effectName)
+					  dd$effectName <-
+						  paste(substr(dd$effectName, 1, i1 - 2),
+											 dd$setting,
+								substring(dd$effectName, i1))
+					  dd
+				  }
+					  )
+			   newEffects <- do.call(rbind, newEffects)
+			   ## add extra column to non basic rate effects
+			   varEffects$setting <- rep("", nrow(varEffects))
+			   ## combine them
+			   rbind(newEffects, varEffects[!varEffects$basicRate, ])
+		   })
+	## join them together again
+	do.call(rbind, tmp)
+}
+

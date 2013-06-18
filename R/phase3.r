@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: phase3.r
 # *
@@ -88,8 +88,11 @@ phase3.2 <- function(z, x, ...)
         Report(c('Time per iteration in phase 3   = ',
                  format(z$timePhase3, nsmall=4, digits=4), '\n'), lf)
 	}
-    z <- CalculateDerivative3(z, x)
-    z <- PotentialNR(z, x, FALSE)
+	z <- CalculateDerivative3(z, x)
+	if (!x$simOnly)
+	{
+		z <- PotentialNR(z, x, FALSE)
+	}
     if (any(z$newfixed))
     {
         Report('There was a problem in obtaining convergence.\n', outf)
@@ -139,6 +142,8 @@ phase3.2 <- function(z, x, ...)
     ##calculate t-ratios
     dmsf <- diag(z$msf)
     sf <- colMeans(z$sf)
+	# TS: I wonder why "use" and "use2" are the names in the following lines;
+	# the coordinates with "use" are <<not>> used.
     use <- dmsf < 1e-20 * z$scale * z$scale
     use2 <- abs(sf) < 1e-10 * z$scale
     dmsf[use] <- 1e-20 * z$scale[use] * z$scale[use]
@@ -147,6 +152,22 @@ phase3.2 <- function(z, x, ...)
     tstat[use & use2] <- 0
     tstat[use & !use2] <- 999
     z$tstat <- tstat
+	# tconv.max = Maximum value of t-ratio for convergence,
+	# for any linear combination.
+	z$tconv.max <- NA
+	if (sum(!z$fixed) > 0)
+	{
+		mean.dev <- colSums(z$sf)[!z$fixed]/dim(z$sf)[1]
+		cov.dev <- z$msf[!z$fixed,!z$fixed]
+		if (inherits(try(thisproduct <- solve(cov.dev, mean.dev)),"try-error"))
+		{
+			Report('Maximum t-ratio for convergence not computable.\n', outf)
+		}
+		else
+		{
+			z$tconv.max <- sqrt(t(mean.dev) %*% thisproduct)
+		}
+	}
     mymess1 <- paste(format(1:z$pp,width=3), '. ',
                     format(round(sf, 4), width=8, nsmall=4), ' ',
                     format(round(sqrt(dmsf), 4) ,width=8, nsmall=4), ' ',
@@ -173,7 +194,7 @@ phase3.2 <- function(z, x, ...)
 	{
         Report(c('(Since the diagnostic checks now are based only on ',
                  z$Phase3nits,
-                 ' iterations', '\nThey are not reliable.)'), sep='', outf)
+                 ' iterations,', '\nthey are not reliable.)\n'), sep='', outf)
 	}
     if (error) ## also test subphase here but not relevant to phase 3, I think
     {
@@ -185,7 +206,7 @@ phase3.2 <- function(z, x, ...)
 		## removed repfortotal loop possibility here as not functioning now
         if (z$Phase3nits <= 50)
 		{
-            Report(c('However, the standard deviations are based on',
+            Report(c('Note that the standard deviations are based on',
                      'few simulations.\n'), outf)
 		}
 	}
@@ -218,72 +239,77 @@ phase3.2 <- function(z, x, ...)
 			}
 		}
 	}
-    if (x$maxlike)
-    {
-        Report('Estimated complete data information matrix: \n', cf)
-        PrtOutMat(z$dfra, cf)
-        Report(c('Estimated conditional covariance matrix score function ',
-               '(unobserved information):\n'), cf)
-        PrtOutMat(z$msf, cf)
-        Report('\n', cf)
-        dfrac <- z$dfra - z$msf
-		## dfrac[z$fixed[row(dfrac)] | z$fixed[col(dfrac)]] <- 0
-		## a clever way to do it
-        dfrac[z$fixed, ] <- 0
-        dfrac[ ,z$fixed] <- 0
-        diag(dfrac)[z$fixed] <- 1
-        if (inherits(try(cov <- solve(dfrac)),"try-error"))
-        {
-            Report('Noninvertible estimated covariance matrix : \n', outf)
-            cov <- NULL
-        }
-    }
-    else
+	if (!x$simOnly)
 	{
-        cov <- z$dinv %*% z$msfc %*% t(z$dinv)
-	}
-    error <- FALSE
-    if (inherits(try(msfinv <- solve(z$msfc)), "try-error"))
-    {
-        Report('Covariance matrix not positive definite: \n', outf)
-        if (any(z$fixed || any(z$newfixed)))
+		if (x$maxlike)
 		{
-            Report(c('(This may be unimportant, and related to the fact\n',
-                   'that some parameters are fixed.)\n'), outf)
+			Report('Estimated complete data information matrix: \n', cf)
+			PrtOutMat(z$dfra, cf)
+			Report(c('Estimated conditional covariance matrix score function ',
+				'(unobserved information):\n'), cf)
+			PrtOutMat(z$msf, cf)
+			Report('\n', cf)
+			dfrac <- z$dfra - z$msf
+			## dfrac[z$fixed[row(dfrac)] | z$fixed[col(dfrac)]] <- 0
+			## a clever way to do it
+			dfrac[z$fixed, ] <- 0
+			dfrac[ ,z$fixed] <- 0
+			diag(dfrac)[z$fixed] <- 1
+			if (inherits(try(cov <- solve(dfrac)),"try-error"))
+			{
+				Report('Noninvertible estimated covariance matrix : \n', outf)
+				cov <- NULL
+			}
 		}
-        else
+		else
 		{
-            Report(c('This may mean that the reported standard errors ',
-                     'are invalid.\n'), outf)
+			cov <- z$dinv %*% z$msfc %*% t(z$dinv)
 		}
-        z$msfinv <- NULL
-    }
-    else
-	{
-        z$msfinv <- msfinv
+		error <- FALSE
+		if (inherits(try(msfinv <- solve(z$msfc)), "try-error"))
+		{
+			Report('Covariance matrix not positive definite: \n', outf)
+			if (any(z$fixed || any(z$newfixed)))
+			{
+				Report(c('(This may be unimportant, and related to the fact\n',
+					'that some parameters are fixed.)\n'), outf)
+			}
+			else
+			{
+				Report(c('This may mean that the reported standard errors ',
+						'are invalid.\n'), outf)
+			}
+			z$msfinv <- NULL
+		}
+		else
+		{
+			z$msfinv <- msfinv
+		}
+		if (!is.null(cov))
+		{
+			z$diver <- (z$fixed | z$diver | diag(cov) < 1e-9) & (!z$AllUserFixed)
+			## beware: recycling works for one direction but not the other
+			diag(cov)[z$diver] <- 99 * 99
+			cov[z$diver, ] <- rep(Root(diag(cov)), each=sum(z$diver)) * 33
+			diag(cov)[z$diver] <- 99 * 99
+			cov[, z$diver] <- rep(Root(diag(cov)), sum(z$diver)) * 33
+			diag(cov)[z$diver] <- 99 * 99
+		}
+		z$covtheta <- cov
 	}
-    if (!is.null(cov))
-    {
-        z$diver <- (z$fixed | z$diver | diag(cov) < 1e-9) & (!z$AllUserFixed)
-		## beware: recycling works for one direction but not the other
-        diag(cov)[z$diver] <- 99 * 99
-        cov[z$diver, ] <- rep(Root(diag(cov)), each=sum(z$diver)) * 33
-		diag(cov)[z$diver] <- 99 * 99
-		cov[, z$diver] <- rep(Root(diag(cov)), sum(z$diver)) * 33
-        diag(cov)[z$diver] <- 99 * 99
-    }
-    z$covtheta <- cov
 	## ans<-InstabilityAnalysis(z)
 	z
 }
 
-##@CalulateDerivative3 siena07 Calculates derivative at end of phase 3
+##@CalculateDerivative3 siena07 Calculates derivative at end of phase 3
 CalculateDerivative3<- function(z,x)
 {
     z$mnfra <- colMeans(z$sf)
     if (z$FinDiff.method || x$maxlike)
     {
 		dfra <- t(as.matrix(Reduce("+", z$sdf) / length(z$sdf)))
+		z$regrCoef <- rep(0, z$pp)
+		z$regrCor <- rep(0, z$pp)
     }
 	else
     {
@@ -297,6 +323,17 @@ CalculateDerivative3<- function(z,x)
             Report(c("Warning: diagonal element(s)", sub,
                      " of derivative matrix < 0\n"), cf)
         }
+		scores <- apply(z$ssc, c(1,3), mean)
+		for (i in 1:z$pp)
+		{
+			if (var(scores[,i]) > 0)
+			{
+				z$regrCoef[i] <- cov(z$sf[,i], scores[,i])/var(scores[,i])
+				z$regrCor[i] <- cor(z$sf[,i], scores[,i])
+			}
+		}
+		Report('Correlations between scores and statistics:\n', cf)
+		PrtOutMat(format(as.matrix(t(z$regrCor)), digits = 2, nsmall = 2), cf)
     }
     z$diver <- rep(FALSE, z$pp)
     if (z$AllUserFixed & any(abs(diag(dfra)) < 1e-6))
@@ -352,6 +389,7 @@ PotentialNR <-function(z,x,MakeStep=FALSE)
         fchange <- dinv%*%colMeans(z$sf)
         z$dinv <- dinv
     }
+	z$fchange <- fchange
     Report('dfrac :\n', cf)
     PrtOutMat(z$dfrac, cf)
     Report('inverse of dfra :\n', cf)

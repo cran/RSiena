@@ -4,8 +4,7 @@
 #include "AlterPredicate.h"
 #include "utils/NamedObject.h"
 
-namespace siena
-{
+namespace siena {
 
 // ----------------------------------------------------------------------------
 // Section: Forward declarations
@@ -15,7 +14,6 @@ class ConstantCovariate;
 class ChangingCovariate;
 class BehaviorLongitudinalData;
 
-
 // ----------------------------------------------------------------------------
 // Section: Class definition
 // ----------------------------------------------------------------------------
@@ -24,15 +22,12 @@ class BehaviorLongitudinalData;
  * Defines an alter predicate that depends on a certain covariate or
  * behavior variable.
  */
-class CovariatePredicate: public AlterPredicate, NamedObject
-{
+class CovariatePredicate: public AlterPredicate, NamedObject {
 public:
 	CovariatePredicate(string covariateName);
-
-	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+	virtual ~CovariatePredicate() {}
+	virtual void initialize(const Data * pData, State * pState, int period,
+			Cache * pCache);
 
 protected:
 	double covariateValue(int i) const;

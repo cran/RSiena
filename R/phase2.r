@@ -1,13 +1,14 @@
 ##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+## * Web: http://www.stats.ox.ac.uk/~snijders/siena
 ## *
 ## * File: phase2.r
 ## *
 ## * Description: This module contains the functions phase2.1, proc2subphase
 ## * and doIterations which together perform a robbins-monro stochastic
 ## * approximation algorithm.
+## * phase2.1 and proc2subphase are called from robmon in robmon.r.
 ## ****************************************************************************/
 ## args: z: internal control object
 ##       x: model object (readonly as not returned)
@@ -38,10 +39,10 @@ phase2.1<- function(z, x, ...)
     z$sd <- sqrt(apply(z$sf, 2, function(x) sum(x^2) / nrow(z$sf) - mean(x)^2))
     z$sd[z$fixed] <- 0
     Report(paste('\nPhase 2 has', x$nsub, 'subphases.\n'), cf)
-    z$gain <- 2 * x$firstg
+    z$gain <- x$firstg
     if (x$nsub <= 0)
     {
-        Report('With 0 subphases, you decided to skip phase 2!!\n')
+        Report('With 0 subphases, there is no phase 2.\n', cf)
     }
     else
     {
@@ -55,20 +56,21 @@ phase2.1<- function(z, x, ...)
     z
 }
 ##@proc2subphase siena07 Do one subphase of phase 2
-proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
+proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
 {
     ## init subphase of phase 2
     z <- AnnouncePhase(z, x, subphase)
-    z$n2min <- z$n2minimum[subphase]
-    z$n2max <- z$n2maximum[subphase]
-    if (x$maxlike)
-    {
-        z$gain <- z$gain * 0.25
-    }
-    else
-    {
-        z$gain <- z$gain * 0.5
-    }
+	Report(paste("\nStart phase ", z$Phase, ".", subphase, "\n", sep=""), cf)
+	if (subphase <= 0)
+	{
+		z$n2min <- 5
+		z$n2max <- 100
+	}
+	else
+	{
+		z$n2min <- z$n2minimum[subphase]
+		z$n2max <- z$n2maximum[subphase]
+	}
     z$repeatsubphase <- 0
     repeat
     {
@@ -116,16 +118,18 @@ proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
                          y = z$positivized)
             Report(msg, cf, fill=80)
         }
-        if (z$maxacor >= sqrt(2.0 / (z$nit + 1)))
-        {
-            Report('Warning: an autocorrelation is positive at the end of',cf)
-            Report(' this subphase.\n',cf)
-            Report('Autocorrelations:\n',cf)
-            prtmat <- z$prod1 / z$prod0
-            PrtOutMat(as.matrix(prtmat), cf)
+        if ((subphase >= 1) && (z$maxacor >= sqrt(2.0 / (z$nit + 1))))
+		{
+			Report('Warning: an autocorrelation is positive at the end',cf)
+			Report(' of this subphase.\n',cf)
+			Report('Autocorrelations:\n',cf)
+			prtmat <- z$prod1 / z$prod0
+			PrtOutMat(as.matrix(prtmat), cf)
         }
-        if (z$nit >= z$n2max || z$maxacor < 1e-10 ||
-            z$repeatsubphase >= z$maxrepeatsubphase)
+        if ((z$nit >= z$n2max)
+			|| (subphase <= 0)
+			|| (z$maxacor < 1e-10)
+			|| (z$repeatsubphase >= z$maxrepeatsubphase))
         {
             break
         }
@@ -139,6 +143,29 @@ proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
     {
         Report('The user asked for early end of phase 2.\n', outf)
     }
+    if (useAverage)
+    {
+		z$theta <- z$thav / z$thavn   # z$thavn = (z$nit + 1)
+    }
+    else
+	{
+		cat('\n')
+		cat('Regression\n')
+		##  use regression
+		cat(z$thav / z$thavn, '; ') #(z$nit + 1)
+		mylm <- lm(z$sf[1:z$nit, ] ~ z$thetaStore[1:z$nit, ])
+		coefs <- coef(mylm)[-1, ]
+		newvals <- solve(t(coefs), - mylm$coef[1, ])
+		z$theta <- newvals
+		cat(z$theta, '\n')
+	}
+    DisplayThetaAutocor(z)
+    ##    cat('it',z$nit,'\n')
+    ##recalculate autocor using -1 instead of -2 as error
+    ac <- ifelse (z$prod0 > 1e-12, z$prod1 / z$prod0, -1)
+    maxacor <- max(-99, ac[!z$fixed]) ##note -1 > -99
+    Report(paste('Phase ', z$Phase,'.', subphase, ' ended after ', z$nit,
+                 ' iterations.\n', sep = ''), cf)
     if (x$checktime)
     {
         time1 <- proc.time()[[3]] - z$ctime
@@ -147,29 +174,7 @@ proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
                      ' = ', format(subphaseTime, nsmall=4, digits=4),
                      '\n', sep=''), lf)
     }
-    if (useAverage)
-    {
-        z$theta <- z$thav / z$thavn #(z$nit + 1)
-    }
-    else
-    {
-        ##  use regession
-        cat(z$thav / z$thavn, '\n') #(z$nit + 1)
-        mylm <- lm(z$sf[1:z$nit, ] ~ z$thetaStore[1:z$nit, ])
-        coefs <- coef(mylm)[-1, ]
-        newvals <- solve(t(coefs), - mylm$coef[1, ])
-        z$theta <- newvals
-        cat(z$theta, '\n')
-    }
-    DisplayThetaAutocor(z)
-    ##    cat('it',z$nit,'\n')
-    ##recalculate autocor using -1 instead of -2 as error
-    ac <- ifelse (z$prod0 > 1e-12, z$prod1 / z$prod0, -1)
-    maxacor <- max(-99, ac[!z$fixed]) ##note -1 > -99
-    ##   browser()
-    Report(paste('Phase ', z$Phase,'.', subphase, ' ended after ', z$nit,
-                 ' iterations.\n', sep = ''), cf)
-    if (maxacor >= sqrt(2 / (z$nit + 1)))
+    if ((maxacor >= sqrt(2 / (z$nit + 1))) && (subphase >= 1))
     {
         Report('Warning. Autocorrelation criterion not satisfied.\n', cf)
     }
@@ -187,6 +192,15 @@ proc2subphase <- function(z, x, subphase,  useAverage=TRUE, ...)
         z$fixed[z$newfixed] <- FALSE
         z$restarted <- TRUE
     }
+	## For the next subphase:
+	if (x$maxlike)
+	{
+		z$gain <- z$gain * 0.25
+	}
+	else
+	{
+		z$gain <- z$gain * 0.5
+	}
     z
 } ##end of this subphase
 
@@ -195,6 +209,7 @@ doIterations<- function(z, x, subphase,...)
 {
     z$nit <- 0
     ac <- 0
+	z$maxacor <- 1
     xsmall <- NULL
     zsmall <- makeZsmall(z)
     z$returnDeps <- FALSE
@@ -244,7 +259,8 @@ doIterations<- function(z, x, subphase,...)
             }
         }
         zsmall$nit <- z$nit
-        if (z$int == 1) ## not parallel runs at this level
+		if (x$dolby) {zsmall$Deriv <- TRUE} ## include scores in FRAN
+        if (z$int == 1) ## then no parallel runs at this level
         {
             zz <- x$FRAN(zsmall, xsmall)
             fra <- colSums(zz$fra) - z$targets
@@ -253,11 +269,31 @@ doIterations<- function(z, x, subphase,...)
                 z$OK <- zz$OK
                 break
             }
+			if (x$dolby)
+			## subtract regression on scores;
+			## permitted because fra is used in phase2 only for updates
+			{
+			ssc <- zz$sc # scores;  periods by variables
+			ssc <- colSums(ssc) # add over periods
+			fra <- fra - (z$regrCoef * ssc)
+			}
         }
         else
         {
             zz <- clusterCall(z$cl, simstats0c, zsmall, xsmall)
-            fra <- sapply(zz, function(x) colSums(x$fra)- z$targets)
+			if (x$dolby)
+			## subtract regression on scores;
+			{
+				fra <- sapply(zz, function(x){
+					ssc <- x$sc # scores;  periods by variables
+					ssc <- colSums(ssc) # add over periods
+					colSums(x$fra)- z$targets - (z$regrCoef * ssc)
+					})
+			}
+			else
+			{
+				fra <- sapply(zz, function(x) colSums(x$fra)- z$targets)
+			}
             dim(fra) <- c(z$pp, z$int)
             fra <- rowMeans(fra)
             zz$OK <- sapply(zz, function(x) x$OK)
@@ -266,6 +302,7 @@ doIterations<- function(z, x, subphase,...)
                 z$OK <- FALSE
                 break
             }
+
         }
 		## setup check for end of phase. either store or calculate
         if (z$nit %% 2 == 1)
@@ -285,32 +322,35 @@ doIterations<- function(z, x, subphase,...)
                 DisplayThetaAutocor(z)
             }
         }
-        ## limit change.  Reporting is delayed to
-        ## end of phase.
-        if (x$diag) ## !maxlike at present
-        {
-            maxrat<- max(ifelse(z$sd, abs(fra)/ z$sd, 1.0))
-            if (maxrat > x$maxmaxrat)
-            {
-                maxrat <- x$maxmaxrat / maxrat
-                z$truncated[z$nit] <- TRUE
-            }
-            else
-			{
-                maxrat <- 1.0
-			}
-            fchange<- z$gain * fra * maxrat / diag(z$dfra)
-        }
-        else
-        {
-            fchange <- as.vector(z$gain * fra %*% z$dinv)
-        }
-        fchange[z$fixed] <- 0.0
+        ## limit change.  Reporting is delayed to end of phase.
+# The old version had a numerical ifelse condition:
+#          maxrat<- max(ifelse(z$sd, abs(fra)/ z$sd, 1.0))
+# But ifelse with a numerical first argument only tests the value 0,
+# which here has probability 0... So this really has no effect.
+# I (TS) do not understand this.
+# Therefore I changed it.
+        if (x$diagg)
+		{
+            changestep <- fra / diag(z$dfra)
+		}
+		else
+		{
+			changestep <- as.vector(fra %*% z$dinvv)
+		}
+		changestep[z$fixed] <- 0.0
+		maxratt <- max(abs(changestep))
+		if (maxratt > 5)
+		{
+			changestep <- 5*changestep/maxratt
+           	z$truncated[z$nit] <- TRUE
+		}
+        fchange <- as.vector(z$gain * changestep)
         ## check positivity restriction
         z$positivized[z$nit, ] <- z$posj & (fchange > z$theta)
         fchange <- ifelse(z$posj & (fchange > z$theta), z$theta * 0.5, fchange)
         zsmall$theta <- zsmall$theta - fchange
         z$theta <- zsmall$theta
+#		z$thetaStore[z$nit,] <- z$theta
         z$thav <- z$thav + zsmall$theta
         z$thavn <- z$thavn + 1
         if (x$maxlike && !is.null(x$moreUpdates) && x$moreUpdates > 0)
@@ -325,9 +365,10 @@ doIterations<- function(z, x, subphase,...)
             break
         }
         ## do we stop?
-        if ( (z$nit >= z$n2min && z$maxacor < 1e-10)
-            || (z$nit >= z$n2max) || (z$nit >= 50 && z$minacor < -0.8 &&
-                z$repeatsubphase < z$maxrepeatsubphase))
+        if ((z$nit >= z$n2min && z$maxacor < 1e-10)||
+			   (z$nit >= z$n2max)||
+			   ((z$nit >= 50) && (z$minacor < -0.8) &&
+                (z$repeatsubphase < z$maxrepeatsubphase)))
         {
             break
         }

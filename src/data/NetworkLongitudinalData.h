@@ -12,6 +12,7 @@
 #ifndef NETWORKLONGITUDINALDATA_H_
 #define NETWORKLONGITUDINALDATA_H_
 
+#include <vector>
 #include "data/LongitudinalData.h"
 
 namespace siena
@@ -70,6 +71,9 @@ public:
 
 	bool oneModeNetwork() const;
 
+	const std::vector<string> & rSettingNames() const;
+	void addSettingName(string name);
+
 private:
 	// The set of actors receiving the ties of the network
 	const ActorSet * lpReceivers;
@@ -110,6 +114,9 @@ private:
 	// Flag: is this data object bipartite or oneMode.
 
 	bool loneMode;
+
+	// vector of setting names for this network
+	vector<string> lsettingNames;
 };
 
 }

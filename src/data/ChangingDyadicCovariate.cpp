@@ -198,5 +198,14 @@ DyadicCovariateValueIterator ChangingDyadicCovariate::columnValues(int j,
     return DyadicCovariateValueIterator(this->lpColumnValues[observation][j],
         *excludedActorSet);
 }
+/**
+ * Returns a map containing over non-zero non-missing values of the given row
+ * for the given observation
+ */
+const map <int, double> & ChangingDyadicCovariate::rRowValues(int i,
+	int observation) const
+{
+	return this->lpRowValues[observation][i];
+}
 
 }

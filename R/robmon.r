@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: robmon.r
 # *
@@ -83,17 +83,22 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         clusterCall(cl, library, pkgname, character.only = TRUE)
 		##parLapply(cl, c('f1','f2'), sink)
 		z$oldRandomNumbers <- .Random.seed
-		if (R.version$minor < 14.0) ## fake this to recreate old results
-	##	if (TRUE)
-		{
-			clusterSetupRNG(cl, seed = as.integer(runif(6,
-								max=.Machine$integer.max)))
-		}
-		else
-		{
-			clusterSetRNGStream(cl, iseed = as.integer(runif(1,
-								max=.Machine$integer.max)))
-		}
+		## The possibility to use snow now has been dropped
+		## because RSiena requires R >= 2.15.0
+		## and snow is superseded.
+		## Therefore the call to clusterSetupRNG was dropped.
+		#if (getRversion() < "2.14.0")
+			## fake this to recreate old results
+			##	if (TRUE)
+		#{
+		#	clusterSetupRNG(cl, seed = as.integer(runif(6,
+		#						max=.Machine$integer.max)))
+		#}
+		#else
+		#{
+		clusterSetRNGStream(cl, iseed = as.integer(runif(1,
+							max=.Machine$integer.max)))
+		#}
         clusterCall(cl, storeinFRANstore,  FRANstore())
         if (initC)
         {
@@ -135,6 +140,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$anyposj <- any(z$posj)
     z$resist <- rep(1, z$pp)
     z$n1 <- 7 + 3 * z$pp
+	if (x$dolby){z$n1 <- max(z$n1, 50)}
     if (any(!z$fixed))
     {
         z$AllUserFixed<- FALSE
@@ -324,11 +330,14 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z <- terminateFRAN(z, x)
     ## #####################################################
     ## call to FRAN changes covariance matrix for conditional estimation
-    z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)
-    z$covtheta[z$diver, ] <- Root(diag(z$covtheta)) * 33
-    ##not sure this does not use very small vals
-    z$covtheta[, z$diver] <- Root(diag(z$covtheta)) * 33
-    diag(z$covtheta)[z$diver] <- 999
+	if (!x$simOnly)
+	{
+		z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)
+		z$covtheta[z$diver, ] <- Root(diag(z$covtheta)) * 33
+		##not sure this does not use very small vals
+		z$covtheta[, z$diver] <- Root(diag(z$covtheta)) * 33
+		diag(z$covtheta)[z$diver] <- 999
+	}
     z$termination <- 'OK'
     z
 }

@@ -11,8 +11,7 @@
 #ifndef ALTERPREDICATE_H_
 #define ALTERPREDICATE_H_
 
-namespace siena
-{
+namespace siena {
 
 // ----------------------------------------------------------------------------
 // Section: Forward declarations
@@ -22,7 +21,6 @@ class Data;
 class State;
 class Cache;
 
-
 // ----------------------------------------------------------------------------
 // Section: Class definition
 // ----------------------------------------------------------------------------
@@ -30,15 +28,11 @@ class Cache;
 /**
  * Defines a predicate on all actors (alters) with respect to a given ego.
  */
-class AlterPredicate
-{
+class AlterPredicate {
 public:
-	AlterPredicate();
-
-	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+	virtual ~AlterPredicate() {}
+	virtual void initialize(const Data * pData, State * pState, int period,
+			Cache * pCache);
 	virtual void preprocessEgo(int ego);
 
 	inline int ego() const;
@@ -51,11 +45,13 @@ public:
 	 */
 	virtual bool value(int alter) = 0;
 
+protected:
+	AlterPredicate();
+
 private:
 	int lego;
 	int lperiod;
 };
-
 
 // ----------------------------------------------------------------------------
 // Section: Inline methods
@@ -64,17 +60,14 @@ private:
 /**
  * Returns the current ego.
  */
-int AlterPredicate::ego() const
-{
+int AlterPredicate::ego() const {
 	return this->lego;
 }
-
 
 /**
  * Returns the period of interest.
  */
-int AlterPredicate::period() const
-{
+int AlterPredicate::period() const {
 	return this->lperiod;
 }
 

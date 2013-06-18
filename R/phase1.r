@@ -1,7 +1,7 @@
 ##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+## * Web: http://www.stats.ox.ac.uk/~snijders/siena
 ## *
 ## * File: phase1.r
 ## *
@@ -140,6 +140,26 @@ phase1.2 <- function(z, x, ...)
 	{
 		return(z)
 	}
+	# for dolby option: regress deviations fra on scores ssc
+	z$regrCoef <- rep(0, z$pp)
+	z$regrCor <- rep(0, z$pp)
+	if (!is.null(z$ssc))
+	{
+		scores <- apply(z$ssc, c(1,3), mean)
+		for (i in 1:z$pp)
+		{
+			if (var(scores[,i]) > 0)
+			{
+				z$regrCoef[i] <- cov(z$sf[,i], scores[,i])/var(scores[,i])
+				z$regrCor[i] <- cor(z$sf[,i], scores[,i])
+			}
+		}
+		Report('Correlations between scores and statistics:\n', cf)
+		PrtOutMat(format(as.matrix(t(z$regrCor)), digits = 2, nsmall = 2), cf)
+		Report('Regression coefficients:\n', cf)
+		PrtOutMat(format(as.matrix(t(z$regrCoef)), digits = 2, nsmall = 2), cf)
+	}
+
     z$timePhase1 <- (proc.time()['elapsed'] - z$ctime) / (z$nit - 1)
     if (x$checktime  && !is.na(z$timePhase1))
     {
@@ -151,7 +171,7 @@ phase1.2 <- function(z, x, ...)
     Report('after phase 1:\n', cf)
     PrtOutMat(format(as.matrix(z$mnfra), width = 15, nsmall = 6), cf)
     z <- CalculateDerivative(z, x)
-	##browser()
+	## browser()
     if (!z$OK || z$DerivativeProblem) ##longer phase 1 or use finite differences
     {
         return(z)
@@ -165,6 +185,7 @@ phase1.2 <- function(z, x, ...)
         z$mnfra[z$fixed] <- 0.0
         z$sf[ , z$fixed] <- 0
     }
+	# Manage derivative matrix
     if (any(diag(z$dfra) < 1e-8))
     {
         sml <- (1 : z$pp)[diag(z$dfra) < 1e-8]
@@ -172,6 +193,7 @@ phase1.2 <- function(z, x, ...)
         Report(c('Diagonal elements(s)', sml,
                  'of derivative matrix amended in phase 1.'), cf, fill=80)
     }
+	# Invert derivative matrix and define step fchange that will not be made.
     if (inherits(try(dinv <- solve(z$dfra)), "try-error"))
     {
         Report('Error message for inversion of dfra: \n', cf)
@@ -195,11 +217,24 @@ phase1.2 <- function(z, x, ...)
         fchange <- as.vector(dinv %*% z$mnfra)
         z$dinv <- dinv
     }
+	if (!x$diagg) 
+	{
+		# Partial diagonalization of derivative matrix
+		# for use if 0 < x$diagonalize < 1.
+		temp <- (1-x$diagonalize)*z$dfra + x$diagonalize*diag(diag(z$dfra))
+		temp[z$fixed, ] <- 0.0
+		temp[, z$fixed] <- 0.0
+		diag(temp)[z$fixed] <- 1.0
+		# Invert this matrix
+		z$dinvv <- solve(temp)
+	}
     Report('dfra :\n', cf)
     ##  browser()
     PrtOutMat(z$dfra, cf)
     Report('inverse of dfra :\n', cf)
     PrtOutMat(dinv, cf)
+    Report('dinvv :\n', cf)
+    PrtOutMat(z$dinvv, cf)
     Report('Full Quasi-Newton-Raphson step after phase 1:\n', cf)
     Report(c(paste(1:z$pp, '. ', format(-fchange, width = 12, digits = 6,
                                         nsmall = 6), sep = '', collapse = '\n'),

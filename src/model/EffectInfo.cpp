@@ -29,8 +29,8 @@ namespace siena
  * @param[in] interactionName2 the name of the other interacting variable or
  * covariate, if the effect has two such interactions. We should make sure
  * that the order of these interaction variables is the same both in R and C++.
- * @param[in] rateType distinguishes between structural rate effects and
- * covariate rate effects
+ * @param[in] rateType distinguishes between structural rate effects,
+ * covariate rate effects, and diffusion rate effects.
  */
 EffectInfo::EffectInfo(string variableName,
 	string effectName,

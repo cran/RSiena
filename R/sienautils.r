@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: sienautils.r
 # *
@@ -298,9 +298,9 @@ varDyadCovar<- function(val, nodeSets=c("Actors","Actors"), sparse=is.list(val),
     attr(out, "vardims") <- vardims
     out
 }
-##@sienaNet Create
-sienaNet<- function(netarray, type=c("oneMode","bipartite","behavior"),
-                    nodeSet="Actors", sparse=is.list(netarray))
+##@sienaDependent Create
+sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
+                    nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
 {
 	if (!sparse)
     {
@@ -431,19 +431,24 @@ sienaNet<- function(netarray, type=c("oneMode","bipartite","behavior"),
         }
     }
     obj <- netarray
-    class(obj) <- ("sienaNet")
+    class(obj) <- ("sienaDependent")
     attr(obj, "type") <- type
     attr(obj, "sparse") <- sparse
     attr(obj, "nodeSet") <- nodeSet
     attr(obj, "netdims") <- netdims
+	attr(obj, "allowOnly") <- allowOnly
     obj
 }
-##@validateSienaNet Miscellaneous not used yet
-validateSienaNet <- function(net)
+
+##@sienaNet Create
+sienaNet <- sienaDependent
+
+##@validateSienaDependent Miscellaneous not used yet
+validateSienaDependent <- function(net)
 {
-    if (!inherits(net,"sienaNet"))
+    if (!inherits(net,"sienaDependent"))
 	{
-        stop ("Not a siena Net")
+        stop ("Not a sienaDependent object")
 	}
     if (!attr(net, "type") %in% c("oneMode", "bipartite", "behavior"))
 	{

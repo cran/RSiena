@@ -37,8 +37,8 @@ dummy. Alternatively, use \code{\link{includeTimeDummy}}.
 	included. Defaults to the first in the effects object.
 }
   \item{type}{Character string indicating the
-  type of the effect to be changed : currently "rate", "eval" or
-  "endow". Default "eval".
+  type of the effect to be changed : currently "rate", "eval",
+  "endow", or "creation". Default "eval".
 }
   \item{interaction1}{
   Name of siena object where needed to completely identify the
@@ -72,11 +72,14 @@ will be set to the parameter value requested. The
 }
 
 \examples{
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-mynet2 <- sienaNet(s50a, type="behavior")
-mydata <- sienaDataCreate(mynet1, mynet2)
+mynet <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mybeh <- sienaDependent(s50a, type="behavior")
+mydata <- sienaDataCreate(mynet, mybeh)
 myeff <- getEffects(mydata)
-myeff <- setEffect(myeff, outInv, 3) ##parameter
+myeff <- setEffect(myeff, Rate, initialValue=1.5, name="mybeh",
+                   type="rate", period=2)
+myeff <- setEffect(myeff, outInv, 3) ## parameter
+myeff
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

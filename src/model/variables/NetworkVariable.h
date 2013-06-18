@@ -170,6 +170,8 @@ private:
 
 	double lsymmetricProbability;
 
+	vector<int> * lsetting;
+
 	// whether this is a one mode network or not
 
 	bool loneMode;

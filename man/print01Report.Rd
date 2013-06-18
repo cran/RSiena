@@ -39,8 +39,7 @@ getDocumentation=FALSE)
 }
 
 \examples{
-mymodel <- sienaModelCreate(findiff=TRUE, fn=simstats0c)
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 \dontrun{print01Report(mydata, myeff)}

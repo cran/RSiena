@@ -49,6 +49,7 @@ public:
 	void missing(int i, int j, bool flag);
 	DyadicCovariateValueIterator rowValues(int i) const;
 	DyadicCovariateValueIterator columnValues(int j) const;
+	const map <int, double> & rRowValues(int i) const;
 
 private:
 	// A row based representation of non-zero values of the covariate.

@@ -1,19 +1,24 @@
 useDynLib(RSiena)
 export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
-siena01Gui, siena07, sienaCompositionChange, bayes, updateTheta,
+siena01Gui, siena07, sienaCompositionChange, updateTheta,
 sienaCompositionChangeFromFile, sienaDataCreate, sienaDataCreateFromSession,
-sienaGroupCreate,  sienaModelCreate, sienaNet, sienaNodeSet, xtable.sienaFit,
+sienaGroupCreate, sienaModelCreate, sienaAlgorithmCreate, sienaNet, 
+       sienaDependent, sienaNodeSet, xtable.sienaFit,
        varCovar, varDyadCovar, setEffect, includeEffects, includeInteraction,
        effectsDocumentation, sienaDataConstraint, print.xtable.sienaFit,
-       installGui, siena08, iwlsm, sienaTimeTest, includeTimeDummy, xtable)
+       installGui, siena08, iwlsm, sienaTimeTest, includeTimeDummy, 
+       sienaGOF, sparseMatrixExtraction, networkExtraction, behaviorExtraction,
+       OutdegreeDistribution, IndegreeDistribution, BehaviorDistribution,
+       siena.table, xtable)
 
 import(Matrix)
 
 S3method(print, siena)
 S3method(print, sienaGroup)
+S3method(print, sienaDependent)
 S3method(print, sienaFit)
 S3method(print, summary.sienaFit)
-S3method(print, sienaModel)
+S3method(print, sienaAlgorithm)
 S3method(summary, sienaFit)
 S3method(print, sienaMeta)
 S3method(print, summary.sienaMeta)
@@ -39,4 +44,7 @@ S3method(print, sienaEffects)
 S3method(summary, sienaEffects)
 S3method(print, summary.sienaEffects)
 S3method(edit, sienaEffects)
+S3method(summary, sienaGOF)
+S3method(print, sienaGOF)
+S3method(plot, sienaGOF)
 S3method(print, chains.data.frame)

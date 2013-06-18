@@ -9,6 +9,8 @@
  * 'network' library.
  *****************************************************************************/
 
+#include <vector>
+
 #ifndef NETWORKUTILS_H_
 #define NETWORKUTILS_H_
 
@@ -47,6 +49,7 @@ void subtractNetwork(Network * pNetwork,
 void replaceNetwork(Network * pNetwork,
 	const Network * pValueNetwork, const Network * pDecisionNetwork);
 
+std::vector<int> * primarySetting(const Network * pNetwork, int ego);
 }
 
 #endif /*NETWORKUTILS_H_*/

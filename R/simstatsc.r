@@ -58,15 +58,19 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
         }
         ## cat(randomseed2, '\n')
     }
-	if (R.version$minor < 14.0) ##fake this to repeat old results
-		##	if (TRUE)
-	{
-		useStreams <- TRUE
-	}
-	else
-	{
-		useStreams <- FALSE
-	}
+	## The possibility to use snow now has been dropped
+	## because RSiena requires R >= 2.15.0
+	## and snow is superseded.
+	## Therefore useStreams was dropped.
+	#if (getRversion() < "2.14.0") ##fake this to repeat old results
+	#	##	if (TRUE)
+	#{
+	#	useStreams <- TRUE
+	#}
+	#else
+	#{
+	useStreams <- FALSE
+	#}
     ## z$int2 is the number of processors if iterating by period, so 1 means
     ## we are not. Now have removed option to parallelize by period
 	ans <- .Call('model', PACKAGE=pkgname, z$Deriv, f$pData, seeds,

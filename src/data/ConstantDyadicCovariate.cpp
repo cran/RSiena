@@ -139,4 +139,12 @@ DyadicCovariateValueIterator ConstantDyadicCovariate::columnValues(int j)
 		this->lpColumnMissings[j]);
 }
 
+/**
+ * Returns a map containing over non-zero non-missing values of the given row.
+ */
+const map <int, double> & ConstantDyadicCovariate::rRowValues(int i)
+	const
+{
+	return this->lpRowValues[i];
+}
 }

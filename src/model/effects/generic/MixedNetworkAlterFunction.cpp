@@ -6,7 +6,7 @@
  * File: MixedNetworkAlterFunction.cpp
  *
  * Description: This file contains the implementation of the class
- * NetworkAlterFunction.
+ * MixedNetworkAlterFunction.
  *****************************************************************************/
 #include <R_ext/Print.h>
 #include "MixedNetworkAlterFunction.h"
@@ -23,7 +23,7 @@ MixedNetworkAlterFunction::MixedNetworkAlterFunction(string firstNetworkName,
 	this->lname1 = firstNetworkName;
 	this->lname2 = secondNetworkName;
 	this->lpFirstNetwork = 0;
-	this->lpFirstNetwork = 0;
+	this->lpSecondNetwork = 0;
 	this->lpTwoNetworkCache = 0;
 }
 

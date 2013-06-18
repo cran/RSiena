@@ -3,117 +3,132 @@
 \title{Functions to assess and account for time heterogeneity of parameters}
 \description{
  Takes a \code{sienaFit} object from a \code{\link{siena07}} estimation
- and tests the addition of dummy parameters at waves \code{m=2...(M-1)}
- through the score type test of Schweinberger (2007b).
- Tests for joint significance,
- parameter-wise significance, individual significance, and one step
- estimation of the unrestricted model parameters are returned in a list.
-
- After assessing time heterogeneity, effects objects can be modified via
- the \code{timeDummy} column. Simply type the periods which you would
- like to have time dummied separated by commas into this column. Using
- the \code{timeDummy} column within the effects object, you may specify
- which time dummy interacted parameters are to be estimated.
-
- If you wish to use this function with sienaFit objects which use the finite
- differences method of derivative estimation, or which use maximum
- likelihood estimation, you must request the derivatives to be returned
- by wave using the \code{byWave=TRUE} option to \code{\link{siena07}}.
+ and tests for time heterogeneity by the addition of interactions with
+ time dummy variables at waves \code{m=2...(M-1)}.
+ The test used is the score-type test of Schweinberger (2012).
+ Tests for joint significance, parameter-wise significance,
+ period-wise significance, individual significance, and one-step
+ estimates of the unrestricted model parameters are returned in a list.
  }
-
- \usage{
-sienaTimeTest(sienaFit, effects=NULL, condition=FALSE)
+\usage{
+sienaTimeTest(sienaFit, effects=NULL, excludedEffects=NULL, condition=FALSE)
 }
 \arguments{
   \item{sienaFit}{ A \code{sienaFit} object returned by \code{siena07}. }
   \item{effects}{Optional vector of effect numbers to test. Use the
-	number on the print of the sienaFit object.}
-  \item{condition}{ Whether to orthogonalize individual score tests
-  against base effects and un-estimated dummy terms or just base effects.}
+  number on the print of the sienaFit object.}
+  \item{excludedEffects}{Optional vector of effect numbers
+  for which time heterogeneity is not to be tested. Use the
+  number on the print of the sienaFit object.}
+  \item{condition}{ Whether to orthogonalize effect-wise score-type tests
+  and individual significance tests against estimated effects
+  and un-estimated dummy terms, or just against estimated effects.}
 }
 \details{
-  This test follows the score type test of Schweinburger (2007b) as
- implemented by Lospinoso et. al. (2010) by using statistics already
- calculated at each wave to populate vectors of partitioned moment
- functions corresponding to a restricted model (the model that has been
- fit by \code{sienaFit} Object) and an unrestricted model (which contains
- dummies for \code{m=2...(M-1)}). A covariance matrix of these statistics
- is calculated, and a delta matrix is constructed through the score
- functions' outer products with these statistics. Through an
- orthogonalization and a Delta method of approximation, the
- variance-covariance structure of the dummy statistics is calculated,
- and appropriate statistical tests can be used.
+  This test follows the score type test of Schweinberger (2012) as
+ elaborated by Lospinoso et al. (2011) by using statistics already
+ calculated at each wave to obtain vectors of partitioned moment
+ functions corresponding to a restricted model (the model in the
+ \code{sienaFit} object; used as null hypothesis) and an
+ unrestricted model (which contains dummies for waves
+ \code{m=2...(M-1)}; used as alternative hypothesis).
 
- If it is determined that a time heterogeneity occurs for any number of
- time periods or effects (or any combination therein), the
- \code{timeDummy} column provides facilities within a \code{sienaFit} object to
- quickly adjust the model and re-estimate in the usual way.
- The \code{includeTimeDummy} function can be used to add the desired
- dummies entries to the effects object.
+ \code{condition=TRUE} leads to a rough-and-easy approximation to
+ controlling the mentioned tests also for the unestimated effects.
+
+ After assessing time heterogeneity, effects objects can be modified by
+ adding numbers of all or some periods to the \code{timeDummy} column.
+ This is facilitated by the \code{\link{includeTimeDummy}} function.
+ For an effects object in which the \code{timeDummy} column
+ of some of the included effects includes some or all period numbers,
+ interactions of those effects  with time dummies for the indicated
+ periods will also be estimated.
+
+ An alternative to the use of \code{\link{includeTimeDummy}}
+ is to define time-dependent actor covariates (dummy variables or other
+ functions of wave number that are the same for all actors),
+ include these in the data set through \code{\link{sienaAlgorithmCreate}},
+ and include interactions of other effects with ego effects of these
+ time-dependent actor covariates by \code{\link{includeInteraction}}.
+ Using \code{\link{includeTimeDummy}} is easier;
+ using self-defined interactions with time-dependent variables
+ gives more control.
+
+ If you wish to use this function with \code{sienaFit} objects that use the
+ finite differences method of derivative estimation, or which use maximum
+ likelihood estimation, you must request the derivatives to be returned
+ by wave using the \code{byWave=TRUE} option for \code{\link{siena07}}.
+
+ Effects leading to dummy interactions that are collinear with the
+ model originally fitted, after excluding the effects mentioned,
+ will be automatically excluded from the time heterogeneity testing.
 }
 \value{
   \code{sienaTimeTest} Returns a list containing many items,
-  including the following:
-  \item{JointTest }{A \code{chi^2} test for joint significance of the dummies.}
-  \item{ParameterTest }{ A \code{chi^2} test for joint significance
-    across dummies for each separate effect.}
-  \item{IndividualTest }{ A matrix displaying initial estimates, one
-	step estimates, and a p-value for \code{H0:} the unrestricted
-	parameters are equal to zero.}
+    including the following:
+  \item{JointTest }{A chi-squared test for joint significance of the dummies.}
+  \item{EffectTest }{A chi-squared test for joint significance
+      across dummies for each separate effect.}
+  \item{GroupTest }{A chi-squared test for joint significance
+      across dummies; if \code{sienaFit} is a fit for a multi-group object
+      then these refer to each group; else they refer to ecah period.}
+  \item{IndividualTest }{A matrix displaying initial estimates, one-step
+    estimates, and \eqn{p}-values for the individual interactions.}
 }
 
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
   for general information on RSiena.
 
-Lospinoso, J.A., Schweinberger, M., Snijders, T.A.B, and Ripley,
-R.M. "Assessing and Accounting for Time Heterogeneity in Stochastic
-Actor Oriented Models". Advances in Data Analysis and Computation.
-Special Issue on Social Networks. Submitted. Available from
-\url{http://www.stats.ox.ac.uk/~lospinos/}.
+J.A. Lospinoso, M. Schweinberger, T.A.B. Snijders, and R.M. Ripley
+(2011). Assessing and Accounting for Time Heterogeneity in Stochastic
+Actor Oriented Models. \emph{Advances in Data Analysis and Computation},
+5:147-176.
 
-M. Schweinberger and T.A.B. Snijders. Markov models for digraph panel
-data: Monte carlo-based derivative estimation. Comput. Stat. Data Anal.,
-51(9):4465-4483, 2007.  ISSN 0167-9473.
+M. Schweinberger (2012). Statistical modeling of network panel data:
+Goodness-of-fit.
+\emph{British Journal of Statistical and Mathematical Psychology}, 65:263-281.}
 
-M. Schweinberger. Chapter 4: Statistical Modeling of Network Panel Data:
-Goodness of Fit. PhD thesis, University of Groningen, 2007.
-}
-\author{Josh Lospinoso}
+\author{Josh Lospinoso, Tom Snijders}
 \seealso{\code{\link{siena07}}, \code{\link{plot.sienaTimeTest}},
   \code{\link{includeTimeDummy}}}
 \examples{
+\dontrun{
 ## Estimate a restricted model
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
+mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip, balance)
-ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 
-## Conduct the score type test to assess whether heterogeneity is present.
+## Conduct the score-type test to assess whether heterogeneity is present.
 tt <- sienaTimeTest(ans)
+summary(tt)
 
 ## Suppose that we wish to include two time dummies.
 ## Add them in the following way:
 myeff <- includeTimeDummy(myeff, recip, balance, timeDummy="2")
-ans2 <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+ans2 <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 
 ## Re-assess the time heterogeneity
 tt2 <- sienaTimeTest(ans2)
 
 ## And so on..
+}
 
 ## A demonstration of the plotting facilities, on a larger dataset:
+## (Of course pasting these identical sets of three waves after each other
+##  in a sequence of six is not really meaningful.)
 \dontrun{
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=4, n3=500)
-mynet1 <- sienaNet(array(c(s501, s502, s503, s501, s503, s502), dim=c(50, 50, 6)))
+myalgorithm <- sienaAlgorithmCreate(nsub=4, n3=1000)
+mynet1 <- sienaDependent(array(c(s501, s502, s503, s501, s503, s502), dim=c(50, 50, 6)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip, balance)
 myeff <- includeTimeDummy(myeff, recip, timeDummy="2,3,5")
 myeff <- includeTimeDummy(myeff, balance, timeDummy="4")
 myeff <- includeTimeDummy(myeff, density, timeDummy="all")
-ansp <- siena07(mymodel, data=mydata, effects=myeff, batch=FALSE)
+ansp <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 ttp <- sienaTimeTest(ansp)
 
 ## Pairwise plots show
@@ -126,15 +141,15 @@ plot(ttp, effects=1:4, dims=c(2,2))
 ## interactions are not implemented in general, just for
 ## Rate x cCovar.
 \dontrun{
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
-mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+myalgorithm <- sienaAlgorithmCreate(nsub=4, n3=1000)
+mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 myccov <- coCovar(s50a[,1])
 mydata <- sienaDataCreate(mynet1, myccov)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip, balance)
 myeff <- includeTimeDummy(myeff, RateX, type="rate",
-			interaction1="myccov")
-ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+            interaction1="myccov")
+ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 }
 }
 \keyword{models}

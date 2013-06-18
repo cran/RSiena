@@ -46,17 +46,21 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
 		{
 			stop("cannot use forking processes on Windows")
 		}
-		if (R.version$minor < 14.0) ## fake this to recreate old results
-	##	if (TRUE)
-		{
-			require(snow, warn.conflicts=FALSE)
-			require(rlecuyer)
-			clusterType <- "SOCK"
-		}
-		else
-		{
-			require(parallel)
-		}
+		# The possibility to use snow now has been dropped
+		# because RSiena requires R >= 2.15.0
+		# and snow is superseded.
+		# if (getRversion() < "2.14.0")
+		## fake this to recreate old results
+		## if (TRUE)
+		#{
+		#	require(snow, warn.conflicts=FALSE)
+		#	require(rlecuyer)
+		#	clusterType <- "SOCK"
+		#}
+		#else
+		#{
+		require(parallel)
+		#}
         if (clusterIter)
         {
             x$firstg <- x$firstg * sqrt(nbrNodes)
@@ -286,7 +290,7 @@ AnnouncePhase <- function(z, x, subphase=NULL)
    }
     if (z$Phase==2)
     {
-        propo <- z$n1pos + z$n2partsum[subphase]
+        propo <- z$n1pos + z$n2partsum[max(subphase,1)]
         if (propo> getProgressBar(z$pb))
             z$pb <-setProgressBar(z$pb,propo)
     }

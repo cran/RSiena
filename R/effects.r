@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: effects.r
 # *
@@ -87,6 +87,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
         }
         tmp
     }
+
     ##@networkRateEffects internal getEffects create a set of rate effects
     networkRateEffects <- function(depvar, varname, symmetric, bipartite)
     {
@@ -350,7 +351,38 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
                        objEffects$type == 'eval', 'include'] <- TRUE
         }
         rateEffects$basicRate[1:observations] <- TRUE
-        list(effects=rbind(rateEffects = rateEffects, objEffects = objEffects),
+		## The following adding of settings effects should perhaps have been
+		## placed earlier; but for the moment it is here.
+		## This uses the results of addSettings
+		## which adds the settings to the sienaDependent object.
+		if (!is.null(attr(depvar,"settings")))
+		{
+		## add settings effects
+			nbrSettings <- ifelse(attr(depvar,"settings") == "", 0,
+									length(attr(depvar,"settings")))
+			dupl <- rateEffects[1:observations, ]
+		## make extra copies
+			newEffects <- dupl[rep(1:nrow(dupl), each = nbrSettings[i] + 2), ]
+			newEffects <- split(newEffects,
+								list(newEffects$group, newEffects$period))
+			newEffects <- lapply(newEffects, function(dd)
+				{
+					dd$setting <- c("universal", "primary",
+							names(attr(depvar,"settings")))
+					i1 <- regexpr("rate", dd$effectName)
+					dd$effectName <-
+						  paste(substr(dd$effectName, 1, i1 - 2),
+								dd$setting, substring(dd$effectName, i1))
+					dd
+				})
+			newEffects <- do.call(rbind, newEffects)
+			## add the extra column also to the other effects
+			rateEffects$setting <- rep("", nrow(rateEffects))
+			objEffects$setting <- rep("", nrow(objEffects))
+			rateEffects <-
+				rbind(newEffects, rateEffects[!rateEffects$basicRate, ])
+		}
+		list(effects=rbind(rateEffects = rateEffects, objEffects = objEffects),
              starts=starts)
     }
 
@@ -848,7 +880,19 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
                                       netType=netType, name=name)
 
                     covObjEffects <- rbind(covObjEffects, newEffects)
-				}
+					if (!attr(xx$depvars[[j]], "symmetric"))
+					{
+						covOneModeRateEffects <-
+							createEffects("covarBehaviorOneModeRate", varname,
+										  yName=names(xx$depvars)[j],
+										  zName=covarname,
+										  groupName=groupName, group=group,
+										  netType=netType, name=name)
+
+						covRateEffects <- rbind(covRateEffects,
+												covOneModeRateEffects)
+					}
+                }
                 if ((types[j] == "bipartite" &&
                      attr(xx$depvars[[j]], 'nodeSet')[2] == nodeSet))
                 {
@@ -1232,7 +1276,14 @@ getNetworkStartingVals <- function(depvar)
             diag(z[ , , x]) <- NA
             diag(z[, , x + 1]) <- NA
             matdiff <- sum(z[, , x + 1] != z[, , x], na.rm=TRUE)
-            matchange <- table(z[, , x + 1], z[, , x])
+#            matchange0 <- table(z[, , x + 1], z[, , x])
+# Changed to protect against zero rows or columns
+            mc00 <- sum((1 - z[ , , x+1])*(1 - z[ , , x]), na.rm=TRUE)
+            mc01 <- sum(z[ , , x+1]*(1 - z[ , , x]), na.rm=TRUE)
+            mc10 <- sum((1 - z[ , , x+1])*z[ , , x], na.rm=TRUE)
+            mc11 <- sum(z[ , , x+1]*z[ , , x], na.rm=TRUE)
+			matchange <- matrix(c(mc00, mc01, mc10, mc11), 2, 2)
+#cat(matchange0,'\n',matchange,'\n')
             matcnt <- nactors * nactors -
                 sum(is.na(z[, , x + 1]) | is.na(z[, , x]))
             tmp <- c(matcnt=matcnt, matdiff=matdiff, matchange=matchange)
@@ -1263,6 +1314,10 @@ getNetworkStartingVals <- function(depvar)
             mydif <- mymat2 - mymat1
             matdiff[i] <- sum(abs(mydif), na.rm=TRUE)
             tmp <- table(mydif@x)
+			dummy <- factor(NA, levels=c(-1,0,1))
+			dummy <- table(dummy)
+			dummy[names(tmp)] <- tmp
+			tmp <- dummy
             tmp00 <- nactors * nactors - length(mydif@x)
             tmp <- c(tmp00, tmp[c(3, 1, 2)])
             matchange[, i] <- tmp
@@ -1341,7 +1396,14 @@ getBipartiteStartingVals <- function(depvar)
             depvar[use] <- depvar[use] - 10  ## remove structural values
         tmp <- sapply(1:noPeriods, function(x, z){
             matdiff <- sum(z[, , x + 1] != z[, , x], na.rm=TRUE)
-            matchange <- table(z[, , x + 1], z[, , x])
+#            matchange0 <- table(z[, , x + 1], z[, , x])
+            # Changed to protect against zero rows or columns
+			mc00 <- sum((1 - z[ , , x+1])*(1 - z[ , , x]), na.rm=TRUE)
+            mc01 <- sum(z[ , , x+1]*(1 - z[ , , x]), na.rm=TRUE)
+            mc10 <- sum((1 - z[ , , x+1])*z[ , , x], na.rm=TRUE)
+            mc11 <- sum(z[ , , x+1]*z[ , , x], na.rm=TRUE)
+			matchange <- matrix(c(mc00, mc01, mc10, mc11), 2, 2)
+#cat(matchange0,'\n',matchange,'\n')
             matcnt <- nsenders * nreceivers -
                 sum(is.na(z[, , x + 1]) | is.na(z[, , x]))
             tmp <- c(matcnt=matcnt, matdiff=matdiff, matchange=matchange)
@@ -1354,7 +1416,7 @@ getBipartiteStartingVals <- function(depvar)
     else
     {
         nsenders <- nrow(depvar[[1]])
-        nreceivers <- ncol(depvar[[2]])
+        nreceivers <- ncol(depvar[[1]]) # CS: Was 2, but why?
         matdiff<- rep(NA, noPeriods)
         matcnt<- rep(NA, noPeriods)
         matchange<- matrix(NA, nrow=4, ncol=noPeriods)
@@ -1384,7 +1446,12 @@ getBipartiteStartingVals <- function(depvar)
                             "matchangeFrom1To0", "matchangeFrom1To1")
     }
     distance <- attr(depvar, "distance" )
-    startRate <- nsenders * (0.2 + 2 * distance)/(tmp['matcnt',] + 1)
+    startRate <- nreceivers * (0.2 + 2 * distance)/(tmp['matcnt',] + 1)
+		# CS: the above used to be 'nsenders' instead of 'nreceivers';
+		#     this was a wrong calculation and led to extremely high
+		#     rate parameters for comparatively small receiver nodesets
+		#     slowing down estimation and prohibiting identification
+		#     of parameters.
     startRate <- pmax(0.1, startRate)
     startRate <- pmin(100, startRate)
     ##degree

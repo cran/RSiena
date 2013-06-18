@@ -82,9 +82,9 @@ class of the object.
 \examples{
 \dontrun{
 ##not enough data here for a sensible example, but shows the idea.
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
-mynet1 <- sienaNet(array(c(s501, s502), dim=c(50, 50, 2)))
-mynet2 <- sienaNet(array(c(s502, s503), dim=c(50, 50, 2)))
+myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
+mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mynet2 <- sienaDependent(array(c(s502, s503), dim=c(50, 50, 2)))
 mydata1 <- sienaDataCreate(mynet1)
 mydata2 <- sienaDataCreate(mynet2)
 myeff1 <- getEffects(mydata1)
@@ -93,8 +93,8 @@ myeff1 <- setEffect(myeff1, transTrip, fix=TRUE, test=TRUE)
 myeff2 <- setEffect(myeff2, transTrip, fix=TRUE, test=TRUE)
 myeff1 <- setEffect(myeff1, cycle3, fix=TRUE, test=TRUE)
 myeff2 <- setEffect(myeff2, cycle3, fix=TRUE, test=TRUE)
-ans1 <- siena07(mymodel, data=mydata1, effects=myeff1, batch=TRUE)
-ans2 <- siena07(mymodel, data=mydata2, effects=myeff2, batch=TRUE)
+ans1 <- siena07(myalgorithm, data=mydata1, effects=myeff1, batch=TRUE)
+ans2 <- siena07(myalgorithm, data=mydata2, effects=myeff2, batch=TRUE)
 meta <- siena08(ans1, ans2)
 metadf <- split(meta$thetadf, meta$thetadf$effects)[[1]]
 metalm <- iwlsm(theta ~ tconv, metadf, ses=se^2)

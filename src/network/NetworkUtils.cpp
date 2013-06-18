@@ -8,7 +8,8 @@
  * Description: This module contains some utilities specific to the
  * 'data' library.
  *****************************************************************************/
-
+#include <vector>
+#include <set>
 #include "NetworkUtils.h"
 #include "IncidentTieIterator.h"
 #include "network/CommonNeighborIterator.h"
@@ -118,5 +119,34 @@ void replaceNetwork(Network * pNetwork,
 		pNetwork->setTieValue(iter.ego(), iter.alter(),
 			pValueNetwork->tieValue(iter.ego(), iter.alter()));
 	}
+}
+
+/**
+ * Create primary setting based on a network
+ */
+std::vector<int> * primarySetting(const Network * pNetwork, int ego)
+{
+	std::vector<int> *setting = new std::vector<int>;
+	std::set<int> neighbors;
+	for (IncidentTieIterator iter = pNetwork->outTies(ego);
+		 iter.valid();
+		 iter.next())
+	{
+		neighbors.insert(iter.actor());
+	}
+	for (IncidentTieIterator iter = pNetwork->inTies(ego);
+		 iter.valid();
+		 iter.next())
+	{
+		neighbors.insert(iter.actor());
+	}
+	neighbors.insert(ego);
+	// when finished (not all done here) copy to the vector
+	for (std::set<int>::const_iterator iter1 = neighbors.begin();
+		 iter1 != neighbors.end(); iter1++)
+	{
+		setting->push_back(*iter1);
+	}
+	return setting;
 }
 }

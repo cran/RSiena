@@ -10,6 +10,7 @@
  *****************************************************************************/
 #include <R_ext/Print.h>
 #include <cmath>
+#include <cstring>
 #include <stdexcept>
 
 #include "BehaviorVariable.h"
@@ -31,8 +32,10 @@
 #include "model/effects/AllEffects.h"
 #include "model/effects/EffectFactory.h"
 #include "model/effects/StructuralRateEffect.h"
+#include "model/effects/DiffusionRateEffect.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/EffectValueTable.h"
+#include "network/IncidentTieIterator.h"
 
 namespace siena
 {
@@ -61,6 +64,23 @@ DependentVariable::DependentVariable(string name,
 	this->lacceptances.resize(NBRTYPES, 0);
 	this->lrejections.resize(NBRTYPES, 0);
 	this->laborts.resize(NBRTYPES, 0);
+
+	NetworkLongitudinalData * pNetworkData =
+		dynamic_cast<NetworkLongitudinalData *>(
+			pSimulation->pData()->pNetworkData(name));
+	if (pNetworkData)
+	{
+	 	this->lnumberSettings = pNetworkData->rSettingNames().size();
+	 	this->lsettingRates = new double[this->lnumberSettings];
+	 	this->lsettingProbs = new double[this->lnumberSettings];
+	 }
+	 else
+	{
+		this->lnumberSettings = 0;
+		this->lsettingRates = 0;
+	 	this->lsettingProbs = 0;
+	}
+	this->lstepType = -1;
 }
 
 
@@ -74,6 +94,20 @@ void DependentVariable::initializeRateFunction()
 	const Data * pData = this->lpSimulation->pData();
 	const Model * pModel = this->lpSimulation->pModel();
 
+	// initialize setting scores
+	if (this->networkVariable())
+	{
+		NetworkLongitudinalData * pNetworkData =
+			dynamic_cast<NetworkLongitudinalData *>(
+				this->pSimulation()->pData()->pNetworkData(this->name()));
+		const std::vector< string > & rSettingNames =
+			pNetworkData->rSettingNames();
+		for (unsigned i = 0 ; i < rSettingNames.size(); i++)
+		{
+			this->lsettingRateScores[rSettingNames[i]] = 0;
+		}
+	}
+
 	const vector<EffectInfo *> & rRateEffects =
 		pModel->rRateEffects(this->name());
 
@@ -83,6 +117,7 @@ void DependentVariable::initializeRateFunction()
 		double parameter = pEffectInfo->parameter();
 		string effectName = pEffectInfo->effectName();
 		string interactionName = pEffectInfo->interactionName1();
+		string interactionName2 = pEffectInfo->interactionName2();
 		string rateType = pEffectInfo->rateType();
 
 		if (rateType == "covariate")
@@ -151,7 +186,7 @@ void DependentVariable::initializeRateFunction()
 						"'.");
 				//}
 		}
-		else
+		else if (rateType == "structural")
 		{
 			// We expect a structural (network-dependent) rate effect here.
 
@@ -246,6 +281,82 @@ void DependentVariable::initializeRateFunction()
 				throw domain_error("Unexpected rate effect " + effectName);
 			}
 		}
+		else if (rateType == "diffusion")
+		{
+			const NetworkVariable * pVariable;
+			const BehaviorVariable * pBehaviorVariable =
+				dynamic_cast<const BehaviorVariable *>(this);
+
+			pVariable = dynamic_cast<const NetworkVariable *>(
+				this->lpSimulation->pVariable(interactionName));
+
+			if (!pVariable)
+			{
+				throw logic_error("The diffusion rate effect " +
+					effectName +
+					" for dependent variable " +
+					this->name() +
+					" refers to a non-existing network variable " +
+					interactionName);
+			}
+			if (interactionName2 == "")
+			{
+				if (effectName == "avExposure" ||
+					effectName == "totExposure" ||
+					effectName == "susceptAvIn" ||
+					effectName == "infectIn" ||
+					effectName == "infectOut")
+				{
+					if (this->lpActorSet != pVariable->pSenders())
+					{
+						throw std::invalid_argument("Mismatch of actor sets");
+					}
+
+					this->ldiffusionRateEffects.push_back(
+						new DiffusionRateEffect(pVariable,
+							pBehaviorVariable,
+							effectName,
+							parameter));
+				}
+				else
+				{
+					throw domain_error("Unexpected rate effect " + effectName);
+				}
+			}
+			else
+			{
+				// Covariate-dependent diffusion rate effects
+
+		   		const ConstantCovariate * pConstantCovariate =
+					this->lpSimulation->pData()->
+					pConstantCovariate(interactionName2);
+				const ChangingCovariate * pChangingCovariate =
+					this->lpSimulation->pData()->
+					pChangingCovariate(interactionName2);
+
+				if (effectName == "susceptAvCovar" ||
+					effectName == "infectCovar")
+				{
+					if (this->lpActorSet != pVariable->pSenders())
+					{
+						throw std::invalid_argument("Mismatch of actor sets");
+					}
+
+					this->ldiffusionRateEffects.push_back(
+						new DiffusionRateEffect(pVariable,
+							pBehaviorVariable,
+							pConstantCovariate,
+							pChangingCovariate,
+							effectName,
+							parameter));
+				}
+				else
+				{
+					throw domain_error("Unexpected rate effect " + effectName);
+				}
+			}
+		}
+
 	}
 	// If there are no rate effects depending on changing covariates,
     // or behavior variables then the covariate based rates can be calculated
@@ -313,9 +424,14 @@ DependentVariable::~DependentVariable()
 	delete this->lpCreationFunction;
 	delete[] this->lrate;
 	delete[] this->lcovariateRates;
+	delete[] this->lsettingRates;
+	delete[] this->lsettingProbs;
 
 	// Delete the structural rate effects.
 	deallocateVector(this->lstructuralRateEffects);
+
+	// Delete the diffusion rate effects.
+	deallocateVector(this->ldiffusionRateEffects);
 
 	// Nullify the fields
 
@@ -370,7 +486,37 @@ int DependentVariable::simulatedDistance() const
 	return this->lsimulatedDistance;
 }
 
+/**
+ * Returns the number of settings for this dependent variable (only networks)
+ */
+int DependentVariable::numberSettings() const
+{
+	return this->lnumberSettings;
+}
 
+/**
+ * Generates a random step type for the settings model. Or -1 if not relevant.
+ * Only ever relevant to networks.
+ */
+void DependentVariable::getStepType()
+{
+	if (this->lnumberSettings == 0)
+	{
+		this->lstepType = -1;
+	}
+	else
+	{
+		this->lstepType = nextIntWithProbabilities(this->lnumberSettings,
+			this->lsettingProbs);
+	}
+}
+/**
+ * Returns the step type for the settings model. -1 if not settings model..
+ */
+int DependentVariable::stepType() const
+{
+	return this->lstepType;
+}
 // ----------------------------------------------------------------------------
 // Section: Initialization
 // ----------------------------------------------------------------------------
@@ -387,7 +533,34 @@ void DependentVariable::initialize(int period)
 	this->lbasicRate =
 		this->lpSimulation->pModel()->basicRateParameter(this->pData(),
 			period);
-
+	if (this->networkVariable())
+	{
+		NetworkLongitudinalData * pNetworkData =
+			dynamic_cast<NetworkLongitudinalData *>(this->pData());
+		const std::vector< string > & rSettingNames =
+			pNetworkData->rSettingNames();
+		if (this->lnumberSettings > 0)
+		{
+			double sum = 0;
+			for (unsigned i = 0;
+				 i < rSettingNames.size();
+				 i++)
+			{
+				this->lsettingRates[i] =
+					this->pSimulation()->pModel()->
+					settingRateParameter(pNetworkData,
+						rSettingNames[i], period);
+				sum += this->lsettingRates[i];
+			}
+			for (unsigned i = 0;
+				 i < rSettingNames.size();
+				 i++)
+			{
+				this->lsettingProbs[i] = this->lsettingRates[i] / sum;
+			}
+			this->lbasicRate = 0;
+		}
+	}
 	if (!this->lchangingCovariateParameters.empty() ||
 		!this->lbehaviorVariableParameters.empty())
 	{
@@ -483,6 +656,7 @@ bool DependentVariable::canMakeChange(int actor) const
 bool DependentVariable::constantRates() const
 {
 	return this->lstructuralRateEffects.empty() &&
+		this->ldiffusionRateEffects.empty() &&
 		this->lbehaviorVariableParameters.empty();
 }
 
@@ -497,10 +671,11 @@ double DependentVariable::calculateRate(int i)
 	// of some effects depending on the structure of certain networks. The
 	// later two components are precomputed for efficiency.
 
-	return this->basicRate() *
+	return (this->basicRate() + this->settingRate()) *
 		this->lcovariateRates[i] *
 		this->behaviorVariableRate(i) *
-		this->structuralRate(i);
+		this->structuralRate(i) *
+		this->diffusionRate(i);
 }
 
 
@@ -625,6 +800,22 @@ double DependentVariable::structuralRate(int i) const
 }
 /**
  * Returns the component of the rate function of actor <i>i</i> depending
+ * on diffusion effects.
+ */
+double DependentVariable::diffusionRate(int i) const
+{
+	double rate = 1;
+	int effectCount = this->ldiffusionRateEffects.size();
+
+	for (int effectIndex = 0; effectIndex < effectCount; effectIndex++)
+	{
+		rate *= this->ldiffusionRateEffects[effectIndex]->value(i,this->lperiod);
+	}
+
+	return rate;
+}
+/**
+ * Returns the component of the rate function of actor <i>i</i> depending
  * on behavior variables.
  */
 double DependentVariable::behaviorVariableRate(int i) const
@@ -649,6 +840,20 @@ double DependentVariable::behaviorVariableRate(int i) const
 }
 
 
+/**
+ * Returns the component of the basic rate function for settings
+ * (network variables only).
+ */
+double DependentVariable::settingRate() const
+{
+	double settingRate = 0;
+	for (int i = 1; i < this->lnumberSettings; i++)
+	{
+		settingRate += this->lsettingRates[i];
+	}
+	return settingRate;
+}
+
 // ----------------------------------------------------------------------------
 // Section: Scores
 // ----------------------------------------------------------------------------
@@ -668,7 +873,8 @@ void DependentVariable::accumulateRateScores(double tau,
 {
 	// Update the score for the basic rate parameter
 
-	if (this == pSelectedVariable)
+
+	if (this == pSelectedVariable && this->lstepType == -1)
 	{
 		this->lbasicRateScore += 1.0 / this->basicRate();
 		if (this->symmetric() &&
@@ -684,6 +890,23 @@ void DependentVariable::accumulateRateScores(double tau,
 	{
 		throw logic_error("model type b");
 		this->lbasicRateScore -= this->totalRate() * tau / this->basicRate();
+	}
+
+	// Update scores for setting rates
+	NetworkLongitudinalData * pNetworkData =
+		dynamic_cast<NetworkLongitudinalData *>(this->pData());
+	const std::vector< string > & rSettingNames  =
+		pNetworkData->rSettingNames();
+
+	for (int i = 0; i < this->lnumberSettings; i++)
+	{
+		if (this == pSelectedVariable && this->lstepType == i)
+		{
+			this->lsettingRateScores[rSettingNames[i]] +=
+				1.0 / this->lsettingRates[i];
+		}
+		this->lsettingRateScores[rSettingNames[i]] -= this->totalRate() * tau /
+			this->lsettingRates[i];
 	}
 
 	// Update scores for covariate dependent rate parameters
@@ -794,6 +1017,93 @@ void DependentVariable::accumulateRateScores(double tau,
 
 		iter->second -= this->linverseOutDegreeSumTerm[iter->first] * tau;
 	}
+
+	// Update scores for diffusion rate parameters
+
+	const vector<EffectInfo *> & rRateEffects =
+		this->pSimulation()->pModel()->rRateEffects(this->name());
+
+	for (unsigned i = 0; i < rRateEffects.size(); i++ )
+	{
+		EffectInfo * pInfo = rRateEffects[i];
+		string rateType = pInfo->rateType();
+		string effectName = pInfo->effectName();
+		string interactionName = pInfo->interactionName1();
+		string interactionName2 = pInfo->interactionName2();
+		const BehaviorVariable * pBehaviorVariable =
+			dynamic_cast<const BehaviorVariable *>(this);
+
+		if (rateType == "diffusion")
+		{
+			const NetworkVariable * pVariable;
+			pVariable = dynamic_cast<const NetworkVariable *>(
+				this->lpSimulation->pVariable(interactionName));
+
+			if (!pVariable)
+			{
+				throw logic_error("The diffusion rate effect " +
+					effectName +
+					" for dependent variable " +
+					this->name() +
+					" refers to a non-existing network variable " +
+					interactionName);
+			}
+
+			const Network * pNetwork = pVariable->pNetwork();
+			if (this == pSelectedVariable)
+			{
+				if (interactionName2 == "")
+				{
+					if (effectName == "avExposure" ||
+						effectName == "totExposure" ||
+						effectName == "susceptAvIn" ||
+						effectName == "infectIn" ||
+						effectName == "infectOut")
+					{
+						this->ldiffusionscores[pInfo] +=
+							calculateDiffusionRateEffect(pBehaviorVariable,
+								pNetwork, selectedActor, effectName);
+					}
+					else
+					{
+						throw domain_error("Unexpected rate effect "
+							+ effectName);
+					}
+				}
+				else
+				{
+					//Covariate dependent diffusion rate effects
+
+					const ConstantCovariate * pConstantCovariate =
+						this->lpSimulation->pData()->
+						pConstantCovariate(interactionName2);
+					const ChangingCovariate * pChangingCovariate =
+						this->lpSimulation->pData()->
+						pChangingCovariate(interactionName2);
+
+					if (effectName == "susceptAvCovar" ||
+						effectName == "infectCovar")
+					{
+						this->ldiffusionscores[pInfo] +=
+							calculateDiffusionRateEffect(pBehaviorVariable,
+								pNetwork, selectedActor, effectName,
+								pConstantCovariate,
+								pChangingCovariate);
+					}
+					else
+					{
+						throw domain_error("Unexpected rate effect " +
+							effectName);
+					}
+				}
+			}
+			this->ldiffusionscores[pInfo] -= tau *
+				this->ldiffusionsumterms[pInfo];
+			this->pSimulation()->score(pInfo, this->ldiffusionscores[pInfo]);
+
+		}
+	}
+
 }
 
 /**
@@ -1079,6 +1389,72 @@ void DependentVariable::calculateScoreSumTerms()
 			(this->ltotalRate * timesRate - timesRateSquared);
 
 	}
+
+	// Update scores for diffusion rate parameters.
+
+	const vector<EffectInfo *> & rRateEffects =
+		this->pSimulation()->pModel()->rRateEffects(this->name());
+
+	for (unsigned i = 0; i < rRateEffects.size(); i++ )
+	{
+		EffectInfo * pInfo = rRateEffects[i];
+		string rateType = pInfo->rateType();
+		string effectName = pInfo->effectName();
+		string interactionName = pInfo->interactionName1();
+		string interactionName2 = pInfo->interactionName2();
+
+		const BehaviorVariable * pBehaviorVariable =
+			dynamic_cast<const BehaviorVariable *>(this);
+
+		if (rateType == "diffusion")
+		{
+			const NetworkVariable * pVariable;
+			pVariable = dynamic_cast<const NetworkVariable *>(
+				this->lpSimulation->pVariable(interactionName));
+
+			if (!pVariable)
+			{
+				throw logic_error("The diffusion rate effect " +
+					effectName +
+					" for dependent variable " +
+					this->name() +
+					" refers to a non-existing network variable " +
+					interactionName);
+			}
+			const Network * pNetwork = pVariable->pNetwork();
+			double timesRate = 0;
+			if (interactionName2 == "")
+			{
+				for (int i = 0; i < this->n(); i++)
+				{
+					timesRate += calculateDiffusionRateEffect(
+						pBehaviorVariable, pNetwork, i, effectName) *
+						this->lrate[i];
+				}
+			}
+			else
+			{
+				//Covariate dependent diffusion rate effects
+
+		   		const ConstantCovariate * pConstantCovariate =
+					this->lpSimulation->pData()->
+					pConstantCovariate(interactionName2);
+				const ChangingCovariate * pChangingCovariate =
+					this->lpSimulation->pData()->
+					pChangingCovariate(interactionName2);
+
+				for (int i = 0; i < this->n(); i++)
+				{
+					timesRate += calculateDiffusionRateEffect(
+						pBehaviorVariable, pNetwork, i, effectName,
+						pConstantCovariate,
+						pChangingCovariate) *
+						this->lrate[i];
+				}
+			}
+			this->ldiffusionsumterms[pInfo] = timesRate;
+		}
+	}
 }
 
 /**
@@ -1117,6 +1493,18 @@ double DependentVariable::basicRateDerivative() const
 {
 	return this->lbasicRateDerivative;
 }
+double DependentVariable::settingRateScore(string setting) const
+{
+
+	map<string, double>::const_iterator iter =
+		this->lsettingRateScores.find(setting);
+	if (iter == this->lsettingRateScores.end())
+	{
+		throw invalid_argument("Unknown setting.");
+	}
+	return iter->second;
+}
+
 
 double DependentVariable::constantCovariateScore(
 	const ConstantCovariate * pCovariate) const
@@ -1239,6 +1627,109 @@ double DependentVariable::inverseOutDegreeScore(
 	return iter->second;
 }
 
+/**
+ * Calculates the value of the diffusion rate effect for the given actor.
+ */
+double DependentVariable::calculateDiffusionRateEffect(
+	const BehaviorVariable * pBehaviorVariable,
+	const Network * pNetwork,
+	int i, string effectName)
+{
+	double response = 1;
+	double totalAlterValue = 0;
+	if (pNetwork->outDegree(i) > 0)
+	{
+		if (effectName == "avExposure")
+		{
+			response /= double(pNetwork->outDegree(i));
+		}
+		else if (effectName == "susceptAvIn")
+		{
+			response = double(pNetwork->inDegree(i)) /
+				double(pNetwork->outDegree(i));
+		}
+		for (IncidentTieIterator iter = pNetwork->outTies(i);
+			 iter.valid();
+			 iter.next())
+		{
+			double alterValue = pBehaviorVariable->
+				value(iter.actor());
+
+			if (effectName == "infectIn")
+			{
+				alterValue *= pNetwork->inDegree(i);
+			}
+			else if (effectName == "infectOut")
+			{
+				alterValue *= pNetwork->outDegree(i);
+			}
+
+			totalAlterValue += alterValue;
+		}
+		totalAlterValue *= response;
+	}
+	return totalAlterValue;
+}
+
+/**
+ * Calculates the value of the covariate dependent diffusion rate effect for
+ * the given actor.
+ */
+double DependentVariable::calculateDiffusionRateEffect(
+	const BehaviorVariable * pBehaviorVariable,
+	const Network * pNetwork,
+	int i, string effectName, const ConstantCovariate * pConstantCovariate,
+	const ChangingCovariate * pChangingCovariate)
+{
+	double response = 1;
+	double totalAlterValue = 0;
+	if (pNetwork->outDegree(i) > 0)
+	{
+		if (effectName == "susceptAvCovar")
+		{
+			if (pConstantCovariate)
+			{
+				response = pConstantCovariate->value(i);
+			}
+			else if (pChangingCovariate)
+			{
+				response = pChangingCovariate->value(i, this->lperiod);
+			}
+			else
+			{
+				throw logic_error("No individual covariate found.");
+			}
+			response /= double(pNetwork->outDegree(i));
+		}
+		for (IncidentTieIterator iter = pNetwork->outTies(i);
+			 iter.valid();
+			 iter.next())
+		{
+			double alterValue = pBehaviorVariable->
+				value(iter.actor());
+
+			if (effectName == "infectCovar")
+			{
+				if (pConstantCovariate)
+				{
+					alterValue *= pConstantCovariate->value(iter.actor());
+				}
+				else if (pChangingCovariate)
+				{
+					alterValue *= pChangingCovariate->value(iter.actor(),
+						this->lperiod);
+				}
+				else
+				{
+					throw logic_error("No individual covariate found.");
+				}
+			}
+			totalAlterValue += alterValue;
+		}
+		totalAlterValue *= response;
+	}
+	return totalAlterValue;
+}
 
 // ----------------------------------------------------------------------------
 // Section: Composition change
@@ -1392,6 +1883,26 @@ void DependentVariable::updateEffectParameters()
 			iter++;
 		}
 	}
+
+	vector < DiffusionRateEffect * >::iterator iter2 =
+		this->ldiffusionRateEffects.begin();
+
+	for (unsigned i = 0; i < rRateEffects.size(); i++)
+	{
+		EffectInfo * pEffectInfo = rRateEffects[i];
+		string interactionName = pEffectInfo->interactionName1();
+		string rateType = pEffectInfo->rateType();
+
+		if (rateType == "diffusion")
+		{
+			DiffusionRateEffect *pEffect = *iter2;
+			pEffect->parameter(pEffectInfo->parameter());
+			iter2++;
+		}
+	}
+
+
+
 }
 // ----------------------------------------------------------------------------
 // Section: Properties

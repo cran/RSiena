@@ -10,30 +10,32 @@ varDyadCovar(val, nodeSets=c("Actors", "Actors"),
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{val}{Array of covariate values, Third dimension is the
-	time. Alternatively, a list of sparse matrices of type "dgTMatrix"}
-  \item{nodeSets}{Names (character string) of the associated node sets}
+  \item{val}{Array of covariate values, third dimension is the
+    time. Alternatively, a list of sparse matrices of type "dgTMatrix".}
+  \item{nodeSets}{Names (character string) of the associated node sets.
+   If the entire data set contains more than one node set,
+   then the node sets must be specified in all data objects.}
   \item{sparse}{Boolean: whether sparse matrices or not.}
-  \item{type}{OneMode or Bipartite: whether the matrix refers to a one Mode
-  or a bipartite network.}
+  \item{type}{oneMode or bipartite: whether the matrix refers to a one-mode
+  or a bipartite (two-mode) network.}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be
   associated with the node sets named NodeSets
-  of the Siena data object.  The names of the associated node sets will only
+  of the Siena data object. The names of the associated node sets will only
   be checked when the Siena data object is created.
 }
 \value{
   Returns the covariate as an object of class 'varDyadCovar', in which
-  form it can be used as an argument to SienaData.create.
+  form it can be used as an argument to \code{SienaDataCreate}.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{\code{\link{sienaDataCreate}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{coDyadCovar}},
+\code{\link{coCovar}}, \code{\link{varCovar}}}
 \examples{
 
-mydyadvar <- varDyadCovar(array(c(
-s501, s502), dim=c(50, 50, 2)))
+mydyadvar <- varDyadCovar(array(c(s501, s502), dim=c(50, 50, 2)))
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

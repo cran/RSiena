@@ -21,7 +21,7 @@ namespace siena
  * associated with
  */
 OutDegreeFunction::OutDegreeFunction(string networkName) :
-	OneModeNetworkAlterFunction(networkName)
+	NetworkAlterFunction(networkName)
 {
 }
 

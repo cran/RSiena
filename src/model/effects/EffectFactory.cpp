@@ -29,15 +29,25 @@
 #include "model/effects/generic/OutDegreeFunction.h"
 #include "model/effects/generic/EgoOutDegreeFunction.h"
 #include "model/effects/generic/BetweennessFunction.h"
+#include "model/effects/generic/GwespFunction.h"
 #include "model/effects/generic/InStarFunction.h"
+#include "model/effects/generic/OutStarFunction.h"
 #include "model/effects/generic/ReciprocatedTwoPathFunction.h"
 #include "model/effects/generic/TwoPathFunction.h"
+#include "model/effects/generic/ReverseTwoPathFunction.h"
 #include "model/effects/generic/MixedTwoPathFunction.h"
 #include "model/effects/generic/ConditionalFunction.h"
 #include "model/effects/generic/EqualCovariatePredicate.h"
 #include "model/effects/generic/MissingCovariatePredicate.h"
 #include "model/effects/generic/CovariateDistance2AlterNetworkFunction.h"
 #include "model/effects/generic/CovariateDistance2SimilarityNetworkFunction.h"
+#include "model/effects/generic/CovariateMixedNetworkAlterFunction.h"
+#include "model/effects/generic/SameCovariateTwoPathFunction.h"
+#include "model/effects/generic/SameCovariateMixedTwoPathFunction.h"
+
+
+#include "model/tables/EgocentricConfigurationTable.h"
+#include "model/tables/NetworkCache.h"
 
 namespace siena
 {
@@ -131,6 +141,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "transMedTrip")
 	{
 		pEffect = new TransitiveMediatedTripletsEffect(pEffectInfo);
+	}
+	else if (effectName == "transRecTrip")
+	{
+		pEffect = new TransitiveReciprocatedTripletsEffect(pEffectInfo);
 	}
 	else if (effectName == "cycle3")
 	{
@@ -230,7 +244,19 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "WWX")
 	{
-		pEffect = new WWXClosureEffect(pEffectInfo);
+		pEffect = new WWXClosureEffect(pEffectInfo, true, true);
+	}
+	else if (effectName == "cyWWX")
+	{
+		pEffect = new WWXClosureEffect(pEffectInfo, false, false);
+	}
+	else if (effectName == "InWWX")
+	{
+		pEffect = new WWXClosureEffect(pEffectInfo, false, true);
+	}
+	else if (effectName == "OutWWX")
+	{
+		pEffect = new WWXClosureEffect(pEffectInfo, true, false);
 	}
 	else if (effectName == "WXX")
 	{
@@ -260,6 +286,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new CovariateSimilarityEffect(pEffectInfo, true);
 	}
+	else if (effectName == "simXTransTrip")
+	{
+		pEffect = new SimilarityTransitiveTripletsEffect(pEffectInfo, false);
+	}
 	else if (effectName == "sameX")
 	{
 		pEffect = new SameCovariateEffect(pEffectInfo, false);
@@ -271,6 +301,14 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "sameXRecip")
 	{
 		pEffect = new SameCovariateEffect(pEffectInfo, true);
+	}
+	else if (effectName == "sameXTransTrip")
+	{
+		pEffect = new SameCovariateTransitiveTripletsEffect(pEffectInfo, false);
+	}
+	else if (effectName == "jumpXTransTrip")
+	{
+		pEffect = new JumpCovariateTransitiveTripletsEffect(pEffectInfo, false);
 	}
 	else if (effectName == "egoXaltX")
 	{
@@ -287,6 +325,58 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "cycle4")
 	{
 		pEffect = new FourCyclesEffect(pEffectInfo);
+	}
+	else if (effectName == "gwespFF")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pTwoPathTable;
+		GwespFunction * pFunction =
+			new GwespFunction(pEffectInfo->variableName(),
+				mytable, pEffectInfo->internalEffectParameter());
+
+ 		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pFunction);
+	}
+	else if (effectName == "gwespFB")
+ 	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pInStarTable;
+		GwespFunction * pFunction =
+			new GwespFunction(pEffectInfo->variableName(),
+				mytable, pEffectInfo->internalEffectParameter());
+
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pFunction);
+	}
+	else if (effectName == "gwespBF")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pOutStarTable;
+		GwespFunction * pFunction =
+			new GwespFunction(pEffectInfo->variableName(),
+				mytable, pEffectInfo->internalEffectParameter());
+ 		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pFunction);
+	}
+	else if (effectName == "gwespBB")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pReverseTwoPathTable;
+		GwespFunction * pFunction =
+			new GwespFunction(pEffectInfo->variableName(),
+				mytable, pEffectInfo->internalEffectParameter());
+ 		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pFunction);
+	}
+	else if (effectName == "gwespRR")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pRRTable;
+		GwespFunction * pFunction =
+			new GwespFunction(pEffectInfo->variableName(),
+				mytable, pEffectInfo->internalEffectParameter());
+ 		pEffect = new GenericNetworkEffect(pEffectInfo,
+			pFunction);
 	}
 	else if (effectName == "inStructEq")
 	{
@@ -450,11 +540,59 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 					new EqualCovariatePredicate(covariateName),
 					new InStarFunction(networkName),
 					0)));
+	}				
+	else if (effectName == "jumpWWClosure")
+	{
+		string networkName = pEffectInfo->interactionName1();
+		string covariateName = pEffectInfo->interactionName2();
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ConditionalFunction(new EqualCovariatePredicate(covariateName),
+				0,
+				new SameCovariateTwoPathFunction(networkName, 
+										covariateName, false)),
+			new ConditionalFunction(
+				new MissingCovariatePredicate(covariateName),
+				0,
+				new ConditionalFunction(
+					new EqualCovariatePredicate(covariateName),
+					0,
+					new SameCovariateTwoPathFunction(networkName, 
+										covariateName, true))));
+	}
+	else if (effectName == "jumpWXClosure")
+	{
+		string networkName = pEffectInfo->interactionName1();
+		string covariateName = pEffectInfo->interactionName2();
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ConditionalFunction(new EqualCovariatePredicate(covariateName),
+				0,
+				new SameCovariateMixedTwoPathFunction(
+								pEffectInfo->variableName(),
+								networkName, covariateName, false)),
+			new ConditionalFunction(
+				new MissingCovariatePredicate(covariateName),
+				0,
+				new ConditionalFunction(
+					new EqualCovariatePredicate(covariateName),
+					0,
+					new SameCovariateMixedTwoPathFunction(
+							pEffectInfo->variableName(), 
+							networkName, covariateName, true))));
 	}
 	else if (effectName == "closure")
 	{
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			new TwoPathFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "cyClosure")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new ReverseTwoPathFunction(pEffectInfo->interactionName1()));
+	}
+	else if (effectName == "sharedIn")
+	{
+		pEffect = new GenericNetworkEffect(pEffectInfo,
+			new OutStarFunction(pEffectInfo->interactionName1()));
 	}
 	else if (effectName == "linear")
 	{
@@ -483,6 +621,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "isolate")
 	{
 		pEffect = new IsolateEffect(pEffectInfo);
+	}
+	else if (effectName == "isolateNet")
+	{
+		pEffect = new IsolateNetEffect(pEffectInfo);
+	}
+	else if (effectName == "isolatePop")
+	{
+		pEffect = new IsolatePopEffect(pEffectInfo);
+	}
+	else if (effectName == "inIsDegree")
+	{
+		pEffect = new InIsolateDegreeEffect(pEffectInfo);
 	}
 	else if (effectName == "avSimRecip")
 	{

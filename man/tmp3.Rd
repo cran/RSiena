@@ -9,7 +9,14 @@ Third timepoint of van de Bunt's freshman dataset.
  Adjacency matrix for the network at time point 3.
 }
 \source{
-  vrnd32t3.dat from Stocnet
+  vrnd32t3.dat from
+  \url{http://www.stats.ox.ac.uk/~snijders/siena/vdBunt_data.zip}
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{
+  Van de Bunt, G.G., M.A.J. van Duijn, and T.A.B. Snijders (1999).
+  Friendship networks through time: An actor-oriented statistical network model.
+  \emph{Computational and Mathematical Organization Theory}, 5, 167-192. \cr
+  Also see \url{http://www.stats.ox.ac.uk/~snijders/siena/vdBunt_data.htm}.
+}
+\seealso{\code{\link{tmp4}}}
 \keyword{datasets}

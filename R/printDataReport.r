@@ -1,6 +1,6 @@
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: printDatareport.r
 # *
@@ -154,6 +154,18 @@ DataReport <- function(z, x, f)
             {
                 mdnet <- names(x$MaxDegree)[i]
                 Report(c("Dependent network variable", mdnet, ':\n'), outf)
+				maxod <- max(
+					attr(f$Data1$depvars[[match(mdnet, attr(f, "netnames"))]],
+					"maxObsOutDegree"))
+                if (maxod > x$MaxDegree[i])
+					{
+						Report(c("The algorithm object requires outdegrees not",
+						"larger than", x$MaxDegree[i], '\n',
+						"but the maximum observed outdegree is", maxod,
+						".\n"), outf)
+						Report("This is incompatible.\n", outf)
+		stop("Incompatibility between data and MaxDegree in algorithm object.")
+					}
                 if (attr(f, 'symmetric')[match(mdnet, attr(f, "netnames"))])
                 {
                     Report(c("All graphs are constrained to having degrees not",

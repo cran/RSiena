@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: sienaeffects.r
 # *
@@ -12,7 +12,6 @@ includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
                            type="eval", interaction1="", interaction2="",
                            character=FALSE)
 {
-
     if (character)
     {
         dots <- sapply(list(...), function(x)x)
@@ -23,7 +22,7 @@ includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
     }
     if (length(dots) == 0)
     {
-        stop("need some effect short names")
+        stop("This function needs some effect short names.")
     }
     if (!character)
     {
@@ -39,8 +38,19 @@ includeEffects <- function(myeff, ..., include=TRUE, name=myeff$name[1],
     myeff$interaction1 == interaction1 &
     myeff$interaction2 == interaction2
     myeff[use, "include"] <- include
-    print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
-                       "interaction2", "include")])
+	if (sum(use) <= 0)
+	{
+		cat(paste("There is no effect with short name "))
+		cat(paste(effectNames,", \n", sep=""))
+		cat(paste("and with interaction1 = <",interaction1,">", sep=""))
+		cat(paste(" and interaction2 = <",interaction2,">,\n", sep=""))
+		cat(paste("for dependent variable",name,".\n"))
+	}
+	else
+	{
+		print.data.frame(myeff[use, c("name", "shortName", "type",
+			"interaction1", "interaction2", "include")])
+	}
     myeff
 }
 ##@includeInteraction DataCreate
@@ -112,7 +122,6 @@ includeInteraction <- function(myeff, ...,
     }
     effect2 <- myeff[use, "effectNumber"]
     ## find the third underlying effect, if any
-
     if (length(shortNames) > 2)
     {
         shortName <- shortNames[3]

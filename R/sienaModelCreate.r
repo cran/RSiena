@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: sienaModelCreate.r
 # *
@@ -20,13 +20,14 @@ ModelTypeStrings <- c("Standard actor-oriented model",
 sienaModelCreate <-
     function(fn,
              projname="Siena", MaxDegree=0, useStdInits=FALSE,
-             n3=1000, nsub=4, maxlike=FALSE, diag=!maxlike,
+             n3=1000, nsub=4, dolby=TRUE,
+             maxlike=FALSE, diagonalize=1.0*!maxlike,
              condvarno=0, condname='',
              firstg=0.2, cond=NA, findiff=FALSE,  seed=NULL,
              pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
              prirms=0.05, prdrms=0.05, maximumPermutationLength=40,
              minimumPermutationLength=2, initialPermutationLength=20,
-             modelType=1, mult=5)
+             modelType=1, mult=5, simOnly=FALSE)
 {
     model <- NULL
     model$projname <- projname
@@ -35,8 +36,9 @@ sienaModelCreate <-
     model$n3 <- n3
     model$firstg <- firstg
     model$maxrat <- 1.0
-    model$maxmaxrat <- 10.0
+#    model$maxmaxrat <- 10.0
     model$maxlike <-  maxlike
+	model$simOnly <- simOnly
     model$FRANname <- deparse(substitute(fn))
     if (maxlike)
     {
@@ -79,7 +81,11 @@ sienaModelCreate <-
     }
     model$FinDiff.method <-  findiff
     model$nsub <- nsub
-    model$diag <- diag
+	model$dolby <- (dolby && (!maxlike))
+	if (diagonalize < 0) {diagonalize <- 0}
+	if (diagonalize > 1) {diagonalize <- 1}
+    model$diagg <- (diagonalize >= 0.9999)
+	model$diagonalize <- diagonalize
     model$modelType <- modelType
     model$MaxDegree <- MaxDegree
     model$randomSeed <- seed
@@ -94,8 +100,12 @@ sienaModelCreate <-
     model$minimumPermutationLength <- minimumPermutationLength
     model$initialPermutationLength <- initialPermutationLength
     model$mult <- mult
-    class(model) <- "sienaModel"
+    class(model) <- "sienaAlgorithm"
     model
 }
 
 model.create <- sienaModelCreate
+
+
+##@sienaAlgorithmCreate AlgoritmCreate
+sienaAlgorithmCreate <- sienaModelCreate 

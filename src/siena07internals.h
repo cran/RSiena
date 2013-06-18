@@ -38,7 +38,8 @@ using namespace siena;
 void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 	int * parmCol, int * int1Col, int * int2Col, int * initValCol,
 	int * typeCol, int * groupCol, int * periodCol, int * pointerCol,
-	int * rateTypeCol, int * intptr1Col, int * intptr2Col, int * intptr3Col);
+	int * rateTypeCol, int * intptr1Col, int * intptr2Col, int * intptr3Col,
+	int * settingCol);
 
 /**
  *  updates the parameter values for each of the effects.
@@ -184,7 +185,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 	int parmCol, int int1Col, int int2Col,
 	int initValCol, int typeCol, int groupCol,
 	int periodCol, int rateTypeCol,
-	int netTypeCol);
+	int netTypeCol, int settingCol);
 
 /**
  *  Creates all the interaction effects for one network

@@ -24,43 +24,43 @@ terminateFRAN(z, x)
 }
 \arguments{
   \item{z}{Control object, passed in automatically in  \code{\link{siena07}}.}
-  \item{x}{Model object, passed in automatically in  \code{\link{siena07}}.}
+  \item{x}{A sienaAlgorithm object, passed in automatically in  \code{\link{siena07}}.}
   \item{data}{A sienaData object as returned by \code{\link{sienaDataCreate}}.}
   \item{effects}{A sienaEffects object as
-	returned by \code{\link{getEffects}}.}
+    returned by \code{\link{getEffects}}.}
   \item{fromFiniteDiff}{Boolean used during calculation of derivatives
-	by finite differences. Not for user use.}
+    by finite differences. Not for user use.}
   \item{returnDeps}{Boolean. Whether to return the simulated networks in
-	Phase 3.}
+    Phase 3.}
   \item{returnChains}{Boolean. Whether to return the chains.}
   \item{byWave}{Boolean. Whether to return the finite difference or
-	maximum likelihood
-	derivatives by wave (uses a great deal of memory). Only necessary
-	for \code{\link{sienaTimeTest}}}
+    maximum likelihood
+    derivatives by wave (uses a great deal of memory). Only necessary
+    for \code{\link{sienaTimeTest}}}
   \item{byGroup}{Boolean. For internal use: allows different thetas for each
-	group to be used in \code{\link{bayes}}.}
+    group to be used in \code{sienaBayes}.}
   \item{returnDataFrame}{Boolean. Whether to return the chains as
-	lists or data frames.}
+    lists or data frames.}
   \item{returnLoglik}{Boolean. Whether to return the log likelihood of
-	the simulated chain.}
+    the simulated chain.}
    \item{onlyLoglik}{Boolean: whether to return just the likelihood for
-	the simulated chain, plus details of steps accepted and rejected. }
+    the simulated chain, plus details of steps accepted and rejected. }
   \item{prevAns}{An object of class "sienaFit" as returned by
    \code{\link{siena07}}, from which scaling
-	information (derivative matrix and standard deviation of the
-	deviations) will be extracted along with the latest version of the
-	parameters which will be used as the initial values, unless the
-	model requests the use of standard initial values. If the previous
-	model is exactly the same as the current one, Phase 1 will be omitted. If
-	not, any parameter estimates for effects which are included in
-	the new model will be used as initial
-	values, but phase 1 will still be carried out.
-	If the results used as \code{prevAns} are a reasonable starting point,
-	this will increase the efficiency of the algorithm. }
+    information (derivative matrix and standard deviation of the
+    deviations) will be extracted along with the latest version of the
+    parameters which will be used as the initial values, unless the
+    model requests the use of standard initial values. If the previous
+    model is exactly the same as the current one, Phase 1 will be omitted. If
+    not, any parameter estimates for effects which are included in
+    the new model will be used as initial
+    values, but phase 1 will still be carried out.
+    If the results used as \code{prevAns} are a reasonable starting point,
+    this will increase the efficiency of the algorithm. }
   \item{initC}{If TRUE, call is to setup the data and model in C++. For
-	use with multiple processes only.}
+    use with multiple processes only.}
  \item{profileData}{Boolean to force dumping of the data for profiling
-	with \command{sienaProfile.exe}.}
+    with \command{sienaProfile.exe}.}
 }
 \details{
   The name of \code{simstats0c} or \code{maxlikec}
@@ -68,8 +68,7 @@ terminateFRAN(z, x)
   estimation by forward simulation, the latter for maximum likelihood estimation.
   The arguments with no defaults must be passed in on the call to
   \code{\link{siena07}}.
-  \code{initializeFRAN} and \code{terminateFRAN} are called in both
-cases. \code{initializeFRAN} is also called in \code{\link{bayes}}
+  \code{initializeFRAN} and \code{terminateFRAN} are called in both cases.
 }
 \value{\code{simstats0c} returns a list containing:
   \item{fra}{Simulated statistics.}
@@ -80,11 +79,11 @@ cases. \code{initializeFRAN} is also called in \code{\link{bayes}}
   \item{feasible}{Currently set to TRUE.}
   \item{OK}{Could be set to FALSE if serious error has occurred.}
   \item{sims}{A list of simulation results, one for each period. Each
-	list consists of a list for each data object, each of which consists of
-	a list for each network, each of which consists of a list for each period,
-	each component of which is an edgelist in matrix form (the columns
-	are from, to, value) (or vector for behavior variables).
-	Only if \code{returnDeps} is TRUE.}
+    list consists of a list for each data object, each of which consists of
+    a list for each network, each of which consists of a list for each period,
+    each component of which is an edgelist in matrix form (the columns
+    are from, to, value) (or vector for behavior variables).
+    Only if \code{returnDeps} is TRUE.}
   \code{maxlikec} returns a list containing:
   \item{fra}{Simulated scores.}
    \item{dff}{Simulated Hessians: stored as lower triangular matrices}
@@ -94,22 +93,23 @@ cases. \code{initializeFRAN} is also called in \code{\link{bayes}}
   \item{dff}{Simulated Hessian}
   \item{sims}{NULL, for compatibility only}
   \item{chain}{A list of sampled chains, one for each period. Each
-	list consists of a list for each data object, each of which consists of
-	a list for each network, each of which consists of a list for each period,
-	each component of which is a list or a data frame depending on the
-	value of \code{returnDataFrame}.
-	Only if \code{returnChainss} is TRUE.}
- \item{accepts}{Number of accepted MH steps by dependent variable
-	(permute steps are counted under first dependent variable)}
+    list consists of a list for each data object, each of which consists of
+    a list for each network, each of which consists of a list for each period,
+    each component of which is a list or a data frame depending on the
+    value of \code{returnDataFrame}.
+    Only if \code{returnChainss} is TRUE.}
+  \item{accepts}{Number of accepted MH steps by dependent variable
+    (permute steps are counted under first dependent variable)}
   \item{rejects}{Number of rejected MH steps by dependent variable
  	(permute steps are counted under first dependent variable)}
   \item{aborts}{Number of aborted MH steps counted under first dependent
-	variable.}
-	\item{loglik}{Loglikelihood of the simulations. Only if
-	\code{returnLoglik} is TRUE. If \code{onlyLoglik} is TRUE, only
-	\code{loglik}, \code{accepts},\code{rejects} and \code{aborts} are returned.}
-	\code{initializeFRAN} and \code{terminateFRAN} return the control
-object \code{z}.
+    variable.}
+    \item{loglik}{Loglikelihood of the simulations. Only if
+    \code{returnLoglik} is TRUE. If \code{onlyLoglik} is TRUE, only
+    \code{loglik}, \code{accepts},\code{rejects} and \code{aborts} are
+	returned.}
+  \code{initializeFRAN} and \code{terminateFRAN} return the control
+    object \code{z}.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }
@@ -120,7 +120,7 @@ mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
-mymodel <- sienaModelCreate(nsub=2, n3=100)
-ans <- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE)
+myalgorithm <- sienaAlgorithmCreate(fn=simstats0c, nsub=2, n3=100)
+ans <- siena07(myalgorithm, data=mydata, effects=myeff,  batch=TRUE)
 }
 \keyword{models}

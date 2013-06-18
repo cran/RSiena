@@ -34,8 +34,7 @@ class NetworkChange;
 class PermittedChangeFilter
 {
 public:
-	PermittedChangeFilter(const NetworkVariable * pVariable);
-
+	virtual ~PermittedChangeFilter(){}
 	/**
 	 * Forbids tie changes between the given ego and some alters
 	 * by setting the permitted flag to false for these alters.
@@ -49,6 +48,7 @@ public:
 	virtual bool validMiniStep(const NetworkChange * pMiniStep) = 0;
 
 protected:
+	PermittedChangeFilter(const NetworkVariable * pVariable);
 	inline const NetworkVariable * pVariable() const;
 
 private:

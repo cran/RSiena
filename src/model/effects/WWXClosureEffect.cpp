@@ -21,11 +21,16 @@ namespace siena
 
 /**
  * Constructor.
+ * @param[in] pEffectInfo the effect descriptor
+ * @param[in] out1 and out2 indicate directionality of W ties
  */
-WWXClosureEffect::WWXClosureEffect(const EffectInfo * pEffectInfo) :
+WWXClosureEffect::WWXClosureEffect(const EffectInfo * pEffectInfo,
+       bool out1, bool out2) :
 	DyadicCovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->lsums = 0;
+	this->lout1 = out1;
+	this->lout2 = out2;
 }
 
 
@@ -75,7 +80,7 @@ void WWXClosureEffect::preprocessEgo(int ego)
 
 /**
  * For each j and the given i, this method calculates the sum
- * sum_h w_{ih} w_{hj}.
+ * sum_h w_{ih} w_{hj}, or other directionalities depending on out1 and out2.
  */
 void WWXClosureEffect::calculateSums(int i,
 	const Network * pNetwork,
@@ -90,24 +95,79 @@ void WWXClosureEffect::calculateSums(int i,
 		sums[j] = 0;
 	}
 
-	// Iterate over all h with non-zero non-missing w_{ih}
 
-	for (DyadicCovariateValueIterator iterH = this->rowValues(i);
-		iterH.valid();
-		iterH.next())
+	if (this->lout1)
+	// Iterate over all h with non-zero non-missing w_{ih}
 	{
-		int h = iterH.actor();
+		for (DyadicCovariateValueIterator iterH = this->rowValues(i);
+			iterH.valid();
+			iterH.next())
+		{
+			int h = iterH.actor();
+	
+			if (this->lout2)
+			{
 
 		// Iterate over all j with non-zero non-missing w_{hj}
-
-		for (DyadicCovariateValueIterator iterJ = this->rowValues(h);
-			iterJ.valid();
-			iterJ.next())
+				for (DyadicCovariateValueIterator iterJ = this->rowValues(h);
+					iterJ.valid();
+					iterJ.next())
+				{
+					int j = iterJ.actor();
+	
+					// Add the term w_{ih} w_{hj}
+					sums[j] += iterH.value() * iterJ.value();
+				}
+			}
+			else
+			{
+		// Iterate over all j with non-zero non-missing w_{jh}
+				for (DyadicCovariateValueIterator iterJ = this->columnValues(h);
+					iterJ.valid();
+					iterJ.next())
+				{
+					int j = iterJ.actor();
+	
+					// Add the term w_{ih} w_{jh}
+					sums[j] += iterH.value() * iterJ.value();
+				}
+			}
+		}
+	}
+	else
+	// Iterate over all h with non-zero non-missing w_{hi}
+	{
+		for (DyadicCovariateValueIterator iterH = this->columnValues(i);
+			iterH.valid();
+			iterH.next())
 		{
-			int j = iterJ.actor();
-
-			// Add the term w_{ih} w_{hj}
-			sums[j] += iterH.value() * iterJ.value();
+			int h = iterH.actor();
+			if (this->lout2)
+			{
+		// Iterate over all j with non-zero non-missing w_{hj}
+				for (DyadicCovariateValueIterator iterJ = this->rowValues(h);
+					iterJ.valid();
+					iterJ.next())
+				{
+					int j = iterJ.actor();
+	
+					// Add the term w_{hi} w_{hj}
+					sums[j] += iterH.value() * iterJ.value();
+				}
+			}
+			else
+			{
+		// Iterate over all j with non-zero non-missing w_{jh}
+				for (DyadicCovariateValueIterator iterJ = this->columnValues(h);
+					iterJ.valid();
+					iterJ.next())
+				{
+					int j = iterJ.actor();
+	
+					// Add the term w_{hi} w_{jh}
+					sums[j] += iterH.value() * iterJ.value();
+				}
+			}
 		}
 	}
 }

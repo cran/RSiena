@@ -9,16 +9,14 @@ Function to change the values of the constraints between networks.
 }
 \usage{
 sienaDataConstraint(x, net1, net2,
-type = c("higher", "disjoint", "atLeastOne"), value = FALSE)
+          type = c("higher", "disjoint", "atLeastOne"), value = FALSE)
 }
 \arguments{
-  \item{x}{Siena Data Object Maybe a group object?}
+  \item{x}{Siena Data Object; maybe a group object?}
   \item{net1}{name of first network}
   \item{net2}{name of second network}
-  \item{type}{one of "higher", "disjoint", "atleastOne". Default is "higher".
-}
-  \item{value}{Boolean giving the value
-}
+  \item{type}{one of "higher", "disjoint", "atleastOne". Default is "higher".}
+  \item{value}{Boolean giving the value.}
 }
 \details{
   The value of the appropriate attribute is set to the value requested.
@@ -31,9 +29,21 @@ type = c("higher", "disjoint", "atLeastOne"), value = FALSE)
 \seealso{\code{\link{sienaDataCreate}}}
 
 \examples{
-mynet1 <- sienaNet(array(c(s501,s502,s503),dim=c(50,50,3)))
-mynet2 <- sienaNet(s50a,type='behavior')
-mydata <- sienaDataCreate(mynet1, mynet2)
-mydata <- sienaDataConstraint(mydata, mynet2, mynet1, "higher", FALSE)
+nowFriends <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+ever <- array(c(s501, s502, s503), dim=c(50, 50, 3))
+ever[,,2] <- pmax(ever[,,1], ever[,,2])
+ever[,,3] <- pmax(ever[,,2], ever[,,3])
+everFriends <- sienaDependent(ever)
+# Note: this data set serves to illustrate this function,
+# but it is not an appropriate data set for estimation by siena07,
+# because everFriends (for the three waves together) depends deterministically
+# on nowFriends (for the three waves together).
+nowOrEver <- sienaDataCreate(nowFriends, everFriends)
+attr(nowOrEver, "higher")
+nowOrEver
+nowOrEver.unconstrained <-
+   sienaDataConstraint(nowOrEver, everFriends, nowFriends, "higher", FALSE)
+nowOrEver.unconstrained
+attr(nowOrEver.unconstrained, "higher")
 }
 \keyword{ classes }

@@ -435,4 +435,19 @@ bool NetworkLongitudinalData::oneModeNetwork() const
 {
 	return this->loneMode;
 }
+/**
+ *Stores a setting name for this network.
+ */
+void NetworkLongitudinalData::addSettingName(string name)
+{
+	this->lsettingNames.push_back(name);
+}
+
+/**
+ * Returns the collection of settings names for this network.
+ */
+const std::vector<string> & NetworkLongitudinalData::rSettingNames() const
+{
+	return this->lsettingNames;
+}
 }

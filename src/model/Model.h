@@ -35,6 +35,7 @@ namespace siena
 
 class Data;
 class LongitudinalData;
+class NetworkLongitudinalData;
 class Effect;
 class StructuralRateEffect;
 class Function;
@@ -63,6 +64,17 @@ public:
 		double value);
 	double basicRateParameter(LongitudinalData * pDependentVariableData,
 		int period) const;
+
+	// Setting rate effects
+
+	void settingRateParameter(NetworkLongitudinalData * pNetworkData,
+		string setting,
+		int period,
+		double value);
+	double settingRateParameter(NetworkLongitudinalData * pNetworkData,
+		string setting,
+		int period) const;
+	const int numberOfSettings(NetworkLongitudinalData * pNetworkData) const;
 
 	// Other effects
 
@@ -187,6 +199,12 @@ private:
 	// the basic rate parameters for all periods
 
 	map<const LongitudinalData *, double *> lbasicRateParameters;
+
+	// An array of doubles for some network longitudinal data objects storing
+	// the basic rate parameters for all periods by setting.
+
+	map<const NetworkLongitudinalData *, map<string, double *> >
+		lsettingRateParameters;
 
 	// A vector of effects other than the basic rate effects.
 	vector<EffectInfo *> leffects;

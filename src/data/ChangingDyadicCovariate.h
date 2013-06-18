@@ -52,6 +52,7 @@ public:
 		bool excludeMissings) const;
 	DyadicCovariateValueIterator columnValues(int j, int observation,
 		bool excludeMissings) const;
+	const map <int, double> & rRowValues(int i, int observation) const;
 
 private:
 	// A row based representation of non-zero values of the covariate.

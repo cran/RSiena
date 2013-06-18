@@ -41,6 +41,7 @@ class NetworkLongitudinalData;
 class Network;
 class EffectInfo;
 class StructuralRateEffect;
+class DiffusionRateEffect;
 class MiniStep;
 
 
@@ -110,6 +111,7 @@ public:
 		const DependentVariable * pSelectedVariable,
 		int selectedActor, int alter);
 	double basicRateScore() const;
+	double settingRateScore(string setting) const;
 	double constantCovariateScore(const ConstantCovariate * pCovariate) const;
 	double changingCovariateScore(const ChangingCovariate * pCovariate) const;
 	double behaviorVariableScore(const BehaviorVariable * pBehavior) const;
@@ -117,6 +119,21 @@ public:
 	double inDegreeScore(const NetworkVariable * pNetwork) const;
 	double reciprocalDegreeScore(const NetworkVariable * pNetwork) const;
 	double inverseOutDegreeScore(const NetworkVariable * pNetwork) const;
+
+	// Diffusion effects
+
+	map<const EffectInfo *, double> ldiffusionscores;
+	map<const EffectInfo *, double> ldiffusionsumterms;
+	double calculateDiffusionRateEffect(
+		const BehaviorVariable * pBehaviorVariable,
+		const Network * pNetwork,
+		int i, string effectName);
+	double calculateDiffusionRateEffect(
+		const BehaviorVariable * pBehaviorVariable,
+		const Network * pNetwork,
+		int i, string effectName,
+		const ConstantCovariate * pConstantCovariate,
+		const ChangingCovariate * pChangingCovariate);
 
 	// Maximum likelihood related
 
@@ -130,7 +147,6 @@ public:
 		bool checkUpOnlyDownOnlyConditions = true) const;
 
 	void updateEffectParameters();
-	void updateEffectInfoParameters();
 
 	/**
 	 * Returns if the observed value for the option of the given ministep
@@ -164,6 +180,10 @@ protected:
 	void simulatedDistance(int distance);
 	void invalidateRates();
 	void successfulChange(bool success);
+	int numberSettings() const;
+	int stepType() const;
+	void getStepType();
+	double settingRate() const;
 
 private:
 	void initializeFunction(Function * pFunction,
@@ -172,6 +192,7 @@ private:
 	bool constantRates() const;
 	double calculateRate(int i);
 	double structuralRate(int i) const;
+	double diffusionRate(int i) const;
 	double behaviorVariableRate(int i) const;
 	void updateCovariateRates();
 	void calculateScoreSumTerms();
@@ -194,6 +215,22 @@ private:
 	// The basic rate parameter for the current period
 	double lbasicRate;
 
+	// The setting rate parameters for the current period. Order matches the
+	// data object. Only for network variables.
+	double * lsettingRates;
+
+	// The scaled setting rate parameters for the current period.
+	// Order matches the data object. Only for network variables.
+	double * lsettingProbs;
+
+	// The number of settings for this variable.
+	// Only non zero for network variables.
+	int lnumberSettings;
+
+	// The type of step in the setting context. -1 if using basic rate or
+	// universal setting;
+	int lstepType;
+
 	// The covariate-based component of the rate function per each actor
 	double * lcovariateRates;
 
@@ -211,6 +248,10 @@ private:
 	// reciprocal degree, and inverse out-degree effects.
 
 	vector<StructuralRateEffect *> lstructuralRateEffects;
+
+	// The diffusion rate effects.
+
+	vector<DiffusionRateEffect *> ldiffusionRateEffects;
 
 	// The evaluation function for this variable
 	Function * lpEvaluationFunction;
@@ -232,6 +273,10 @@ private:
 	// The derivative for the basic rate parameter for this variable for
 	// this period
 	double lbasicRateDerivative;
+
+	// The scores for the setting basic rate parameters for this variable
+	// for this period. Only for network variables.
+	map<string, double> lsettingRateScores;
 
 	// Scores for rate effects depending on constant covariates
 	map<const ConstantCovariate *, double> lconstantCovariateScores;

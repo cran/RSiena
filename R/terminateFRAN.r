@@ -5,8 +5,11 @@ terminateFRAN <- function(z, x)
         z$rate<- colMeans(z$ntim, na.rm=TRUE)
         z$vrate <- apply(z$ntim, 2, sd, na.rm=TRUE)
         z$theta[z$posj] <- z$theta[z$posj] * z$rate
-        z$covtheta[z$posj, ] <- z$covtheta[z$posj, ] * z$rate
-        z$covtheta[, z$posj] <- z$covtheta[,z$posj ] * z$rate
+		if (!x$simOnly)
+		{
+			z$covtheta[z$posj, ] <- z$covtheta[z$posj, ] * z$rate
+			z$covtheta[, z$posj] <- z$covtheta[,z$posj ] * z$rate
+		}	
     }
     f <- FRANstore()
     f$pModel <- NULL

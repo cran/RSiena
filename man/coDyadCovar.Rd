@@ -9,12 +9,13 @@ coDyadCovar(val, nodeSets=c("Actors", "Actors"),
     sparse=is(val,"dgTMatrix"), type=c("oneMode", "bipartite"))
 }
 \arguments{
-  \item{val}{Matrix of covariate values. May be sparse, of type "dgTMatrix" }
+  \item{val}{Matrix of covariate values. May be sparse, of type "dgTMatrix". }
   \item{nodeSets}{The name of the node sets with which this
-    covariate is associated.}
-  \item{sparse}{Boolean: whether a sparse matrix or not}
-  \item{type}{OneMode or Bipartite: whether the matrix refers to a one Mode
-  or a bipartite network.}
+    covariate is associated. If the entire data set contains more than
+    one node set, then the node sets must be specified in all data objects.}
+  \item{sparse}{Boolean: whether a sparse matrix or not.}
+  \item{type}{oneMode or bipartite: whether the matrix refers to a one-mode
+  or a bipartite (two-mode) network.}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be
@@ -24,11 +25,12 @@ coDyadCovar(val, nodeSets=c("Actors", "Actors"),
 }
 \value{
    Returns the covariate as an object of class "coDyadCovar", in which
-  form it can be used as an argument to SienaData.create.
+  form it can be used as an argument to \code{\link{sienaDataCreate}}.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{\code{\link{sienaDataCreate}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{varDyadCovar}},
+ \code{\link{coCovar}}, \code{\link{varCovar}}}
 \examples{
 
 mydyadvar <- coDyadCovar(s503)

@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: maxlikec.r
 # *
@@ -101,7 +101,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 			}
 			ans[[11]] <- sapply(anss, "[[", 11)
 		}
-		else ##onlyLoglik is always byGroup (bayes)
+		else ##onlyLoglik is always byGroup (sienaBayes)
 		{
 			ans[[1]] <- sum(sapply(anss, '[[', 1))## loglik
 			ans[[2]] <- lapply(anss, "[[", 2)

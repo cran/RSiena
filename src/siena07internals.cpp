@@ -47,9 +47,10 @@ using namespace siena;
  * effects data frame.
  */
 void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
-			   int * parmCol, int * int1Col, int * int2Col, int * initValCol,
-			   int * typeCol, int * groupCol, int * periodCol, int * pointerCol,
-	int * rateTypeCol, int * intptr1Col, int * intptr2Col, int * intptr3Col)
+	int * parmCol, int * int1Col, int * int2Col, int * initValCol,
+	int * typeCol, int * groupCol, int * periodCol, int * pointerCol,
+	int * rateTypeCol, int * intptr1Col, int * intptr2Col, int * intptr3Col,
+	int * settingCol)
 {
 	*netTypeCol = -1; /* net type */
 	*nameCol = -1; /* network name */
@@ -66,6 +67,7 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 	*intptr1Col = -1;
 	*intptr2Col = -1;
 	*intptr3Col = -1;
+	*settingCol = -1;
 
 	int n = length(Names);
 	for (int j = 0; j < n; j++)
@@ -131,6 +133,10 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 		{
 			*intptr3Col = j;
 		}
+		if (strcmp(CHAR(STRING_ELT(Names, j)), "setting") == 0)
+		{
+			*settingCol = j;
+		}
 	}
 	if (*netTypeCol < 0)
 	{
@@ -189,6 +195,10 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 	{
 		error("cannot find effect3");
 	}
+	if (*settingCol < 0)
+	{
+	 	error("cannot find setting col");
+	}
 //Rprintf("%d parmcol\n", *parmCol);
 }
 
@@ -219,11 +229,13 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 	int intptr1Col;
 	int intptr2Col;
 	int intptr3Col;
+	int settingCol;
 
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
+		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+		&settingCol);
 
 	int thetasub = -1;
 	/* find each effect and update its weight */
@@ -243,6 +255,8 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), eff));
 			const char * netType =
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), eff));
+			const char * setting =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, settingCol), eff));
 
 			if (strcmp(effectType, "rate") == 0 &&
 				strcmp(effectName, "Rate") == 0)
@@ -254,21 +268,39 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 				/* find the network */
 				Data * pData = (*pGroupData)[group];
 
-				if (strcmp(netType, "behavior") == 0)
+				if (strcmp(setting, "") == 0)
 				{
-					BehaviorLongitudinalData * pNetwork =
-						pData->pBehaviorData(networkName);
-					pModel->basicRateParameter(pNetwork,
-						period,
-						currentValue);
+					if (strcmp(netType, "behavior") == 0)
+					{
+						BehaviorLongitudinalData * pNetwork =
+							pData->pBehaviorData(networkName);
+						pModel->basicRateParameter(pNetwork,
+							period,
+							currentValue);
+					}
+					else
+					{
+						NetworkLongitudinalData * pNetwork =
+							pData->pNetworkData(networkName);
+						pModel->basicRateParameter(pNetwork,
+							period,
+							currentValue);
+					}
 				}
 				else
 				{
-					NetworkLongitudinalData * pNetwork =
-						pData->pNetworkData(networkName);
-					pModel->basicRateParameter(pNetwork,
-						period,
-						currentValue);
+				 	if (!strcmp(netType, "behavior") == 0)
+				 	{
+				 		NetworkLongitudinalData * pNetwork =
+				 			pData->pNetworkData(networkName);
+				 		pModel->settingRateParameter(pNetwork, setting, period,
+				 			currentValue);
+				 	}
+				 	else
+				 	{
+				 		error("setting found for behavior variable %s",
+				 			networkName);
+				 	}
 				}
 			}
 			else
@@ -373,6 +405,7 @@ void setupOneModeObservations(SEXP ONEMODES,
     SEXP dow;
     PROTECT(dow = install("downonly"));
     SEXP downonly = getAttrib(ONEMODES, dow);
+
     for (int period = 0; period < (observations - 1); period++)
     {
         pOneModeNetworkLongitudinalData->upOnly(period,
@@ -398,42 +431,49 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 
     for (int oneMode = 0; oneMode < nOneMode; oneMode++)
     {
+		SEXP ONEMODES = VECTOR_ELT(ONEMODEGROUP, oneMode);
         SEXP as;
         PROTECT(as = install("nodeSet"));
-        SEXP actorSet = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode), as);
+        SEXP actorSet = getAttrib(ONEMODES, as);
         SEXP symm;
         PROTECT(symm = install("symmetric"));
-        SEXP symmetric = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode), symm);
+        SEXP symmetric = getAttrib(ONEMODES, symm);
 		SEXP balm;
         PROTECT(balm = install("balmean"));
-        SEXP balmean = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode), balm);
+        SEXP balmean = getAttrib(ONEMODES, balm);
 		SEXP strm;
         PROTECT(strm = install("structmean"));
-        SEXP structmean = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode), strm);
+        SEXP structmean = getAttrib(ONEMODES, strm);
 		SEXP avin;
         PROTECT(avin = install("averageInDegree"));
-        SEXP averageInDegree = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode),
-			avin);
+        SEXP averageInDegree = getAttrib(ONEMODES,	avin);
 		SEXP avout;
         PROTECT(avout = install("averageOutDegree"));
-        SEXP averageOutDegree = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode),
-			avout);
+        SEXP averageOutDegree = getAttrib(ONEMODES,	avout);
+ 		SEXP sets;
+		PROTECT(sets = install("settings"));
+		SEXP Setting = getAttrib(ONEMODES, sets);
 		SEXP nm;
         PROTECT(nm = install("name"));
-        SEXP name = getAttrib(VECTOR_ELT(ONEMODEGROUP, oneMode), nm);
+        SEXP name = getAttrib(ONEMODES, nm);
         const ActorSet * myActorSet = pData->pActorSet(CHAR(STRING_ELT(
 					actorSet, 0)));
 		OneModeNetworkLongitudinalData *  pOneModeNetworkLongitudinalData =
 			pData->createOneModeNetworkData(CHAR(STRING_ELT(name, 0)),
                                      myActorSet);
-        pOneModeNetworkLongitudinalData->symmetric(*(LOGICAL(symmetric)));
+		for (int j = 0; j < length(Setting); j++)
+		{
+			const char * settingName = CHAR(STRING_ELT(Setting, j));
+			pOneModeNetworkLongitudinalData->addSettingName(settingName);
+		}
+       pOneModeNetworkLongitudinalData->symmetric(*(LOGICAL(symmetric)));
         pOneModeNetworkLongitudinalData->balanceMean(*(REAL(balmean)));
         pOneModeNetworkLongitudinalData->structuralMean(*(REAL(structmean)));
         pOneModeNetworkLongitudinalData->
 			averageInDegree(*(REAL(averageInDegree)));
         pOneModeNetworkLongitudinalData->
 			averageOutDegree(*(REAL(averageOutDegree)));
-		setupOneModeObservations(VECTOR_ELT(ONEMODEGROUP, oneMode),
+		setupOneModeObservations(ONEMODES,
 			pOneModeNetworkLongitudinalData);
 		//	Rprintf("%f %f\n", pOneModeNetworkLongitudinalData->
 		//	averageInDegree(),  pOneModeNetworkLongitudinalData->
@@ -445,7 +485,7 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 		//Rprintf("%f %f\n", pOneModeNetworkLongitudinalData->
 		//	averageInDegree(), pOneModeNetworkLongitudinalData->
 		//	averageOutDegree());
-        UNPROTECT(7);
+        UNPROTECT(8);
     }
 }
 
@@ -1094,8 +1134,8 @@ void setupExogenousEventSet(SEXP EXOGEVENTSET, Data *pData)
 
 	}
 	UNPROTECT(1);
-
 }
+
 /**
  * Create one group of exogenous composition change events
  *
@@ -1114,17 +1154,15 @@ void setupExogenousEventGroup(SEXP EXOGEVENTGROUP, Data *pData)
 	{
 		setupExogenousEventSet(VECTOR_ELT(EXOGEVENTGROUP, actorSet), pData);
 	}
-
 }
+
 /**
  *  Creates all the basic effects for one network
  */
 SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
-					   const char *networkName, int effectCol,
-					   int parmCol, int int1Col, int int2Col,
-					   int initValCol, int typeCol, int groupCol,
-					   int periodCol, int rateTypeCol,
-					   int netTypeCol)
+	const char *networkName, int effectCol, int parmCol, int int1Col,
+	int int2Col, int initValCol, int typeCol, int groupCol, int periodCol,
+	int rateTypeCol, int netTypeCol, int settingCol)
     {
         // find out how many effects there are
         int nEffects = length(VECTOR_ELT(EFFECTS, 0));
@@ -1154,6 +1192,8 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, rateTypeCol), i));
 			const char * netType =
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
+			const char * setting =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, settingCol), i));
 
 			if (strcmp(effectType, "rate") == 0 &&
 				strcmp(effectName, "Rate") == 0)
@@ -1164,19 +1204,40 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 
 				Data * pData = (*pGroupData)[group];
 
-				if (strcmp(netType, "behavior") != 0)
+				if (strcmp(setting, "") == 0)
 				{
-					NetworkLongitudinalData * pNetwork =
-						pData->pNetworkData(networkName);
-					pModel->basicRateParameter(pNetwork, period, initialValue);
+					if (!strcmp(netType, "behavior") == 0)
+					{
+						NetworkLongitudinalData * pNetwork =
+							pData->pNetworkData(networkName);
+						pModel->basicRateParameter(pNetwork, period,
+							initialValue);
+					}
+					else
+					{
+						BehaviorLongitudinalData * pNetwork =
+							pData->pBehaviorData(networkName);
+						pModel->basicRateParameter(pNetwork, period,
+							initialValue);
+					}
 				}
-				else //if (strcmp(netType, "Behavior") == 0)
+				else
 				{
-					BehaviorLongitudinalData * pNetwork =
-						pData->pBehaviorData(networkName);
-					pModel->basicRateParameter(pNetwork, period, initialValue);
+				 	if (!strcmp(netType, "behavior") == 0)
+				 	{
+				 		NetworkLongitudinalData * pNetwork =
+				 			pData->pNetworkData(networkName);
+				 		pModel->settingRateParameter(pNetwork, setting, period,
+				 			initialValue);
+				 	}
+				 	else
+				 	{
+				 		error("setting found for behavior variable %s",
+				 			networkName);
+				 	}
 				}
 			}
+
 			else
 			{
 				pEffectInfo = pModel->addEffect(networkName,
@@ -1282,11 +1343,13 @@ void getStatistics(SEXP EFFECTSLIST,
 	int intptr1Col;
 	int intptr2Col;
 	int intptr3Col;
+	int settingCol;
 
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
+		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+		&settingCol);
 
 
 	double statistic = 0;
@@ -1317,6 +1380,8 @@ void getStatistics(SEXP EFFECTSLIST,
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
 			const char * rateType =
 				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, rateTypeCol), i));
+			const char * setting =
+				CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, settingCol), i));
 			//	Rprintf("%s %s \n", effectType, netType);
 			if (strcmp(effectType, "rate") == 0)
 			{
@@ -1349,20 +1414,46 @@ void getStatistics(SEXP EFFECTSLIST,
 						}
 						else
 						{
-							LongitudinalData * pNetworkData =
-								pData->pNetworkData(networkName);
-							statistic = pCalculator->distance(pNetworkData,
-								period);
-							if (pEpochSimulation)
+							if (strcmp(setting, "") == 0)
 							{
-								/* find the dependent variable for the score */
-								const DependentVariable * pVariable =
-									pEpochSimulation->pVariable(networkName);
-								score = pVariable->basicRateScore();
+								LongitudinalData * pNetworkData =
+									pData->pNetworkData(networkName);
+								statistic = pCalculator->distance(pNetworkData,
+									period);
+								if (pEpochSimulation)
+								{
+									/* find  dependent variable for the score */
+									const DependentVariable * pVariable =
+										pEpochSimulation->
+										pVariable(networkName);
+									score = pVariable->basicRateScore();
+								}
+								else
+								{
+									score = 0;
+								}
 							}
 							else
 							{
-								score = 0;
+								LongitudinalData * pNetworkData =
+									pData->pNetworkData(networkName);
+								statistic =
+									pCalculator->settingDistance(pNetworkData,
+										setting, period);
+								if (pEpochSimulation)
+								{
+									/* find dependent variable for the score */
+									const DependentVariable * pVariable =
+										pEpochSimulation->
+										pVariable(networkName);
+									score =
+										pVariable->settingRateScore(setting);
+								}
+								else
+								{
+									score = 0;
+								}
+
 							}
 						}
 					}
@@ -1419,6 +1510,36 @@ void getStatistics(SEXP EFFECTSLIST,
 						else
 						{
 
+							error("Unexpected rate effect %s\n",
+								effectName);
+						}
+					}
+					else
+					{
+						score = 0;
+					}
+				}
+				else if (strcmp(rateType, "diffusion") == 0)
+				{
+					EffectInfo * pEffectInfo = (EffectInfo *)
+						R_ExternalPtrAddr(
+							VECTOR_ELT(VECTOR_ELT(EFFECTS,
+									pointerCol), i));
+					statistic = pCalculator->statistic(pEffectInfo);
+					if (pEpochSimulation)
+					{
+						if (strcmp(effectName, "avExposure") == 0 ||
+							strcmp(effectName, "totExposure") == 0 ||
+							strcmp(effectName, "susceptAvIn") == 0 ||
+							strcmp(effectName, "infectIn") == 0 ||
+							strcmp(effectName, "infectOut") == 0 ||
+							strcmp(effectName, "susceptAvCovar") == 0 ||
+							strcmp(effectName, "infectCovar") == 0)
+						{
+							score = pEpochSimulation->score(pEffectInfo);
+						}
+						else
+						{
 							error("Unexpected rate effect %s\n",
 								effectName);
 						}
@@ -1579,11 +1700,13 @@ void getScores(SEXP EFFECTSLIST, int period, int group,
 	int intptr1Col;
 	int intptr2Col;
 	int intptr3Col;
+	int settingCol;
 
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
+		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+		&settingCol);
 
 	int storescore = 0;
 	int storederiv = 0;

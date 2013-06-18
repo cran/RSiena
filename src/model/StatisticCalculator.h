@@ -32,7 +32,8 @@ class NetworkLongitudinalData;
 class BehaviorLongitudinalData;
 class Network;
 class EffectFactory;
-
+class ConstantCovariate;
+class ChangingCovariate;
 
 // ----------------------------------------------------------------------------
 // Section: StatisticCalculator class
@@ -61,6 +62,8 @@ public:
 
 	double statistic(EffectInfo * pEffectInfo) const;
 	int distance(LongitudinalData * pData, int period) const;
+	int settingDistance(LongitudinalData * pData, string setting,
+		int period) const;
 
 private:
 	void calculateStatistics();
@@ -74,6 +77,16 @@ private:
 		NetworkLongitudinalData * pNetworkData);
 	void calculateBehaviorStatistics(BehaviorLongitudinalData * pBehaviorData);
 	void calculateBehaviorRateStatistics(BehaviorLongitudinalData * pBehaviorData);
+
+	// Functions to calculate value of diffusion rate effect
+	double calculateDiffusionRateEffect(BehaviorLongitudinalData *
+		pBehaviorData, const Network * pStructural, int i,
+		string effectName);
+	double calculateDiffusionRateEffect(BehaviorLongitudinalData *
+		pBehaviorData, const Network * pStructural,
+		const ConstantCovariate * pConstantCovariate,
+		const ChangingCovariate * pChangingCovariate,
+		int i, string effectName);
 
 	// The data to be used for calculating the statistics
 	const Data * lpData;
@@ -92,6 +105,9 @@ private:
 
 	// Array of simulated distances per variable
 	map<LongitudinalData *, int *> ldistances;
+
+	// Array of simulated distances per setting per network variable
+	map<LongitudinalData *, map<std::string, int *> > lsettingDistances;
 
 	State * lpPredictorState;
 

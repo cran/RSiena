@@ -341,11 +341,14 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 	int intptr1Col;
 	int intptr2Col;
 	int intptr3Col;
+	int settingCol;
+
 
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
+		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+		&settingCol);
 
 	/* create a structure for the return values */
 	SEXP pointers;
@@ -363,7 +366,8 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 			createEffects(VECTOR_ELT(EFFECTSLIST, i), pModel, pGroupData,
 				networkName, effectCol, parmCol, int1Col,
 				int2Col, initValCol, typeCol, groupCol,
-				periodCol, rateTypeCol, netTypeCol);
+				periodCol, rateTypeCol, netTypeCol,
+				settingCol);
 
 		SET_VECTOR_ELT(pointers, i, ptrs);
 
@@ -415,11 +419,12 @@ SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST)
 	int intptr1Col;
 	int intptr2Col;
 	int intptr3Col;
+	int settingCol;
 
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
-		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col);
+		&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col, &settingCol);
 
 	/* create a structure for the return values */
 	SEXP pointers;

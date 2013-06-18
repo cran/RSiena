@@ -21,12 +21,10 @@ xtable(x, ...)
 }
 \references{
 \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
-\author{
-Ruth Ripley}
+\author{Ruth Ripley}
+\seealso{\code{\link{xtable.sienaFit}}}
+
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
 function (x, ...)
@@ -34,11 +32,11 @@ function (x, ...)
     xtable::xtable(x, ...)
   }
 \donttest{
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=2, n3=100)
-mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
+mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
-ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 ans
 summary(ans)
 xtable(ans, type='html', file='ans.html')}

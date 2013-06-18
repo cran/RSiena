@@ -1,7 +1,8 @@
 #/******************************************************************************
+#/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: printInitialDescription.r
 # *
@@ -61,7 +62,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 atts <- attributes(depvar)
                 subs <- 1:data[[group]]$observations + periodFromStart
                 density[subs] <- atts$density
-                if (any(atts$ones >= atts$nval))
+                if (any(atts$ones >= atts$nval, na.rm = TRUE))
                 {
                     difficult <- TRUE
                 }
@@ -109,8 +110,8 @@ printInitialDescription <- function(data, effects, modelName="Siena",
             Report("\n", outf)
             if (nData > 1)
             {
-                Report("The average degrees are: ", outf)
-                Report(paste(names(data), round(averageOutDegree, 3),
+                Report("The average degrees over all waves are: \n ", outf)
+                Report(paste(names(data), round(averageOutDegree, 3), "\n",
                              sep=': '), outf)
                 Report("\n", outf)
             }
@@ -202,10 +203,11 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                       }
                     if (valmin == 0 && valmax == 1)
                     {
-                        if (matchange[4, per] / (matchange[3, per] +
-                                                 matchange[4, per]) <
-                            matchange[2, per] / (matchange[2, per] +
-                                                 matchange[1, per]))
+                        if (matchange[4, per]*
+								(matchange[2, per] + matchange[1, per])
+											 <
+                            matchange[2, per] * 
+								(matchange[3, per] + matchange[4, per]) )
                         {
                             Report(c("\nThis means that in period ", per,
                                      ", proportionately less 1-ties stayed 1,\n",
@@ -306,16 +308,21 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                             mymat[mymat == 10] <- 0
                             mymat[mymat == 11] <- 1
                             diag(mymat) <- NA
-                            dyadTable <- table(mymat, t(mymat))
-                            diag(dyadTable) <- diag(dyadTable) / 2
-                            if (valmin == 0 && valmax ==1)
-                            {
-                                mutual <- dyadTable[2, 2]
-                                asymm <- dyadTable[2, 1]
-                                nulls <- dyadTable[1, 1]
-                                totDyad <- nulls + asymm + mutual
-
-                            }
+							tmymat <- t(mymat)
+                            # dyadTable <- table(mymat, t(mymat))
+							# Changed to protect against zero rows or columns
+							nulls <- sum((1 - mymat)*(1 - tmymat), na.rm=TRUE)
+							asymm <- sum(mymat*(1 - tmymat), na.rm=TRUE) +
+										sum((1 - mymat)*tmymat, na.rm=TRUE)
+							mutual <- sum(mymat*tmymat, na.rm=TRUE)
+                            # diag(dyadTable) <- diag(dyadTable) / 2
+                            #if (valmin == 0 && valmax ==1)
+                            #{
+                            #    mutual <- dyadTable[2, 2]
+                            #    asymm <- dyadTable[2, 1]
+                            #    nulls <- dyadTable[1, 1]
+                            totDyad <- nulls + asymm + mutual
+                            #}
                         }
                         if (valmin == 0 && valmax == 1)
                         {
@@ -411,7 +418,6 @@ printInitialDescription <- function(data, effects, modelName="Siena",
                 atts <- attributes(depvar)
                 for (i in 1: atts$netdims[3])
                 {
-                   # browser()
                     mytab <- table(depvar[, 1, i])
                     vals[as.numeric(names(mytab)) + 1 - minval,
                          periodFromStart + i] <- mytab

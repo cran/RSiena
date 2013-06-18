@@ -14,8 +14,14 @@ siena01Gui(getDocumentation=FALSE)
 \details{
 
   This function provides a graphical user interface for fitting Siena
-  models. It can be run from within an R session, but is also called
-  directly by \command{sienascript} (Linux or Mac) (The Windows
+  models.
+  Note that this is less flexible and has fewer possibilities than
+  creating data objects from matrices and
+  vectors using \code{\link{sienaDependent}}, \code{\link{coCovar}} etc.,
+  and finally \code{\link{sienaDataCreate}}.
+
+  It can be run from within an R session, but is also called
+  directly by \command{sienascript} (Linux or Mac) (the Windows
   interface via \command{siena.exe} has now been removed).  It allows
   entry of details of the data files required, either using the gui or
   by loading a session file. The \command{Apply} button causes a call to
@@ -54,7 +60,8 @@ siena01Gui(getDocumentation=FALSE)
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{    \code{\link{sienaDataCreateFromSession}} }
+\seealso{    \code{\link{sienaDataCreateFromSession}},
+    \code{\link{sienaDataCreate}}.}
 \examples{
 \dontrun{siena01Gui()}
 }

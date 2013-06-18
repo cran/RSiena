@@ -13,6 +13,7 @@
 #include "utils/Utils.h"
 #include "data/Data.h"
 #include "data/LongitudinalData.h"
+#include "data/NetworkLongitudinalData.h"
 #include "model/EffectInfo.h"
 #include "model/variables/DependentVariable.h"
 #include "model/effects/AllEffects.h"
@@ -61,6 +62,16 @@ Model::~Model()
 		delete[] array;
 	}
 
+	// Delete the arrays of settings basic rate parameters
+
+	while (!this->lsettingRateParameters.empty())
+	{
+		double * array = this->lsettingRateParameters.begin()->second.
+			begin()->second;
+		this->lsettingRateParameters.erase(
+			this->lsettingRateParameters.begin());
+		delete[] array;
+	}
 	deallocateVector(this->leffects);
 
 	// Delete the arrays of target changes
@@ -291,6 +302,7 @@ void Model::basicRateParameter(LongitudinalData * pDependentVariableData,
 	int period,
 	double value)
 {
+//TODO find out why we have obs here and not below
 	if (!this->lbasicRateParameters[pDependentVariableData])
 	{
 		double * array =
@@ -331,6 +343,58 @@ double Model::basicRateParameter(LongitudinalData * pDependentVariableData,
 	return value;
 }
 
+/**
+ * Stores the setting rate parameter for the given setting for the given
+ * dependent variable at the given period.
+ */
+void Model::settingRateParameter(NetworkLongitudinalData * pNetworkData,
+	string setting,
+	int period,
+	double value)
+{
+	if (!this->lsettingRateParameters[pNetworkData][setting])
+	{
+		double * array =
+			//	new double[pDependentVariableData->observationCount() - 1];
+			new double[pNetworkData->observationCount() ];
+
+		// The default basic rate is 1.
+
+		for (int i = 0;
+			i < pNetworkData->observationCount() - 1;
+			i++)
+		{
+			array[i] = 1;
+		}
+
+		this->lsettingRateParameters[pNetworkData][setting] = array;
+	}
+	this->lsettingRateParameters[pNetworkData][setting][period] =
+		value;
+}
+
+
+/**
+ * Returns the setting rate parameter for the given setting for the given
+ * network dependent variable at the given period.
+ */
+double Model::settingRateParameter(NetworkLongitudinalData * pNetworkData,
+	string setting, int period) const
+{
+	std::map<const NetworkLongitudinalData *,
+			 map<string, double *> >::const_iterator
+		iter = this->lsettingRateParameters.find(pNetworkData);
+	double value = 1;
+
+	if (iter != this->lsettingRateParameters.end())
+	{
+		std::map<string, double *>::const_iterator
+		iter1 = iter->second.find(setting);
+		value = iter1->second[period];
+	}
+
+	return value;
+}
 
 /**
  * Adds a new effect to this model and returns the parameters wrapped into

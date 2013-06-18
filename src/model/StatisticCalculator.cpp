@@ -16,6 +16,7 @@
 
 #include "StatisticCalculator.h"
 #include "data/Data.h"
+#include "data/ActorSet.h"
 #include "network/NetworkUtils.h"
 #include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
@@ -24,6 +25,8 @@
 #include "network/TieIterator.h"
 #include "data/ConstantCovariate.h"
 #include "data/ChangingCovariate.h"
+#include "data/ConstantDyadicCovariate.h"
+#include "data/ChangingDyadicCovariate.h"
 #include "model/Model.h"
 #include "model/State.h"
 #include "model/Function.h"
@@ -35,6 +38,7 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
 #include "model/tables/Cache.h"
+#include "network/IncidentTieIterator.h"
 
 namespace siena
 {
@@ -80,6 +84,20 @@ StatisticCalculator::~StatisticCalculator()
 		delete[] array;
 	}
 
+	// Delete the arrays of simulated distances for settings
+
+	while (!this->lsettingDistances.empty())
+	{
+		while (!(this->lsettingDistances.begin())->second.empty())
+		{
+			int * array =
+				this->lsettingDistances.begin()->second.begin()->second;
+			this->lsettingDistances.begin()->second.erase(
+				this->lsettingDistances.begin()->second.begin());
+			delete[] array;
+		}
+		this->lsettingDistances.erase(this->lsettingDistances.begin());
+	}
 	// The state just stores the values, but does not own them. It means that
 	// the destructor of the state won't deallocate the memory, and we must
 	// request that explicitly. The basic predictor state is now
@@ -134,6 +152,30 @@ int StatisticCalculator::distance(LongitudinalData * pData, int period)
 	return iter->second[period];
 }
 
+/**
+ * Returns the simulated setting distance for the given network and period.
+ */
+int StatisticCalculator::settingDistance(LongitudinalData * pData,
+	string setting, int period) const
+{
+	int value = 0;
+	map<LongitudinalData *, map<string, int *> >::const_iterator iter=
+ 		this->lsettingDistances.find(pData);
+
+	if (iter != this->lsettingDistances.end())
+	{
+		map<string, int *>::const_iterator iter1 =
+			iter->second.find(setting);
+		value = iter1->second[period];
+	}
+	else
+	{
+		throw invalid_argument(
+			"Unknown effect: The given setting rate is not part of the model.");
+	}
+
+	return value;
+}
 
 /**
  * Calculates the statistics for all effects of the given model. Note that
@@ -651,7 +693,103 @@ void StatisticCalculator::calculateNetworkRateStatistics(
 
 	this->ldistances[pNetworkData][this->lperiod] = pDifference->tieCount();
 
-	//Rprintf("basic rate change %d\n", pDifference->tieCount());
+
+	// settings targets
+
+	// for each covariate-defined setting, calculate
+	// setting*difference network and sum.
+	const vector<string> & rSettingNames = pNetworkData->rSettingNames();
+	//Rprintf("basic rate change %d size %d \n", pDifference->tieCount(),
+	//	rSettingNames.size());
+	for (unsigned i = 0; i < rSettingNames.size();
+		 i++)
+	{
+		if (!this->lsettingDistances[pNetworkData][rSettingNames[i]])
+		{
+			int * array =
+				new int[pNetworkData->observationCount() - 1];
+
+			this->lsettingDistances[pNetworkData][rSettingNames[i]] = array;
+		}
+		// universal
+		int distance = pDifference->tieCount();
+		// primary
+		if (i == 1)
+		{
+			const Network * pNetwork =
+				this->lpState->pNetwork(pNetworkData->name());
+			// create a network representing primary settings
+			Network * settingNetwork = new
+				Network(pNetwork->n(), pNetwork->m());
+			for (int ego = 0; ego < pNetwork->n(); ego++)
+			{
+				vector<int> * setting = primarySetting(pNetwork, ego);
+				for (unsigned alter = 0; alter < setting->size(); alter++)
+				{
+					settingNetwork->setTieValue(ego, alter, 1);
+				}
+				delete(setting);
+			}
+			for (TieIterator iter = pDifference->ties();
+				 iter.valid();
+				 iter.next())
+			{
+
+				{
+					if (settingNetwork->tieValue(iter.ego(),
+							iter.alter()) == 0)
+					{
+						distance--;
+					}
+				}
+			}
+			delete settingNetwork;
+		}
+		// for each covariate-defined setting, calculate
+		// setting*difference network and sum.
+		if (i > 1)
+		{
+			ConstantDyadicCovariate * pConstantDyadicCovariate =
+				this->lpData->pConstantDyadicCovariate(rSettingNames[i]);
+			ChangingDyadicCovariate * pChangingDyadicCovariate =
+				this->lpData->pChangingDyadicCovariate(rSettingNames[i]);
+
+			for (TieIterator iter = pDifference->ties();
+				 iter.valid();
+				 iter.next())
+			{
+
+				if (pConstantDyadicCovariate)
+				{
+					if (pConstantDyadicCovariate->value(iter.ego(),
+							iter.alter()) == 0)
+					{
+						distance--;
+					}
+				}
+				else if (pChangingDyadicCovariate)
+				{
+					if (pChangingDyadicCovariate->value(iter.ego(),
+							iter.alter(),
+							this->lperiod) == 0)
+					{
+						distance--;
+					}
+				}
+				else
+				{
+					throw logic_error(
+						"No dyadic covariate named '" +
+						rSettingNames[i] +
+						"'.");
+				}
+			}
+		}
+		// store distance for later use
+		//	Rprintf(" cov %d %d\n", i, distance);
+		this->lsettingDistances[pNetworkData][rSettingNames[i]]
+			[this->lperiod] = distance;
+	}
 
 	// Loop through the rate effects, calculate the statistics,
 	// and store them.
@@ -868,6 +1006,7 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 		//	double parameter = pInfo->parameter();
 		string effectName = pInfo->effectName();
 		string interactionName = pInfo->interactionName1();
+		string interactionName2 = pInfo->interactionName2();
 		string rateType = pInfo->rateType();
 
 		if (rateType == "covariate")
@@ -930,7 +1069,7 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 				}
 				//}
 		}
-		else
+		else if (rateType == "structural")
 		{
 			// We expect a structural (network-dependent) rate effect here.
 
@@ -974,10 +1113,176 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 
 			this->lstatistics[pInfo] = statistic;
 		}
+		else if (rateType == "diffusion")
+		{
+		    NetworkLongitudinalData *pNetworkData = this->lpData->
+		        pNetworkData(interactionName);
+		    const Network * pStructural =
+		        pNetworkData->pNetworkLessMissingStart(this->lperiod);
+			double statistic = 0;
+			if (interactionName2 == "")
+			{
+				for (int i = 0; i < pBehaviorData->n(); i++)
+				{
+					if (effectName == "avExposure" ||
+						effectName == "susceptAvIn" ||
+						effectName == "totExposure" ||
+						effectName == "infectIn" ||
+						effectName == "infectOut")
+					{
+						statistic +=
+							this->calculateDiffusionRateEffect(pBehaviorData,
+								pStructural, i, effectName) *
+							difference[i];
+					}
+					else
+					{
+						throw domain_error("Unexpected rate effect " +
+							effectName);
+					}
+				}
+			}
+			else
+			{
+				ConstantCovariate * pConstantCovariate =
+					this->lpData->pConstantCovariate(interactionName2);
+				ChangingCovariate * pChangingCovariate =
+					this->lpData->pChangingCovariate(interactionName2);
+
+				for (int i = 0; i < pBehaviorData->n(); i++)
+				{
+					if (effectName == "susceptAvCovar" ||
+						effectName == "infectCovar")
+					{
+						statistic +=
+							this->calculateDiffusionRateEffect(pBehaviorData,
+								pStructural,
+								pConstantCovariate,
+								pChangingCovariate, i, effectName) *
+							difference[i];
+					}
+					else
+					{
+						throw domain_error("Unexpected rate effect " +
+							effectName);
+					}
+				}
+			}
+			this->lstatistics[pInfo] = statistic;
+		}
 	}
 
 	delete[] difference;
 	delete[] currentValues;
 }
+
+/**
+ * Calculates the value of the diffusion rate effect for the given actor.
+ */
+double StatisticCalculator::calculateDiffusionRateEffect(
+	BehaviorLongitudinalData * pBehaviorData, const Network * pStructural,
+	int i, string effectName)
+{
+	double totalAlterValue = 0;
+	double response = 1;
+	if (pStructural->outDegree(i) > 0)
+	{
+		if (effectName == "avExposure")
+		{
+			response /= double(pStructural->outDegree(i));
+		}
+		else if (effectName == "susceptAvIn")
+		{
+			response = double(pStructural->inDegree(i)) /
+				double(pStructural->outDegree(i));
+		}
+
+		for (IncidentTieIterator iter = pStructural->outTies(i);
+			 iter.valid();
+			 iter.next())
+		{
+			double alterValue = pBehaviorData->
+				value(this->lperiod,iter.actor());
+
+			if (effectName == "infectIn")
+			{
+				alterValue *= pStructural->inDegree(iter.actor());
+			}
+			else if (effectName == "infectOut")
+			{
+				alterValue *= pStructural->outDegree(iter.actor());
+			}
+
+			totalAlterValue += alterValue;
+		}
+		totalAlterValue *= response;
+	}
+	return totalAlterValue;
+}
+/**
+ * Calculates the value of the covariate dependent diffusion rate effect for
+ * the given actor.
+ */
+double StatisticCalculator::calculateDiffusionRateEffect(
+	BehaviorLongitudinalData * pBehaviorData, const Network * pStructural,
+	const ConstantCovariate * pConstantCovariate,
+	const ChangingCovariate * pChangingCovariate,
+	int i, string effectName)
+{
+	double totalAlterValue = 0;
+	double response = 1;
+	if (pStructural->outDegree(i) > 0)
+	{
+		if (effectName == "susceptAvCovar")
+		{
+			if (pConstantCovariate)
+			{
+				response = pConstantCovariate->value(i);
+			}
+			else if (pChangingCovariate)
+			{
+				response = pChangingCovariate->value(i, this->lperiod);
+			}
+			else
+			{
+				throw logic_error(
+					"No individual covariate.");
+			}
+			response /= double(pStructural->outDegree(i));
+		}
+
+		for (IncidentTieIterator iter = pStructural->outTies(i);
+			 iter.valid();
+			 iter.next())
+		{
+			double alterValue = pBehaviorData->
+				value(this->lperiod,iter.actor());
+
+			if (effectName == "infectCovar")
+			{
+				if (pConstantCovariate)
+				{
+					alterValue *= pConstantCovariate->value(iter.actor());
+				}
+				else if (pChangingCovariate)
+				{
+					alterValue *= pChangingCovariate->value(iter.actor(),
+						this->lperiod);
+				}
+				else
+				{
+					throw logic_error(
+						"No individual covariate.");
+				}
+
+			}
+
+			totalAlterValue += alterValue;
+		}
+		totalAlterValue *= response;
+	}
+	return totalAlterValue;
+}
+
 
 }

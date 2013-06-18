@@ -8,31 +8,56 @@ Function to create a table of documentation of effect names, short names etc.
   either in html or latex.
 }
 \usage{
-effectsDocumentation(type = "html", display = type == "html",
-filename = "effects")
+effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
+  filename = ifelse(is.null(effects), "effects", deparse(substitute(effects))))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
+  \item{effects}{
+    A Siena effects object, or NULL.
+}
   \item{type}{
-	type of output required. Valid options are "html" or "latex".
+	Type of output required. Valid options are "html" or "latex".
 }
 \item{display}{
   Boolean: should the output be displayed after creation. Only
   applicable to html output.
 }
 \item{filename}{
-  Basename of the files to be written.
+  Character string denoting file name.
 }
 }
 \details{
-  The \code{allEffects} object is reformatted into a table, either latex
-  or html.
+  If \code{effects=NULL}, the \code{allEffects} object is written to
+  a table, either latex or html. This table presents all the available
+  effects present in this version of RSiena, not delimited
+  by a particular data set. The default file name is "effects.tex" or
+  "effects.pdf", respectively.
+
+  The table lists all effects, with their name,
+  shortName, whether an endowment (and creation) effect exists,
+  the value of an effect parameter - if any -,
+  and the interactionType (which can be empty or: "ego" or "dyadic" for
+  dependent network variables; "OK" for dependent behavior variables).
+  The latter is important for knowing how the effects can be used
+  in interaction effects. (See \code{\link{includeInteraction}}).
+
+  If an existing effects object is specified for \code{effects}, then all
+  available effects in this effects object are listed.
+  This table lists the name (i.e., dependent variable), effect name,
+  shortName, type (rate/evaluation/endowment/creation),
+  the variables defined as \code{interaction1} and \code{interaction2}
+  (see \code{\link{includeEffects}}) that specify this effect,
+  the value of an effect parameter - if any -, and the interactionType.
+  The default root file name is the name of the input effects object.
 }
 \value{
-  Nothing returned. Output files are created.
+  Nothing returned. Output files are created in the current working directory.
 }
+\seealso{\code{\link{getEffects}}, \code{\link{includeEffects}},
+    \code{\link{summary.sienaEffects}}, \code{\link{includeInteraction}}.}
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
-\author{Ruth Ripley}
+\author{Ruth Ripley, Tom A.B. Snijders}
 \examples{
 \dontrun{effectsDocumentation()}
 }

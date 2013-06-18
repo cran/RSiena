@@ -7,12 +7,12 @@
 \usage{
 varCovar(val, nodeSet='Actors')
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{val}{ Matrix of covariate values, one row for each actor, one
     column for each period. }
   \item{nodeSet}{Character string containing the name of the associated
-    node set}
+    node set. If the entire data set contains more than one node set,
+    then the node sets must be specified in all data objects.}
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be
@@ -24,7 +24,8 @@ varCovar(val, nodeSet='Actors')
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{\code{\link{sienaDataCreate}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{coCovar}},
+\code{\link{coDyadCovar}}, \code{\link{varDyadCovar}}}
 \examples{
 
 myvarCovar <- varCovar(s50a)

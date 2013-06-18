@@ -1,8 +1,7 @@
 
-R version 2.14.2 (2012-02-29)
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i386-apple-darwin9.8.0/i386 (32-bit)
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i386-w64-mingw32/i386 (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,15 +16,13 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(RSiena)
-> print(packageDescription("RSiena",fields="Repository/R-Forge/Revision"))
-[1] NA
 > 
 > ##test3
-> mynet1 <- sienaNet(array(c(tmp3, tmp4),dim=c(32, 32, 2)))
+> mynet1 <- sienaDependent(array(c(tmp3, tmp4),dim=c(32, 32, 2)))
 > mydata <- sienaDataCreate(mynet1)
 > myeff<- getEffects(mydata)
 > mymodel<- model.create(findiff=TRUE, fn = simstats0c, projname='test3',
-+                        cond=FALSE, nsub=2, n3=100)
++                        cond=FALSE, nsub=2, n3=100, seed=3)
 > print('test3')
 [1] "test3"
 > ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, silent=TRUE)#,dll='../siena/src/RSiena.dll')
@@ -34,11 +31,11 @@ Estimates, standard errors and convergence t-ratios
 
                                       Estimate   Standard   Convergence 
                                                    Error      t-ratio   
-  1. rate basic rate parameter mynet1  3.0264  ( 0.5202   )   -0.0780   
-  2. eval outdegree (density)         -1.1343  ( 0.1653   )    0.1078   
-  3. eval reciprocity                  1.7921  ( 0.2370   )   -0.0392   
+  1. rate basic rate parameter mynet1  2.9953  ( 0.5597   )   -0.0277   
+  2. eval outdegree (density)         -1.1126  ( 0.2222   )   -0.1278   
+  3. eval reciprocity                  1.7219  ( 0.5378   )   -0.4073   
 
-Total of 604 iteration steps.
+Total of 467 iteration steps.
 
 > ##test4
 > mymodel$projname <- 'test4'
@@ -56,18 +53,18 @@ Estimates, standard errors and convergence t-ratios
                                            Error      t-ratio   
 
 Rate parameters: 
-  0       Rate parameter       3.0428  ( 0.5235   )             
-  1. eval outdegree (density) -1.0952  ( 0.1923   )    0.2216   
-  2. eval reciprocity          1.7007  ( 0.3089   )   -0.0419   
+  0       Rate parameter       2.9753  ( 0.4301   )             
+  1. eval outdegree (density) -1.1180  ( 0.2385   )   0.2850    
+  2. eval reciprocity          1.7762  ( 0.3425   )   0.1232    
 
-Total of 390 iteration steps.
+Total of 432 iteration steps.
 
 > ##test7
-> mynet1 <- sienaNet(array(c(tmp3,tmp4),dim=c(32,32,2)))
+> mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
 > mydata <- sienaDataCreate(mynet1)
 > myeff<- getEffects(mydata)
 > mymodel<- model.create(fn = simstats0c, projname='test7', nsub=2, n3=100,
-+                        cond=FALSE)
++                        cond=FALSE, seed=5)
 > print('test7')
 [1] "test7"
 > ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
@@ -78,11 +75,11 @@ Estimates, standard errors and convergence t-ratios
 
                                       Estimate   Standard   Convergence 
                                                    Error      t-ratio   
-  1. rate basic rate parameter mynet1  3.1122  ( 0.4077   )   0.1685    
-  2. eval outdegree (density)         -1.1288  ( 0.2181   )   0.1968    
-  3. eval reciprocity                  1.7487  ( 0.4069   )   0.1410    
+  1. rate basic rate parameter mynet1  3.0243  ( 0.4224   )    0.0314   
+  2. eval outdegree (density)         -1.1365  ( 0.2024   )   -0.0624   
+  3. eval reciprocity                  1.7417  ( 0.4800   )   -0.2095   
 
-Total of 404 iteration steps.
+Total of 438 iteration steps.
 
 > ##test8
 > mymodel$projname <- 'test8'
@@ -100,16 +97,16 @@ Estimates, standard errors and convergence t-ratios
                                            Error      t-ratio   
 
 Rate parameters: 
-  0       Rate parameter       3.1368  ( 0.4867   )             
-  1. eval outdegree (density) -1.1224  ( 0.2040   )    0.0346   
-  2. eval reciprocity          1.7395  ( 0.2947   )   -0.0548   
+  0       Rate parameter       3.057   ( 0.5090   )             
+  1. eval outdegree (density) -1.145   ( 0.1815   )   0.1146    
+  2. eval reciprocity          1.829   ( 0.3705   )   0.1111    
 
-Total of 269 iteration steps.
+Total of 448 iteration steps.
 
 > ##test9
 > 
-> mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-> mynet2 <- sienaNet(s50a,type='behavior')
+> mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+> mynet2 <- sienaDependent(s50a,type='behavior')
 > mydata <- sienaDataCreate(mynet1, mynet2)
 > myeff <- getEffects(mydata)
 > myeff <- setEffect(myeff, linear, initialValue=0.34699930338, name="mynet2")
@@ -134,21 +131,21 @@ Estimates, standard errors and convergence t-ratios
                                                                Error      t-ratio   
 
 Rate parameters: 
-  0.1      Rate parameter cond. variable period 1  5.7677  ( 0.8719   )             
-  0.2      Rate parameter cond. variable period 2  4.5201  ( 0.6091   )             
+  0.1      Rate parameter cond. variable period 1  5.7886  ( 0.9194   )             
+  0.2      Rate parameter cond. variable period 2  4.4917  ( 0.7276   )             
 
 Other parameters: 
 Network Dynamics 
-  1.  eval outdegree (density)                    -2.3554  ( 0.1091   )    0.0029   
-  2.  eval reciprocity                             2.8153  ( 0.1977   )   -0.1256   
+  1.  eval outdegree (density)                    -2.3921  ( 0.0994   )    0.0849   
+  2.  eval reciprocity                             2.8767  ( 0.2007   )    0.1546   
 
 Behavior Dynamics
-  3.  rate rate mynet2 (period 1)                  1.1513  ( 0.3424   )   -0.1756   
-  4.  rate rate mynet2 (period 2)                  1.6605  ( 0.7096   )   -0.0367   
-  5.  eval behavior mynet2 linear shape            0.3562  ( 0.1611   )   -0.1898   
-  6.  eval behavior mynet2 quadratic shape        -0.1998  ( 0.1005   )    0.0724   
+  3.  rate rate mynet2 (period 1)                  1.1821  ( 0.3038   )   -0.1421   
+  4.  rate rate mynet2 (period 2)                  1.6459  ( 0.3903   )   -0.0494   
+  5.  eval behavior mynet2 linear shape            0.3902  ( 0.1749   )    0.1069   
+  6.  eval behavior mynet2 quadratic shape        -0.2009  ( 0.1180   )   -0.0380   
 
-Total of 371 iteration steps.
+Total of 658 iteration steps.
 
 > ##test11
 > print('test11')
@@ -161,7 +158,7 @@ Total of 371 iteration steps.
 > data501paj <- sienaDataCreateFromSession("s50paj.csv", modelName="s50paj")
 Loading required package: network
 network: Classes for Relational Data
-Version 1.7-1 created on March 1, 2012.
+Version 1.7.2 created on March 15, 2013.
 copyright (c) 2005, Carter T. Butts, University of California-Irvine
                     Mark S. Handcock, University of Washington
                     David R. Hunter, Penn State University
@@ -173,7 +170,7 @@ copyright (c) 2005, Carter T. Butts, University of California-Irvine
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
 > 
-> model501e <- model.create( projname="s50e", cond=FALSE, nsub=2, n3=100 )
+> model501e <- model.create( projname="s50e", cond=FALSE, nsub=2, n3=100, seed=6)
 > ans501e <- siena07(model501e, data=data501e$mydata, effects=data501e$myeff,
 +                    parallelTesting=TRUE, batch=TRUE, silent=TRUE)
 > ##, verbose=TRUE)
@@ -182,28 +179,29 @@ Estimates, standard errors and convergence t-ratios
 
                                         Estimate   Standard   Convergence 
                                                      Error      t-ratio   
-  1. rate constant Var1 rate (period 1)  5.7725  ( 0.9854   )    0.0309   
-  2. rate constant Var1 rate (period 2)  4.5252  ( 1.2071   )    0.0524   
-  3. eval outdegree (density)           -2.3255  ( 0.1206   )   -0.0389   
-  4. eval reciprocity                    2.7484  ( 0.1998   )   -0.1203   
+  1. rate constant Var1 rate (period 1)  5.6361  ( 0.9089   )   -0.0980   
+  2. rate constant Var1 rate (period 2)  4.3568  ( 0.5558   )   -0.1748   
+  3. eval outdegree (density)           -2.2984  ( 0.1036   )    0.0582   
+  4. eval reciprocity                    2.7178  ( 0.1917   )   -0.1886   
 
-Total of 614 iteration steps.
+Total of 453 iteration steps.
 
 > ##test12
 > print('test12')
 [1] "test12"
 > use<- 1:30
-> mynet1 <- sienaNet(array(c(s501[use,], s502[use,], s503[use,]),
+> mynet1 <- sienaDependent(array(c(s501[use,], s502[use,], s503[use,]),
 +                          dim=c(length(use), 50,3)), type='bipartite',
 +                          nodeSet=c('Senders','receivers'))
 > receivers <- sienaNodeSet(50,'receivers')
 > senders <- sienaNodeSet(30,'Senders')
 > mydata <- sienaDataCreate(mynet1, nodeSets=list(senders, receivers))
 > myeff <- getEffects(mydata)
-> myeff <- includeEffects(myeff,  inPop)
+> myeff <- includeEffects(myeff, inPop)
                     name shortName type interaction1 interaction2 include
 mynet1.obj.eval.3 mynet1     inPop eval                              TRUE
-> ans <- siena07(sienaModelCreate(n3=100,nsub=2, seed=1, projname="test12"),
+> ans <- siena07(sienaModelCreate(n3=100, nsub=2,
++                seed=1, projname="test12"),
 +                data=mydata, effects=myeff, batch=TRUE, silent=TRUE)
 > ans
 Estimates, standard errors and convergence t-ratios
@@ -212,14 +210,17 @@ Estimates, standard errors and convergence t-ratios
                                                 Error      t-ratio   
 
 Rate parameters: 
-  0.1      Rate parameter period 1  4.2553  ( 0.6363   )             
-  0.2      Rate parameter period 2  3.5608  ( 0.5237   )             
+  0.1      Rate parameter period 1  4.3087  ( 0.7045   )             
+  0.2      Rate parameter period 2  3.5047  ( 0.5461   )             
 
 Other parameters: 
-  1.  eval outdegree (density)     -1.7724  ( 0.1924   )    0.1217   
-  2.  eval indegree - popularity    0.0560  ( 0.0668   )   -0.1674   
+  1.  eval outdegree (density)     -1.7031  ( 0.1585   )   0.5089    
+  2.  eval indegree - popularity    0.0390  ( 0.0567   )   0.0464    
 
-Total of 210 iteration steps.
+Total of 227 iteration steps.
 
 > tt <- sienaTimeTest(ans)
 > 
+> proc.time()
+   user  system elapsed 
+  12.29    0.06   12.49 

@@ -57,7 +57,7 @@ Probability of permutation step. (set to zero in startup phase.)
   The arguments with no defaults must be passed in on the call to
   siena07.
   Also you must set the option \code{maxlike=TRUE} in the call to
-  \code{sienaModelCreate()}
+  \code{sienaAlgorithmCreate()}
 }
 \value{Depends on the call. If \code{INIT} or \code{initC} or
   \code{TERM}
@@ -72,9 +72,9 @@ Probability of permutation step. (set to zero in startup phase.)
 \seealso{\code{\link{siena07}} }
 \examples{
 \dontrun{
-mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff<- getEffects(mydata)
-mymodel<- sienaModelCreate(fn = maxlikefn, nsub=2, n3=100, maxlike=TRUE)
-ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE)
+myalgor<- sienaAlgorithmCreate(nsub=2, n3=100, maxlike=TRUE)
+ans<- siena07(myalgor, data=mydata, effects=myeff,  batch=TRUE)
 }}

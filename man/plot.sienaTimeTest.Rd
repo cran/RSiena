@@ -44,7 +44,7 @@
  opposed to including both outdegree and reciprocity.
 
  The \code{pairwise=FALSE} plot displays the most of the information
- garnered from \code{sienaTimeTest} in a graphical fashion.  For a each
+ garnered from \code{sienaTimeTest} in a graphical fashion.  For each
  effect, the method of moments parameter estimate for the base period
  (i.e. wave 1) is given as a blue, horizontal reference line. One step
  estimates are given for all of the parameters by dots at each wave. The
@@ -66,15 +66,15 @@
   \code{\link{xyplot}}}
 \examples{
 \dontrun{
-mymodel <- sienaModelCreate(fn=simstats0c, nsub=4, n3=500)
-mynet1 <- sienaNet(array(c(s501, s502, s503, s501, s503, s502), dim=c(50, 50, 6)))
+myalgorithm <- sienaAlgorithmCreate(nsub=4, n3=500)
+mynet1 <- sienaDependent(array(c(s501, s502, s503, s501, s503, s502), dim=c(50, 50, 6)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip, balance)
 myeff <- includeTimeDummy(myeff, recip, timeDummy="2,3,5")
 myeff <- includeTimeDummy(myeff, balance, timeDummy="4")
 myeff <- includeTimeDummy(myeff, density, timeDummy="all")
-ansp <- siena07(mymodel, data=mydata, effects=myeff, batch=FALSE)
+ansp <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 ttp <- sienaTimeTest(ansp)
 
 ## Pairwise plots show

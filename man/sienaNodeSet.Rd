@@ -14,6 +14,10 @@ sienaNodeSet(n, nodeSetName="Actors", names=NULL)
   \item{names}{optional character string vector of length n of the names of the
  nodes.}
 }
+\details{
+  This function is important for data sets having more than one node set,
+  but not otherwise.
+}
 \value{
   Returns a Siena node set, an integer vector, possibly with names, plus the
   attributes, class equal to 'sienaNodeSet', and nodeSetName equal to

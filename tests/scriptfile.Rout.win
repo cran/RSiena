@@ -1,8 +1,7 @@
 
-R version 2.14.1 Patched (2012-01-08 r58077)
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i386-pc-mingw32/i386 (32-bit)
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i386-w64-mingw32/i386 (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -25,7 +24,7 @@ Type 'q()' to quit R.
 > ###
 > ### ---- Rscript01DataFormat.R: a script for the introduction to RSiena -------------
 > ###
-> ###                               version: January 17, 2012
+> ###                               version: April 14, 2013
 > ###################################################################################
 > #
 > # Rscript01DataFormat.R is followed by
@@ -118,7 +117,9 @@ _U_s_a_g_e:
                       configure.args = getOption("configure.args"),
                       configure.vars = getOption("configure.vars"),
                       clean = FALSE, Ncpus = getOption("Ncpus", 1L),
-                      libs_only = FALSE, INSTALL_opts, ...)
+                      verbose = getOption("verbose"),
+                      libs_only = FALSE, INSTALL_opts, quiet = FALSE,
+                      keep_outputs = FALSE, ...)
      
 _A_r_g_u_m_e_n_t_s:
 
@@ -139,7 +140,7 @@ _A_r_g_u_m_e_n_t_s:
           install the packages.  Recycled as needed.  If missing,
           defaults to the first element of '.libPaths()'.
 
-   repos: character vector, the base URLs of the repositories to use,
+   repos: character vector, the base URL(s) of the repositories to use,
           e.g., the URL of a CRAN mirror such as
           '"http://cran.us.r-project.org"'.
 
@@ -147,10 +148,10 @@ _A_r_g_u_m_e_n_t_s:
           '.tar.gz' for source packages).
 
 contriburl: URL(s) of the contrib sections of the repositories.  Use
-          this argument only if your repository mirror is incomplete,
-          e.g., because you burned only the 'contrib' section on a CD.
-          Overrides argument 'repos'.  As with 'repos', can also be
-          'NULL' to install from local files.
+          this argument if your repository mirror is incomplete, e.g.,
+          because you burned only the 'contrib' section on a CD, or
+          only have binary packages.  Overrides argument 'repos'.  As
+          with 'repos', can also be 'NULL' to install from local files.
 
   method: download method, see 'download.file'.
 
@@ -170,10 +171,18 @@ dependencies: logical indicating to also install uninstalled packages
           "LinkingTo", "Suggests", "Enhances")'.
 
           Only supported if 'lib' is of length one (or missing), so it
-          is unambiguous where to install the dependent packages.
+          is unambiguous where to install the dependent packages.  If
+          this is not the case it is ignored, with a warning.
 
           The default, 'NA', means 'c("Depends", "Imports",
-          "LinkingTo")' if 'lib' is unambiguous, and 'FALSE' otherwise.
+          "LinkingTo")'.
+
+          'TRUE' means (as from R 2.15.0) to use 'c("Depends",
+          "Imports", "LinkingTo", "Suggests")' for 'pkgs' and
+          'c("Depends", "Imports", "LinkingTo")' for added
+          dependencies: this installs all the packages needed to run
+          'pkgs', their examples, tests and vignettes (if the package
+          author specified them correctly).
 
     type: character, indicating the type of package to download and
           install.
@@ -183,7 +192,13 @@ dependencies: logical indicating to also install uninstalled packages
           but not installed on other platforms.
 
           The default is the appropriate binary type on Windows and on
-          the CRAN binary Mac OS X distribution, otherwise '"source"'.
+          the CRAN binary OS X distribution, otherwise '"source"'.  For
+          the platforms where binary packages are the default, an
+          alternative is '"both"' which means 'try binary if available,
+          otherwise try source'.  (This will only choose the binary
+          package if its version number is no older than the source
+          version.  In interactive use it will ask before attempting to
+          install source packages.)
 
 configure.args: (not used on Windows) a character vector or a named
           list.  If a character vector with no names is supplied, the
@@ -212,10 +227,12 @@ configure.vars: (not used on Windows) analogous to 'configure.args' for
           the package installation in addition to removing intermediate
           files.
 
-   Ncpus: The number of parallel processes to use for a parallel
+   Ncpus: the number of parallel processes to use for a parallel
           install of more than one source package.  Values greater than
           one are supported if the 'make' command specified by
           'Sys.getenv("MAKE", "make")' accepts argument '-k -j Ncpus'.
+
+ verbose: a logical indicating if some "progress report" should happen.
 
 libs_only: a logical value: should the '--libs-only' option be used to
           install only additional sub-architectures?  (See also
@@ -225,24 +242,37 @@ libs_only: a logical value: should the '--libs-only' option be used to
 
 INSTALL_opts: an optional character vector of additional option(s) to
           be passed to 'R CMD INSTALL' for a source package install.
-          E.g.  'c("--html", "--no-multiarch")'.
+          E.g., 'c("--html", "--no-multiarch")'.
 
-     ...: Arguments to be passed to 'download.file', or to the
-          functions for binary installs on Mac OS X and Windows (which
-          accept an argument '"lock"': the the section on 'Locking').
+          Can also be a named list of character vectors of to be used
+          as additional options, with names the respective package
+          names.
+
+   quiet: logical: if true, reduce the amount of output.
+
+keep_outputs: a logical: if true, keep the outputs from installing
+          source packages in the current working directory, with the
+          names of the output files the package names with '.out'
+          appended.  Alternatively, a character string giving the
+          directory where to save the outputs.  Ignored when installing
+          from local files.
+
+     ...: Arguments to be passed to 'download.file' or to the functions
+          for binary installs on OS X and Windows (which accept an
+          argument '"lock"': see the section on 'Locking').
 
 _D_e_t_a_i_l_s:
 
      R packages are primarily distributed as _source_ packages, but
      _binary_ packages (a packaging up of the installed package) are
-     also available, and the type most commonly used on Windows and
-     from the CRAN distribution for Mac OS X.  This function can
-     install either type where supported, either by downloading a file
-     from a repository or from a local file.  The default type is given
-     by 'getOption("pkgType")': this is '"source"' apart from under
-     Windows or a CRAN binary distribution for Mac OS X.
+     also supported, and the type most commonly used on Windows and
+     from the CRAN distribution for OS X.  This function can install
+     either type where supported, either by downloading a file from a
+     repository or from a local file.  The default type is given by
+     'getOption("pkgType")': this defaults to '"source"' apart from
+     under Windows or a CRAN binary distribution for OS X.
 
-     This is the main function to install packages. It takes a vector
+     This is the main function to install packages.  It takes a vector
      of names and a destination library, downloads the packages from
      the repositories and installs them.  (If the library is omitted it
      defaults to the first directory in '.libPaths()', with a message
@@ -277,6 +307,16 @@ _D_e_t_a_i_l_s:
      Argument 'libs_only = TRUE' is supported for source installs and
      for Windows binary installs.
 
+     For binary installs, the function also checks for the availability
+     of a source package on the same repository, and reports if the
+     source package has a later version, or is available but no binary
+     version is.  This check can be suppressed by
+     
+         options(install.packages.check.source = "no")
+
+     and should be if there is a partial repository containing only
+     binary files.
+
 _V_a_l_u_e:
 
      Invisible 'NULL'.
@@ -298,7 +338,7 @@ _L_o_c_k_i_n_g:
      Finally locking (and restoration on error) can be suppressed by
      '--no-lock'.
 
-     For a Mac OS X or Windows binary install, no locking is done by
+     For an OS X or Windows binary install, no locking is done by
      default.  Setting argument 'lock' to 'TRUE' (it defaults to the
      value of 'getOption("install.lock", FALSE)') will use
      per-directory locking as described for source installs: if the
@@ -312,6 +352,23 @@ _L_o_c_k_i_n_g:
      badly that the lock directory is not removed: this inhibits any
      further installs to the library directory (or for '--pkglock', of
      the package) until the lock directory is removed manually.
+
+_P_a_r_a_l_l_e_l _i_n_s_t_a_l_l_s:
+
+     Parallel installs are attempted if 'pkgs' has length greater than
+     one and 'Ncpus > 1'.  It makes use of a parallel 'make', so the
+     'make' specified (default 'make') when R was built must be capable
+     of supporting 'make -j n': GNU make and 'dmake' do, but FreeBSD
+     and Solaris 'make' do not: if necessary environment variable
+     'MAKE' can be set for the current session to select a suitable
+     'make'.
+
+     'install.packages' needs to be able to compute all the
+     dependencies of 'pkgs' from 'available', including if one element
+     of 'pkgs' depends indirectly on another.  This means that if for
+     example you are installing CRAN packages which depend on
+     Bioconductor packages which in turn depend on CRAN packages,
+     'available' needs to cover both CRAN and Bioconductor packages.
 
 _N_o_t_e:
 
@@ -342,12 +399,9 @@ _E_x_a_m_p_l_e_s:
 
      ## Not run:
      
-     install.packages(
-         c("XML_0.99-5.tar.gz",
-           "../../Interfaces/Perl/RSPerl_0.8-0.tar.gz"),
-         repos = NULL,
-         configure.args = c(XML = '--with-xml-config=xml-config',
-                            RSPerl = "--with-modules='IO Fcntl'"))
+     ## A Linux example for Fedora's layout
+     install.packages(c("ncdf4", "RNetCDF"),
+       configure.args = c(RNetCDF = "--with-netcdf-include=/usr/include/udunits2"))
      ## End(Not run)
      
 > 
@@ -358,7 +412,7 @@ _E_x_a_m_p_l_e_s:
 > # Where are you?
 > 
 > 	getwd()
-[1] "c:/ruth/RSiena.Rcheck/tests"
+[1] "C:/Users/tom.snijders/Documents/RSienaRForge/pkg/RSiena.Rcheck/tests_i386"
 > 
 > # By something like
 > 	# setwd('C:/SienaTest')
@@ -377,7 +431,7 @@ _E_x_a_m_p_l_e_s:
 > #
 > # but note that "\" has to be changed; both '/' and '\\' work!!!
 > 
-> # What is there?
+> # What is in this directory?
 > 
 >          list.files()
  [1] "CBE1.DAT"                 "CBE3.DAT"                
@@ -422,7 +476,7 @@ _E_x_a_m_p_l_e_s:
 [79] "test12.out"               "test3.out"               
 [81] "test4.out"                "test7.out"               
 [83] "test8.out"                "tmp3a.dat"               
-[85] "tmp4a.dat"               
+[85] "tmp4a.dat"                "vtextexoreal.dat"        
 > 
 > # What is available in RSiena?
 > 
@@ -433,43 +487,85 @@ _S_i_m_u_l_a_t_i_o_n _I_n_v_e_s_t_i_g_a_t_i_o_n _f_o_r
 
 _D_e_s_c_r_i_p_t_i_o_n:
 
-     Fits models to longitudinal sets of networks.
+     Fits statistical models to longitudinal sets of networks, and to
+     longitudinal sets of networks and behavioral variables. Not only
+     one-mode networks but also two-mode networks and multivariate
+     networks are allowed. The models are stochastic actor-oriented
+     models.
+
+     Package '"RSienaTest"' is the development version, and is
+     distributed through R-Forge, see <URL:
+     http://r-forge.r-project.org/R/?group_id=461>. Package '"RSiena"'
+     is the official release.
 
 _D_e_t_a_i_l_s:
 
      Use 'siena07' to fit a model.
 
-     Data objects can be created via the Gui displayed by 'siena01Gui',
-     via
-     'sienaDataCreateFromSession' or directly from matrices and vectors
-     using 'sienaNet', 'coCovar' etc.\ and finally 'sienaDataCreate'.
+     Data objects can be created from matrices and vectors using
+     'sienaDependent', 'coCovar' etc., and finally 'sienaDataCreate'.
+     Another possibility (but with less flexibility) is via the Gui
+     displayed by 'siena01Gui', or via 'sienaDataCreateFromSession'.
 
      Effects are selected using an _effects_ object, which can be
      created using 'getEffects'.
 
-     Control of the fitting requires a _model_ object, which can be
-     created by 'sienaModelCreate'.
+     Control of the estimation algorithm requires a 'sienaAlgorithm'
+     object that defines the settings (parameters) of the algorithm,
+     and which can be created by 'sienaAlgorithmCreate' (alias
+     'sienaModelCreate').
 
      More detailed help is available in the manual which you can
      display using
      'RShowDoc("RSiena_Manual", package="RSiena")'
 
-       Package:   RSiena     
-       Type:      Package    
-       Version:   1.0.12.195 
-       Date:      2012-01-20 
-       License:   GPL-2      
-       LazyLoad:  yes        
+       Package:               RSiena                                              
+       Type:                  Package                                             
+       Version:               1.1-232                                             
+       Date:                  2013-06-18                                          
+       Depends:               R (>= 2.15.0)                                       
+       Imports:               Matrix                                              
+       Suggests:              tcltk, network, codetools, lattice, MASS, parallel, 
+                              xtable, tools 
+       SystemRequirements:    GNU make, tcl/tk 8.5, Tktable                       
+       License:               GPL-2                                               
+       LazyData:              yes                                                 
+       NeedsCompilation: yes                                                      
+       BuildResaveData:       no                                                  
       
 _A_u_t_h_o_r(_s):
 
-     Ruth Ripley, Krists Boitmanis.
+     Ruth Ripley, Krists Boitmanis, Tom Snijders.  Contributions by
+     Josh Lospinoso, Charlotte Greenan, Christian Steglich, Johan
+     Koskinen, Mark Ortmann, and Nynke Niezink.
 
-     Maintainer: RSiena developers <rsiena@stats.ox.ac.uk>
+     Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 
 _R_e_f_e_r_e_n_c_e_s:
 
-     See <URL: http://www.stats.ox.ac.uk/~snijders/siena/>
+        • Schweinberger, Michael, and Snijders, Tom A.B. (2007). Markov
+          models for digraph panel data: Monte Carlo-based derivative
+          estimation.  _Computational Statistics and Data Analysis_ 51,
+          4465-4483.
+
+        • Snijders, Tom A.B. (2001).  The statistical evaluation of
+          social network dynamics.  _Sociological Methodology_, 31,
+          361-395.
+
+        • Snijders, Tom A.B., Steglich, Christian E.G., and
+          Schweinberger, Michael (2007). Modeling the co-evolution of
+          networks and behavior.  Pp. 41-71 in _Longitudinal models in
+          the behavioral and related sciences_, edited by Kees van
+          Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
+
+        • Steglich, Christian E. G., Snijders, Tom A. B., and Pearson,
+          Michael A. (2010). Dynamic networks and behavior: Separating
+          selection from influence. Sociological Methodology, 40,
+          329-393.
+
+        • Further see the extensive manual accessible by the command
+          'RShowDoc("RSiena_Manual", package="RSiena")' and the website
+          <URL: http://www.stats.ox.ac.uk/~snijders/siena/> .
 
 _S_e_e _A_l_s_o:
 
@@ -477,18 +573,21 @@ _S_e_e _A_l_s_o:
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+     mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
      mydata <- sienaDataCreate(mynet1)
      myeff <- getEffects(mydata)
-     mymodel <- sienaModelCreate(findiff=FALSE, fn=simstats0c, nsub=2, n3=100)
-     ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+     myeff <- includeEffects(myeff, transTrip)
+     myeff
+     myalgorithm <- sienaAlgorithmCreate(nsub=3, n3=200)
+     ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
+     summary(ans)
      
 > 
 > # (these are .htlm HELP PAGES)
 > 
 > # At the bottom of this page, when you click on "Index",
-> # a list of all the available functions is shouwn in your browser.
-> # The same list is shown in the gui ('graphical user interface') by requesting
+> # a list of all the available functions is shown in your browser.
+> # The same list is shown in the graphical user interface for R by requesting
 > 
 >          library(help=RSiena)
 
@@ -500,23 +599,25 @@ Package:              RSiena
 Type:                 Package
 Title:                Siena - Simulation Investigation for Empirical
                       Network Analysis
-Version:              1.0.12.195
-Date:                 2012-01-20
-Author:               Various
-Depends:              R (>= 2.10.0)
+Version:              1.1-232
+Date:                 2013-06-18
+Author:               Ruth Ripley, Krists Boitmanis, Tom A.B. Snijders
+Depends:              R (>= 2.15.0)
 Imports:              Matrix
-Suggests:             tcltk, snow, rlecuyer, network, codetools,
-                      lattice, MASS, parallel, xtable, tools
+Suggests:             tcltk, network, codetools, lattice, MASS,
+                      parallel, xtable, tools
 SystemRequirements:   GNU make, tcl/tk 8.5, Tktable
-Maintainer:           RSiena developers <rsiena@stats.ox.ac.uk>
-Description:          Fits models to longitudinal networks
-License:              GPL (>=2)
+Maintainer:           Tom A.B. Snijders
+                      <tom.snijders@nuffield.ox.ac.uk>
+Description:          Fits models to longitudinal network data
+License:              GPL-2
 LazyLoad:             yes
 LazyData:             yes
+NeedsCompilation:     yes
 BuildResaveData:      no
 URL:                  http://www.stats.ox.ac.uk/~snijders/siena
-Packaged:             2012-01-20 15:57:13 UTC; Ruth Ripley
-Built:                R 2.14.1; i386-pc-mingw32; 2012-01-20 15:57:49
+Packaged:             2013-06-18 09:25:43 UTC; Tom.Snijders
+Built:                R 3.0.1; i386-w64-mingw32; 2013-06-18 09:25:56
                       UTC; windows
 
 Index:
@@ -525,7 +626,6 @@ RSiena-package          Simulation Investigation for Empirical Network
                         Analysis
 allEffects              Internal data frame used to construct effect
                         objects.
-bayes                   A function for fitting Bayesian models
 coCovar                 Function to create a constant covariate object
 coDyadCovar             Function to create a constant dyadic covariate
                         object.
@@ -534,16 +634,20 @@ edit.sienaEffects       Allow editing of a sienaEffects object if a gui
 effectsDocumentation    Function to create a table of documentation of
                         effect names, short names etc.
 getEffects              Function to create a Siena effects object
+hn3401                  Network data: excerpt from 'Dutch Social
+                        Behavior Data Set' of Chris Baerveldt.
 includeEffects          Function to include effects in a Siena model
 includeInteraction      Function to create user-specified interactions
                         for a Siena model.
-includeTimeDummy        Functions to include time dummy effects in a
+includeTimeDummy        Function to include time dummy effects in a
                         Siena model
 installGui              Obsolete function to start up the installer for
                         the standalone Gui.
 iwlsm                   Function to fit an iterated weighted least
                         squares model.
 maxlikefn               A ML version of FRAN
+n3401                   Network data: excerpt from 'Dutch Social
+                        Behavior Data Set' of Chris Baerveldt.
 plot.sienaTimeTest      Functions to plot assessment of time
                         heterogeneity of parameters
 print.sienaEffects      Print methods for Siena effects objects
@@ -567,6 +671,9 @@ siena07                 Function to estimate parameters in a Siena
                         model
 siena08                 Function to perform a meta analysis of a
                         collection of Siena fits.
+sienaAlgorithmCreate    Function to create an object containing the
+                        algorithm specifications for parameter
+                        estimation in RSiena
 sienaCompositionChange
                         Functions to create a Siena composition change
                         object
@@ -576,14 +683,16 @@ sienaDataCreate         Function to create a Siena data object
 sienaDataCreateFromSession
                         Creates a Siena data object from a Siena
                         session file
-sienaFit.methods        Methods for processing sienaFit objects
+sienaDependent          Function to create a dependent variable for a
+                        Siena model
+sienaFit.methods        Methods for processing sienaFit objects,
+                        produced by 'siena07'.
+sienaGOF                Functions to assess goodness of fit for SAOMs
+sienaGOF-auxiliary      Auxiliary functions for goodness of fit
+                        assessment by 'sienaGOF'
 sienaGroupCreate        Function to group together several Siena data
                         objects
-sienaModelCreate        Function to create an object containing the
-                        algorithm specifications for parameter
-                        estimation in RSiena
 sienaModelOptions       Function to allow entry of model options
-sienaNet                Function to create a Siena network object
 sienaNodeSet            Function to create a node set
 sienaTimeTest           Functions to assess and account for time
                         heterogeneity of parameters
@@ -600,7 +709,7 @@ xtable                  Access xtable in package xtable
 > 
 > # Where is the manual?
 > 
->          RShowDoc("RSiena_Manual", package="RSiena")
+> #       RShowDoc("RSiena_Manual", package="RSiena")
 > 
 > # (Note, however, that it is possible that the Siena website
 > # at http://www.stats.ox.ac.uk/~snijders/siena/ contains a more recent version.)
@@ -636,17 +745,17 @@ _U_s_a_g_e:
                 stringsAsFactors = default.stringsAsFactors(),
                 fileEncoding = "", encoding = "unknown", text)
      
-     read.csv(file, header = TRUE, sep = ",", quote="\"", dec=".",
-              fill = TRUE, comment.char="", ...)
+     read.csv(file, header = TRUE, sep = ",", quote = "\"",
+              dec = ".", fill = TRUE, comment.char = "", ...)
      
-     read.csv2(file, header = TRUE, sep = ";", quote="\"", dec=",",
-               fill = TRUE, comment.char="", ...)
+     read.csv2(file, header = TRUE, sep = ";", quote = "\"",
+               dec = ",", fill = TRUE, comment.char = "", ...)
      
-     read.delim(file, header = TRUE, sep = "\t", quote="\"", dec=".",
-                fill = TRUE, comment.char="", ...)
+     read.delim(file, header = TRUE, sep = "\t", quote = "\"",
+                dec = ".", fill = TRUE, comment.char = "", ...)
      
-     read.delim2(file, header = TRUE, sep = "\t", quote="\"", dec=",",
-                 fill = TRUE, comment.char="", ...)
+     read.delim2(file, header = TRUE, sep = "\t", quote = "\"",
+                 dec = ",", fill = TRUE, comment.char = "", ...)
      
 _A_r_g_u_m_e_n_t_s:
 
@@ -924,7 +1033,7 @@ _S_e_e _A_l_s_o:
 _E_x_a_m_p_l_e_s:
 
      ## using count.fields to handle unknown maximum number of fields
-     ## when fill=TRUE
+     ## when fill = TRUE
      test1 <- c(1:5, "6,7", "8,9,10")
      tf <- tempfile()
      writeLines(test1, tf)
@@ -932,13 +1041,13 @@ _E_x_a_m_p_l_e_s:
      read.csv(tf, fill = TRUE) # 1 column
      ncol <- max(count.fields(tf, sep = ","))
      read.csv(tf, fill = TRUE, header = FALSE,
-              col.names = paste("V", seq_len(ncol), sep = ""))
+              col.names = paste0("V", seq_len(ncol)))
      unlink(tf)
      
      ## "Inline" data set, using text=
      ## Notice that leading and trailing empty lines are auto-trimmed
      
-     read.table(header=TRUE, text="
+     read.table(header = TRUE, text = "
      a b
      1 2
      3 4
@@ -957,7 +1066,7 @@ _E_x_a_m_p_l_e_s:
 > 
 > #-----------------------------------------------------------------------------
 > 
-> # Quick start(Data assignment).
+> # Quick start (Data assignment).
 > # Please make sure the s50 data set is in your working directory.
 > # The data set is on the Siena website ("Data sets" tab) and must be
 > # unzipped in your working directory.
@@ -1147,6 +1256,7 @@ V3
 [48,]  0  0  0
 [49,]  0  0  0
 [50,]  0  0  0
+> ### Indeed there are a lot of zeros - networks tend to be sparse.
 > 
 > ### ---- Converting data frame to matrix -------------------------------------------
 > ###
@@ -1473,14 +1583,14 @@ FALSE  TRUE
 > 
 > ################################################################################
 > ###
-> ### ---- PROCEED TO RscriptSNADescriptives.R FOR DESCRIPTIVE ANAYLSIS ----------
+> ### ---- PROCEED TO RscriptSNADescriptives.R FOR DESCRIPTIVE ANALYSIS ----------
 > ###
 > ################################################################################
 > ###############################################################################
 > ###
-> ### -- Rscript02SienaVariableFormat.R: a script for the introduction to RSiena --
+> ### - Rscript02SienaVariableFormat.R: a script for the introduction to RSiena -
 > ###
-> ###                               version January 17, 2012
+> ###                               version April 14, 2013
 > ###############################################################################
 > #
 > # The introductory script is divided into the following script files:
@@ -1496,10 +1606,7 @@ FALSE  TRUE
 > # This script, Rscript02SienaVariableFormat.R, sets up the variables for analysis.
 > # The manipulations in this script requires that you have gone through the
 > # first part, "CALLING THE DATA AND PRELIMINARY MANIPULATIONS",
-> # of the script "Rscript01DataFormat.R" beforehand;
-> # or that you have defined the data and the model by means of the
-> # siena01Gui() function and have saved and loaded the results,
-> # as described in Section 2.3.3 of the Siena manual.
+> # of the script "Rscript01DataFormat.R" beforehand.
 > 
 > #### FORMATING DATA ACCORDING TO THEIR ROLES AS VARIABLES IN A SIENA MODEL #####
 > 
@@ -1513,13 +1620,13 @@ FALSE  TRUE
 > # ---- A. ----------------------------------------------------------------------
 > # First we have to create objects for the dependent variables.
 > 
-> # sienaNet creates a Siena network object from a matrix or array or list of
-> # sparse matrix of triples.
+> # sienaDependent creates a sienaDependent object, here a network,
+> # from a matrix or array or list of sparse matrix of triples.
 > # This object will have the role of a dependent variable in the analysis.
 > # The name of this network object (here: friendship) will be used
 > # in the output file.
 > 
->  friendship <- sienaNet(
+>  friendship <- sienaDependent(
 +                      array( c( friend.data.w1, friend.data.w2, friend.data.w3 ),
 +                      dim = c( 50, 50, 3 ) ) )
 > 
@@ -1527,10 +1634,10 @@ FALSE  TRUE
 > # receivers) and the number of waves.
 > # This object is an array of dimension 50 x 50 x 3, representing
 > # three adjacency matrices, with a number of attributes.
-> # Note that this is an object
+> # Note that this is an object of class
 > 
 >         class(friendship)
-[1] "sienaNet"
+[1] "sienaDependent"
 > 
 > # with specific attributes and methods associated with it.
 > # You can get the detailed information by requesting
@@ -1542,7 +1649,7 @@ $dim
 [1] 50 50  3
 
 $class
-[1] "sienaNet"
+[1] "sienaDependent"
 
 $type
 [1] "oneMode"
@@ -1555,6 +1662,9 @@ $nodeSet
 
 $netdims
 [1] 50 50  3
+
+$allowOnly
+[1] TRUE
 
 > 
 > # If you only are interested in the value of one particular attribute,
@@ -1570,42 +1680,50 @@ $netdims
 > # but this gives a lot of output which you may not want,
 > # hence the # sign in front.
 > 
-> # The function sienaNet can also be used to create a behavior variable object
+> # The function sienaDependent can also be used to create a behavior variable object
 > # with the extra argument type = "behavior".
 > # (Non-mentioned attributes get the default value, and in this case
-> # oneMode is the default;  see below.)
+> # oneMode is the default; see below.)
 > 
-> # The 'drink' data (created in  RscriptDataFormat.R ) is made available as a
+> # The 'drink' data (created in RscriptDataFormat.R ) is made available as a
 > # dependent behavior variable by the function
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
+>         drinkingbeh <- sienaDependent( drink, type = "behavior" )
 > 
-> # the class, class(drinkingbeh), is still sienaNet
+> # the class, class(drinkingbeh), is still sienaDependent.
 > 
-> # (NB: only use the variable in ONE role in a given model:
+> # (Note: only use the variable in ONE role in a given model:
 > #  behavior variable or changing covariate!)
 > 
-> # The options available for a sienaNet object are displayed when typing
+> # The options available for defining a sienaDependent object
+> # are displayed by typing
 > 
->         ?sienaNet
-sienaNet                package:RSiena                 R Documentation
+>         ?sienaDependent
+sienaDependent             package:RSiena              R Documentation
 
-_F_u_n_c_t_i_o_n _t_o _c_r_e_a_t_e _a _S_i_e_n_a _n_e_t_w_o_r_k _o_b_j_e_c_t
+_F_u_n_c_t_i_o_n _t_o _c_r_e_a_t_e _a _d_e_p_e_n_d_e_n_t _v_a_r_i_a_b_l_e _f_o_r _a _S_i_e_n_a _m_o_d_e_l
 
 _D_e_s_c_r_i_p_t_i_o_n:
 
-     Creates a Siena network object from a matrix or array or list of
-     sparse matrix of triples.
+     Creates a Siena dependent variable: either a network, created from
+     a matrix or array or list of sparse matrix of triples; or a
+     behavior variable, created from a matrix.  'sienaDependent()' and
+     'sienaNet()' are identical functions; the second name was used
+     from the start of the 'RSiena' package, but the first name
+     indicates more precisely the purpose of this function.
 
 _U_s_a_g_e:
 
+     sienaDependent(netarray, type=c("oneMode", "bipartite", "behavior"),
+     nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
+     
      sienaNet(netarray, type=c("oneMode", "bipartite", "behavior"),
-     nodeSet="Actors", sparse=is.list(netarray))
+     nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
      
 _A_r_g_u_m_e_n_t_s:
 
-netarray: matrix (type="behavior" only) or array of values or list of
-          sparse matrices of type "dgTMatrix"
+netarray: matrix (type="behavior" only) or (for the other types) array
+          of values or list of sparse matrices of type "dgTMatrix"
 
     type: type of network, default "oneMode"
 
@@ -1613,8 +1731,19 @@ netarray: matrix (type="behavior" only) or array of values or list of
           containing 2 character strings for a bipartite network:
           "rows" first, then "columns".
 
-  sparse: logical: set to TRUE if the data is in sparse matrix format,
+  sparse: logical: TRUE indicates the data is in sparse matrix format,
           FALSE otherwise
+
+allowOnly: logical: If TRUE, it will be detected when between any two
+          consecutive waves the changes are non-decreasing or
+          non-increasing, and if this is the case, this will also be a
+          constraint for the simulations between these two waves.  This
+          is done by means of the internal parameters 'uponly' and
+          'downonly'.  If FALSE, the parameters 'uponly' and 'downonly'
+          always are set to FALSE, and changes in dependent variables
+          will not be constrained to be non-decreasing or
+          non-increasing.  For normal operation, TRUE is the
+          appropriate option.
 
 _D_e_t_a_i_l_s:
 
@@ -1623,21 +1752,24 @@ _D_e_t_a_i_l_s:
 
 _V_a_l_u_e:
 
-     An object of class "sienaNet". An array or (networks only) a list
-     of sparse matrices with attributes:
+     An object of class "sienaDependent". An array or (networks only) a
+     list of sparse matrices with attributes:
 
- netdims: Dimensions of the network or behavior variable. Senders,
+ netdims: Dimensions of the network or behavior variable: senders,
           receivers (1 for behavior), periods
 
     type: oneMode, bipartite or behavior
 
-  sparse: Boolean: whether a list of sparse matrices or not
+  sparse: Boolean: whether the network is given as a list of sparse
+          matrices or not
 
  nodeSet: Character string with name(s) of node set(s)
 
+allowOnly: The value of the allowOnly parameter
+
 _A_u_t_h_o_r(_s):
 
-     Ruth Ripley
+     Ruth Ripley and Tom A.B. Snijders
 
 _R_e_f_e_r_e_n_c_e_s:
 
@@ -1645,29 +1777,29 @@ _R_e_f_e_r_e_n_c_e_s:
 
 _S_e_e _A_l_s_o:
 
-     'sienaDataCreate'
+     'sienaDataCreate', 'sienaDataConstraint'
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-     mynet2 <- sienaNet(s50a, type="behavior")
-     ## note that the following example works although the node sets do not exist!
-     mynet3 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)),
-     type="bipartite", nodeSet=c("senders", "receivers"))
+     mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+     mybeh <- sienaDependent(s50a, type="behavior")
+     ## note that the following example works although the node sets do not yet exist!
+     mynet3 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)),
+            type="bipartite", nodeSet=c("senders", "receivers"))
      ## sparse matrix input - create some RSiena edgelists first
      library(Matrix)
-     tmp1 <- as(Matrix(s501), "dgTMatrix")
-     tmp2 <- as(Matrix(s502), "dgTMatrix")
-     tmp3 <- as(Matrix(s503), "dgTMatrix")
-     mymat1 <- cbind(tmp1@i + 1, tmp1@j + 1, 1, 1)
-     mymat2 <- cbind(tmp2@i + 1, tmp2@j + 1, 1, 2)
-     mymat3 <- cbind(tmp3@i + 1, tmp3@j + 1, 1, 3)
+     tmps501 <- as(Matrix(s501), "dgTMatrix")
+     tmps502 <- as(Matrix(s502), "dgTMatrix")
+     tmps503 <- as(Matrix(s503), "dgTMatrix")
+     mymat1 <- cbind(tmps501@i + 1, tmps501@j + 1, 1, 1)
+     mymat2 <- cbind(tmps502@i + 1, tmps502@j + 1, 1, 2)
+     mymat3 <- cbind(tmps503@i + 1, tmps503@j + 1, 1, 3)
      mymat <- rbind(mymat1, mymat2, mymat3)
      library(Matrix)
      ## mymat includes all 3 waves
      mymatlist <- by(mymat, mymat[, 4], function(x)
          spMatrix(50, 50, x[, 1], x[, 2], x[, 3]))
-     mynet4 <- sienaNet(mymatlist)
+     mynet4 <- sienaDependent(mymatlist)
      ## or alternatively
      mymat1 <- mymat[mymat[, 4] == 1, ]
      mymat2 <- mymat[mymat[, 4] == 2, ]
@@ -1675,7 +1807,7 @@ _E_x_a_m_p_l_e_s:
      mymat1s <- spMatrix(50, 50, mymat1[, 1], mymat1[, 2], mymat1[, 3])
      mymat2s <- spMatrix(50, 50, mymat2[, 1], mymat2[, 2], mymat2[, 3])
      mymat3s <- spMatrix(50, 50, mymat3[, 1], mymat3[, 2], mymat3[, 3])
-     mynet4 <- sienaNet(list(mymat1s, mymat2s, mymat3s))
+     mynet4 <- sienaDependent(list(mymat1s, mymat2s, mymat3s))
      
 > 
 > # This shows that next to one-mode (unipartite) and behavior dependent variables,
@@ -1687,7 +1819,7 @@ _E_x_a_m_p_l_e_s:
 > # the node sets too. The following is an example
 > # (not really meaningful, just for the syntax):
 > 
->  bfriendship <- sienaNet(array(c(friend.data.w1, friend.data.w2, friend.data.w3),
+>  bfriendship <- sienaDependent(array(c(friend.data.w1, friend.data.w2, friend.data.w3),
 +                                dim=c(50, 50, 3)),
 +                                "bipartite", nodeSet=c("senders", "receivers"))
 >  senders <- sienaNodeSet(50, nodeSetName="senders")
@@ -1728,7 +1860,7 @@ _E_x_a_m_p_l_e_s:
 > # you can create constant covariates through
 > #       Attr1 <- coCovar(Covariates[,1])
 > #       ...
-> #       Attrk <- coCovar(Covariates[,k])
+> #       Attrk <- coCovar(Covariates[,p])
 > 
 > # We use the drinking data as a changing covariate.
 > # The function varCovar creates a changing covariate object from a matrix;
@@ -1736,8 +1868,9 @@ _E_x_a_m_p_l_e_s:
 > 
 >         alcohol <- varCovar( drink )
 > 
-> # You need at least 3 waves of a varying covariate to use it as varCovar as
-> # the previous wave is used as a predictor of the next wave.
+> # You need at least three waves in the data set to define a varying covariate
+> # by the function varCovar as the previous wave is used
+> # as a predictor of the next wave.
 > 
 > # The command
 > 
@@ -1766,15 +1899,32 @@ $nodeSet
 > # We now combine the dependent and independent variables.
 > # The function sienaDataCreate creates a Siena data object from input networks,
 > # covariates and composition change objects;
-> # the objects that earlier were created by sienaNet will have the role
+> # the objects that earlier were created by sienaDependent will have the role
 > # of dependent variables, and similarly the other roles are predetermined
 > # by creation by the functions coCovar, varCovar,
 > # coDyadCovar, varDyadCovar, and sienaCompositionChange.
 > 
 >         mydata <- sienaDataCreate( friendship, smoke1, alcohol )
 > 
-> # You should now understand how the result of this differs from the
-> # result of
+> # You may check the result by requesting
+> 
+> 		mydata
+Dependent variables:  friendship 
+Number of observations: 3 
+
+Nodeset                  Actors 
+Number of nodes              50 
+
+Dependent variable friendship      
+Type               oneMode         
+Observations       3               
+Nodeset            Actors          
+Densities          0.046 0.047 0.05
+
+Constant covariates:  smoke1 
+Changing covariates:  alcohol 
+> 
+> # You should now understand how this differs from the result of
 > #       mybehdata <- sienaDataCreate( friendship, smoke1, drinkingbeh )
 > 
 > # If you would like to use different names, you could request this as follows:
@@ -1818,7 +1968,7 @@ $nodeSet
 > # This writes a basic report of the data to the file
 > # s50_3_init.out in the current working directory. Locate and open it!
 > # Inspecting this is important because it serves as a check and also contains
-> # a number of descriptives.
+> # a number of basic descriptives.
 > # In this description you can see that the third wave data for alcohol are not used.
 > # This is because changing covariates are assumed to be constant from one wave until
 > # immediately before the next wave, so that the values for the last wave are ignored.
@@ -1857,185 +2007,14 @@ $nodeSet
 > # from the help files:
 > #      ?getEffects
 > 
-> # Among these variables is the effectName.
-> # The set of available effects can be inspected by requesting their names:
+> # Some often used variables are effectName, shortName, type, and parameter.
+> # The set of available effects and their most used columns
+> # can be inspected as follows:
 > 
->         myeff$effectName
-  [1] "constant friendship rate (period 1)"       
-  [2] "constant friendship rate (period 2)"       
-  [3] "outdegree effect on rate friendship"       
-  [4] "indegree effect on rate friendship"        
-  [5] "reciprocity effect on rate friendship"     
-  [6] "effect 1/outdegree on rate friendship"     
-  [7] "effect smoke1 on rate"                     
-  [8] "effect alcohol on rate"                    
-  [9] "outdegree (density)"                       
- [10] "outdegree (density)"                       
- [11] "outdegree (density)"                       
- [12] "reciprocity"                               
- [13] "reciprocity"                               
- [14] "reciprocity"                               
- [15] "transitive triplets"                       
- [16] "transitive triplets"                       
- [17] "transitive triplets"                       
- [18] "transitive mediated triplets"              
- [19] "transitive mediated triplets"              
- [20] "transitive mediated triplets"              
- [21] "3-cycles"                                  
- [22] "3-cycles"                                  
- [23] "3-cycles"                                  
- [24] "transitive ties"                           
- [25] "transitive ties"                           
- [26] "transitive ties"                           
- [27] "betweenness"                               
- [28] "balance"                                   
- [29] "balance"                                   
- [30] "balance"                                   
- [31] "number of actors at distance 2"            
- [32] "number pairs at doubly achieved distance 2"
- [33] "dense triads"                              
- [34] "indegree - popularity"                     
- [35] "indegree - popularity"                     
- [36] "indegree - popularity"                     
- [37] "indegree - popularity (sqrt)"              
- [38] "indegree - popularity (sqrt)"              
- [39] "indegree - popularity (sqrt)"              
- [40] "outdegree - popularity"                    
- [41] "outdegree - popularity"                    
- [42] "outdegree - popularity"                    
- [43] "outdegree - popularity (sqrt)"             
- [44] "indegree - activity"                       
- [45] "indegree - activity (sqrt)"                
- [46] "outdegree - activity"                      
- [47] "outdegree - activity (sqrt)"               
- [48] "outdegree-trunc(#)"                        
- [49] "1/(outdegree + #)"                         
- [50] "GWESP I -> K -> J (#)"                     
- [51] "GWESP I <- K <- J (#)"                     
- [52] "GWESP I <- K -> J (#)"                     
- [53] "GWESP I -> K <- J (#)"                     
- [54] "GWESP I <> K <> J (#)"                     
- [55] "1/(outdegree+#)(outdegree+1+#)"            
- [56] "out-out degree^(1/#) assortativity"        
- [57] "out-out degree^(1/#) assortativity"        
- [58] "out-out degree^(1/#) assortativity"        
- [59] "out-in degree^(1/#) assortativity"         
- [60] "out-in degree^(1/#) assortativity"         
- [61] "out-in degree^(1/#) assortativity"         
- [62] "in-out degree^(1/#) assortativity"         
- [63] "in-out degree^(1/#) assortativity"         
- [64] "in-out degree^(1/#) assortativity"         
- [65] "in-in degree^(1/#) assortativity"          
- [66] "in-in degree^(1/#) assortativity"          
- [67] "in-in degree^(1/#) assortativity"          
- [68] "in-struct equivalence"                     
- [69] "smoke1 alter"                              
- [70] "smoke1 alter"                              
- [71] "smoke1 alter"                              
- [72] "smoke1 squared alter"                      
- [73] "smoke1 squared alter"                      
- [74] "smoke1 squared alter"                      
- [75] "smoke1 ego"                                
- [76] "smoke1 ego"                                
- [77] "smoke1 ego"                                
- [78] "smoke1 similarity"                         
- [79] "smoke1 similarity"                         
- [80] "smoke1 similarity"                         
- [81] "smoke1 similarity x reciprocity"           
- [82] "smoke1 similarity x reciprocity"           
- [83] "smoke1 similarity x reciprocity"           
- [84] "same smoke1"                               
- [85] "same smoke1"                               
- [86] "same smoke1"                               
- [87] "same smoke1 x reciprocity"                 
- [88] "same smoke1 x reciprocity"                 
- [89] "same smoke1 x reciprocity"                 
- [90] "smoke1 ego x smoke1 alter"                 
- [91] "smoke1 ego x smoke1 alter"                 
- [92] "smoke1 ego x smoke1 alter"                 
- [93] "smoke1 ego x smoke1 alter x recipr."       
- [94] "smoke1 ego x smoke1 alter x recipr."       
- [95] "smoke1 ego x smoke1 alter x recipr."       
- [96] "higher smoke1"                             
- [97] "higher smoke1"                             
- [98] "higher smoke1"                             
- [99] "smoke1 of indirect ties"                   
-[100] "smoke1 alter at distance 2"                
-[101] "smoke1 alter at distance 2"                
-[102] "smoke1 alter at distance 2"                
-[103] "smoke1 similarity at distance 2"           
-[104] "smoke1 similarity at distance 2"           
-[105] "smoke1 similarity at distance 2"           
-[106] "alcohol alter"                             
-[107] "alcohol alter"                             
-[108] "alcohol alter"                             
-[109] "alcohol squared alter"                     
-[110] "alcohol squared alter"                     
-[111] "alcohol squared alter"                     
-[112] "alcohol ego"                               
-[113] "alcohol ego"                               
-[114] "alcohol ego"                               
-[115] "alcohol similarity"                        
-[116] "alcohol similarity"                        
-[117] "alcohol similarity"                        
-[118] "alcohol similarity x reciprocity"          
-[119] "alcohol similarity x reciprocity"          
-[120] "alcohol similarity x reciprocity"          
-[121] "same alcohol"                              
-[122] "same alcohol"                              
-[123] "same alcohol"                              
-[124] "same alcohol x reciprocity"                
-[125] "same alcohol x reciprocity"                
-[126] "same alcohol x reciprocity"                
-[127] "alcohol ego x alcohol alter"               
-[128] "alcohol ego x alcohol alter"               
-[129] "alcohol ego x alcohol alter"               
-[130] "alcohol ego x alcohol alter x recipr."     
-[131] "alcohol ego x alcohol alter x recipr."     
-[132] "alcohol ego x alcohol alter x recipr."     
-[133] "higher alcohol"                            
-[134] "higher alcohol"                            
-[135] "higher alcohol"                            
-[136] "alcohol of indirect ties"                  
-[137] "alcohol alter at distance 2"               
-[138] "alcohol alter at distance 2"               
-[139] "alcohol alter at distance 2"               
-[140] "alcohol similarity at distance 2"          
-[141] "alcohol similarity at distance 2"          
-[142] "alcohol similarity at distance 2"          
-[143] "unspecified interaction effect"            
-[144] "unspecified interaction effect"            
-[145] "unspecified interaction effect"            
-[146] "unspecified interaction effect"            
-[147] "unspecified interaction effect"            
-[148] "unspecified interaction effect"            
-[149] "unspecified interaction effect"            
-[150] "unspecified interaction effect"            
-[151] "unspecified interaction effect"            
-[152] "unspecified interaction effect"            
-[153] "unspecified interaction effect"            
-[154] "unspecified interaction effect"            
-[155] "unspecified interaction effect"            
-[156] "unspecified interaction effect"            
-[157] "unspecified interaction effect"            
-[158] "unspecified interaction effect"            
-[159] "unspecified interaction effect"            
-[160] "unspecified interaction effect"            
-[161] "unspecified interaction effect"            
-[162] "unspecified interaction effect"            
-[163] "unspecified interaction effect"            
-[164] "unspecified interaction effect"            
-[165] "unspecified interaction effect"            
-[166] "unspecified interaction effect"            
-[167] "unspecified interaction effect"            
-[168] "unspecified interaction effect"            
-[169] "unspecified interaction effect"            
-[170] "unspecified interaction effect"            
-[171] "unspecified interaction effect"            
-[172] "unspecified interaction effect"            
+> #       effectsDocumentation(myeff)
 > 
-> # This gives a lot of names: all effects defined in Section 12 of the manual,
-> # depending on the variables specified in mydata.
+> # This gives a long list of effects: all defined in Section 12 of the manual,
+> # as far as they are meaningful for dataset mydata.
 > # The "include" column defines whether effects are included in the model.
 > 
 >         myeff$include
@@ -2053,30 +2032,32 @@ $nodeSet
 [133] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 [145] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 [157] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-[169] FALSE FALSE FALSE FALSE
+[169] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[181] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[193] FALSE FALSE FALSE FALSE FALSE FALSE
 > 
 > # Here the TRUE values correspond to the default model specification which,
 > # however, is not meant as a serious model, being too limited.
 > # There are 3 main ways to operate on myeff.
 > # 1. Changing myeff in spreadsheet form by the function fix();
-> # 2. Changing myeff directly by operating on its elements;
-> # 3. Using RSiena functions "includeEffects", "setEffects", etc.
+> # 2. Using RSiena functions "includeEffects", "setEffects", etc;
+> # 3. Changing myeff directly by operating on its elements.
 > # Which one to use is a matter of personal preference.
-> # The third way is most in line with the design philosophy of R,
+> # The second way is most in line with the design philosophy of R,
 > # and allows you to save scripts that also can be used when
 > # there will be new versions of RSiena.
-> # Therefore, we suggest that you skip the explanations of options 1 and 2, and
-> # proceed directly to option 3, ' Adding/removing effects using includeEffects'.
+> # Therefore, we suggest that you skip the explanations of options 1 and 3, and
+> # proceed directly to option 2, ' Adding/removing effects using includeEffects'.
 > 
 > # For identifying your effects you need the "shortName"s,
 > # which can be read in the manual (section "Mathematical definition of effects"),
-> # or obtained from the "sink" command below.
+> # or obtained from the "effectsDocumentation()" function mentioned above.
 > 
 > # ---- 1. Adding/removing effects using fix() ----------------------------------
 > # fix calls a data editor internal to R, so we can manually edit the effects.
 > # This operates the same as in the Gui.
 > 
->         fix( myeff )
+> #        fix( myeff )
 > 
 > # How to use fix() is presented merely for getting to know what myeff is.
 > # In practical analysis it is more convenient
@@ -2086,122 +2067,20 @@ $nodeSet
 > # name, effectName, etc.
 > # You can edit the "include" column by changing the TRUE and FALSE values
 > # as required; when the editor is closed, the new values are stored.
+> # When you make an error, however, the effects object may be corrupted.
 > 
-> # ---- 2. Adding/removing effects by direct manipulation of myeff --------------
-> # Alternatively we can edit the dataframe directly by using R functions.
-> # You are advised to skip this part ("2.") at first reading,
-> # and read it only if you wish to get more understanding
-> # of the interal strtucture of the effects object.
-> # The commands below are used to set "include" to TRUE or FALSE,
-> # as an alternative to using the data editor.
-> # The "include" column with values TRUE or FALSE will always be
-> # ocated at the 9th column,
-> # but transitive triplets will not always be at the 13th row as this depends
-> # on the number of periods and variables; further, the list of available effects
-> # may change in future versions.
-> # Note: These row numbers may not be the current ones, as they depend on the
-> # list of effects implemented, which is changeable.
-> # Some examples are the following
-> # (preceded by # because not proposed to be applied).
 > 
->         #myeff[13,9] <- TRUE   #transitive triples
->         #myeff[17,9] <- TRUE   #3 cycles
->         #myeff[19,9] <- TRUE   #transitive ties
->         #myeff[29,9] <- TRUE   #indegree popularity (sqrt)
->         #myeff[33,9] <- TRUE   #outdegree popularity (sqrt)
->         #myeff[35,9] <- TRUE   #indegree based activity (sqrt)
->         #myeff[37,9] <- TRUE   #outdegree based activity (sqrt)
->         #myeff[46,9] <- TRUE   #indegree-indegree assortativity
->         #myeff[69,9] <- TRUE   #alcohol alter
->         #myeff[73,9] <- TRUE   #alcohol ego
->         #myeff[75,9] <- TRUE   #alcohol similarity
->         #myeff[83,9] <- TRUE   #alcohol ego x alcohol alter
-> 
-> # But in other choices of data, the effect numbers will change.
-> # This is a reason why this is not a convenient method.
-> # The following methods require more typing the first time,
-> # but can be re-used much more robustly.
-> # Several variants are given, so that you can use what suits you best.
-> # We give a small and meaningful model.
-> 
-> # To understand the R commands, recall that myeff is a matrix,
-> # i.e., a two-dimensional array,
-> # and myeff[i,j] refers to row/effect i and its characteristic j.
-> # A file with the effect names, for easy access to their exact wordings,
-> # is obtained by the following commands.
-> # The function sink diverts output to a file;
-> # the last command sink() directs it to the console again.
-> # The function cbind combines two columns into a matrix,
-> # and is used here to get effect names and short names next to each other.
-> 
->      sink("effectlist.txt")
->      cbind( myeff$effectName,myeff$shortName)
->      sink()
-> 
-> # Another way to get this information is by the command
-> 
-> # write.table(format(cbind( myeff$effectName,myeff$shortName)),"effectlist.txt")
-> 
-> # Now look in the file "effectlist.txt" (in the current directory)
-> # for the spelling of the various effects you might wish to use.
-> # The following commands can be used to select the
-> # five mentioned effects.
-> # Note that == is the logical "equals", & is the logical "and",
-> # and what is between the square brackets [...] makes a selection
-> # of the specified row and column of the "myeff" data frame.
-> 
->         myeff[myeff$effectName=='transitive triplets' &
-+               myeff$type=='eval', 'include'] <- TRUE
->         myeff[myeff$effectName=='3-cycles' &
-+               myeff$type=='eval', 'include'] <- TRUE
->         myeff[myeff$effectName=='smoke1 similarity' &
-+               myeff$type=='eval', 'include'] <- TRUE
->         myeff[myeff$effectName=='alcohol alter' &
-+               myeff$type=='eval', 'include'] <- TRUE
->         myeff[myeff$effectName=='alcohol ego' &
-+               myeff$type=='eval', 'include'] <- TRUE
->         myeff[myeff$effectName=='alcohol ego x alcohol alter' &
-+               myeff$type=='eval', 'include'] <- TRUE
-> 
-> # You can similarly add other ones.
-> # If you make a typing error in the effect name, there will be no warning,
-> # but also no consequence of your command.
-> # Therefore it is good to check the results,
-> # by requesting the list of effects now included in the model:
-> 
->         myeff
-   effectName                          include fix   test  initialValue parm
-1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
-2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
-3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
-4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
-5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
-6  3-cycles                            TRUE    FALSE FALSE    0.00000   0   
-7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
-8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
-9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
-10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
-> 
-> # ---- 3. Adding/removing effects using includeEffects -------------------------
-> # A third way of specifying the model is by the includeEffects function.
+> # ---- 2. Adding/removing effects using includeEffects -------------------------
+> # The best way of specifying the model is by the includeEffects function.
 > # This function uses short names instead of full names.
-> # The short names are listed in the descriptions given in
+> # The short names are given by the effectsDocumentation() function
+> # mentioned above, and also are listed in the descriptions given in
 > # Section 12 of the manual.
-> # A list of the short names can also be obtained by
+> # A different table of effect information, including short names,
+> # that covers effects available for whatever data sets,
+> # is available as a pdf file in the R directory, and can be opened by
 > 
->         sink("effectshortlist.txt")
->         myeff$shortName
->         sink()
-> 
-> # This will create a file in your working directory named "effectshortlist.txt"
-> # A more general table of effect information including short names
-> # is also available as a pdf file in the R directory, and can be opened by
-> 
->         RShowDoc("effects", package="RSiena")
-> 
-> # or created and opened as a html file in the current directory by the function
-> 
->         # effectsDocumentation()
+> #        RShowDoc("effects", package="RSiena")
 > 
 > # For illustration, let us start from scratch with a new sienaEffects object,
 > # and add the transitive triples and 3-cycles effects
@@ -2210,21 +2089,12 @@ $nodeSet
 >         myeff <- includeEffects( myeff, transTrip, cycle3 )
                             name shortName type interaction1 interaction2
 friendship.obj.eval.3 friendship transTrip eval                          
-friendship.obj.eval.5 friendship    cycle3 eval                          
+friendship.obj.eval.6 friendship    cycle3 eval                          
                       include
 friendship.obj.eval.3    TRUE
-friendship.obj.eval.5    TRUE
+friendship.obj.eval.6    TRUE
 > 
-> # Note that we can set several effects in one go!
-> # To remove: myeff[ myeff$shortName == '<<shortName>>', ]$include <- FALSE
-> # e.g. if
-> #       myeff <- includeEffects( myeff, cycle3 )
-> # and you want to remove this effect
-> #       myeff[ myeff$shortName == 'cycle3', ]$include <- FALSE
-> # Or, more conveniently, switch "include" to FALSE to turn off an effect.
-> #       myeff <- includeEffects( myeff, cycle3, include = FALSE )
-> 
-> # Check again which effects you have included:
+> # To see the current model specification,
 > 
 >         myeff
   effectName                          include fix   test  initialValue parm
@@ -2235,52 +2105,70 @@ friendship.obj.eval.5    TRUE
 5 transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
 6 3-cycles                            TRUE    FALSE FALSE    0.00000   0   
 > 
+> # Note that we can set several effects in one go!
+> # To remove an effect, e.g., the 3-cycle effects
+> 
+>         myeff <- includeEffects( myeff, cycle3, include=FALSE )
+                            name shortName type interaction1 interaction2
+friendship.obj.eval.6 friendship    cycle3 eval                          
+                      include
+friendship.obj.eval.6   FALSE
+> 
+> # Check again which effects now are included in the model
+> 
+>         myeff
+  effectName                          include fix   test  initialValue parm
+1 constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2 constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3 outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4 reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5 transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+> 
 > # ---- Adding/removing covariate related effects -------------------------------
 > # The short names do not differentiate between the covariates:
-> # e.g., the effects 'alcohol ego' and 'smoke1 ego' both have short name 'egoX',
+> # e.g., the effects 'alcohol ego' and 'smoke1 ego' both have shortName 'egoX',
 > # and the command
 > 
 >         myeff <- includeEffects( myeff, egoX )
-[1] name         shortName    type         interaction1 interaction2
-[6] include     
-<0 rows> (or 0-length row.names)
+There is no effect with short name egoX, 
+and with interaction1 = <> and interaction2 = <>,
+for dependent variable friendship .
 > 
 > # results in a message that does not (like the earlier one)
 > # confirm the newly included effect.
 > # The covariates are indicated by the variable "interaction1"
-> # in the sienaEffects object,
-> # and this has to be mentioned to include these effects:
+> # in the sienaEffects object, listed as "inter1" in the result of
+> # effectsDocumentation(), and this has to be mentioned to include these effects:
 > 
 >         myeff <- includeEffects( myeff, egoX, altX, egoXaltX,
 +                                  interaction1 = "alcohol" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.46 friendship      altX eval      alcohol             
-friendship.obj.eval.48 friendship      egoX eval      alcohol             
-friendship.obj.eval.53 friendship  egoXaltX eval      alcohol             
+friendship.obj.eval.53 friendship      altX eval      alcohol             
+friendship.obj.eval.55 friendship      egoX eval      alcohol             
+friendship.obj.eval.63 friendship  egoXaltX eval      alcohol             
                        include
-friendship.obj.eval.46    TRUE
-friendship.obj.eval.48    TRUE
 friendship.obj.eval.53    TRUE
+friendship.obj.eval.55    TRUE
+friendship.obj.eval.63    TRUE
 >         myeff <- includeEffects( myeff, simX, interaction1 = "smoke1" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.36 friendship      simX eval       smoke1             
+friendship.obj.eval.40 friendship      simX eval       smoke1             
                        include
-friendship.obj.eval.36    TRUE
+friendship.obj.eval.40    TRUE
 > 
 > # We check the results again:
 > 
 >         myeff
-   effectName                          include fix   test  initialValue parm
-1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
-2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
-3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
-4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
-5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
-6  3-cycles                            TRUE    FALSE FALSE    0.00000   0   
-7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
-8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
-9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
-10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
+  effectName                          include fix   test  initialValue parm
+1 constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2 constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3 outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4 reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5 transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+6 smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
+7 alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
+8 alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
+9 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
 > 
 > # By looking at the help offered by
 > 
@@ -2312,7 +2200,8 @@ _A_r_g_u_m_e_n_t_s:
     name: Name of network for which effects are being included.
           Defaults to the first in the effects object.
 
-    type: Type of effects to be included.
+    type: Type of effects to be included: "eval", "endow", "creation",
+          or "rate".
 
 interaction1: Name of siena object where needed to completely identify
           the effects e.g. covariate name or behavior variable name.
@@ -2324,8 +2213,22 @@ character: Boolean: are the effect names character strings or not
 
 _D_e_t_a_i_l_s:
 
-     The arguments should identify the effects completely. The include
-     column will be set to the value requested (TRUE or FALSE).
+     The effects indicated by the arguments ..., 'type', and (if
+     necessary) 'interaction1' and 'interaction2' are included or
+     excluded from the model specified by the effects object.  The
+     names 'interaction1' and 'interaction2' do not refer to
+     interactions between effects, but to dependence of effects on
+     other variables in the data set.  The arguments should identify
+     the effects completely.
+
+     A list of all effects available in a given effects object (e.g.,
+     'myeff'), including their names of dependent variables, effect
+     names, short names, and values of interaction1 and interaction2
+     (if any), is obtained by executing 'effectsDocumentation(myeff)'.
+
+     The function ''includeEffects operates by providing an interface
+     to set the "include" column on selected rows of the effects
+     object, to the value requested (TRUE or FALSE).
 
 _V_a_l_u_e:
 
@@ -2343,50 +2246,79 @@ _R_e_f_e_r_e_n_c_e_s:
 
 _S_e_e _A_l_s_o:
 
-     'getEffects'
+     'getEffects', 'setEffect', 'includeInteraction',
+     'effectsDocumentation'
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-     mynet2 <- sienaNet(s50a, type="behavior")
-     mydata <- sienaDataCreate(mynet1, mynet2)
+     mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+     mybeh  <- sienaDependent(s50a, type="behavior")
+     mydata <- sienaDataCreate(mynet1, mybeh)
      myeff <- getEffects(mydata)
      myeff <- includeEffects(myeff, transTrip, balance)
-     myeff <- includeEffects(myeff, avAlt, name="mynet2", interaction1="mynet1")
+     myeff <- includeEffects(myeff, avAlt, name="mybeh", interaction1="mynet1")
+     myeff
      
 > 
-> # you can see how to include endowment effects and how to exclude effects.
+> # you can see how to include endowment and creation effects.
 > # Effects that depend on other variables, such as egoX, altX, etc. above,
 > # need the specification of these variables to define them.
 > # This is done by the interaction1 parameter
 > # when only one variable name is needed,
 > # and by interaction2 if there is a second variable involved,
 > # such as AltsAvAlt (see the manual).
+> # Although the names of these parameters are interaction1 and interaction2,
+> # this does not refer to an interaction as commonly used
+> # in statistical modelling!
 > 
-> 
-> # ---- Creating interactions ---------------------------------------------------
+> # ---- Creating interaction effects --------------------------------------------
 > # As a special topic, let us show how interaction effects are created.
 > 
 > # A convenient method to include an interaction is offered by the
 > # includeInteraction function.
 > # This can be used to interact two or three effects
-> # (if the interactions are allowed; see the manual for this).
+> # (if the interactions are allowed, which depends on their interactionType;
+> # see the manual for this).
 > # The interaction between smoke1 ego and reciprocity, for instance,
 > # can be defined by the command
 > 
->         myeff <- includeInteraction( myeff, egoX, recip, include = FALSE,
+>         myeff <- includeInteraction( myeff, egoX, recip,
 +                                     interaction1 = c("smoke1","") )
-[1] name         shortName    type         interaction1 interaction2
-[6] include      effect1      effect2      effect3     
-<0 rows> (or 0-length row.names)
+                             name shortName type interaction1 interaction2
+friendship.obj.eval.69 friendship   unspInt eval                          
+                       include effect1 effect2 effect3
+friendship.obj.eval.69    TRUE      83      12       0
+> 		myeff
+   effectName                          include fix   test  initialValue parm
+1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+6  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
+7  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
+8  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
+9  alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
+10 unspecified interaction effect      TRUE    FALSE FALSE    0.00000   0   
+   effect1 effect2
+1   0       0     
+2   0       0     
+3   0       0     
+4   0       0     
+5   0       0     
+6   0       0     
+7   0       0     
+8   0       0     
+9   0       0     
+10 83      12     
 > 
-> # and, e.g., an interaction between smoke1 ego and alcohol ego is defined by
+> # This shows the interaction as an "unspecified interaction effect";
+> # but when printing results of the estimation the names of the
+> # interacting effects will be mentioned.
+> # E.g., an interaction between smoke1 ego and alcohol ego is defined by
 > 
-> #        myeff <- includeInteraction( myeff, egoX, egoX, include = FALSE,
+> #        myeff <- includeInteraction( myeff, egoX, egoX,
 > #                                    interaction1 = c( "smoke1", "alcohol" ) )
-> 
-> # where we now specified "include = FALSE" because we wish to make this effect
-> # available without using it in in the model to be estimated below.
 > 
 > # Note that the keyword 'interaction1' used by RSiena is used for identifying
 > # the covariate for which the ego effect is selected, and does not
@@ -2394,11 +2326,10 @@ _E_x_a_m_p_l_e_s:
 > # If at least one of the interacting effects requires the interaction1 parameter
 > # for it specification, then this parameter is also required for the
 > # includeInteraction function.
-> # Here the two or three interaction1 parameters must be combined using c();
-> # the same goes for interaction2.
+> # Then the two or three interaction1 parameters must be combined using c();
+> # the same goes for interaction2, if that also is necessary for the definition.
 > 
-> # A second special topic is how to access other characteristics of effects
-> # without referring to the effect numbers.
+> # A second special topic is how to access other characteristics of effects.
 > # This can be done by the setEffect function.
 > # E.g., the dense triads effects
 > # counts the number of triplets with at least xx ties,
@@ -2406,16 +2337,108 @@ _E_x_a_m_p_l_e_s:
 > # (note that 6 is the maximum number of ties in a triplet).
 > # The default is 5. This is changed to 6 by the command
 > 
->         myeff <- setEffect(myeff, denseTriads, include = FALSE, parameter = 6)
+>         myeff <- setEffect(myeff, denseTriads, parameter = 6)
                              name   shortName type interaction1 interaction2
-friendship.obj.eval.11 friendship denseTriads eval                          
+friendship.obj.eval.12 friendship denseTriads eval                          
                        include parm   fix  test initialValue timeDummy period
-friendship.obj.eval.11   FALSE    6 FALSE FALSE            0         ,   <NA>
+friendship.obj.eval.12    TRUE    6 FALSE FALSE            0         ,   <NA>
                        group
-friendship.obj.eval.11     1
+friendship.obj.eval.12     1
+> 		myeff
+   effectName                          include fix   test  initialValue parm
+1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+6  dense triads                        TRUE    FALSE FALSE    0.00000   6   
+7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
+8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
+9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
+10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
+11 unspecified interaction effect      TRUE    FALSE FALSE    0.00000   0   
+   effect1 effect2
+1   0       0     
+2   0       0     
+3   0       0     
+4   0       0     
+5   0       0     
+6   0       0     
+7   0       0     
+8   0       0     
+9   0       0     
+10  0       0     
+11 83      12     
 > 
 > # The 'parameter' keyword refers to the effect parameter, described in
 > # Section 12 of the manual.
+> 
+> # ---- 3. Adding/removing effects by direct manipulation of myeff --------------
+> # Alternatively we can edit the dataframe directly by using R functions.
+> # You are advised to skip this part ("3.") at first reading,
+> # and read it only if you wish to get more understanding
+> # of the interal structure of the effects object.
+> # The commands below are used to set "include" to TRUE or FALSE,
+> # as an alternative to using the data editor.
+> # The "include" column with values TRUE or FALSE will always be
+> # located at the 9th column,
+> # but transitive triplets will not always be at the 13th row as this depends
+> # on the number of periods and variables; further, the list of available effects
+> # may change in future versions.
+> # Some examples are the following
+> # (preceded by # because not proposed to be applied).
+> 
+>         #myeff[13,9] <- TRUE   #transitive triples
+>         #myeff[17,9] <- TRUE   #3 cycles
+>         #myeff[19,9] <- TRUE   #transitive ties
+>         #myeff[29,9] <- TRUE   #indegree popularity (sqrt)
+>         #myeff[33,9] <- TRUE   #outdegree popularity (sqrt)
+>         #myeff[35,9] <- TRUE   #indegree based activity (sqrt)
+>         #myeff[37,9] <- TRUE   #outdegree based activity (sqrt)
+>         #myeff[46,9] <- TRUE   #indegree-indegree assortativity
+>         #myeff[69,9] <- TRUE   #alcohol alter
+>         #myeff[73,9] <- TRUE   #alcohol ego
+>         #myeff[75,9] <- TRUE   #alcohol similarity
+>         #myeff[83,9] <- TRUE   #alcohol ego x alcohol alter
+> 
+> # But in other choices of data, the effect numbers will change.
+> # This is a reason why this is not a convenient method.
+> # The following methods require more typing the first time,
+> # but can be re-used much more robustly.
+> # Several variants are given, so that you can use what suits you best.
+> # We give a small and meaningful model.
+> 
+> # To understand the R commands, recall that myeff is a matrix,
+> # i.e., a two-dimensional array,
+> # and myeff[i,j] refers to row/effect i and its characteristic j.
+> # A file with the effect shortNames, for easy access to their exact wordings,
+> # is obtained by effectsDocumentation() (see above).
+> # The following commands can be used to select the
+> # five mentioned effects.
+> # Note that == is the logical "equals", & is the logical "and",
+> # and what is between the square brackets [...] makes a selection
+> # of the specified row and column of the "myeff" data frame.
+> 
+> #        myeff[myeff$effectName=='transitive triplets' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> #        myeff[myeff$effectName=='3-cycles' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> #        myeff[myeff$effectName=='smoke1 similarity' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> #        myeff[myeff$effectName=='alcohol alter' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> #        myeff[myeff$effectName=='alcohol ego' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> #        myeff[myeff$effectName=='alcohol ego x alcohol alter' &
+> #              myeff$type=='eval', 'include'] <- TRUE
+> 
+> # You can similarly add other ones.
+> # If you make a typing error in the effect name, there will be no warning,
+> # but also no consequence of your command.
+> # Therefore it is good to check the results,
+> # by requesting the list of effects now included in the model:
+> 
+> #        myeff
 > 
 > ################################################################################
 > ###
@@ -2425,16 +2448,16 @@ friendship.obj.eval.11     1
 > ################################################################################
 > ###
 > ###
-> ### ---- Rscript03SienaRunModel.R: a script for the introduction to RSiena -------
+> ### ---- Rscript03SienaRunModel.R: a script for the introduction to RSiena -----
 > ###
-> ###                         version January 17, 2012
+> ###							version April 16, 2013
 > ################################################################################
 > #
 > # The introductory script is divided into the following script files:
 > # Rscript01DataFormat.R, followed by
 > # RScriptSNADescriptives.R, code for descriptive analysis of the data, and
-> # Rscript02SienaVariableFormat.R, which formats data and specifies the model, and
-> # Rscript03SienaRunModel.R, which runs the model and estimates parameters
+> # Rscript02SienaVariableFormat.R, which formats data and specifies the model,
+> # Rscript03SienaRunModel.R, which runs the model and estimates parameters, and
 > # Rscript04SienaBehaviour.R, which illustrates an example of analysing the
 > # coevolution of networks and behaviour.
 > # Written with contributions by Robin Gauthier, Tom Snijders, Ruth Ripley,
@@ -2451,8 +2474,9 @@ friendship.obj.eval.11     1
 > # Parameters of the model are estimated by the function siena07.
 > # This requires the data specification; the effects specification;
 > # and a number of parameters, or settings, for the estimation algorithm.
-> # The latter are contained in an object created by the function sienaModelCreate.
-> # You can look at the help provided by ?sienaModelCreate
+> # The latter are contained in an object created by the function
+> # sienaAlgorithmCreate. You can look at the help provided by
+> # ?sienaAlgorithmCreate
 > # to find out about options that you may use here;
 > # for beginning users, only the two options mentioned below are relevant.
 > #
@@ -2462,29 +2486,91 @@ friendship.obj.eval.11     1
 > # New estimation runs will append to it.
 > # A new call to print01Report will overwrite it!
 > 
->         mymodel <- sienaModelCreate(useStdInits = FALSE, projname = 's50_3')
+> 		myalgorithm <- sienaAlgorithmCreate(useStdInits = FALSE, projname = 's50_3')
 > 
 > # The useStdInits parameter determines the initial values used for
 > # the estimation algorithm.
 > # If useStdInits = TRUE, standard initial values are used;
 > # if useStdInits = FALSE, the initial values are used that are contained
 > # in the "initialValue" column of the effects object,
-> # which were reported above by the information request
-> #       myeff
+> # which are reported by the information request
+> 		myeff
+   effectName                          include fix   test  initialValue parm
+1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+6  dense triads                        TRUE    FALSE FALSE    0.00000   6   
+7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
+8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
+9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
+10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
+11 unspecified interaction effect      TRUE    FALSE FALSE    0.00000   0   
+   effect1 effect2
+1   0       0     
+2   0       0     
+3   0       0     
+4   0       0     
+5   0       0     
+6   0       0     
+7   0       0     
+8   0       0     
+9   0       0     
+10  0       0     
+11 83      12     
 > # Below we shall see how these initial values can be altered.
+> 
+> # Let us first redefine the model, to obtain a simpler specification
+> # that will serve as an illustration here.
+> 
+> 		myeff <- getEffects( mydata )
+> 		myeff <- includeEffects( myeff, transTrip, cycle3 )
+                            name shortName type interaction1 interaction2
+friendship.obj.eval.3 friendship transTrip eval                          
+friendship.obj.eval.6 friendship    cycle3 eval                          
+                      include
+friendship.obj.eval.3    TRUE
+friendship.obj.eval.6    TRUE
+> 		myeff <- includeEffects( myeff, egoX, altX, egoXaltX,
++ 								 interaction1 = "alcohol" )
+                             name shortName type interaction1 interaction2
+friendship.obj.eval.53 friendship      altX eval      alcohol             
+friendship.obj.eval.55 friendship      egoX eval      alcohol             
+friendship.obj.eval.63 friendship  egoXaltX eval      alcohol             
+                       include
+friendship.obj.eval.53    TRUE
+friendship.obj.eval.55    TRUE
+friendship.obj.eval.63    TRUE
+> 		myeff <- includeEffects( myeff, simX, interaction1 = "smoke1" )
+                             name shortName type interaction1 interaction2
+friendship.obj.eval.40 friendship      simX eval       smoke1             
+                       include
+friendship.obj.eval.40    TRUE
+> 		myeff
+   effectName                          include fix   test  initialValue parm
+1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
+2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
+3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
+4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
+5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
+6  3-cycles                            TRUE    FALSE FALSE    0.00000   0   
+7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
+8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
+9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
+10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
 > 
 > # The function siena07 actually fits the specified model to the data
 > # If you wish the pretty picture of Siena on the screen as information
 > # about the progress of the algorithm, type
 > 
->  	ans <- siena07( mymodel, data = mydata, effects = myeff)
-Loading Tcl/Tk interface ... done
+> 		ans <- siena07( myalgorithm, data = mydata, effects = myeff)
 > 
 > # (ans for "answer").
 > # If however you do not want the pretty picture, or if this leads to
 > # difficulties (which may happen e.g. on a Mac), then type
 > 
-> #  ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+> #		ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 > 
 > # and intermediate information will be written to the console.
 > 
@@ -2499,22 +2585,22 @@ Loading Tcl/Tk interface ... done
 > 
 > # verbose = TRUE leads to extensive diagnostic information being sent
 > # to the console during the estimation, and results after the estimation
-> # (these results are also copied to the output file projname.out, mentioned above);
+> # (these results are also copied to the output file projname.out, see above);
 > # while batch=TRUE gives only a limited amount of printout sent to the console
 > # during the estimation (which is seen when clicking in the console,
 > # or more immediately if the Buffered Output is deselected in the Misc menu)
-> # which monitors the progress of the estimation algorithm in  a different way.
+> # which monitors the progress of the estimation algorithm in a different way.
 > 
 > # The call of siena07 leads to output in the file s50_3.out
 > # (or more generally projname.out,
-> # where projname is the name given in sienaModelCreate)
+> # where projname is the name given in sienaAlgorithmCreate)
 > # and to the creation of the object which here is called ans (for "answer").
 > 
 > # To use multiple processors, in the simplest case where your computer has 2
 > # processors, use
 > 
-> #         ans <- siena07( mymodel, data = mydata, effects = myeff, batch = TRUE,
-> #                        verbose = TRUE, nbrNodes = 2, useCluster = TRUE)
+> #		ans <- siena07( myalgorithm, data = mydata, effects = myeff,
+> #					  nbrNodes = 2, useCluster = TRUE)
 > 
 > # Adjust the nbrNodes to the number available.
 > # If you wish to work on with other programs while running siena07,
@@ -2531,6 +2617,7 @@ Loading Tcl/Tk interface ... done
 > # which contains a list (each iteration) of lists (each data object)
 > # of lists (each dependent network or behavior variable) of edgelists for
 > # networks or vectors for behavior variables.
+> # See the manual for further explanation.
 > #
 > # This option when used with multiple processors would require
 > # rather a lot of communication between multiple processes,
@@ -2545,117 +2632,119 @@ Loading Tcl/Tk interface ... done
 > # This file can be read by any text editor.
 > # A summary of the results is obtained on the screen by
 > 
->            ans
+> 		ans
 Estimates, standard errors and convergence t-ratios
 
                                        Estimate   Standard   Convergence 
                                                     Error      t-ratio   
 
 Rate parameters: 
-  0.1      Rate parameter period 1      6.5688  ( 1.1560   )             
-  0.2      Rate parameter period 2      5.1635  ( 0.8640   )             
+  0.1      Rate parameter period 1      6.5972  ( 1.1430   )             
+  0.2      Rate parameter period 2      5.2088  ( 0.8907   )             
 
 Other parameters: 
-  1.  eval outdegree (density)         -2.7108  ( 0.1291   )    0.0399   
-  2.  eval reciprocity                  2.4158  ( 0.2313   )   -0.0083   
-  3.  eval transitive triplets          0.6463  ( 0.1456   )   -0.0320   
-  4.  eval 3-cycles                    -0.0869  ( 0.2803   )   -0.0297   
-  5.  eval smoke1 similarity            0.2468  ( 0.2081   )   -0.0038   
-  6.  eval alcohol alter               -0.0208  ( 0.0683   )   -0.0007   
-  7.  eval alcohol ego                  0.0328  ( 0.0712   )   -0.0104   
-  8.  eval alcohol ego x alcohol alter  0.1299  ( 0.0485   )    0.0511   
+  1.  eval outdegree (density)         -2.7049  ( 0.1214   )    0.0426   
+  2.  eval reciprocity                  2.4150  ( 0.2057   )    0.0254   
+  3.  eval transitive triplets          0.6292  ( 0.1430   )   -0.0163   
+  4.  eval 3-cycles                    -0.0537  ( 0.2964   )    0.0017   
+  5.  eval smoke1 similarity            0.2430  ( 0.2218   )   -0.0247   
+  6.  eval alcohol alter               -0.0225  ( 0.0663   )   -0.0515   
+  7.  eval alcohol ego                  0.0340  ( 0.0765   )   -0.0617   
+  8.  eval alcohol ego x alcohol alter  0.1270  ( 0.0505   )    0.0207   
 
-Total of 2254 iteration steps.
+Total of 2206 iteration steps.
 
 > 
 > # and a larger summary by
 > 
->            summary(ans)
+> 		summary(ans)
 Estimates, standard errors and convergence t-ratios
 
                                        Estimate   Standard   Convergence 
                                                     Error      t-ratio   
 
 Rate parameters: 
-  0.1      Rate parameter period 1      6.5688  ( 1.1560   )             
-  0.2      Rate parameter period 2      5.1635  ( 0.8640   )             
+  0.1      Rate parameter period 1      6.5972  ( 1.1430   )             
+  0.2      Rate parameter period 2      5.2088  ( 0.8907   )             
 
 Other parameters: 
-  1.  eval outdegree (density)         -2.7108  ( 0.1291   )    0.0399   
-  2.  eval reciprocity                  2.4158  ( 0.2313   )   -0.0083   
-  3.  eval transitive triplets          0.6463  ( 0.1456   )   -0.0320   
-  4.  eval 3-cycles                    -0.0869  ( 0.2803   )   -0.0297   
-  5.  eval smoke1 similarity            0.2468  ( 0.2081   )   -0.0038   
-  6.  eval alcohol alter               -0.0208  ( 0.0683   )   -0.0007   
-  7.  eval alcohol ego                  0.0328  ( 0.0712   )   -0.0104   
-  8.  eval alcohol ego x alcohol alter  0.1299  ( 0.0485   )    0.0511   
+  1.  eval outdegree (density)         -2.7049  ( 0.1214   )    0.0426   
+  2.  eval reciprocity                  2.4150  ( 0.2057   )    0.0254   
+  3.  eval transitive triplets          0.6292  ( 0.1430   )   -0.0163   
+  4.  eval 3-cycles                    -0.0537  ( 0.2964   )    0.0017   
+  5.  eval smoke1 similarity            0.2430  ( 0.2218   )   -0.0247   
+  6.  eval alcohol alter               -0.0225  ( 0.0663   )   -0.0515   
+  7.  eval alcohol ego                  0.0340  ( 0.0765   )   -0.0617   
+  8.  eval alcohol ego x alcohol alter  0.1270  ( 0.0505   )    0.0207   
 
-Total of 2254 iteration steps.
+Total of 2206 iteration steps.
+
+Overall maximum convergence ratio:    0.2184 
 
 Covariance matrix of estimates (correlations below diagonal)
 
-       0.017       -0.020       -0.009        0.011       -0.005        0.000       -0.001       -0.001
-      -0.660        0.054        0.012       -0.031        0.002        0.001        0.000        0.000
-      -0.471        0.355        0.021       -0.035        0.002        0.000       -0.001       -0.001
-       0.310       -0.475       -0.855        0.079       -0.004       -0.002        0.002        0.002
-      -0.201        0.050        0.055       -0.065        0.043        0.004        0.002       -0.001
-      -0.010        0.041        0.045       -0.090        0.259        0.005       -0.002        0.000
-      -0.070        0.023       -0.123        0.105        0.137       -0.331        0.005        0.000
-      -0.123        0.017       -0.173        0.140       -0.077       -0.128       -0.067        0.002
+       0.015       -0.015       -0.007        0.008       -0.003        0.000        0.000       -0.001
+      -0.598        0.042        0.009       -0.026       -0.006       -0.001        0.000        0.001
+      -0.405        0.320        0.020       -0.037       -0.002       -0.001       -0.001        0.000
+       0.219       -0.426       -0.869        0.088        0.006        0.001        0.002        0.000
+      -0.100       -0.132       -0.054        0.086        0.049        0.003        0.005       -0.001
+       0.056       -0.083       -0.070        0.056        0.198        0.004       -0.002        0.000
+      -0.026       -0.026       -0.109        0.080        0.310       -0.321        0.006       -0.001
+      -0.226        0.066       -0.012       -0.010       -0.097       -0.051       -0.139        0.003
 
 Derivative matrix of expected statistics X by parameters:
 
-     289.341      234.150      507.672      159.317       26.954       32.951       41.670      147.355
-     127.537      139.071      257.687       85.660       13.505        8.687        6.255       54.965
-     341.795      313.223     1126.888      358.652       29.127       78.645       81.039      208.215
-     161.154      159.353      540.390      182.268       14.853       32.146       25.557       80.350
-      26.325       22.213       41.160       13.500       34.255      -40.629      -34.299       10.701
-      20.062       29.657      129.891       42.947      -45.176      351.377      217.055       94.188
-      39.427       30.062      118.080       35.785      -36.666      221.286      311.524      100.817
-     149.444      131.048      350.060      109.849        8.671      111.230      106.890      631.970
+     293.749      230.290      488.413      154.126       29.466       29.380       39.120      162.228
+     131.391      142.947      253.204       84.540       13.196       16.737       14.703       70.624
+     349.947      316.329     1149.926      367.088       32.189       74.255       79.218      217.981
+     165.538      159.853      541.491      181.893       15.869       27.243       26.709       98.248
+      27.160       26.753       42.451       13.268       34.382      -45.477      -45.364       15.871
+      25.166       28.319      103.812       35.663      -44.238      360.567      231.328       67.026
+      34.626       26.527      116.968       37.279      -44.006      238.092      331.110      111.750
+     160.763      141.085      318.608      103.622       14.240       89.039       83.889      603.167
 
 Covariance matrix of X (correlations below diagonal):
 
-     461.489      409.948     1110.543      355.905       41.138       63.699       64.122      244.437
-       0.932      419.106     1091.513      355.245       39.693       69.479       54.080      232.016
-       0.814        0.840     4032.851     1304.381       95.092      280.466      237.738      675.395
-       0.801        0.839        0.993      428.205       30.619       91.183       74.329      216.733
-       0.290        0.294        0.227        0.224       43.558      -68.626      -62.753        9.802
-       0.135        0.154        0.201        0.200       -0.473      483.677      373.496      175.431
-       0.145        0.128        0.182        0.175       -0.462        0.826      422.663      168.222
-       0.401        0.399        0.374        0.369        0.052        0.281        0.288      806.613
+     447.958      383.162     1016.877      330.277       48.532       57.530       59.288      247.278
+       0.922      385.445      985.781      326.039       44.751       57.931       47.917      238.271
+       0.785        0.820     3747.658     1225.174      118.770      204.610      187.864      637.535
+       0.774        0.824        0.993      406.370       38.467       68.534       60.200      210.256
+       0.340        0.338        0.288        0.283       45.494      -70.341      -69.029       21.008
+       0.122        0.133        0.150        0.153       -0.469      495.305      405.776      153.723
+       0.128        0.111        0.140        0.136       -0.467        0.833      479.556      157.250
+       0.415        0.431        0.370        0.370        0.111        0.245        0.255      793.207
 > 
 > # Depending on the random seed and the model specification,
 > # the results could be something like the following.
 > 
-> # Estimates, standard errors and t-statistics for convergence
+> # Estimates, standard errors and convergence t-ratios
 > #
-> #                                        Estimate   Standard   t statistic
-> #                                                     Error
+> #										Estimate   Standard	  Convergence
+> #													 Error		t-ratio
 > #
-> # Rate parameters:
-> #   0.1      Rate parameter period 1      6.5644  ( 1.1020   )
-> #   0.2      Rate parameter period 2      5.1981  ( 0.8611   )
+> #Rate parameters:
+> #  0.1		Rate parameter period 1		 6.6331	 ( 1.1770	)
+> #  0.2		Rate parameter period 2		 5.2105	 ( 0.8790	)
 > #
-> # Other parameters:
-> #   1.  eval outdegree (density)         -2.7027  ( 0.1253   ) -0.0025
-> #   2.  eval reciprocity                  2.3894  ( 0.2157   ) -0.0335
-> #   3.  eval transitive triplets          0.6111  ( 0.1392   ) -0.0247
-> #   4.  eval 3-cycles                    -0.0069  ( 0.2731   )  0.0126
-> #   5.  eval smoke1 similarity            0.2595  ( 0.2107   )  0.0144
-> #   6.  eval alcohol alter               -0.0195  ( 0.0699   ) -0.0155
-> #   7.  eval alcohol ego                  0.0374  ( 0.0801   ) -0.0681
-> #   8.  eval alcohol ego x alcohol alter  0.1297  ( 0.0527   ) -0.0001
+> #Other parameters:
+> #  1.  eval outdegree (density)			-2.7194	 ( 0.1191	)	 0.0024
+> #  2.  eval reciprocity					 2.4344	 ( 0.2208	)	 0.0013
+> #  3.  eval transitive triplets			 0.6449	 ( 0.1378	)	 0.0039
+> #  4.  eval 3-cycles					-0.0881	 ( 0.2917	)	 0.0168
+> #  5.  eval smoke1 similarity			 0.2239	 ( 0.1991	)	-0.0792
+> #  6.  eval alcohol alter				-0.0256	 ( 0.0676	)	-0.0048
+> #  7.  eval alcohol ego					 0.0348	 ( 0.0730	)	 0.0075
+> #  8.  eval alcohol ego x alcohol alter	 0.1295	 ( 0.0489	)	 0.0126
 > #
 > 
 > # The results can also be viewed externally in the output file s50_3.out
 > # It is advisable that you have a look at all three reports and
 > # understand how information is organized in each of them.
 > 
-> # To understand the table above, note that the "t statistic"
-> # is the t-statistic for convergence checking,
+> # To understand the table above, note that the "convergence t-ratio"
+> # is the t-ratio for convergence checking,
 > # not the t statistic for testing the significance of this effect!
-> # (See Section 6.2 of the manual.)
+> # (See Section 6.1.2 of the manual.)
 > # In the external output file, these are called
 > # "t-ratios for deviations from targets".
 > # The rule of thumb is that all t-ratios for convergence
@@ -2666,167 +2755,291 @@ Covariance matrix of X (correlations below diagonal):
 > # to continue the estimation, using the estimates produced here,
 > # and contained in ans, as the new initial values.
 > # This is explained below.
+> # Because the estimation algorithm is based on random simulations of the
+> # network evolution, there always will be small differences between
+> # different runs of the algorithm.
+> # To obtain "publication grade" estimates, where this variability is minimized,
+> # choose the value of parameter n3 in sienaAlgorithmCreate()
+> # ("Number of iterations in phase 3") larger than the default value of 1000;
+> # e.g., n3=3000.
 > 
 > # With function siena07 we made ans as the object containing
 > # all the results of the estimation. For example,
 > 
->         ans$theta
-[1] -2.71081403  2.41575411  0.64625845 -0.08692340  0.24683046 -0.02080773
-[7]  0.03277951  0.12987306
+> 		ans$theta
+[1] -2.70487731  2.41499415  0.62915961 -0.05372878  0.24296968 -0.02245825
+[7]  0.03402762  0.12695392
 > 
 > # contains the vector of parameter estimates while
 > 
->         ans$covtheta
-              [,1]          [,2]          [,3]         [,4]         [,5]
-[1,]  1.665663e-02 -0.0197060059 -0.0088517141  0.011202275 -0.005389970
-[2,] -1.970601e-02  0.0535167184  0.0119593474 -0.030795330  0.002416403
-[3,] -8.851714e-03  0.0119593474  0.0212110015 -0.034884375  0.001675581
-[4,]  1.120227e-02 -0.0307953299 -0.0348843746  0.078541180 -0.003780916
-[5,] -5.389970e-03  0.0024164033  0.0016755807 -0.003780916  0.043309393
-[6,] -9.092678e-05  0.0006490970  0.0004517941 -0.001728489  0.003681735
-[7,] -6.433863e-04  0.0003713283 -0.0012747480  0.002090973  0.002030272
-[8,] -7.687170e-04  0.0001937755 -0.0012199396  0.001909319 -0.000774341
+> 		ans$covtheta
+              [,1]          [,2]          [,3]          [,4]         [,5]
+[1,]  0.0147340316 -0.0149456615 -7.031516e-03  0.0078740230 -0.002682783
+[2,] -0.0149456615  0.0423307695  9.420469e-03 -0.0259589645 -0.006043398
+[3,] -0.0070315157  0.0094204686  2.045312e-02 -0.0368436199 -0.001716327
+[4,]  0.0078740230 -0.0259589645 -3.684362e-02  0.0878734558  0.005634906
+[5,] -0.0026827825 -0.0060433978 -1.716327e-03  0.0056349057  0.049190077
+[6,]  0.0004520012 -0.0011348549 -6.613809e-04  0.0011006902  0.002903997
+[7,] -0.0002401056 -0.0004131704 -1.195543e-03  0.0018246616  0.005263295
+[8,] -0.0013842398  0.0006870385 -8.999758e-05 -0.0001540228 -0.001091709
               [,6]          [,7]          [,8]
-[1,] -9.092678e-05 -0.0006433863 -0.0007687170
-[2,]  6.490970e-04  0.0003713283  0.0001937755
-[3,]  4.517941e-04 -0.0012747480 -0.0012199396
-[4,] -1.728489e-03  0.0020909727  0.0019093189
-[5,]  3.681735e-03  0.0020302725 -0.0007743410
-[6,]  4.667603e-03 -0.0016102622 -0.0004230673
-[7,] -1.610262e-03  0.0050710947 -0.0002308559
-[8,] -4.230673e-04 -0.0002308559  0.0023518431
+[1,]  0.0004520012 -0.0002401056 -1.384240e-03
+[2,] -0.0011348549 -0.0004131704  6.870385e-04
+[3,] -0.0006613809 -0.0011955434 -8.999758e-05
+[4,]  0.0011006902  0.0018246616 -1.540228e-04
+[5,]  0.0029039972  0.0052632951 -1.091709e-03
+[6,]  0.0043929970 -0.0016290281 -1.719561e-04
+[7,] -0.0016290281  0.0058544159 -5.354947e-04
+[8,] -0.0001719561 -0.0005354947  2.550023e-03
 > 
 > # contains the covariance matrix of the estimates.
 > # There are several "methods" available for viewing the object
 > # containing the results of the estimation.
 > # Above we already mentioned
-> #        ans
+> #		ans
 > # and
-> #        summary( ans )
+> #		summary( ans )
 > # The command
 > 
->         xtable( ans )
-% latex table generated in R 2.14.1 by xtable 1.6-0 package
-% Fri Jan 20 16:02:20 2012
+> 		xtable( ans )
+% latex table generated in R 3.0.1 by xtable 1.7-1 package
+% Tue Jun 18 10:30:35 2013
 \begin{table}[ht]
-\begin{center}
+\centering
 \begin{tabular}{llllrlrlr}
   \hline
   \multicolumn{4}{l}{ Rate parameters:  } \\ 
  \hline
-  & 0.1 &  & Rate parameter period 1 & 6.57 & ( & 1.16 & ) &  \\ 
-    & 0.2 &  & Rate parameter period 2 & 5.16 & ( & 0.86 & ) &  \\ 
+  & 0.1 &  & Rate parameter period 1 & 6.60 & ( & 1.14 & ) &  \\ 
+    & 0.2 &  & Rate parameter period 2 & 5.21 & ( & 0.89 & ) &  \\ 
    \\  \multicolumn{4}{l}{ Other parameters:  } \\ 
-  & 1. & eval & outdegree (density) & -2.71 & ( & 0.13 & ) & 0.04 \\ 
-    & 2. & eval & reciprocity & 2.42 & ( & 0.23 & ) & -0.01 \\ 
-    & 3. & eval & transitive triplets & 0.65 & ( & 0.15 & ) & -0.03 \\ 
-    & 4. & eval & 3-cycles & -0.09 & ( & 0.28 & ) & -0.03 \\ 
-    & 5. & eval & smoke1 similarity & 0.25 & ( & 0.21 & ) & -0.00 \\ 
-    & 6. & eval & alcohol alter & -0.02 & ( & 0.07 & ) & -0.00 \\ 
-    & 7. & eval & alcohol ego & 0.03 & ( & 0.07 & ) & -0.01 \\ 
-    & 8. & eval & alcohol ego x alcohol alter & 0.13 & ( & 0.05 & ) & 0.05 \\ 
+  & 1. & eval & outdegree (density) & -2.70 & ( & 0.12 & ) & 0.04 \\ 
+    & 2. & eval & reciprocity & 2.41 & ( & 0.21 & ) & 0.03 \\ 
+    & 3. & eval & transitive triplets & 0.63 & ( & 0.14 & ) & -0.02 \\ 
+    & 4. & eval & 3-cycles & -0.05 & ( & 0.30 & ) & 0.00 \\ 
+    & 5. & eval & smoke1 similarity & 0.24 & ( & 0.22 & ) & -0.02 \\ 
+    & 6. & eval & alcohol alter & -0.02 & ( & 0.07 & ) & -0.05 \\ 
+    & 7. & eval & alcohol ego & 0.03 & ( & 0.08 & ) & -0.06 \\ 
+    & 8. & eval & alcohol ego x alcohol alter & 0.13 & ( & 0.05 & ) & 0.02 \\ 
    \hline
 \end{tabular}
-\end{center}
 \end{table}
 > 
 > # will produce a table formatted for inclusion in a LaTeX document
 > # or formatted in html. Use e.g.
 > 
->         xtable( ans, type = 'html' )
-<!-- html table generated in R 2.14.1 by xtable 1.6-0 package -->
-<!-- Fri Jan 20 16:02:20 2012 -->
+> 		xtable( ans, type = 'html' )
+<!-- html table generated in R 3.0.1 by xtable 1.7-1 package -->
+<!-- Tue Jun 18 10:30:35 2013 -->
 <TABLE border=1>
   <TR> <TD colspan=9 align=left> Rate parameters:  </TD> </TR> <TR> </TR> 
- <TR> <TD>   </TD> <TD> 0.1 </TD> <TD>  </TD> <TD> Rate parameter period 1 </TD> <TD align="right"> 6.57 </TD> <TD> ( </TD> <TD align="right"> 1.16 </TD> <TD> ) </TD> <TD align="right">  </TD> </TR>
-  <TR> <TD>   </TD> <TD> 0.2 </TD> <TD>  </TD> <TD> Rate parameter period 2 </TD> <TD align="right"> 5.16 </TD> <TD> ( </TD> <TD align="right"> 0.86 </TD> <TD> ) </TD> <TD align="right">  </TD> </TR>
+ <TR> <TD>   </TD> <TD> 0.1 </TD> <TD>  </TD> <TD> Rate parameter period 1 </TD> <TD align="right"> 6.60 </TD> <TD> ( </TD> <TD align="right"> 1.14 </TD> <TD> ) </TD> <TD align="right">  </TD> </TR>
+  <TR> <TD>   </TD> <TD> 0.2 </TD> <TD>  </TD> <TD> Rate parameter period 2 </TD> <TD align="right"> 5.21 </TD> <TD> ( </TD> <TD align="right"> 0.89 </TD> <TD> ) </TD> <TD align="right">  </TD> </TR>
    <TR> <TD colspan=9 align=left> Other parameters:  </TD> </TR> <TR> </TR> 
-<TR> <TD>   </TD> <TD> 1. </TD> <TD> eval </TD> <TD> outdegree (density) </TD> <TD align="right"> -2.71 </TD> <TD> ( </TD> <TD align="right"> 0.13 </TD> <TD> ) </TD> <TD align="right"> 0.04 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 2. </TD> <TD> eval </TD> <TD> reciprocity </TD> <TD align="right"> 2.42 </TD> <TD> ( </TD> <TD align="right"> 0.23 </TD> <TD> ) </TD> <TD align="right"> -0.01 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 3. </TD> <TD> eval </TD> <TD> transitive triplets </TD> <TD align="right"> 0.65 </TD> <TD> ( </TD> <TD align="right"> 0.15 </TD> <TD> ) </TD> <TD align="right"> -0.03 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 4. </TD> <TD> eval </TD> <TD> 3-cycles </TD> <TD align="right"> -0.09 </TD> <TD> ( </TD> <TD align="right"> 0.28 </TD> <TD> ) </TD> <TD align="right"> -0.03 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 5. </TD> <TD> eval </TD> <TD> smoke1 similarity </TD> <TD align="right"> 0.25 </TD> <TD> ( </TD> <TD align="right"> 0.21 </TD> <TD> ) </TD> <TD align="right"> -0.00 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 6. </TD> <TD> eval </TD> <TD> alcohol alter </TD> <TD align="right"> -0.02 </TD> <TD> ( </TD> <TD align="right"> 0.07 </TD> <TD> ) </TD> <TD align="right"> -0.00 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 7. </TD> <TD> eval </TD> <TD> alcohol ego </TD> <TD align="right"> 0.03 </TD> <TD> ( </TD> <TD align="right"> 0.07 </TD> <TD> ) </TD> <TD align="right"> -0.01 </TD> </TR>
-  <TR> <TD>   </TD> <TD> 8. </TD> <TD> eval </TD> <TD> alcohol ego x alcohol alter </TD> <TD align="right"> 0.13 </TD> <TD> ( </TD> <TD align="right"> 0.05 </TD> <TD> ) </TD> <TD align="right"> 0.05 </TD> </TR>
+<TR> <TD>   </TD> <TD> 1. </TD> <TD> eval </TD> <TD> outdegree (density) </TD> <TD align="right"> -2.70 </TD> <TD> ( </TD> <TD align="right"> 0.12 </TD> <TD> ) </TD> <TD align="right"> 0.04 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 2. </TD> <TD> eval </TD> <TD> reciprocity </TD> <TD align="right"> 2.41 </TD> <TD> ( </TD> <TD align="right"> 0.21 </TD> <TD> ) </TD> <TD align="right"> 0.03 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 3. </TD> <TD> eval </TD> <TD> transitive triplets </TD> <TD align="right"> 0.63 </TD> <TD> ( </TD> <TD align="right"> 0.14 </TD> <TD> ) </TD> <TD align="right"> -0.02 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 4. </TD> <TD> eval </TD> <TD> 3-cycles </TD> <TD align="right"> -0.05 </TD> <TD> ( </TD> <TD align="right"> 0.30 </TD> <TD> ) </TD> <TD align="right"> 0.00 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 5. </TD> <TD> eval </TD> <TD> smoke1 similarity </TD> <TD align="right"> 0.24 </TD> <TD> ( </TD> <TD align="right"> 0.22 </TD> <TD> ) </TD> <TD align="right"> -0.02 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 6. </TD> <TD> eval </TD> <TD> alcohol alter </TD> <TD align="right"> -0.02 </TD> <TD> ( </TD> <TD align="right"> 0.07 </TD> <TD> ) </TD> <TD align="right"> -0.05 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 7. </TD> <TD> eval </TD> <TD> alcohol ego </TD> <TD align="right"> 0.03 </TD> <TD> ( </TD> <TD align="right"> 0.08 </TD> <TD> ) </TD> <TD align="right"> -0.06 </TD> </TR>
+  <TR> <TD>   </TD> <TD> 8. </TD> <TD> eval </TD> <TD> alcohol ego x alcohol alter </TD> <TD align="right"> 0.13 </TD> <TD> ( </TD> <TD align="right"> 0.05 </TD> <TD> ) </TD> <TD align="right"> 0.02 </TD> </TR>
    </TABLE>
 > 
 > # to get html, and e.g.
 > 
->         xtable( ans, file = 'ff.tex' )
+> 		xtable( ans, file = 'ff.tex' )
 > 
 > # to write the results to a file.
 > # At http://cran.r-project.org/web/packages/xtable you can find
 > # a set of vignettes for the xtable package, the xtable gallery,
 > # which gives more options.
 > # A function siena.table is available that is specially designed
-> # for RSiena results.
+> # for RSiena results and produces html or LaTeX files.
+> # See
+> 
+> 		?print.sienaFit
+sienaFit.methods            package:RSiena             R Documentation
+
+_M_e_t_h_o_d_s _f_o_r _p_r_o_c_e_s_s_i_n_g _s_i_e_n_a_F_i_t _o_b_j_e_c_t_s, _p_r_o_d_u_c_e_d _b_y '_s_i_e_n_a_0_7'.
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     'print', 'summary', and 'xtable' methods for 'sienaFit' objects.
+
+_U_s_a_g_e:
+
+     ## S3 method for class 'sienaFit'
+     print(x, tstat=TRUE, ...)
+     
+     ## S3 method for class 'sienaFit'
+     summary(object,  ...)
+     
+     ## S3 method for class 'summary.sienaFit'
+     print(x,  ...)
+     
+     ## S3 method for class 'sienaFit'
+     xtable(x, caption = NULL, label = NULL, align = NULL,
+                     digits = NULL, display = NULL, ...)
+     
+     siena.table(x, type='tex', file=paste(deparse(substitute(x)), '.', type,sep=""),
+                 vertLine=TRUE, tstatPrint=FALSE, sig=FALSE, d=3)
+     
+_A_r_g_u_m_e_n_t_s:
+
+  object: An object of class 'sienaFit', produced by 'siena07'.
+
+       x: An object of class 'sienaFit', or 'summary.sienaFit' as
+          appropriate
+
+   tstat: Boolean: add the t-statistics for convergence to the report
+
+    type: Type of output to produce; must be either ''tex'' or ''html''
+
+    file: Name of the file; defaults to the name of the 'sienaFit'
+          object
+
+vertLine: Boolean: add vertical lines separating the columns in
+          'siena.table'
+
+tstatPrint: Boolean: add a column of significance t values (parameter
+          estimate/standard error estimate) to 'siena.table'
+
+     sig: Boolean: adds symbols (daggers and asterisks) indicating
+          significance levels for the parameter estimates to
+          'siena.table'
+
+       d: The number of decimals places used in 'siena.table'
+
+ caption: See documentation for 'xtable'
+
+   label: See documentation for 'xtable'
+
+   align: See documentation for 'xtable'
+
+  digits: See documentation for 'xtable'
+
+ display: See documentation for 'xtable'
+
+     ...: Add extra parameters for 'print.xtable' here. e.g.  'type',
+          'file'
+
+_V_a_l_u_e:
+
+     The function 'print.sienaFit' prints a table containing estimated
+     parameter values, standard errors and (optionally) t-statistics
+     for convergence.
+
+     The function 'summary.sienaFit' prints a table containing
+     estimated parameter values, standard errors and t-statistics for
+     convergence together with the covariance matrix of the estimates,
+     the derivative matrix of expected statistics 'X' by parameters,
+     and the covariance matrix of the expected statistics 'X'.
+
+     The function 'xtable.sienaFit' creates an object of class
+     'xtable.sienaFit' which inherits from class 'xtable' and passes an
+     extra arguments to the 'print.xtable'.
+
+     The function 'siena.table' outputs a latex or html table of the
+     estimates and standards errors of a 'sienaFit' object.  The table
+     will be written to the current directory and has a footnote
+     reporting the maximum of the convergence t ratios.
+
+_A_u_t_h_o_r(_s):
+
+     Ruth Ripley, Charlotte Greenan
+
+_R_e_f_e_r_e_n_c_e_s:
+
+     See <URL: http://www.stats.ox.ac.uk/~snijders/siena/>
+
+_S_e_e _A_l_s_o:
+
+     'xtable', 'print.xtable', 'siena07'
+
+_E_x_a_m_p_l_e_s:
+
+     myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
+     mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+     mydata <- sienaDataCreate(mynet1)
+     myeff <- getEffects(mydata)
+     ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
+     ans
+     summary(ans)
+     xtable(ans, type='html', file='ans.html')
+     siena.table(ans, type='html', tstat=TRUE, d=2)
+     
+> 
 > 
 > ############## MORE ON INITIALIZING PARAMETERS FOR ESTIMATION ########
 > 
 > # If the estimation algorithm has not produced good estimates
 > # (it 'has not converged well'),
-> # as will be indicated by some of the t-ratios for convergence
-> # being larger than 0.1 (this threshold is not to be taken too precisely, though),
+> # as will be indicated by some of the t-ratios for convergence being larger
+> # than 0.1 (this threshold is not to be taken too precisely, though),
 > # the best thing to do is continuing the estimation,
 > # using the estimates produced here,
 > # and contained in ans, as the new initial values.
 > # This is done by the option prevAns ('previous ans') as in
 > 
->         ans <- siena07(mymodel, data=mydata, effects=myeff, prevAns=ans)
+> 		ans <- siena07(myalgorithm, data=mydata, effects=myeff, prevAns=ans)
 > 
-> # the parameter estimates in ans then are  extracted and
-> # used in the new estimation,
-> # and moreover Phase 1 will be omitted from the algorithm,
+> # the parameter estimates in ans then are extracted and
+> # used in the new estimation;
+> # moreover, Phase 1 will be omitted from the algorithm,
 > # as derivatives and covariance matrix are used from the previous run.
 > # This should be used only if the model specification in myeff
 > # has not changed, and if the provisional parameter estimates obtained
 > # in ans are reasonable; if they are not reasonable,
 > # omit the prevAns option, use
-> #       mymodel$useStdInits <- TRUE
+> #		myalgorithm$useStdInits <- TRUE
 > # to get back on track, and return at the next estimation to
-> #       mymodel$useStdInits <- FALSE
+> #		myalgorithm$useStdInits <- FALSE
 > # To understand what happens here, read on:
 > 
 > # Another and more flexible way for determining initial values is by
 > # using the useStdInits element of the model object,
 > # and the initial values in the effects object.
 > # This is done as follows.
-> # The option useStdInits = TRUE in sienaModelCreate, will make
+> # The option useStdInits = TRUE in sienaAlgorithmCreate, will make
 > # each estimation run start with standard initial values.
 > # The option useStdInits = FALSE makes the estimation start
 > # with the initial values in the effects object.
 > # You can switch between these by commands such as
 > 
-> #       mymodel$useStdInits <- FALSE
-> #       mymodel$useStdInits <- TRUE
+> #		myalgorithm$useStdInits <- FALSE
+> #		myalgorithm$useStdInits <- TRUE
 > 
 > # Putting the estimates from the results object ans into the
 > # effects object myeff is done by
-> #       myeff <- update(myeff, ans)
+> 
+> 		myeff <- updateTheta(myeff, ans)
+> 
 > # A check that the effects object contains the desired initial values is made by
 > 
->         myeff
+> 		myeff
    effectName                          include fix   test  initialValue parm
-1  constant friendship rate (period 1) TRUE    FALSE FALSE    4.69604   0   
-2  constant friendship rate (period 2) TRUE    FALSE FALSE    4.32885   0   
-3  outdegree (density)                 TRUE    FALSE FALSE   -1.46770   0   
-4  reciprocity                         TRUE    FALSE FALSE    0.00000   0   
-5  transitive triplets                 TRUE    FALSE FALSE    0.00000   0   
-6  3-cycles                            TRUE    FALSE FALSE    0.00000   0   
-7  smoke1 similarity                   TRUE    FALSE FALSE    0.00000   0   
-8  alcohol alter                       TRUE    FALSE FALSE    0.00000   0   
-9  alcohol ego                         TRUE    FALSE FALSE    0.00000   0   
-10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.00000   0   
+1  constant friendship rate (period 1) TRUE    FALSE FALSE    6.66415   0   
+2  constant friendship rate (period 2) TRUE    FALSE FALSE    5.17651   0   
+3  outdegree (density)                 TRUE    FALSE FALSE   -2.72170   0   
+4  reciprocity                         TRUE    FALSE FALSE    2.41245   0   
+5  transitive triplets                 TRUE    FALSE FALSE    0.63997   0   
+6  3-cycles                            TRUE    FALSE FALSE   -0.05984   0   
+7  smoke1 similarity                   TRUE    FALSE FALSE    0.25545   0   
+8  alcohol alter                       TRUE    FALSE FALSE   -0.02626   0   
+9  alcohol ego                         TRUE    FALSE FALSE    0.03881   0   
+10 alcohol ego x alcohol alter         TRUE    FALSE FALSE    0.13188   0   
 > 
 > # The initial values are in the vector
->         myeff$initialValue[myeff$include]
- [1]  4.696042  4.328845 -1.467705  0.000000  0.000000  0.000000  0.000000
- [8]  0.000000  0.000000  0.000000
+> 
+> 		myeff$initialValue[myeff$include]
+ [1]  6.66414573  5.17650663 -2.72169913  2.41245279  0.63996715 -0.05984051
+ [7]  0.25544858 -0.02626118  0.03881277  0.13188113
+> 
 > # and this also can be initialised differently, if this is desired.
 > # Note that this initial vector will be used until you change it again,
-> # e.g., to the results of a new run,
-> # or until you change the useStdInits option.
+> # e.g., to the results of a new run, or if you use the prevAns parameter,
+> # or until you set useStdInits to TRUE.
 > 
 > ################################################################################
 > ###
@@ -2846,13 +3059,103 @@ Covariance matrix of X (correlations below diagonal):
 > # For example, to request a score test for the indegree popularity effect,
 > # the commands can be as follows.
 > 
-> #        myeff <- setEffect(myeff, inPopSqrt, fix=TRUE, test=TRUE,
-> #                                          initialValue=0.0)
-> #        ans <- siena07(mymodel, data=mydata, effects=myeff)
+> 		myeff <- setEffect(myeff, inPopSqrt, fix=TRUE, test=TRUE,
++ 										  initialValue=0.0)
+                             name shortName type interaction1 interaction2
+friendship.obj.eval.19 friendship inPopSqrt eval                          
+                       include parm  fix test initialValue timeDummy period
+friendship.obj.eval.19    TRUE    0 TRUE TRUE            0         ,   <NA>
+                       group
+friendship.obj.eval.19     1
+> 		ans <- siena07(myalgorithm, data=mydata, effects=myeff)
 > 
 > # After such an operation, again request
-> #        myeff
-> # to see what you have done.
+> 
+> 		summary(ans)
+Estimates, standard errors and convergence t-ratios
+
+                                        Estimate   Standard   Convergence 
+                                                     Error      t-ratio   
+
+Rate parameters: 
+  0.1      Rate parameter period 1       6.6394  ( 1.1452   )             
+  0.2      Rate parameter period 2       5.2224  ( 0.8724   )             
+
+Other parameters: 
+  1.  eval outdegree (density)          -2.7233  ( 0.1157   )   -0.0159   
+  2.  eval reciprocity                   2.4193  ( 0.2081   )   -0.0020   
+  3.  eval transitive triplets           0.6117  ( 0.1446   )   -0.0261   
+  4.  eval 3-cycles                     -0.0053  ( 0.2818   )    0.0161   
+  5.  eval indegree - popularity (sqrt)  0.0000  (     NA   )    0.3175   
+  6.  eval smoke1 similarity             0.2686  ( 0.2041   )   -0.0082   
+  7.  eval alcohol alter                -0.0206  ( 0.0725   )    0.0137   
+  8.  eval alcohol ego                   0.0384  ( 0.0763   )    0.0326   
+  9.  eval alcohol ego x alcohol alter   0.1281  ( 0.0496   )    0.0137   
+
+Total of 2725 iteration steps.
+
+Overall maximum convergence ratio:    0.3740 
+
+Generalised score test <c>
+
+Testing the goodness-of-fit of the model restricted by
+ (1)   eval:  indegree - popularity (sqrt)                =   0.0000
+_________________________________________________
+                   
+   c =   6.0249   d.f. = 1   p-value =   0.0141
+
+   one-sided (normal variate):  -2.4546    
+_________________________________________________
+
+One-step estimates: 
+
+eval:  outdegree (density)                         -1.9571
+eval:  reciprocity                                  2.3972
+eval:  transitive triplets                          0.7626
+eval:  3-cycles                                    -0.1915
+eval:  indegree - popularity (sqrt)                -0.4444
+eval:  smoke1 similarity                            0.2301
+eval:  alcohol alter                               -0.0087
+eval:  alcohol ego                                  0.0292
+eval:  alcohol ego x alcohol alter                  0.1157
+
+Covariance matrix of estimates (correlations below diagonal)
+
+       0.013       -0.014       -0.008        0.008        3.817       -0.002        0.000        0.000        0.000
+      -0.594        0.043        0.010       -0.025        6.866        0.000       -0.001        0.000       -0.001
+      -0.453        0.326        0.021       -0.035        4.772       -0.001        0.000       -0.002       -0.001
+       0.247       -0.428       -0.858        0.079        9.301        0.001       -0.001        0.002        0.001
+       1.044        1.044        1.044        1.044      999.000        6.734        2.393        2.519        1.638
+      -0.096        0.003       -0.036        0.012        1.044        0.042        0.003        0.004        0.000
+       0.024       -0.069        0.003       -0.036        1.044        0.234        0.005       -0.002        0.000
+       0.052        0.017       -0.183        0.111        1.044        0.260       -0.329        0.006        0.000
+      -0.054       -0.088       -0.138        0.086        1.044       -0.024       -0.045       -0.004        0.002
+
+Derivative matrix of expected statistics X by parameters:
+
+     310.582      243.489      540.349      172.859      764.531       26.873       37.608       36.986      153.120
+     132.604      143.038      267.139       89.302      330.375       10.865       24.446       19.947       82.129
+     357.977      324.489     1184.935      379.939      970.161       27.711       83.749       93.304      229.661
+     168.171      161.827      556.002      187.696      454.734       13.820       33.158       30.369       96.912
+     572.503      449.585     1070.861      340.480     1465.394       45.573       84.818       84.360      281.352
+      20.756       15.273       22.694        7.326       48.318       35.004      -46.618      -45.911       -1.545
+      35.264       45.339      123.276       39.620      107.703      -44.165      332.263      210.226       78.149
+      43.617       41.360      186.613       59.774      132.101      -42.303      225.050      312.358       92.455
+     178.229      159.737      381.395      122.806      435.403       13.573       83.537       74.331      616.811
+
+Covariance matrix of X (correlations below diagonal):
+
+     482.052      416.923     1105.529      358.716     1235.828       41.873       86.984      102.145      300.996
+       0.931      416.415     1080.012      353.771     1084.903       34.992       94.400      101.546      290.410
+       0.793        0.833     4035.324     1309.773     3087.025       84.076      257.617      324.429      749.674
+       0.787        0.835        0.993      430.947      999.806       27.582       80.905      101.201      240.820
+       0.984        0.929        0.849        0.842     3273.373      103.731      243.186      286.162      765.180
+       0.293        0.264        0.204        0.204        0.279       42.292      -68.216      -63.980        7.948
+       0.180        0.210        0.184        0.177        0.193       -0.476      486.485      388.628      190.807
+       0.219        0.235        0.241        0.230        0.236       -0.464        0.831      449.603      198.666
+       0.467        0.485        0.402        0.395        0.455        0.042        0.295        0.319      862.510
+> 
+> # to see the results, including those for the score test.
 > 
 > 
 > ################################################################################
@@ -2863,15 +3166,30 @@ Covariance matrix of X (correlations below diagonal):
 > #
 > # An application of the score test is given for the special case of parameter
 > # heterogeneity by Lospinoso et al. (2010) and implemented in RSiena.
-> # To apply the test to the results obtained above. request, e.g.,
-> #        tt2 <- sienaTimeTest(ans)
-> #        plot(tt2, effects=3:4)
+> # To apply the test to the results obtained above, request, e.g.,
+> 		tt2 <- sienaTimeTest(ans)
+> 		tt2
+Joint significance test of time heterogeneity:
+chi-squared =   5.11, d.f. = 8, p= 0.7452, 
+where H0: The following parameters are zero:
+ (1) (*)Dummy2:outdegree (density)
+ (2) (*)Dummy2:reciprocity
+ (3) (*)Dummy2:transitive triplets
+ (4) (*)Dummy2:3-cycles
+ (5) (*)Dummy2:smoke1 similarity
+ (6) (*)Dummy2:alcohol alter
+ (7) (*)Dummy2:alcohol ego
+ (8) (*)Dummy2:alcohol ego x alcohol alter
+> # If you wish more information, also
+> #		summary(tt2)
+> #		 plot(tt2, effects=3:4)
 > # If as a consequence of this analysis you wish to add time dummy terms,
 > # this may be done via
-> #        myeff <- includeTimeDummy(myeff, transTrip, cycle3, timeDummy="2")
-> #        ans3 <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
+> #		myeff <- includeTimeDummy(myeff, transTrip, cycle3)
+> #		myeff
+> #		ans3 <- siena07(myalgorithm, data=mydata, effects=myeff)
 > # and testing again,
-> #        tt3 <- sienaTimeTest(ans3)
+> #		(tt3 <- sienaTimeTest(ans3))
 > # and so on.
 > 
 > ################################################################################
@@ -2880,70 +3198,71 @@ Covariance matrix of X (correlations below diagonal):
 > ###
 > ################################################################################
 > 
->         friend.data.w1 <- as.matrix(read.table("s50-network1.dat")) # read data
->         friend.data.w2 <- as.matrix(read.table("s50-network2.dat"))
->         friend.data.w3 <- as.matrix(read.table("s50-network3.dat"))
->         drink <- as.matrix(read.table("s50-alcohol.dat"))
->         smoke <- as.matrix(read.table("s50-smoke.dat"))
+> 	  friend.data.w1 <- as.matrix(read.table("s50-network1.dat")) # read data
+> 	  friend.data.w2 <- as.matrix(read.table("s50-network2.dat"))
+> 	  friend.data.w3 <- as.matrix(read.table("s50-network3.dat"))
+> 	  drink <- as.matrix(read.table("s50-alcohol.dat"))
+> 	  smoke <- as.matrix(read.table("s50-smoke.dat"))
 > 
->         friend.data.w1[ friend.data.w1 %in% c(6,9) ] <- NA # define missing data
->         friend.data.w1[ friend.data.w2 %in% c(6,9) ] <- NA
->         friend.data.w1[ friend.data.w3 %in% c(6,9) ] <- NA
+> 	  friend.data.w1[ friend.data.w1 %in% c(6,9) ] <- NA # define missing data
+> 	  friend.data.w1[ friend.data.w2 %in% c(6,9) ] <- NA
+> 	  friend.data.w1[ friend.data.w3 %in% c(6,9) ] <- NA
 > 
->         friendship <- sienaNet( array( c( friend.data.w1,
-+                                           friend.data.w2, friend.data.w3 ),
-+                                dim = c( 50, 50, 3 ) ) )
+> 	  friendship <- sienaDependent( array( c( friend.data.w1,
++ 											  friend.data.w2, friend.data.w3 ),
++ 									dim = c( 50, 50, 3 ) ) )
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
->         smoke1 <- coCovar( smoke[ , 1 ] )
->         alcohol <- varCovar( drink )
+> 	  drinkingbeh <- sienaDependent( drink, type = "behavior" )
+> 	  smoke1 <- coCovar( smoke[ , 1 ] )
+> 	  alcohol <- varCovar( drink )
 > 
->         mydata <- sienaDataCreate( friendship, smoke1, alcohol )
+> 	  mydata <- sienaDataCreate( friendship, smoke1, alcohol )
 > 
->         myeff <- getEffects( mydata )# create effects structure
+> 	  myeff <- getEffects( mydata )  # create effects structure
 > 
->         print01Report( mydata, myeff, modelname = 's50_3_init' )
+> 	  print01Report( mydata, myeff, modelname = 's50_3_init' )
 > 
->         myeff <- includeEffects( myeff, transTrip, cycle3 )
+> 	  myeff <- includeEffects( myeff, transTrip, cycle3 )
                             name shortName type interaction1 interaction2
 friendship.obj.eval.3 friendship transTrip eval                          
-friendship.obj.eval.5 friendship    cycle3 eval                          
+friendship.obj.eval.6 friendship    cycle3 eval                          
                       include
 friendship.obj.eval.3    TRUE
-friendship.obj.eval.5    TRUE
->         myeff <- includeEffects( myeff, egoX, altX,
-+                                 egoXaltX, interaction1 = "alcohol" )
+friendship.obj.eval.6    TRUE
+> 	  myeff <- includeEffects( myeff, egoX, altX,
++ 							   egoXaltX, interaction1 = "alcohol" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.46 friendship      altX eval      alcohol             
-friendship.obj.eval.48 friendship      egoX eval      alcohol             
-friendship.obj.eval.53 friendship  egoXaltX eval      alcohol             
+friendship.obj.eval.53 friendship      altX eval      alcohol             
+friendship.obj.eval.55 friendship      egoX eval      alcohol             
+friendship.obj.eval.63 friendship  egoXaltX eval      alcohol             
                        include
-friendship.obj.eval.46    TRUE
-friendship.obj.eval.48    TRUE
 friendship.obj.eval.53    TRUE
->         myeff <- includeEffects( myeff, simX, interaction1 = "smoke1" )
+friendship.obj.eval.55    TRUE
+friendship.obj.eval.63    TRUE
+> 	  myeff <- includeEffects( myeff, simX, interaction1 = "smoke1" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.36 friendship      simX eval       smoke1             
+friendship.obj.eval.40 friendship      simX eval       smoke1             
                        include
-friendship.obj.eval.36    TRUE
+friendship.obj.eval.40    TRUE
 > 
->         mymodel <- sienaModelCreate( useStdInits = TRUE, projname = 's50_3' )
->         ans <- siena07( mymodel, data = mydata, effects = myeff)
+> 	  myalgorithm <- sienaAlgorithmCreate( projname = 's50_3' )
+> # and finally (commented out because no need to repeat the actual calculations)
+> #	  ans <- siena07( myalgorithm, data = mydata, effects = myeff)
 > 
 > ################################################################################
 > ###
 > ### -- PROCEED TO Rscript04SienaBehaviour.R FOR
-> ###                                 MODELING NETWORKS AND BEHAVIOUR BY RSIENA --
+> ###									MODELING NETWORKS AND BEHAVIOUR BY RSIENA --
 > ###
 > ################################################################################
 > ################################################################################
 > ###
-> ### ---- Rscript04SienaBehaviour.R: a script for the introduction to RSiena ------
+> ### ---- Rscript04SienaBehaviour.R: a script for the introduction to RSiena ----
 > ###
-> ###                                    version January 17, 2012
+> ###							version April 16, 2013
 > ################################################################################
 > #
-> # The introductory script is divided into the follwing script files:
+> # The introductory script is divided into the following script files:
 > # Rscript01DataFormat.R, followed by
 > # RScriptSNADescriptives.R, code for descriptive analysis of the data, and
 > # Rscript02SienaVariableFormat.R, that formats data and specifies the model, and
@@ -2963,84 +3282,85 @@ friendship.obj.eval.36    TRUE
 > # Read in the adjacency matrices, covariates and dependent behavioural variable
 > # assuming data are in current working directory
 > 
->         friend.data.w1 <- as.matrix(read.table("s50-network1.dat"))# network
->         friend.data.w2 <- as.matrix(read.table("s50-network2.dat"))
->         friend.data.w3 <- as.matrix(read.table("s50-network3.dat"))
->         drink <- as.matrix(read.table("s50-alcohol.dat"))# behaviour
->         smoke <- as.matrix(read.table("s50-smoke.dat"))# covariate
+> 		friend.data.w1 <- as.matrix(read.table("s50-network1.dat")) # network
+> 		friend.data.w2 <- as.matrix(read.table("s50-network2.dat"))
+> 		friend.data.w3 <- as.matrix(read.table("s50-network3.dat"))
+> 		drink <- as.matrix(read.table("s50-alcohol.dat")) # behaviour
+> 		smoke <- as.matrix(read.table("s50-smoke.dat")) # covariate
 > 
 > # At this point it is a good idea to use the sna package to plot the networks
 > # and the behavioural variable. Descriptive measures of the similarity of
 > # "friends" with respect to behaviour (like Moran's I) are given by the function
-> # nacf() in the sna package
+> # nacf() in the sna package.
 > 
 > # Tell RSiena that the adjacency matrices are network data and in what order
 > # they should be treated
 > 
->       friendship <- sienaNet( array( c( friend.data.w1, friend.data.w2,
-+                                         friend.data.w3 ),
-+                              dim = c( 50, 50, 3 ) ) )# create dependent variable
+> 	friendship <- sienaDependent( array( c( friend.data.w1, friend.data.w2,
++ 							friend.data.w3 ),
++ 							dim = c( 50, 50, 3 ) ) )# create dependent variable
 > 
-> # Tell RSiena that the variable "drink" should be treated as a dependent variable
+> # Tell RSiena that the variable "drink" should be treated
+> # as a dependent variable
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
+> 		drinkingbeh <- sienaDependent( drink, type = "behavior" )
+> 		smoke1 <- coCovar( smoke[ , 1 ] )
 > 
->         smoke1 <- coCovar( smoke[ , 1 ] )
-> 
->         myCoEvolutionData <- sienaDataCreate( friendship, smoke1, drinkingbeh )
-> 
->         myCoEvolutionEff <- getEffects( myCoEvolutionData )
+> # Define the data set and obtain the basic effects object
+> 		myCoEvolutionData <- sienaDataCreate( friendship, smoke1, drinkingbeh )
+> 		myCoEvolutionEff <- getEffects( myCoEvolutionData )
 > 
 > # Run reports to check that data is properly formated and
 > # to get some basic descriptives
 > 
->         print01Report( myCoEvolutionData, myCoEvolutionEff,
-+                        modelname = 's50_3_CoEvinit' )
+> 		print01Report( myCoEvolutionData, myCoEvolutionEff,
++ 					   modelname = 's50_3_CoEvinit' )
 > 
 > # Define the effects to include in the coevolution model
 > # Start with some structural effects (use the shortnames that you find in
-> # RShowDoc("effects", package="RSiena") )
+> # effectsDocumentation(myeff) )
 > 
->         myCoEvolutionEff <- includeEffects( myCoEvolutionEff, transTrip, cycle3)
+> 		myCoEvolutionEff <- includeEffects( myCoEvolutionEff, transTrip, cycle3)
                             name shortName type interaction1 interaction2
 friendship.obj.eval.3 friendship transTrip eval                          
-friendship.obj.eval.5 friendship    cycle3 eval                          
+friendship.obj.eval.6 friendship    cycle3 eval                          
                       include
 friendship.obj.eval.3    TRUE
-friendship.obj.eval.5    TRUE
+friendship.obj.eval.6    TRUE
 > 
 > # Include a homophily effect for the constant covariate smoking
 > 
->         myCoEvolutionEff <- includeEffects( myCoEvolutionEff, simX,
-+                                             interaction1 = "smoke1" )
+> 		myCoEvolutionEff <- includeEffects( myCoEvolutionEff, simX,
++ 											interaction1 = "smoke1" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.36 friendship      simX eval       smoke1             
+friendship.obj.eval.40 friendship      simX eval       smoke1             
                        include
-friendship.obj.eval.36    TRUE
+friendship.obj.eval.40    TRUE
 > 
 > # If we want to parse out whether there is a selection or influence (or both)
 > # effect for drinking behaviour,
-> # we need to first include sender, receiver and homophily effects
+> # we need to also include sender, receiver and homophily effects
 > # of drinking for friendship formation:
 > 
->         myCoEvolutionEff <- includeEffects(myCoEvolutionEff, egoX, altX, simX,
-+                                            interaction1 = "drinkingbeh" )
+> 		myCoEvolutionEff <- includeEffects(myCoEvolutionEff, egoX, altX, simX,
++ 										   interaction1 = "drinkingbeh" )
                              name shortName type interaction1 interaction2
-friendship.obj.eval.46 friendship      altX eval  drinkingbeh             
-friendship.obj.eval.48 friendship      egoX eval  drinkingbeh             
-friendship.obj.eval.49 friendship      simX eval  drinkingbeh             
+friendship.obj.eval.53 friendship      altX eval  drinkingbeh             
+friendship.obj.eval.55 friendship      egoX eval  drinkingbeh             
+friendship.obj.eval.56 friendship      simX eval  drinkingbeh             
                        include
-friendship.obj.eval.46    TRUE
-friendship.obj.eval.48    TRUE
-friendship.obj.eval.49    TRUE
+friendship.obj.eval.53    TRUE
+friendship.obj.eval.55    TRUE
+friendship.obj.eval.56    TRUE
 > 
 > # For the influence part, i.e. the effect of the network on behaviour,
 > # we specify the following effects:
-> # Now indegree, outdegree and assimilation effects for drinking
+> # indegree, outdegree and assimilation effects for drinking
 > 
->   myCoEvolutionEff <- includeEffects( myCoEvolutionEff, name = "drinkingbeh",
-+                                       avAlt,indeg, outdeg,
-+                                       interaction1 = "friendship" )
+> 		myCoEvolutionEff <- includeEffects( myCoEvolutionEff,
++ 								name = "drinkingbeh",
++ 								avAlt,indeg, outdeg,
++ 								interaction1 = "friendship" )
                                name shortName type interaction1 interaction2
 drinkingbeh.obj.eval.5  drinkingbeh     indeg eval   friendship             
 drinkingbeh.obj.eval.6  drinkingbeh    outdeg eval   friendship             
@@ -3052,7 +3372,7 @@ drinkingbeh.obj.eval.15    TRUE
 > 
 > # Check what effects you have decided to include:
 > 
->         myCoEvolutionEff
+> 		myCoEvolutionEff
    name        effectName                           include fix   test 
 1  friendship  constant friendship rate (period 1)  TRUE    FALSE FALSE
 2  friendship  constant friendship rate (period 2)  TRUE    FALSE FALSE
@@ -3090,153 +3410,166 @@ drinkingbeh.obj.eval.15    TRUE
 16    0.00000   0   
 17    0.00000   0   
 > 
-> # Define the model as data + effects:
+> # Define the algorithm settings:
 > 
->         myCoEvModel <- sienaModelCreate( useStdInits = TRUE,
-+                                          projname = 's50CoEv_3' )
+> 		myCoEvAlgorithm <- sienaAlgorithmCreate( projname = 's50CoEv_3' )
 > 
 > # Estimate model
 > 
->         ans <- siena07( myCoEvModel, data = myCoEvolutionData,
-+                         effects = myCoEvolutionEff)
+> 		ans <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
++ 						effects = myCoEvolutionEff )
 > 
 > # THE RESULTS
 > 
 > # To look at the results, type
 > 
->         ans
+> 		ans
 Estimates, standard errors and convergence t-ratios
 
                                                 Estimate   Standard   Convergence 
                                                              Error      t-ratio   
 Network Dynamics 
-   1. rate constant friendship rate (period 1)   6.5933  ( 1.1409   )    0.0411   
-   2. rate constant friendship rate (period 2)   5.1515  ( 0.8285   )   -0.0275   
-   3. eval outdegree (density)                  -2.7710  ( 0.1481   )    0.0009   
-   4. eval reciprocity                           2.3881  ( 0.2303   )   -0.0063   
-   5. eval transitive triplets                   0.6476  ( 0.1449   )    0.0153   
-   6. eval 3-cycles                             -0.0700  ( 0.2997   )    0.0206   
-   7. eval smoke1 similarity                     0.1818  ( 0.2420   )    0.0638   
-   8. eval drinkingbeh alter                    -0.0424  ( 0.1088   )   -0.0999   
-   9. eval drinkingbeh ego                       0.0714  ( 0.1225   )   -0.0897   
-  10. eval drinkingbeh similarity                1.3158  ( 0.7283   )   -0.0068   
+   1. rate constant friendship rate (period 1)   6.6080  ( 1.3785   )    0.0447   
+   2. rate constant friendship rate (period 2)   5.1595  ( 0.8513   )   -0.0062   
+   3. eval outdegree (density)                  -2.7701  ( 0.2336   )   -0.0177   
+   4. eval reciprocity                           2.3959  ( 0.2486   )    0.0157   
+   5. eval transitive triplets                   0.6493  ( 0.1736   )    0.0077   
+   6. eval 3-cycles                             -0.0818  ( 0.3102   )    0.0049   
+   7. eval smoke1 similarity                     0.1701  ( 0.2247   )   -0.0735   
+   8. eval drinkingbeh alter                    -0.0346  ( 0.1349   )    0.0931   
+   9. eval drinkingbeh ego                       0.0674  ( 0.1450   )    0.0769   
+  10. eval drinkingbeh similarity                1.3191  ( 0.7224   )   -0.0372   
 
 Behavior Dynamics
-  11. rate rate drinkingbeh (period 1)           1.2724  ( 0.3684   )    0.0185   
-  12. rate rate drinkingbeh (period 2)           1.7449  ( 0.5207   )    0.0767   
-  13. eval behavior drinkingbeh linear shape    -0.3814  ( 0.8573   )   -0.0163   
-  14. eval behavior drinkingbeh quadratic shape -1.0387  ( 1.4304   )   -0.0287   
-  15. eval behavior drinkingbeh indegree        -0.4495  ( 1.3363   )   -0.0036   
-  16. eval behavior drinkingbeh outdegree        0.8562  ( 1.8171   )   -0.0951   
-  17. eval behavior drinkingbeh average alter    2.2576  ( 3.1373   )   -0.0989   
+  11. rate rate drinkingbeh (period 1)           1.2514  ( 0.3930   )   -0.0004   
+  12. rate rate drinkingbeh (period 2)           1.7266  ( 0.4279   )   -0.0285   
+  13. eval behavior drinkingbeh linear shape    -0.4154  ( 2.2111   )   -0.0056   
+  14. eval behavior drinkingbeh quadratic shape -1.0686  ( 3.8469   )    0.0671   
+  15. eval behavior drinkingbeh indegree        -0.4787  ( 2.6805   )    0.0414   
+  16. eval behavior drinkingbeh outdegree        0.9050  ( 4.1205   )   -0.0684   
+  17. eval behavior drinkingbeh average alter    2.3381  ( 8.8089   )   -0.0135   
 
-Total of 3632 iteration steps.
+Total of 3172 iteration steps.
 
 > 
 > # or, somewhat more extensive,
 > 
->         summary(ans)
+> 		summary(ans)
 Estimates, standard errors and convergence t-ratios
 
                                                 Estimate   Standard   Convergence 
                                                              Error      t-ratio   
 Network Dynamics 
-   1. rate constant friendship rate (period 1)   6.5933  ( 1.1409   )    0.0411   
-   2. rate constant friendship rate (period 2)   5.1515  ( 0.8285   )   -0.0275   
-   3. eval outdegree (density)                  -2.7710  ( 0.1481   )    0.0009   
-   4. eval reciprocity                           2.3881  ( 0.2303   )   -0.0063   
-   5. eval transitive triplets                   0.6476  ( 0.1449   )    0.0153   
-   6. eval 3-cycles                             -0.0700  ( 0.2997   )    0.0206   
-   7. eval smoke1 similarity                     0.1818  ( 0.2420   )    0.0638   
-   8. eval drinkingbeh alter                    -0.0424  ( 0.1088   )   -0.0999   
-   9. eval drinkingbeh ego                       0.0714  ( 0.1225   )   -0.0897   
-  10. eval drinkingbeh similarity                1.3158  ( 0.7283   )   -0.0068   
+   1. rate constant friendship rate (period 1)   6.6080  ( 1.3785   )    0.0447   
+   2. rate constant friendship rate (period 2)   5.1595  ( 0.8513   )   -0.0062   
+   3. eval outdegree (density)                  -2.7701  ( 0.2336   )   -0.0177   
+   4. eval reciprocity                           2.3959  ( 0.2486   )    0.0157   
+   5. eval transitive triplets                   0.6493  ( 0.1736   )    0.0077   
+   6. eval 3-cycles                             -0.0818  ( 0.3102   )    0.0049   
+   7. eval smoke1 similarity                     0.1701  ( 0.2247   )   -0.0735   
+   8. eval drinkingbeh alter                    -0.0346  ( 0.1349   )    0.0931   
+   9. eval drinkingbeh ego                       0.0674  ( 0.1450   )    0.0769   
+  10. eval drinkingbeh similarity                1.3191  ( 0.7224   )   -0.0372   
 
 Behavior Dynamics
-  11. rate rate drinkingbeh (period 1)           1.2724  ( 0.3684   )    0.0185   
-  12. rate rate drinkingbeh (period 2)           1.7449  ( 0.5207   )    0.0767   
-  13. eval behavior drinkingbeh linear shape    -0.3814  ( 0.8573   )   -0.0163   
-  14. eval behavior drinkingbeh quadratic shape -1.0387  ( 1.4304   )   -0.0287   
-  15. eval behavior drinkingbeh indegree        -0.4495  ( 1.3363   )   -0.0036   
-  16. eval behavior drinkingbeh outdegree        0.8562  ( 1.8171   )   -0.0951   
-  17. eval behavior drinkingbeh average alter    2.2576  ( 3.1373   )   -0.0989   
+  11. rate rate drinkingbeh (period 1)           1.2514  ( 0.3930   )   -0.0004   
+  12. rate rate drinkingbeh (period 2)           1.7266  ( 0.4279   )   -0.0285   
+  13. eval behavior drinkingbeh linear shape    -0.4154  ( 2.2111   )   -0.0056   
+  14. eval behavior drinkingbeh quadratic shape -1.0686  ( 3.8469   )    0.0671   
+  15. eval behavior drinkingbeh indegree        -0.4787  ( 2.6805   )    0.0414   
+  16. eval behavior drinkingbeh outdegree        0.9050  ( 4.1205   )   -0.0684   
+  17. eval behavior drinkingbeh average alter    2.3381  ( 8.8089   )   -0.0135   
 
-Total of 3632 iteration steps.
+Total of 3172 iteration steps.
+
+Overall maximum convergence ratio:    0.3673 
 
 Covariance matrix of estimates (correlations below diagonal)
 
-       1.302       -0.083        0.014        0.000       -0.012       -0.002       -0.004        0.004       -0.006       -0.032       -0.032        0.040        0.152        0.157        0.168       -0.257       -0.319
-      -0.088        0.686        0.020        0.014       -0.002       -0.029        0.017        0.005        0.004       -0.110       -0.010       -0.038       -0.053       -0.200       -0.165        0.224        0.438
-       0.085        0.163        0.022       -0.015       -0.006        0.003        0.003        0.002       -0.003       -0.051       -0.001       -0.011       -0.016       -0.032       -0.040        0.052        0.057
-      -0.001        0.076       -0.428        0.053        0.009       -0.030        0.007       -0.002        0.005       -0.034       -0.008       -0.004        0.000       -0.050       -0.054        0.067        0.111
-      -0.070       -0.016       -0.298        0.256        0.021       -0.035        0.003        0.000        0.001       -0.012       -0.008       -0.009       -0.013       -0.044       -0.038        0.054        0.096
-      -0.006       -0.116        0.069       -0.432       -0.805        0.090       -0.008       -0.001       -0.001        0.044        0.019        0.015        0.031        0.108        0.099       -0.137       -0.230
-      -0.016        0.083        0.075        0.129        0.095       -0.116        0.059        0.005        0.008       -0.077        0.003       -0.017       -0.044       -0.150       -0.150        0.202        0.319
-       0.029        0.057        0.145       -0.079       -0.027       -0.031        0.186        0.012       -0.008       -0.008        0.000       -0.005       -0.004        0.001       -0.004        0.004       -0.001
-      -0.040        0.037       -0.188        0.172        0.040       -0.017        0.261       -0.597        0.015       -0.007       -0.003       -0.005       -0.013       -0.041       -0.029        0.045        0.090
-      -0.038       -0.183       -0.476       -0.205       -0.115        0.203       -0.437       -0.097       -0.077        0.530        0.053        0.112        0.136        0.504        0.528       -0.701       -1.071
-      -0.077       -0.032       -0.020       -0.095       -0.142        0.171        0.036        0.008       -0.076        0.198        0.136        0.022        0.002        0.060        0.075       -0.099       -0.123
-       0.068       -0.088       -0.142       -0.033       -0.122        0.098       -0.134       -0.093       -0.082        0.295        0.115        0.271        0.103        0.277        0.224       -0.335       -0.601
-       0.156       -0.075       -0.125       -0.001       -0.105        0.121       -0.211       -0.040       -0.123        0.217        0.007        0.231        0.735        0.673        0.440       -0.854       -1.421
-       0.096       -0.168       -0.149       -0.152       -0.211        0.253       -0.432        0.008       -0.236        0.484        0.114        0.372        0.548        2.046        1.737       -2.470       -4.443
-       0.110       -0.149       -0.200       -0.174       -0.194        0.247       -0.463       -0.030       -0.178        0.543        0.152        0.322        0.384        0.909        1.786       -2.378       -3.699
-      -0.124        0.149        0.193        0.160        0.207       -0.252        0.460        0.019        0.202       -0.530       -0.147       -0.354       -0.548       -0.950       -0.979        3.302        5.270
-      -0.089        0.169        0.122        0.154        0.211       -0.245        0.421       -0.003        0.233       -0.469       -0.107       -0.368       -0.528       -0.990       -0.882        0.925        9.843
+       1.900       -0.291       -0.104        0.057        0.039       -0.030       -0.047       -0.031        0.033        0.227        0.138        0.037       -1.284       -2.402       -1.631        2.530        5.499
+      -0.248        0.725        0.079       -0.059       -0.045        0.056       -0.006        0.011       -0.013       -0.132       -0.028        0.031        0.691        1.279        0.906       -1.408       -2.881
+      -0.322        0.397        0.055       -0.033       -0.026        0.031        0.002        0.013       -0.014       -0.111       -0.030       -0.012        0.374        0.711        0.493       -0.761       -1.621
+       0.167       -0.279       -0.573        0.062        0.019       -0.042        0.001       -0.010        0.011        0.026        0.019        0.005       -0.183       -0.346       -0.248        0.379        0.783
+       0.164       -0.306       -0.630        0.432        0.030       -0.046       -0.002       -0.005        0.004        0.027        0.012        0.000       -0.212       -0.384       -0.261        0.411        0.876
+      -0.070        0.211        0.429       -0.546       -0.856        0.096        0.001        0.008       -0.007       -0.032       -0.018        0.000        0.255        0.466        0.321       -0.502       -1.064
+      -0.151       -0.030        0.038        0.017       -0.052        0.020        0.050        0.008        0.003       -0.037       -0.007       -0.007        0.017        0.060        0.050       -0.067       -0.134
+      -0.166        0.095        0.404       -0.289       -0.227        0.192        0.251        0.018       -0.014       -0.032       -0.015       -0.003        0.105        0.230        0.162       -0.245       -0.523
+       0.164       -0.105       -0.403        0.316        0.145       -0.148        0.092       -0.737        0.021        0.031        0.020        0.004       -0.125       -0.255       -0.173        0.267        0.584
+       0.228       -0.215       -0.657        0.142        0.217       -0.143       -0.228       -0.327        0.291        0.522        0.075        0.063       -0.664       -1.386       -0.963        1.455        3.154
+       0.255       -0.085       -0.330        0.192        0.178       -0.146       -0.076       -0.289        0.342        0.265        0.154        0.016       -0.335       -0.581       -0.383        0.598        1.333
+       0.062        0.085       -0.116        0.045        0.004       -0.003       -0.073       -0.061        0.060        0.204        0.097        0.183        0.009       -0.130       -0.127        0.137        0.289
+      -0.421        0.367        0.723       -0.332       -0.552        0.372        0.033        0.353       -0.391       -0.416       -0.385        0.010        4.889        7.958        5.214       -8.461      -18.195
+      -0.453        0.391        0.792       -0.362       -0.575        0.391        0.069        0.443       -0.458       -0.499       -0.384       -0.079        0.936       14.798       10.062      -15.707      -33.852
+      -0.441        0.397        0.787       -0.371       -0.561        0.386        0.083        0.448       -0.446       -0.497       -0.364       -0.111        0.880        0.976        7.185      -10.962      -22.982
+       0.445       -0.401       -0.790        0.370        0.574       -0.393       -0.072       -0.441        0.448        0.489        0.369        0.078       -0.929       -0.991       -0.992       16.978       35.887
+       0.453       -0.384       -0.788        0.358        0.573       -0.389       -0.068       -0.440        0.457        0.496        0.385        0.077       -0.934       -0.999       -0.973        0.989       77.597
 
 Derivative matrix of expected statistics X by parameters:
 
-       9.070        0.000        1.288        2.040       15.927        5.296       -0.158       -0.935       -0.712       -0.192        0.494        0.000       -0.833       -0.632       -1.445       -1.548       -1.106
-       0.000       11.493        2.273        2.573       20.044        6.687        0.277       -0.961       -0.465        0.365        0.000        0.837        0.756        0.340        3.029        2.840       -1.565
-      38.991       28.882      278.873      218.084      529.485      168.583       19.674       -1.996       13.973       22.800       -2.242        0.329       22.314       18.068       51.921       51.471       23.644
-       6.215        5.525      123.851      135.126      273.466       91.003        9.129       -1.136        1.826       11.473       -1.339       -0.033       10.245        4.468       26.149       21.392        7.192
-      45.813       36.955      332.832      298.953     1211.976      388.530       23.973       22.079       31.304       25.965       -0.012       -0.805       21.461        9.979       62.053       56.078       10.312
-      17.428       16.182      156.257      149.982      561.856      189.566       11.401        7.997       10.476       11.616       -0.894        0.030       11.077        0.892       32.230       25.807        5.076
-       8.051        2.004       21.937       17.177       46.226       15.170       38.605      -53.260      -47.753        5.813       -2.544       -1.151       -4.740       -4.490      -10.652      -11.242       -5.662
-      -2.103        3.791       31.488       34.577      100.277       33.259      -43.907      282.255      199.661        0.655        4.958        1.520       35.128       19.878       76.778       78.204       26.174
-      -1.085        4.495       26.040       13.493       63.161       17.912      -41.369      200.220      244.316        0.378        2.264       -3.556       10.935       25.503       22.671       25.339       23.277
-       6.762        4.558       31.291       26.012       59.693       19.257        5.361       -1.848       -1.918        9.155       -1.122       -1.144        0.307        3.587        0.354        0.706        2.185
-       0.889        0.000       -5.163       -4.645      -15.099       -5.433       -3.269        2.593        2.488       -2.554       13.190        0.000        9.608       -1.972       20.277       20.582        0.367
-       0.000        0.055        4.698        4.048       17.148        5.244       -1.417        6.915        5.854       -0.612        0.000       10.602        6.697       -1.141       17.744       17.229        3.446
-       0.596       -1.403        0.576       -0.990      -10.011       -3.489       -1.491        5.483        4.760       -0.167        3.116        4.600       36.968        9.845       88.377       86.090        9.891
-      -1.117       -3.369       -8.615       -7.390      -24.888       -7.896        0.240       -0.325        2.329       -0.438        3.829        1.125        6.137       93.970       29.118       29.204       57.363
-       2.891       -6.180        2.358       -1.595      -33.145      -10.967       -2.165       10.297        6.876       -1.614        8.915       13.539       95.448       31.214      268.466      252.042       23.072
-       3.714       -6.421       -6.254       -8.651      -46.440      -14.824       -4.480       11.288        7.969       -1.002       10.270       13.303       86.789       43.467      237.512      233.915       19.882
-      -1.082       -0.897        0.604        0.909        0.424        0.138        0.931       -1.331       -0.460        0.094        0.133       -0.462       -1.914       32.163        0.403       -2.045       27.004
+       7.867        0.000       -0.711       -0.602        4.391        1.287        0.506       -0.309        0.350        0.063       -0.202        0.000       -0.180        0.569       -0.850       -0.137       -1.138
+       0.000       12.111        2.713        3.562       15.990        5.243        0.499        1.459       -0.139        0.187        0.000        0.083        1.031       -1.141        3.526        2.289       -2.037
+      42.990       31.386      317.911      249.778      639.427      200.372       31.728      -15.487      -11.873       28.547        2.384        0.779       25.137       14.177       59.421       65.477       10.801
+       8.179        9.168      139.703      149.518      301.423       99.413       14.090       -1.929       -8.102       13.454        1.184        0.850       12.778        9.776       35.560       30.864       13.904
+      50.445       39.018      386.756      346.370     1345.050      425.788       39.497       21.341       39.159       31.142        5.439        0.739       27.464       23.654       79.364       75.737       29.583
+      17.545       14.959      182.794      176.244      624.065      207.405       19.609       -1.299        5.308       14.783        2.550        0.517       14.812       10.480       45.831       38.074       18.450
+       6.176        3.441       31.129       27.637       74.862       23.614       36.293      -48.955      -46.535        6.140        1.809        1.477        1.659       -3.572        6.479        6.269       -3.548
+      -3.986       12.014       26.989       29.158      130.854       44.404      -41.763      275.734      202.649        0.801        4.097        0.868       31.075       22.619       60.659       61.144       28.157
+       2.882        3.146       21.513       10.937      127.090       40.032      -39.589      206.194      251.022       -1.156       -4.476       -0.642        5.710       28.245        8.901       14.129       27.687
+       5.344        5.939       41.039       33.803       85.911       26.973        5.685        0.345       -0.837        9.791        0.251       -0.565        3.659        7.395       11.024       10.417        3.561
+       1.459        0.000        2.077        0.401        5.359        1.674       -0.789       -0.193       -3.853       -2.287       14.496        0.000       11.289       -1.210       23.090       26.429       -0.126
+       0.000       -3.468       -0.242       -1.225        0.083        0.004       -0.179       -0.821       -2.272       -1.537        0.000       12.420        6.957        2.277       19.690       18.469        5.145
+       0.497        1.624        0.650        2.232        0.454        0.242       -0.264        1.469       -0.191        0.075        5.345        2.779       34.187        5.738       81.078       77.156        6.915
+      -4.663       -4.045      -13.699       -7.922       -8.568       -2.263       -1.333        3.022        3.501       -1.552        1.433        0.011        0.502       91.681       18.364       12.088       55.843
+       4.807        0.489       -3.047        0.382      -15.041       -4.740       -4.333        5.386        1.875       -0.192       13.282       11.271       88.685       23.318      250.358      225.554       21.211
+       3.057        2.550       -1.927        1.965       -8.272       -2.136       -3.322        8.209        2.792       -0.260       13.188       10.891       82.292       32.377      228.962      215.921       12.902
+      -2.330       -1.792       -3.974       -2.542       -3.879       -1.121       -0.204       -0.918       -0.430       -0.605       -0.461       -1.110       -3.342       32.944       -4.489       -8.769       26.634
 
 Covariance matrix of X (correlations below diagonal):
 
-     119.335       -0.265       81.458       57.698      296.950       95.275       11.791      -21.157      -20.691        4.210        5.348        2.045        6.085      -12.485       18.536       14.194      -13.796
-      -0.003       94.242       64.522       44.242      201.867       65.192        3.769        5.398        6.712        5.511       -0.300        3.100        3.355       -6.546        7.470        7.839       -9.821
-       0.328        0.292      518.132      437.686     1449.859      469.884       50.056       -2.191       10.964       37.920        1.128       -0.628       51.342       -8.739      139.068      124.477       16.274
-       0.255        0.220        0.927      430.201     1347.379      441.765       42.550       12.901       14.519       34.235       -0.063       -0.027       45.352       -0.972      123.493      104.438       22.253
-       0.351        0.269        0.823        0.840     5984.415     1947.572      150.250       76.898      110.540      108.021        2.285        1.385      139.767       19.685      420.089      350.307       61.534
-       0.345        0.265        0.816        0.842        0.995      639.958       48.814       26.335       34.018       35.026        0.944        0.198       44.995        5.974      135.983      111.632       19.875
-       0.153        0.055        0.311        0.290        0.275        0.273       49.986      -78.357      -71.297        8.168       -1.061       -1.177       -2.835       -7.814       -4.178       -5.909       -5.180
-      -0.089        0.026       -0.004        0.029        0.046        0.048       -0.511      470.225      365.541        0.414        0.028       -2.942       30.139       49.396       65.789       67.773       48.682
-      -0.092        0.034        0.024        0.034        0.070        0.066       -0.492        0.823      419.450       -0.086       -4.331       -5.443       23.144       47.421       56.739       55.226       46.980
-       0.093        0.136        0.400        0.397        0.336        0.333        0.278        0.005       -0.001       17.322       -2.532       -1.816        1.722        4.339        7.336        3.531        1.962
-       0.107       -0.007        0.011       -0.001        0.006        0.008       -0.033        0.000       -0.046       -0.133       21.041        0.850       15.102        0.223       32.459       34.958       -0.656
-       0.037        0.063       -0.005        0.000        0.004        0.002       -0.033       -0.027       -0.052       -0.086        0.036       25.964       16.539       -2.515       40.400       40.884       -0.180
-       0.056        0.035        0.226        0.219        0.181        0.178       -0.040        0.139        0.113        0.042        0.330        0.326       99.331       17.287      234.709      231.146       29.928
-      -0.081       -0.048       -0.027       -0.003        0.018        0.017       -0.078        0.161        0.163        0.074        0.003       -0.035        0.122      201.139       70.463       60.286      132.891
-       0.065        0.029        0.234        0.228        0.208        0.206       -0.023        0.116        0.106        0.068        0.271        0.304        0.902        0.190      681.061      602.655       93.343
-       0.052        0.032        0.218        0.201        0.181        0.176       -0.033        0.125        0.108        0.034        0.304        0.320        0.925        0.170        0.921      628.437       69.048
-      -0.097       -0.078        0.055        0.082        0.061        0.060       -0.056        0.172        0.176        0.036       -0.011       -0.003        0.230        0.719        0.274        0.211      169.980
+     109.228       -0.371       80.273       53.109      249.349       77.760        6.757       -3.425        5.327        5.136        3.548        0.051        4.199       -3.436       14.192       13.529      -12.681
+      -0.004       89.943       54.092       34.985      176.851       56.011        3.293       15.974        6.861        4.852        0.386       -0.982        5.051       -1.193        9.642        6.410       -7.627
+       0.324        0.241      561.155      474.865     1461.388      467.500       56.742       18.947       19.842       42.605        4.806        4.888       46.904        5.140      120.970      114.139       26.890
+       0.236        0.171        0.932      462.977     1322.069      429.694       54.034       26.196       14.925       38.814        2.930        4.439       41.808       11.075      108.899      102.141       30.881
+       0.323        0.253        0.836        0.833     5446.152     1750.261      165.117      177.937      169.360       98.216       15.601       13.586      107.069       50.389      317.789      274.290      111.698
+       0.312        0.248        0.828        0.837        0.995      568.672       53.270       57.849       52.691       31.719        4.878        4.721       34.894       17.004      103.522       88.383       37.758
+       0.094        0.050        0.347        0.364        0.324        0.323       47.685      -72.693      -72.107        8.022       -1.247        1.326        0.687       -6.881       -2.093       -0.077       -5.836
+      -0.015        0.077        0.036        0.056        0.110        0.111       -0.480      480.196      380.347        1.543        5.397        3.113       28.736       50.783       72.370       64.437       43.883
+       0.024        0.034        0.040        0.033        0.109        0.105       -0.497        0.827      440.921        0.379        1.633       -2.541       19.863       52.731       54.222       46.094       51.284
+       0.119        0.124        0.435        0.437        0.322        0.322        0.281        0.017        0.004       17.070       -2.912       -1.459        3.804        6.881       10.173        8.122        4.394
+       0.072        0.009        0.043        0.029        0.045        0.043       -0.038        0.052        0.016       -0.148       22.547        0.012       15.039       -1.553       29.477       35.184       -0.403
+       0.001       -0.021        0.041        0.041        0.037        0.039        0.038        0.028       -0.024       -0.070        0.000       25.218       14.724       -2.942       38.407       35.433       -0.943
+       0.042        0.056        0.208        0.204        0.153        0.154        0.010        0.138        0.099        0.097        0.333        0.308       90.497        4.332      219.712      211.130       21.625
+      -0.024       -0.009        0.016        0.037        0.049        0.051       -0.071        0.166        0.180        0.119       -0.023       -0.042        0.033      194.901       41.307       28.273      124.808
+       0.053        0.039        0.198        0.196        0.167        0.168       -0.012        0.128        0.100        0.095        0.240        0.296        0.893        0.114      668.510      573.550       75.207
+       0.054        0.028        0.199        0.197        0.154        0.153        0.000        0.122        0.091        0.081        0.307        0.292        0.919        0.084        0.918      583.336       45.603
+      -0.092       -0.061        0.086        0.109        0.115        0.120       -0.064        0.152        0.185        0.080       -0.006       -0.014        0.172        0.677        0.220        0.143      174.592
 > 
-> # Note that the column 't statistic' gives the t-ratio for convergence,
-> # not the t statistic for testing that the parameter is 0.
+> # Note that the "convergence t-ratio" is the t-ratio for convergence checking,
+> # not the t statistic for testing the significance of this effect.
+> # (See Section 6.1.2 of the manual.)
 > # For good convergence, the t-ratios for convergence
-> # all should be less than .1 in aboslute value (see the manual).
+> # all should be less than .1 in absolute value.
 > 
 > # For this small data set, the model for behavior dynamics is over-specified,
 > # leading to some very large standard errors.
 > # Running a model modified by
-> #          myCoEvolutionEff <- includeEffects( myCoEvolutionEff,
-> #                               name = "drinkingbeh", indeg, outdeg,
-> #                               interaction1 = "friendship" ,include = FALSE)
+> 
+> 		myCoEvolutionEff <- includeEffects( myCoEvolutionEff,
++ 								name = "drinkingbeh", indeg, outdeg,
++ 								interaction1 = "friendship", include = FALSE)
+                              name shortName type interaction1 interaction2
+drinkingbeh.obj.eval.5 drinkingbeh     indeg eval   friendship             
+drinkingbeh.obj.eval.6 drinkingbeh    outdeg eval   friendship             
+                       include
+drinkingbeh.obj.eval.5   FALSE
+drinkingbeh.obj.eval.6   FALSE
+> 
+> #		(ans <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+> #						effects = myCoEvolutionEff ))
+> 
 > # without degree effects on behaviour gives better results.
 > 
 > 
 > proc.time()
    user  system elapsed 
- 178.78    1.73  184.73 
+ 113.22    0.90  114.92 

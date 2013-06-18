@@ -2,7 +2,7 @@
 ###
 ### ---- RscriptSNADescriptives.R: a script for the introduction to RSiena -------
 ###
-###                               version: January 17, 2012
+###                               version: April 14, 2013
 ##################################################################################
 #
 # Rscript01DataFormat.R is followed by

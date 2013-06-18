@@ -181,7 +181,7 @@ maxlikefn<- function(z, x, INIT=FALSE, TERM=FALSE, data, effects=NULL,
             {
                 f <- mhIntStep(theta, f, promul, prelins, int)
                 i <- i + f$n
-           }
+            }
             Z[[1]] <- f$chain
             if (noSamples > 1)
             {

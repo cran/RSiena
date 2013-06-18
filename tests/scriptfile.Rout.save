@@ -1,8 +1,8 @@
 
-R version 2.14.2 (2012-02-29)
+R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
 Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: i386-apple-darwin9.8.0/i386 (32-bit)
+Platform: i386-pc-mingw32/i386 (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -20,6 +20,7 @@ Type 'q()' to quit R.
 > set.seed(1)
 > options(help_type='text')
 > #print(.libPaths())
+> options(pager='console')
 > ###################################################################################
 > ###
 > ### ---- Rscript01DataFormat.R: a script for the introduction to RSiena -------------
@@ -170,10 +171,18 @@ dependencies: logical indicating to also install uninstalled packages
           "LinkingTo", "Suggests", "Enhances")'.
 
           Only supported if 'lib' is of length one (or missing), so it
-          is unambiguous where to install the dependent packages.
+          is unambiguous where to install the dependent packages.  If
+          this is not the case it is ignored, with a warning.
 
           The default, 'NA', means 'c("Depends", "Imports",
-          "LinkingTo")' if 'lib' is unambiguous, and 'FALSE' otherwise.
+          "LinkingTo")'.
+
+          'TRUE' means (as from R 2.15.0) to use 'c("Depends",
+          "Imports", "LinkingTo", "Suggests")' for 'pkgs' and
+          'c("Depends", "Imports", "LinkingTo")' for added
+          dependencies: this installs all the packages needed to run
+          'pkgs', their examples, tests and vignettes (if the package
+          author specified them correctly).
 
     type: character, indicating the type of package to download and
           install.
@@ -184,6 +193,11 @@ dependencies: logical indicating to also install uninstalled packages
 
           The default is the appropriate binary type on Windows and on
           the CRAN binary Mac OS X distribution, otherwise '"source"'.
+          For the platforms where binary packages are the default, an
+          alternative is '"both"' which means 'try binary if available,
+          otherwise try source'.  (This will only choose the binary
+          package if its version number is no older than the source
+          version.)
 
 configure.args: (not used on Windows) a character vector or a named
           list.  If a character vector with no names is supplied, the
@@ -227,20 +241,21 @@ INSTALL_opts: an optional character vector of additional option(s) to
           be passed to 'R CMD INSTALL' for a source package install.
           E.g.  'c("--html", "--no-multiarch")'.
 
-     ...: Arguments to be passed to 'download.file', or to the
-          functions for binary installs on Mac OS X and Windows (which
-          accept an argument '"lock"': the the section on 'Locking').
+     ...: Arguments to be passed to 'download.file' (e.g.  'quiet =
+          TRUE'), or to the functions for binary installs on Mac OS X
+          and Windows (which accept an argument '"lock"': see the
+          section on 'Locking').
 
 _D_e_t_a_i_l_s:
 
      R packages are primarily distributed as _source_ packages, but
      _binary_ packages (a packaging up of the installed package) are
-     also available, and the type most commonly used on Windows and
+     also supported, and the type most commonly used on Windows and
      from the CRAN distribution for Mac OS X.  This function can
      install either type where supported, either by downloading a file
      from a repository or from a local file.  The default type is given
-     by 'getOption("pkgType")': this is '"source"' apart from under
-     Windows or a CRAN binary distribution for Mac OS X.
+     by 'getOption("pkgType")': this defaults to '"source"' apart from
+     under Windows or a CRAN binary distribution for Mac OS X.
 
      This is the main function to install packages. It takes a vector
      of names and a destination library, downloads the packages from
@@ -249,12 +264,26 @@ _D_e_t_a_i_l_s:
      if there is more than one.)  If 'lib' is omitted or is of length
      one and is not a (group) writable directory, the code offers to
      create a personal library tree (the first element of
-     'Sys.getenv("R_LIBS_USER")') and install there.
+     'Sys.getenv("R_LIBS_USER")') and install there.  Detection of a
+     writable directory is problematic on Windows: see the 'Note'
+     section.
 
      For source packages from a repository an attempt is made to
      install the packages in an order that respects their dependencies.
      This does assume that all the entries in 'lib' are on the default
      library path for installs (set by 'R_LIBS').
+
+     Using packages with 'type = "source"' always works on Windows
+     provided the package contains no C/C++/Fortran code that needs
+     compilation.  Otherwise you will need to have installed the Rtools
+     collection as described in the 'R for Windows FAQ' _and_ you must
+     have the 'PATH' environment variable set up as required by Rtools.
+
+     When installing a binary package, 'install.packages' will abort
+     the install if it detects that the package is already installed
+     and is currently in use.  In some circumstances (e.g. multiple
+     instances of R running at the same time and sharing a library) it
+     will not detect a problem, but the installation may fail.
 
      You are advised to run 'update.packages' before 'install.packages'
      to ensure that any already installed dependencies have their
@@ -318,14 +347,14 @@ _P_a_r_a_l_l_e_l _i_n_s_t_a_l_l_s:
 
 _N_o_t_e:
 
-     Some binary distributions of R have 'INSTALL' in a separate
-     bundle, e.g. an 'R-devel' RPM.  'install.packages' will give an
-     error if called with 'type = "source"' on such a system.
-
-     Some binary distributions of R can be installed on a machine
-     without the tools needed to install packages: the remedy is to do
-     a complete install of R which should bring in all those tools as
-     dependencies.
+     'install.packages' tries to detect if you have write permission on
+     the library directories specified, but Windows reports unreliably.
+     If there is only one library directory (the default), R tries to
+     find out by creating a test directory, but even this need not be
+     the whole story.  Under Windows Vista and later you may have
+     permission to write in a library directory but lack permission to
+     write binary files (such as '.dll' files) there.  See the 'R for
+     Windows FAQ' for workarounds.
 
 _S_e_e _A_l_s_o:
 
@@ -353,7 +382,6 @@ _E_x_a_m_p_l_e_s:
                             RSPerl = "--with-modules='IO Fcntl'"))
      ## End(Not run)
      
-
 > 
 > # Or click on the tab "Packages", "Install package(s)", then select a CRAN mirror
 > # (e.g. Bristol if you are in the UK) and finally select from the list
@@ -362,7 +390,7 @@ _E_x_a_m_p_l_e_s:
 > # Where are you?
 > 
 > 	getwd()
-[1] "/Users/ruth/RSiena.Rcheck/tests_i386"
+[1] "C:/Users/tom.snijders/Documents/RSienaRForge/pkg/RSienaTest.Rcheck/tests"
 > 
 > # By something like
 > 	# setwd('C:/SienaTest')
@@ -446,7 +474,7 @@ _D_e_t_a_i_l_s:
      Data objects can be created via the Gui displayed by 'siena01Gui',
      via
      'sienaDataCreateFromSession' or directly from matrices and vectors
-     using 'sienaNet', 'coCovar' etc.\ and finally 'sienaDataCreate'.
+     using 'sienaDependent', 'coCovar' etc.\ and finally 'sienaDataCreate'.
 
      Effects are selected using an _effects_ object, which can be
      created using 'getEffects'.
@@ -460,14 +488,14 @@ _D_e_t_a_i_l_s:
 
        Package:   RSiena     
        Type:      Package    
-       Version:   1.0.12.208 
-       Date:      2012-03-24 
+       Version:   1.1-223    
+       Date:      2013-01-01 
        License:   GPL-2      
        LazyLoad:  yes        
       
 _A_u_t_h_o_r(_s):
 
-     Ruth Ripley, Krists Boitmanis.
+     Ruth Ripley, Krists Boitmanis, Tom Snijders.
 
      Maintainer: RSiena developers <rsiena@stats.ox.ac.uk>
 
@@ -481,13 +509,12 @@ _S_e_e _A_l_s_o:
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+     mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
      mydata <- sienaDataCreate(mynet1)
      myeff <- getEffects(mydata)
      mymodel <- sienaModelCreate(findiff=FALSE, fn=simstats0c, nsub=2, n3=100)
      ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE)
      
-
 > 
 > # (these are .htlm HELP PAGES)
 > 
@@ -501,31 +528,43 @@ _E_x_a_m_p_l_e_s:
 
 Description:
 
-Package:              RSiena
-Type:                 Package
-Title:                Siena - Simulation Investigation for Empirical
-                      Network Analysis
-Version:              1.0.12.208
-Date:                 2012-03-24
-Author:               Various
-Depends:              R (>= 2.10.0)
-Imports:              Matrix
-Suggests:             tcltk, snow, rlecuyer, network, codetools,
-                      lattice, MASS, parallel, xtable, tools
-SystemRequirements:   GNU make, tcl/tk 8.5, Tktable
-Maintainer:           RSiena developers <rsiena@stats.ox.ac.uk>
-Description:          Fits models to longitudinal networks
-License:              GPL (>=2)
-LazyLoad:             yes
-LazyData:             yes
-BuildResaveData:      no
-URL:                  http://www.stats.ox.ac.uk/~snijders/siena
-Packaged:             2012-03-24 22:19:33 UTC; ruth
-Built:                R 2.14.2; universal-apple-darwin9.8.0; 2012-03-24
-                      22:22:36 UTC; unix
+Package:                            RSiena
+Type:                               Package
+Title:                              Siena - Simulation Investigation
+                                    for Empirical Network Analysis
+Version:                            1.1-223
+Date:                               2013-01-01
+Author:                             Various
+Depends:                            R (>= 2.10.0)
+Imports:                            Matrix
+Suggests:                           tcltk, snow, rlecuyer, network,
+                                    codetools, lattice, MASS, parallel,
+                                    xtable, tools
+SystemRequirements:                 GNU make, tcl/tk 8.5, Tktable
+Maintainer:                         RSiena developers
+                                    <rsiena@stats.ox.ac.uk>
+Description:                        Fits models to longitudinal
+                                    networks
+License:                            GPL (>=2)
+LazyLoad:                           yes
+LazyData:                           yes
+BuildResaveData:                    no
+URL:                                http://www.stats.ox.ac.uk/~snijders/siena
+Repository:                         R-Forge
+Repository/R-Forge/Project:         rsiena
+Repository/R-Forge/Revision:        224
+Repository/R-Forge/DateTimeStamp:   2013-02-14 07:24:12
+Date/Publication:                   2013-02-14 07:24:12
+Packaged:                           2013-02-14 11:17:08 UTC; rforge
+Built:                              R 2.15.2; x86_64-w64-mingw32;
+                                    2013-02-14 11:46:20 UTC; windows
 
 Index:
 
+HN3401                  Network data: excerpt from 'Dutch Social
+                        Behavior Data Set' of Chris Baerveldt.
+N3401                   Network data: excerpt from 'Dutch Social
+                        Behavior Data Set' of Chris Baerveldt.
 RSiena-package          Simulation Investigation for Empirical Network
                         Analysis
 allEffects              Internal data frame used to construct effect
@@ -588,7 +627,7 @@ sienaModelCreate        Function to create an object containing the
                         algorithm specifications for parameter
                         estimation in RSiena
 sienaModelOptions       Function to allow entry of model options
-sienaNet                Function to create a Siena network object
+sienaDependent                Function to create a Siena network object
 sienaNodeSet            Function to create a node set
 sienaTimeTest           Functions to assess and account for time
                         heterogeneity of parameters
@@ -602,7 +641,6 @@ varCovar                Function to create a changing covariate object.
 varDyadCovar            Function to create a changing dyadic covariate
                         object.
 xtable                  Access xtable in package xtable
-
 > 
 > # Where is the manual?
 > 
@@ -950,7 +988,6 @@ _E_x_a_m_p_l_e_s:
      3 4
      ")
      
-
 > # In the help file for read.table, look at the section "Value",
 > # which is there in every help page:
 > # it indicates the class of the object that is produced by the function.
@@ -1520,13 +1557,13 @@ FALSE  TRUE
 > # ---- A. ----------------------------------------------------------------------
 > # First we have to create objects for the dependent variables.
 > 
-> # sienaNet creates a Siena network object from a matrix or array or list of
+> # sienaDependent creates a Siena network object from a matrix or array or list of
 > # sparse matrix of triples.
 > # This object will have the role of a dependent variable in the analysis.
 > # The name of this network object (here: friendship) will be used
 > # in the output file.
 > 
->  friendship <- sienaNet(
+>  friendship <- sienaDependent(
 +                      array( c( friend.data.w1, friend.data.w2, friend.data.w3 ),
 +                      dim = c( 50, 50, 3 ) ) )
 > 
@@ -1537,7 +1574,7 @@ FALSE  TRUE
 > # Note that this is an object
 > 
 >         class(friendship)
-[1] "sienaNet"
+[1] "sienaDependent"
 > 
 > # with specific attributes and methods associated with it.
 > # You can get the detailed information by requesting
@@ -1549,7 +1586,7 @@ $dim
 [1] 50 50  3
 
 $class
-[1] "sienaNet"
+[1] "sienaDependent"
 
 $type
 [1] "oneMode"
@@ -1577,7 +1614,7 @@ $netdims
 > # but this gives a lot of output which you may not want,
 > # hence the # sign in front.
 > 
-> # The function sienaNet can also be used to create a behavior variable object
+> # The function sienaDependent can also be used to create a behavior variable object
 > # with the extra argument type = "behavior".
 > # (Non-mentioned attributes get the default value, and in this case
 > # oneMode is the default;  see below.)
@@ -1585,17 +1622,17 @@ $netdims
 > # The 'drink' data (created in  RscriptDataFormat.R ) is made available as a
 > # dependent behavior variable by the function
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
+>         drinkingbeh <- sienaDependent( drink, type = "behavior" )
 > 
-> # the class, class(drinkingbeh), is still sienaNet
+> # the class, class(drinkingbeh), is still sienaDependent
 > 
 > # (NB: only use the variable in ONE role in a given model:
 > #  behavior variable or changing covariate!)
 > 
-> # The options available for a sienaNet object are displayed when typing
+> # The options available for a sienaDependent object are displayed when typing
 > 
->         ?sienaNet
-sienaNet                package:RSiena                 R Documentation
+>         ?sienaDependent
+sienaDependent                package:RSiena                 R Documentation
 
 _F_u_n_c_t_i_o_n _t_o _c_r_e_a_t_e _a _S_i_e_n_a _n_e_t_w_o_r_k _o_b_j_e_c_t
 
@@ -1606,7 +1643,7 @@ _D_e_s_c_r_i_p_t_i_o_n:
 
 _U_s_a_g_e:
 
-     sienaNet(netarray, type=c("oneMode", "bipartite", "behavior"),
+     sienaDependent(netarray, type=c("oneMode", "bipartite", "behavior"),
      nodeSet="Actors", sparse=is.list(netarray))
      
 _A_r_g_u_m_e_n_t_s:
@@ -1630,7 +1667,7 @@ _D_e_t_a_i_l_s:
 
 _V_a_l_u_e:
 
-     An object of class "sienaNet". An array or (networks only) a list
+     An object of class "sienaDependent". An array or (networks only) a list
      of sparse matrices with attributes:
 
  netdims: Dimensions of the network or behavior variable. Senders,
@@ -1656,25 +1693,25 @@ _S_e_e _A_l_s_o:
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-     mynet2 <- sienaNet(s50a, type="behavior")
+     mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+     mynet2 <- sienaDependent(s50a, type="behavior")
      ## note that the following example works although the node sets do not exist!
-     mynet3 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)),
+     mynet3 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)),
      type="bipartite", nodeSet=c("senders", "receivers"))
      ## sparse matrix input - create some RSiena edgelists first
      library(Matrix)
-     tmp1 <- as(Matrix(s501), "dgTMatrix")
-     tmp2 <- as(Matrix(s502), "dgTMatrix")
-     tmp3 <- as(Matrix(s503), "dgTMatrix")
-     mymat1 <- cbind(tmp1@i + 1, tmp1@j + 1, 1, 1)
-     mymat2 <- cbind(tmp2@i + 1, tmp2@j + 1, 1, 2)
-     mymat3 <- cbind(tmp3@i + 1, tmp3@j + 1, 1, 3)
+     tmps501 <- as(Matrix(s501), "dgTMatrix")
+     tmps502 <- as(Matrix(s502), "dgTMatrix")
+     tmps503 <- as(Matrix(s503), "dgTMatrix")
+     mymat1 <- cbind(tmps501@i + 1, tmps501@j + 1, 1, 1)
+     mymat2 <- cbind(tmps502@i + 1, tmps502@j + 1, 1, 2)
+     mymat3 <- cbind(tmps503@i + 1, tmps503@j + 1, 1, 3)
      mymat <- rbind(mymat1, mymat2, mymat3)
      library(Matrix)
      ## mymat includes all 3 waves
      mymatlist <- by(mymat, mymat[, 4], function(x)
          spMatrix(50, 50, x[, 1], x[, 2], x[, 3]))
-     mynet4 <- sienaNet(mymatlist)
+     mynet4 <- sienaDependent(mymatlist)
      ## or alternatively
      mymat1 <- mymat[mymat[, 4] == 1, ]
      mymat2 <- mymat[mymat[, 4] == 2, ]
@@ -1682,9 +1719,8 @@ _E_x_a_m_p_l_e_s:
      mymat1s <- spMatrix(50, 50, mymat1[, 1], mymat1[, 2], mymat1[, 3])
      mymat2s <- spMatrix(50, 50, mymat2[, 1], mymat2[, 2], mymat2[, 3])
      mymat3s <- spMatrix(50, 50, mymat3[, 1], mymat3[, 2], mymat3[, 3])
-     mynet4 <- sienaNet(list(mymat1s, mymat2s, mymat3s))
+     mynet4 <- sienaDependent(list(mymat1s, mymat2s, mymat3s))
      
-
 > 
 > # This shows that next to one-mode (unipartite) and behavior dependent variables,
 > # also two-mode (bipartite) dependent variables are possible.
@@ -1695,7 +1731,7 @@ _E_x_a_m_p_l_e_s:
 > # the node sets too. The following is an example
 > # (not really meaningful, just for the syntax):
 > 
->  bfriendship <- sienaNet(array(c(friend.data.w1, friend.data.w2, friend.data.w3),
+>  bfriendship <- sienaDependent(array(c(friend.data.w1, friend.data.w2, friend.data.w3),
 +                                dim=c(50, 50, 3)),
 +                                "bipartite", nodeSet=c("senders", "receivers"))
 >  senders <- sienaNodeSet(50, nodeSetName="senders")
@@ -1774,7 +1810,7 @@ $nodeSet
 > # We now combine the dependent and independent variables.
 > # The function sienaDataCreate creates a Siena data object from input networks,
 > # covariates and composition change objects;
-> # the objects that earlier were created by sienaNet will have the role
+> # the objects that earlier were created by sienaDependent will have the role
 > # of dependent variables, and similarly the other roles are predetermined
 > # by creation by the functions coCovar, varCovar,
 > # coDyadCovar, varDyadCovar, and sienaCompositionChange.
@@ -2355,14 +2391,13 @@ _S_e_e _A_l_s_o:
 
 _E_x_a_m_p_l_e_s:
 
-     mynet1 <- sienaNet(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-     mynet2 <- sienaNet(s50a, type="behavior")
+     mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+     mynet2 <- sienaDependent(s50a, type="behavior")
      mydata <- sienaDataCreate(mynet1, mynet2)
      myeff <- getEffects(mydata)
      myeff <- includeEffects(myeff, transTrip, balance)
      myeff <- includeEffects(myeff, avAlt, name="mynet2", interaction1="mynet1")
      
-
 > 
 > # you can see how to include endowment effects and how to exclude effects.
 > # Effects that depend on other variables, such as egoX, altX, etc. above,
@@ -2715,8 +2750,8 @@ Covariance matrix of X (correlations below diagonal):
 > # The command
 > 
 >         xtable( ans )
-% latex table generated in R 2.14.2 by xtable 1.7-0 package
-% Sat Mar 24 22:25:49 2012
+% latex table generated in R 2.15.1 by xtable 1.7-0 package
+% Fri Mar 22 14:16:41 2013
 \begin{table}[ht]
 \begin{center}
 \begin{tabular}{llllrlrlr}
@@ -2743,8 +2778,8 @@ Covariance matrix of X (correlations below diagonal):
 > # or formatted in html. Use e.g.
 > 
 >         xtable( ans, type = 'html' )
-<!-- html table generated in R 2.14.2 by xtable 1.7-0 package -->
-<!-- Sat Mar 24 22:25:49 2012 -->
+<!-- html table generated in R 2.15.1 by xtable 1.7-0 package -->
+<!-- Fri Mar 22 14:16:41 2013 -->
 <TABLE border=1>
   <TR> <TD colspan=9 align=left> Rate parameters:  </TD> </TR> <TR> </TR> 
  <TR> <TD>   </TD> <TD> 0.1 </TD> <TD>  </TD> <TD> Rate parameter period 1 </TD> <TD align="right"> 6.57 </TD> <TD> ( </TD> <TD align="right"> 1.16 </TD> <TD> ) </TD> <TD align="right">  </TD> </TR>
@@ -2899,11 +2934,11 @@ Covariance matrix of X (correlations below diagonal):
 >         friend.data.w1[ friend.data.w2 %in% c(6,9) ] <- NA
 >         friend.data.w1[ friend.data.w3 %in% c(6,9) ] <- NA
 > 
->         friendship <- sienaNet( array( c( friend.data.w1,
+>         friendship <- sienaDependent( array( c( friend.data.w1,
 +                                           friend.data.w2, friend.data.w3 ),
 +                                dim = c( 50, 50, 3 ) ) )
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
+>         drinkingbeh <- sienaDependent( drink, type = "behavior" )
 >         smoke1 <- coCovar( smoke[ , 1 ] )
 >         alcohol <- varCovar( drink )
 > 
@@ -2986,13 +3021,13 @@ friendship.obj.eval.36    TRUE
 > # Tell RSiena that the adjacency matrices are network data and in what order
 > # they should be treated
 > 
->       friendship <- sienaNet( array( c( friend.data.w1, friend.data.w2,
+>       friendship <- sienaDependent( array( c( friend.data.w1, friend.data.w2,
 +                                         friend.data.w3 ),
 +                              dim = c( 50, 50, 3 ) ) )# create dependent variable
 > 
 > # Tell RSiena that the variable "drink" should be treated as a dependent variable
 > 
->         drinkingbeh <- sienaNet( drink, type = "behavior" )
+>         drinkingbeh <- sienaDependent( drink, type = "behavior" )
 > 
 >         smoke1 <- coCovar( smoke[ , 1 ] )
 > 
@@ -3248,4 +3283,4 @@ Covariance matrix of X (correlations below diagonal):
 > 
 > proc.time()
    user  system elapsed 
- 78.050   0.267  81.036 
+ 340.26    4.57  357.69 

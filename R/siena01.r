@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: siena01.r
 # *
@@ -152,7 +152,7 @@ siena01Gui <- function(getDocumentation=FALSE)
         {
             mydata <<- resp$mydata
             myeff <<- resp$myeff
-            mymodel <<- sienaModelCreate()
+            mymodel <<- sienaAlgorithmCreate()
             savedObjectName <- paste(modelName, ".Rdata", sep="")
             save(mydata, myeff, mymodel, file=savedObjectName)
             sienaModelOptions()
@@ -480,7 +480,7 @@ siena01Gui <- function(getDocumentation=FALSE)
                 condname <- tclvalue(condVar)
             }
         }
-        sienaModelCreate(projname=projname, useStdInits=useStdInits,
+        sienaAlgorithmCreate(projname=projname, useStdInits=useStdInits,
                          cond=cond, firstg=firstg, seed=seed,
                          nsub=nsub, n3=n3, findiff=FinDiff.method,
                          MaxDegree=degs, condvarno=condvarno, condname=condname)
