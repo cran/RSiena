@@ -26,7 +26,8 @@ public:
 	InteractionCovariateEffect(const EffectInfo * pEffectInfo,
 		bool averageSimilarity,
 		bool totalSimilarity,
-		bool averageAlter);
+		bool averageAlter,
+		bool totalAlter);
 	virtual ~InteractionCovariateEffect();
 
 	virtual void initialize(const Data * pData,

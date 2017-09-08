@@ -61,18 +61,29 @@ public:
 
 	void calculateProperties();
 
+	int m() const; // number of receivers.
 	void maxDegree(int degree);
 	int maxDegree() const;
-	double averageInDegree() const;
-	double averageOutDegree() const;
+	void universalOffset(double offset);
+	double universalOffset() const;
+	double averageInDegree() const; // average over all observations,
+		//calculated in calculateProperties
+	double averageOutDegree() const;// average over all observations,
+		//calculated in calculateProperties
+	double averageSquaredInDegree() const; // average over all observations,
+		//calculated in calculateProperties
+	double averageSquaredOutDegree() const;// average over all observations,
+		//calculated in calculateProperties
 	void averageInDegree(double val);
 	void averageOutDegree(double val);
 	virtual double observedDistribution(int value, int observation) const;
+	void modelType(int type);
+	int modelType() const;
 
 	bool oneModeNetwork() const;
 
-	const std::vector<string> & rSettingNames() const;
-	void addSettingName(string name);
+	const std::vector<std::string> & rSettingNames() const;
+	void addSettingName(std::string name);
 
 private:
 	// The set of actors receiving the ties of the network
@@ -100,11 +111,19 @@ private:
 	// The maximum permitted out-degree of an actor. Infinity by default.
 	int lmaxDegree;
 
+	// The model type.
+	int lmodelType;
+
+	// The offset for the non-primary settings. 0 by default.
+	double luniversalOffset;
+
 	// The average in-degree over all receivers and observations
 	double laverageInDegree;
+	double laverageSquaredInDegree;
 
-	// The average out-degree over all senders and observations
+	// The average out-degree (and squared out-degree) over all senders and observations
 	double laverageOutDegree;
+	double laverageSquaredOutDegree;
 
 	// The density of the network at each observation with the missing
 	// values excluded from the calculation.
@@ -116,7 +135,7 @@ private:
 	bool loneMode;
 
 	// vector of setting names for this network
-	vector<string> lsettingNames;
+	std::vector<std::string> lsettingNames;
 };
 
 }

@@ -30,7 +30,7 @@ class AltersCovariateAverageEffect :
 public CovariateAndNetworkBehaviorEffect
 {
 public:
-	AltersCovariateAverageEffect(const EffectInfo * pEffectInfo);
+	AltersCovariateAverageEffect(const EffectInfo * pEffectInfo, bool divide);
 
 	virtual double calculateChangeContribution(int actor,
 		int difference);
@@ -41,6 +41,8 @@ public:
 protected:
 
 private:
+	// divide indicates whether there will be division by the outdegree
+	bool ldivide;
 };
 
 }

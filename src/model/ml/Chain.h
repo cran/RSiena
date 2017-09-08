@@ -15,8 +15,6 @@
 #include <map>
 #include "model/ml/Option.h"
 
-using namespace std;
-
 namespace siena
 {
 
@@ -79,8 +77,8 @@ public:
 	double finalReciprocalRate() const;
 	void finalReciprocalRate(double value);
 	void printConsecutiveCancelingPairs() const;
-	const vector <MiniStep *> & rEndStateDifferences() const;
-	const vector <MiniStep *> & rInitialStateDifferences() const;
+	const std::vector <MiniStep *> & rEndStateDifferences() const;
+	const std::vector <MiniStep *> & rInitialStateDifferences() const;
 
 	// Intervals
 
@@ -134,28 +132,28 @@ private:
 
 	// The initial state of the variables stored as a vector of ministeps
 	// relative to data (to save space)
-	vector<MiniStep *> linitialStateDifferences;
+	std::vector<MiniStep *> linitialStateDifferences;
 
 	// The final state of the variables stored as a vector of ministeps
 	// relative to data (to save space)
-	vector<MiniStep *> lendStateDifferences;
+	std::vector<MiniStep *> lendStateDifferences;
 
 	// Stores the ministeps in no particular order.
 	// The first (dummy) ministep is not stored in this vector.
 
-	vector<MiniStep *> lminiSteps;
+	std::vector<MiniStep *> lminiSteps;
 
 	// Stores pointers to the diagonal ministeps in no particular order.
-	vector<MiniStep *> ldiagonalMiniSteps;
+	std::vector<MiniStep *> ldiagonalMiniSteps;
 
 	// Stores pointers to the first ministep of each CCP in no particular order.
-	vector<MiniStep *> lccpMiniSteps;
+	std::vector<MiniStep *> lccpMiniSteps;
 
 	// Stores pointers to the networks ministeps of missing options
-	vector<MiniStep *> lmissingNetworkMiniSteps;
+	std::vector<MiniStep *> lmissingNetworkMiniSteps;
 
 	// Stores pointers to the behavior ministeps of missing options
-	vector<MiniStep *> lmissingBehaviorMiniSteps;
+	std::vector<MiniStep *> lmissingBehaviorMiniSteps;
 
 	// Sum of reciprocal rates over all non-dummy ministeps.
 	double lmu;
@@ -167,7 +165,7 @@ private:
 	double lfinalReciprocalRate;
 
 	// Maps each option to its first ministep in the chain (if any)
-	map<const Option, MiniStep *> lfirstMiniStepPerOption;
+	std::map<const Option, MiniStep *> lfirstMiniStepPerOption;
 };
 
 }

@@ -17,7 +17,6 @@
 namespace siena
 {
 
-
 class CovariateDistance2SimilarityNetworkFunction: public
 	CovariateDistance2NetworkFunction
 {
@@ -26,7 +25,6 @@ public:
 		string covariateName, bool excludeMissing);
 
 	virtual double value(int alter);
-
 
 private:
 	bool lexcludeMissing;

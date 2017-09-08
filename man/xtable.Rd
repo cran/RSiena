@@ -31,7 +31,7 @@ function (x, ...)
 {
     xtable::xtable(x, ...)
   }
-\donttest{
+\dontrun{
 myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
 mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
@@ -39,8 +39,8 @@ myeff <- getEffects(mydata)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 ans
 summary(ans)
-xtable(ans, type='html', file='ans.html')}
+xtable(ans, type="html", file="ans.html")}
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
+% Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.
-\keyword{ method }
+\keyword{ methods }

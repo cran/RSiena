@@ -5,11 +5,12 @@
   This function creates a constant dyadic covariate object from a matrix.
 }
 \usage{
-coDyadCovar(val, nodeSets=c("Actors", "Actors"),
+coDyadCovar(val, centered=TRUE, nodeSets=c("Actors", "Actors"),
     sparse=is(val,"dgTMatrix"), type=c("oneMode", "bipartite"))
 }
 \arguments{
   \item{val}{Matrix of covariate values. May be sparse, of type "dgTMatrix". }
+  \item{centered}{Boolean: if TRUE, then the mean value is subtracted.}
   \item{nodeSets}{The name of the node sets with which this
     covariate is associated. If the entire data set contains more than
     one node set, then the node sets must be specified in all data objects.}

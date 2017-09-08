@@ -4,8 +4,6 @@
 #include <string>
 #include <map>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -25,17 +23,17 @@ public:
 	State();
 	virtual ~State();
 
-	const Network * pNetwork(string name) const;
-	void pNetwork(string name, const Network * pNetwork);
+	const Network * pNetwork(std::string name) const;
+	void pNetwork(std::string name, const Network * pNetwork);
 
-	const int * behaviorValues(string name) const;
-	void behaviorValues(string name, const int * values);
+	const int * behaviorValues(std::string name) const;
+	void behaviorValues(std::string name, const int * values);
 
 	void deleteValues();
 
 private:
-	map<string, const Network *> lnetworks;
-	map<string, const int *> lbehaviors;
+	std::map<std::string, const Network *> lnetworks;
+	std::map<std::string, const int *> lbehaviors;
 	bool lownedValues;
 };
 

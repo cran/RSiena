@@ -23,7 +23,8 @@ namespace siena
 class CovariateAlterEffect : public CovariateDependentNetworkEffect
 {
 public:
-	CovariateAlterEffect(const EffectInfo * pEffectInfo, bool squared);
+	CovariateAlterEffect(const EffectInfo * pEffectInfo, const bool leftThresholded,
+							const bool rightThresholded, const bool squared);
 
 	virtual double calculateContribution(int alter) const;
 
@@ -31,6 +32,9 @@ protected:
 	virtual double tieStatistic(int alter);
 
 private:
+	bool lleftThresholded;
+	bool lrightThresholded;
+	double lthreshold;
 	bool lsquared;
 };
 

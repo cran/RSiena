@@ -22,6 +22,8 @@
 #include "network/IncidentTieIterator.h"
 #include <R_ext/Print.h>
 
+using namespace std;
+
 namespace siena
 {
 

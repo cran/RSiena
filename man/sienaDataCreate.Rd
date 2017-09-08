@@ -3,7 +3,8 @@
 \alias{siena}
 \title{Function to create a Siena data object}
 \description{
-Creates a Siena data object from input networks, covariates, and
+Creates a Siena data object from input dependent variables
+(networks and possibly behavioural variables), covariates, and
 composition change objects.}
 \usage{
 sienaDataCreate(..., nodeSets=NULL, getDocumentation=FALSE)
@@ -13,7 +14,7 @@ sienaDataCreate(..., nodeSets=NULL, getDocumentation=FALSE)
     \code{\link{coCovar}},\code{\link{varCovar}},\code{\link{coDyadCovar}},\cr
   \code{\link{varDyadCovar}}, \code{\link{sienaCompositionChange}}}
   \item{nodeSets}{list of Siena node sets. Default is the single node
-    set named 'Actors', length equal to the number of rows in the first
+    set named "Actors", length equal to the number of rows in the first
     object of class "sienaDependent". If the entire data set contains more than
     one node set, then the node sets must have been specified in
     the creation of all data objects.}
@@ -21,9 +22,11 @@ sienaDataCreate(..., nodeSets=NULL, getDocumentation=FALSE)
     functions, not for use by users.}
 }
 \details{
-Checks that the objects fit, that there is at least one network,
+The function checks that the objects fit, that there is at least one network,
 and adds various attributes to each dependent variable describing the
 data. If there is more than one nodeSet they must all be specified.
+Function \code{\link{print01Report}} will give a basic description of the data
+object and is a check useful, e.g., for diagnosing problems.
 }
 \value{
 An object of class "siena" which is designed to be used in a siena
@@ -42,11 +45,24 @@ model fit. The components of the object are.
 \author{Ruth Ripley}
 \seealso{
 \code{\link{sienaDependent}}, \code{\link{coCovar}}, \code{\link{varCovar}},
-\code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},\cr
-\code{\link{sienaCompositionChange}}, \code{\link{sienaGroupCreate}}}
+\code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},
+\code{\link{sienaCompositionChange}},\cr
+\code{\link{sienaGroupCreate}},
+\code{\link{sienaDataConstraint}}, \code{\link{sienaNodeSet}},
+\code{\link{print01Report}}}
 \examples{
 mynet <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-mybeh <- sienaDependent(s50a, type='behavior')
-mydata <- sienaDataCreate(mynet, mybeh)}
-
+mybeh <- sienaDependent(s50a, type="behavior")
+mydata <- sienaDataCreate(mynet, mybeh)
+## And for a two-mode network
+mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)), nodeSet="senders")
+senders <- sienaNodeSet(50, nodeSetName="senders")
+receivers <- sienaNodeSet(30, nodeSetName="receivers")
+mynet2 <- sienaDependent(array(c(s501[,1:30], s502[,1:30]), dim=c(50, 30, 2)),
+      nodeSet=c("senders", "receivers"))
+(mydata <- sienaDataCreate(mynet1, mynet2, nodeSets=list(senders, receivers)))
+\dontrun{
+print01Report(mydata, modelname = "mydescription")
+}
+}
 \keyword{ classes }

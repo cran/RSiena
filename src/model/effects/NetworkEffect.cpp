@@ -88,6 +88,11 @@ void NetworkEffect::initialize(const Data * pData,
 	this->lpBRTable = this->lpNetworkCache->pBRTable();
 }
 
+void NetworkEffect::initialize(const Data * pData, State * pState,
+		State * pSimulatedState, int period, Cache * pCache) {
+	initialize(pData, pState, period, pCache);
+}
+
 
 /**
  * Does the necessary preprocessing work for calculating the tie flip
@@ -127,6 +132,14 @@ double NetworkEffect::evaluationStatistic()
 	return this->statistic(this->pNetwork());
 }
 
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the evaluation function.
+ */
+pair<double, double * > NetworkEffect::evaluationStatistic(bool needActorStatistics)
+{
+		return this->statistic(this->pNetwork(), needActorStatistics);
+}
 
 /**
  * Returns the statistic corresponding to this effect as part of
@@ -137,6 +150,14 @@ double NetworkEffect::endowmentStatistic(Network * pLostTieNetwork)
 	return this->statistic(pLostTieNetwork);
 }
 
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+pair<double, double *> NetworkEffect::endowmentStatistic(Network * pLostTieNetwork, bool needActorStatistics)
+{
+	return this->statistic(pLostTieNetwork, needActorStatistics);
+}
 
 /**
  * Returns the statistic corresponding to this effect as part of
@@ -151,6 +172,16 @@ double NetworkEffect::creationStatistic(Network * pGainedTieNetwork)
 
 	return this->endowmentStatistic(pGainedTieNetwork);
 }
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the creation function.
+ */
+pair<double, double *> NetworkEffect::creationStatistic(Network * pGainedTieNetwork, bool needActorStatistics)
+{
+	return this->endowmentStatistic(pGainedTieNetwork, needActorStatistics);
+}
+
 
 
 /**
@@ -175,26 +206,42 @@ bool NetworkEffect::egoEffect() const
  */
 double NetworkEffect::statistic(const Network * pSummationTieNetwork)
 {
+	return statistic(pSummationTieNetwork, false).first;
+}
+
+pair<double,double *> NetworkEffect::statistic(const Network * pSummationTieNetwork, bool needActorStatistics)
+{
 	this->initializeStatisticCalculation();
 
 	int n = pSummationTieNetwork->n();
 	Cache * pCache = this->pCache();
 	double statistic = 0;
-
+	double * actorStatistics = 0;
+	if(needActorStatistics)
+	{
+	  actorStatistics = new double[n];
+	}
 	for (int i = 0; i < n; i++)
 	{
 		pCache->initialize(i);
 		this->preprocessEgo(i);
 		this->onNextEgo(i);
-		statistic += this->egoStatistic(i, pSummationTieNetwork);
+		if(needActorStatistics)
+		{
+			actorStatistics[i] = this->egoStatistic(i, pSummationTieNetwork);
+			statistic += actorStatistics[i];
+		}
+		else
+		{
+			statistic += this->egoStatistic(i, pSummationTieNetwork);
+		}
 	}
 
 	this->cleanupStatisticCalculation();
 	//Rprintf(" %f sum \n ", statistic);
 
-	return statistic;
+	return make_pair(statistic,actorStatistics);
 }
-
 
 /**
  * Calculates the statistic corresponding to the given ego. The variable

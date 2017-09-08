@@ -111,10 +111,21 @@ TestOutput <- function(z, x)
         Report(c('   c = ',sprintf("%8.4f", z$testresOverall),
                  '   d.f. = ',j,'   p-value '),sep='',outf)
         pvalue <- 1-pchisq(z$testresOverall,j)
+		if (!is.na(pvalue))
+		{
         if (pvalue < 0.0001)
+			{
             Report('< 0.0001',outf)
+			}
         else
+			{
             Report(c('= ',sprintf("%8.4f",pvalue)), sep = '', outf)
+			}
+		}
+		else
+		{
+				Report('  NA  ',outf)		
+		}
         if (testn==1)
             Report(c('\n   one-sided (normal variate): ',
                      sprintf("%8.4f",z$testresulto[1])), sep = '', outf)
@@ -129,6 +140,8 @@ TestOutput <- function(z, x)
                 Report(c('  c = ', sprintf("%8.4f", z$testresult[k]),
                          '   d.f. = 1  p-value '), sep = '', outf)
                 pvalue<- 1-pchisq(z$testresult[k],1)
+				if (!is.na(pvalue))
+				{
                 if (pvalue < 0.0001)
                 {
                     Report('< 0.0001\n',outf)
@@ -138,6 +151,11 @@ TestOutput <- function(z, x)
                     Report(c('= ', sprintf("%8.4f", pvalue), '\n'), sep = '',
                            outf)
                 }
+				}
+				else
+				{
+					Report('  NA  ',outf)		
+				}
                 Report(c(' - one-sided (normal variate): ',
                          sprintf("%8.4f", z$testresulto[k])), sep = '', outf)
                 if (k < j)
@@ -162,12 +180,12 @@ TestOutput <- function(z, x)
 }
 
 ##@ScoreTest siena07 Do score tests
-ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
+ScoreTest<- function(pp, dfra, msf, fra, test, redundant, maxlike)
 {
     testresult <- rep(NA, pp) ##for chisq per parameter
     testresulto <- rep(NA, pp) ##for one-sided tests per parameter
     ##first the general one
-    ans <- EvaluateTestStatistic(maxlike, test, dfra, msf, fra)
+	ans <- EvaluateTestStatistic(maxlike, test, redundant, dfra, msf, fra)
     testresOverall <- ans$cvalue
     covMatrix <- ans$covMatrix
     if (sum(test) == 1)
@@ -185,8 +203,8 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
             {
                 k <- k + 1
                 use[i] <- TRUE
-                ans <- EvaluateTestStatistic(maxlike, test[use], dfra[use, use],
-                           msf[use, use], fra[use])
+				ans <- EvaluateTestStatistic(maxlike, test[use], redundant[use],
+										dfra[use, use], msf[use, use], fra[use])
                 testresult[k] <- ans$cvalue
                 testresulto[k] <- ans$oneSided
                 use[i] <- FALSE
@@ -198,7 +216,7 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
         dfra2 <- dfra + msf
     else
         dfra2 <- dfra
-    if (inherits(try(dinv2 <- solve(dfra2)), "try-error"))
+    if (inherits(try(dinv2 <- solve(dfra2), silent=TRUE), "try-error"))
     {
         Report("Error message for inversion to get onestep estimator: \n", cf)
         dinv2 <- dfra2
@@ -214,22 +232,22 @@ ScoreTest<- function(pp, dfra, msf, fra, test, maxlike)
          oneStep=oneStep, dinv2= dinv2, dfra2=dfra2)
 }
 ##@EvaluateTestStatistic siena07 Calculate score test statistics
-EvaluateTestStatistic<- function(maxlike, test, dfra, msf, fra)
+EvaluateTestStatistic<- function(maxlike, test, redundant, dfra, msf, fra)
 {
     ##uses local arrays set up in the calling procedure
-    d11 <- dfra[!test, !test, drop=FALSE]
+	d11 <- dfra[!(test|redundant), !(test|redundant), drop=FALSE]
     d22 <- dfra[test, test, drop=FALSE]
-    d21 <- dfra[test, !test, drop=FALSE]
+	d21 <- dfra[test, !(test|redundant), drop=FALSE]
     d12 <- t(d21)
-    sigma11 <- msf[!test, !test, drop=FALSE]
+	sigma11 <- msf[!(test|redundant), !(test|redundant), drop=FALSE]
     sigma22<- msf[test, test,drop=FALSE]
-    sigma12 <- msf[!test, test, drop=FALSE]
+	sigma12 <- msf[!(test|redundant), test, drop=FALSE]
     sigma21<- t(sigma12)
-    z1 <- fra[!test]
+	z1 <- fra[!(test|redundant)]
     z2 <- fra[test]
-    if (inherits(try(id11 <- solve(d11)), "try-error"))
+    if (inherits(try(id11 <- solve(d11), silent=TRUE), "try-error"))
     {
-        Report('Error message for inversion of d11: \n', cf)
+        cat('Score test: Error for inversion of d11 \n')
         oneSided <- NA
         v9 <- d22
         v9[] <- NA
@@ -254,28 +272,95 @@ EvaluateTestStatistic<- function(maxlike, test, dfra, msf, fra)
             ov <- -z2
             v9 <- d22 - rg %*% d12
         }
-        if (inherits(try(vav <- solve(v9)), "try-error"))
+        if (inherits(try(vav <- solve(v9), silent=TRUE), "try-error"))
             ## vav is the inverse variance matrix of ov
         {
-            Report('Error message for inversion of v9: \n', cf)
+            cat('Score test: Error for inversion of v9\n')
             vav <- v9
             vav[] <- NA
+			cvalue <- NA
+			oneSided <- NA
         }
-        cvalue <- t(ov) %*% vav %*% ov
-        if (cvalue < 0) cvalue <- 0
-        if (sum(test) == 1)
-        {
-            if (vav > 0)
-                oneSided <- ov * sqrt(vav)
-            else
-                oneSided <- 0
-            if (!maxlike) oneSided <- - oneSided
-            ## change the sign for intuition for users
-        }
-        else
-        {
-            oneSided <- 0
-        }
+		else
+		{
+			cvalue <- t(ov) %*% vav %*% ov
+			if (cvalue < 0) cvalue <- 0
+			if (sum(test) == 1)
+			{
+				if (vav > 0)
+					oneSided <- ov * sqrt(vav)
+				else
+					oneSided <- 0
+				if (!maxlike) oneSided <- - oneSided
+				## change the sign for intuition for users
+			}
+			else
+			{
+				oneSided <- 0
+			}
+		}
     }
     list(cvalue=cvalue, oneSided=oneSided, covMatrix=v9)
+}
+
+
+##@scoreTest Calculate score test
+score.Test <- function(ans, test=ans$test)
+# use: ans must be a sienaFit object;
+# test must be a boolean vector with length equal to the number of parameters of ans,
+# or a vector of integer numbers between 1 and ans$pp.
+{
+	if ((is.numeric(test)) || (is.integer(test)))
+	{
+		if (max(test) > ans$pp)
+		{
+			stop(paste('The maximum requested coordinate is too high:',
+									max(test)))
+		}
+		test <- (1:ans$pp) %in% test
+	}
+	if (sum(test) <= 0) stop(paste('Something should be tested, but the total requested is',
+									sum(test)))
+	if (length(test) != ans$pp) stop('Dimensions of must agree')
+	if (any(test & (!ans$fix))) cat('Warning: some tested parameters were not fixed; do you know what you are doing??? \n')	
+    fra <- colMeans(ans$sf, na.rm=TRUE)
+	redundant <- (ans$fix & (!test))
+	teststat <- EvaluateTestStatistic(ans$maxlike, test, redundant, ans$dfra, ans$msf, fra)$cvalue
+	df <- sum(test)
+	pval <- 1 - pchisq(teststat, df)
+	list(chisquare = teststat, df = df, pvalue = pval)
+}
+
+##@Wald.RSiena  Calculate Wald test statistics
+Wald.RSiena <- function(A, ans)
+{
+	if (is.vector(A)){A <- matrix(A, nrow=1)}
+	if (dim(A)[2] != ans$pp){stop(paste('A must have', ans$pp, 'columns.'))}
+	sigma <- ans$covtheta
+	if (any(is.na(sigma))){ # happens when some coordinates were fixed
+	                        # in the call of siena07 leading to ans;
+	                        # then the non-used part of sigma,
+							# which partially consists of NA,
+							# is replaced by the identity matrix.
+		zero.cols <- apply(A, 2, function(colum){all(colum==0)})
+		sigma[zero.cols, ] <- 0
+		sigma[, zero.cols] <- 0
+		diag(sigma)[zero.cols] <- 1
+		}
+	th <- A %*% ans$theta
+	covmat <- A %*% sigma %*% t(A)
+	chisq <- drop(t(th) %*% solve(covmat) %*% th)
+	d.f. <- nrow(A)
+	pval <- 1 - pchisq(chisq, d.f.)
+	list(chisquare = chisq, df = d.f., pvalue = pval)
+}
+
+##@Multipar.RSiena  Calculate Wald test statistic for hypothesis that subvector = 0.
+Multipar.RSiena <- function(ans, ...)
+{
+	p <- length(ans$theta)
+	k <- length(c(...))
+	A <- matrix(0, nrow=k, ncol=p)
+	A[cbind(1:k,c(...))] <- 1
+	Wald.RSiena(A, ans)
 }

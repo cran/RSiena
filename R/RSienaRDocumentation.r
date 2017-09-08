@@ -15,7 +15,7 @@ getInternals <- function()
     fnlist <- read.csv("RSienafnlist.csv", as.is=TRUE)
     mylist <- ls(parent.frame())
     ##  print(mylist)
-    library(codetools)
+    ## require(codetools)
 	## fnlist has a row number at the front: column 3 contains the function names
     mylist <- mylist[mylist %in% fnlist[, 3]]
     mytt <- lapply(mylist, function(x)
@@ -23,8 +23,8 @@ getInternals <- function()
            x <- get(x, envir=parent.frame(3))
            if (is.function(x))
            {
-               tt <- findGlobals(x, merge=FALSE)[[1]]
-               tt2 <- findLocals(body(x))
+               tt <- codetools::findGlobals(x, merge=FALSE)[[1]]
+               tt2 <- codetools::findLocals(body(x))
                tt <- c(tt, tt2)
                tt[tt %in% fnlist[, 3]]
            }
@@ -40,8 +40,8 @@ getInternals <- function()
 ##@getRSienaDocumentation Documentation
 getRSienaRDocumentation <- function(Rdir)
 {
-	library(xtable)
-    library(codetools)
+	## require(xtable)
+	## require(codetools)
 
     thisdir <- getwd()
     ## temporarily move directory
@@ -94,8 +94,8 @@ getRSienaRDocumentation <- function(Rdir)
                     x <- try(getFromNamespace(x, pkgname), silent=TRUE)
                     if (is.function(x))
                     {
-                        tmp1 <- findGlobals(x, merge=FALSE)[[1]]
-                        tmp2 <- findLocals(body(x))
+                        tmp1 <- codetools::findGlobals(x, merge=FALSE)[[1]]
+                        tmp2 <- codetools::findLocals(body(x))
                         tmp <- c(tmp1, tmp2)
                     }
                     else
@@ -282,7 +282,7 @@ getRSienaRDocumentation <- function(Rdir)
 
     tmp12 <- tmp12[order(tmp12[, "type"], as.numeric(row.names(tmp12))), ]
     tmp12 <- tmp12[, c(3, 2, 5, 6, 4, 1)]
-    ff <- xtable(tmp12)
+    ff <- xtable::xtable(tmp12)
     ## go back to start directory
     setwd(thisdir)
     print(ff, tabular.environment="longtable",

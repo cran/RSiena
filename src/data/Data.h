@@ -15,9 +15,7 @@
 #include <set>
 #include <map>
 #include <string>
-#include "data/NetworkConstraint.h"
-
-using namespace std;
+#include "NetworkConstraint.h"
 
 namespace siena
 {
@@ -131,10 +129,10 @@ public:
 
 	// Network constraints
 
-	const NetworkConstraint * addNetworkConstraint(string networkName1,
-		string networkName2,
+	const NetworkConstraint * addNetworkConstraint(std::string networkName1,
+		std::string networkName2,
 		NetworkConstraintType type);
-	const vector<const NetworkConstraint *> & rNetworkConstraints() const;
+	const std::vector<const NetworkConstraint *> & rNetworkConstraints() const;
 
 private:
 	// The number of observations
@@ -171,7 +169,7 @@ private:
 	// Network constraints like higher(network1,network2),
 	// disjoint(network1,network2), etc.
 
-	vector<const NetworkConstraint *> lnetworkConstraints;
+	std::vector<const NetworkConstraint *> lnetworkConstraints;
 };
 
 

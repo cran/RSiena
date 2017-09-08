@@ -21,6 +21,8 @@
 #include "data/ChangingDyadicCovariate.h"
 #include "data/ExogenousEvent.h"
 
+using namespace std;
+
 namespace siena
 {
 

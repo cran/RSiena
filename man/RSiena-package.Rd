@@ -18,48 +18,50 @@ is distributed through R-Forge, see
 Package \code{"RSiena"} is the official release.
 }
 \details{
-
-  Use \code{\link{siena07}} to fit a model.
+  The main flow of operations of this package is as follows.
 
   Data objects can be created from matrices and
-  vectors using \code{\link{sienaDependent}}, \code{\link{coCovar}} etc.,
+  vectors using \code{\link{sienaDependent}}, \code{\link{coCovar}},
+  \code{\link{varCovar}}, \code{\link{coDyadCovar}}, etc.,
   and finally \code{\link{sienaDataCreate}}.
-  Another possibility (but with less flexibility) is via the
-  Gui displayed by \code{\link{siena01Gui}}, or via
-  \code{\link{sienaDataCreateFromSession}}.
 
-  Effects are selected using an \emph{effects} object, which can be created
-  using \code{\link{getEffects}}.
+  Effects are selected using an \code{\link{sienaEffects}} object,
+  which can be created using \code{\link{getEffects}}
+  and may be further specified by \code{\link{includeEffects}},
+  \code{\link{setEffect}}, and \code{\link{includeInteraction}}.
 
   Control of the estimation algorithm requires a
-  \code{sienaAlgorithm} object that
-  defines the settings (parameters) of the algorithm,\cr
-  and which can be created by \code{\link{sienaAlgorithmCreate}}
-  (alias \code{\link{sienaModelCreate}}).
+  \code{\link{sienaAlgorithm}} object that
+  defines the settings (parameters) of the algorithm,
+  and which can be created by \code{\link{sienaAlgorithmCreate}}.
 
-  More detailed help is available in the manual which you can display
-  using \cr
-  \code{RShowDoc("RSiena_Manual", package="RSiena")}
+  Function \code{\link{siena07}} is used to fit a model.
+
+  A general introduction to the method is available in the tutorial paper
+  Snijders, van de Bunt, and Steglich (2010).
+  Next to the help pages, more detailed help is available in the manual (see below)
+  and a lot of information is at the website (also see below).
 \tabular{ll}{
 Package: \tab RSiena\cr
 Type: \tab Package\cr
-Version: \tab 1.1-232\cr
-Date: \tab 2013-06-18\cr
-Depends: \tab R (>= 2.15.0)\cr
+Version: \tab 1.2-3\cr
+Date: \tab 2017-09-08\cr
+Depends: \tab R (>= 3.0.0)\cr
 Imports: \tab Matrix\cr
 Suggests: \tab tcltk, network, codetools, lattice, MASS, parallel,
-		  xtable, tools\cr
+		  xtable, tools, utils\cr
 SystemRequirements: \tab GNU make, tcl/tk 8.5, Tktable\cr
 License: \tab GPL-2 \cr
 LazyData: \tab yes\cr
-NeedsCompilation: yes\cr
+NeedsCompilation: \tab yes\cr
 BuildResaveData: \tab no\cr
 }
 }
 \author{
-  Ruth Ripley, Krists Boitmanis, Tom Snijders.
+  Ruth Ripley, Krists Boitmanis, Tom Snijders, Felix Schoenenberger.
   Contributions by Josh Lospinoso, Charlotte Greenan, Christian Steglich,
-  Johan Koskinen, Mark Ortmann, and Nynke Niezink.
+  Johan Koskinen, Mark Ortmann, Nynke Niezink, Natalie Indlekofer,
+  and Robert Hellpap.
 
   Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 }
@@ -73,17 +75,23 @@ BuildResaveData: \tab no\cr
     \item Snijders, Tom A.B. (2001).
     The statistical evaluation of social network dynamics.
     \emph{Sociological Methodology}, 31, 361-395.
+   \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
+   Dynamics. \emph{Annual Review of Statistics and Its Application}, 4, 343-363.
+   \item  Snijders, Tom A.B., van de Bunt, Gerhard G., and
+    Steglich, Christian E.G. (2010).
+	Introduction to actor-based models for network dynamics.
+	\emph{Social Networks}, 32, 44-60.
    \item Snijders, Tom A.B., Steglich, Christian E.G., and Schweinberger,
     Michael (2007). Modeling the co-evolution of networks and behavior.
     Pp. 41-71 in \emph{Longitudinal models in the behavioral
     and related sciences},
     edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
-   \item Steglich, Christian E. G., Snijders, Tom A. B., and
+   \item Steglich, Christian E.G., Snijders, Tom A.B., and
     Pearson, Michael A. (2010). Dynamic networks and behavior:
-    Separating selection from influence. Sociological Methodology, 40, 329-393.
-   \item Further see the extensive manual accessible by the command\cr
-    \code{RShowDoc("RSiena_Manual", package="RSiena")}\cr
-	and the website \url{http://www.stats.ox.ac.uk/~snijders/siena/} .
+    Separating selection from influence. \emph{Sociological Methodology},
+	40, 329-393.
+   \item The manual: \url{http://www.stats.ox.ac.uk/~snijders/siena/RSiena_Manual.pdf}
+   \item The website: \url{http://www.stats.ox.ac.uk/~snijders/siena/}.
            }
 }
 \seealso{\code{\link{siena07}}}

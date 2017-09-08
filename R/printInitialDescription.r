@@ -182,21 +182,21 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 
                         Report(c(format(per + periodFromStart, width=3),
                                  " ==> ",
-                                 format(per + 1 + periodFromStart, width=2),
+                                 format(per + 1 + periodFromStart, width=3),
                                  format(matchange[, per], width=10),
                                  format(attr(depvar, "distance")[per],
                                         width=10),
-                                 jaccard, format(misd, width=6), " (",
+                                 jaccard, format(misd, width=10), " (",
                                  round(100 * misd/(ntot + misd)), "%)\n"),
                                sep="", outf)
                      }
                     else
                     {
                           Report(c(per + periodFromStart, " ==> ",
-                                 format(per + 1 + periodFromStart, width=2),
+                                 format(per + 1 + periodFromStart, width=3),
                                  format(matchange[, per], width=10),
                                  format(attr(depvar,"distance")[per], width=10),
-                                 format(misd, width=7), " (",
+                                 format(misd, width=10), " (",
                                    round(100 * misd/(ntot + misd)), "%)\n"),
                                  sep="", outf)
 
@@ -210,7 +210,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 								(matchange[3, per] + matchange[4, per]) )
                         {
                             Report(c("\nThis means that in period ", per,
-                                     ", proportionately less 1-ties stayed 1,\n",
+                                     ", proportionately fewer 1-ties stayed 1,\n",
                                      " than 0-ties became 1. A great reversal",
                                      " of the network pattern!\n",
                                      "For some model specifications this may",
@@ -232,7 +232,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
             }
             if (!bipartite)
             {
-                Report("Dyad Counts:\n", outf)
+                Report("Directed dyad Counts:\n", outf)
                 if (valmin == 0 & valmax == 1)
                 {
                     Report(" observation    total    mutual    asymm.     null\n",

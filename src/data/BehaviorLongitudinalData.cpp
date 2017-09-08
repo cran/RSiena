@@ -41,6 +41,7 @@ BehaviorLongitudinalData::BehaviorLongitudinalData(int id,
 	this->lvaluesLessMissings = new int * [observationCount];
 	this->lvaluesLessMissingStarts = new int * [observationCount];
 	this->lobservedDistributions = new map<int, double>[observationCount];
+	this->lbehModelType = 1;
 
 	for (int i = 0; i < observationCount; i++)
 	{
@@ -184,6 +185,22 @@ void BehaviorLongitudinalData::structural(int observation,
 	this->lstructural[observation][actor] = structural;
 }
 
+/**
+ * Stores the behavioral model type.
+ */
+void BehaviorLongitudinalData::behModelType(int type)
+{
+	this->lbehModelType = type;
+}
+
+
+/**
+ * Returns the behavioral model type.
+ */
+int BehaviorLongitudinalData::behModelType() const
+{
+	return this->lbehModelType;
+}
 
 // ----------------------------------------------------------------------------
 // Section: Various statistics on the observed values

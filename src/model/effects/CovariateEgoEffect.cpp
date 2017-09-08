@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "CovariateEgoEffect.h"
+#include "model/EffectInfo.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
 
@@ -18,10 +19,40 @@ namespace siena
 
 /**
  * Constructor.
+ *
+ * @param[in] pEffectInfo the effect descriptor
  */
-CovariateEgoEffect::CovariateEgoEffect(const EffectInfo * pEffectInfo) :
-	CovariateDependentNetworkEffect(pEffectInfo)
-{
+CovariateEgoEffect::CovariateEgoEffect(const EffectInfo * pEffectInfo,
+		const bool leftThresholded, const bool rightThresholded) :
+	CovariateDependentNetworkEffect(pEffectInfo) {
+	this->lleftThresholded = leftThresholded;
+	this->lrightThresholded = rightThresholded;
+	this->lthreshold = pEffectInfo->internalEffectParameter();
+	// to make sure that there will be no numerical equality difficulties:
+	if (this->lleftThresholded)
+	{
+		this->lthreshold += 1e-12;
+	}
+	if (this->lrightThresholded)
+	{
+		this->lthreshold -= 1e-12;
+	}
+}
+
+/**
+ * Constructor.
+ *
+ * @param[in] pEffectInfo the effect descriptor
+ * @param simulatedState If `true` the value() function uses the simulated
+ *        state, if any or the value at the end of the period.
+ */
+CovariateEgoEffect::CovariateEgoEffect(const EffectInfo * pEffectInfo,
+		const bool leftThresholded, const bool rightThresholded,
+		const bool simulatedState) :
+	CovariateDependentNetworkEffect(pEffectInfo, simulatedState) {
+	this->lleftThresholded = leftThresholded;
+	this->lrightThresholded = rightThresholded;
+	this->lthreshold = pEffectInfo->internalEffectParameter();
 }
 
 
@@ -30,7 +61,29 @@ CovariateEgoEffect::CovariateEgoEffect(const EffectInfo * pEffectInfo) :
  */
 double CovariateEgoEffect::calculateContribution(int alter) const
 {
-	return this->value(this->ego());
+	double contribution = 0;
+	if (this->lleftThresholded)
+	{
+		if (this->value(this->ego()) <= this->lthreshold)
+		{
+			contribution = 1;
+		}
+	}
+	else
+	{
+		if (this->lrightThresholded)
+		{
+			if (this->value(this->ego()) >= this->lthreshold)
+			{
+				contribution = 1;
+			}
+		}
+		else
+		{
+			contribution = this->value(this->ego());
+		}
+	}
+	return contribution;
 }
 
 
@@ -45,7 +98,7 @@ double CovariateEgoEffect::tieStatistic(int alter)
 
 	if (!this->missing(this->ego()))
 	{
-		statistic = this->value(this->ego());
+		statistic = this->calculateContribution(alter);
 	}
 
 	return statistic;

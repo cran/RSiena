@@ -30,7 +30,11 @@ CovariateAndNetworkBehaviorEffect::CovariateAndNetworkBehaviorEffect(
 {
 	// set up the extras if any
 	this->laverageAlterValues = 0;
+	this->ltotalAlterValues = 0;
+	this->laverageInAlterValues = 0;
+	this->ltotalInAlterValues = 0;
 	this->laverageAlterMissing = 0;
+	this->laverageInAlterMissing = 0;
 }
 
 /**
@@ -39,7 +43,11 @@ CovariateAndNetworkBehaviorEffect::CovariateAndNetworkBehaviorEffect(
 CovariateAndNetworkBehaviorEffect::~CovariateAndNetworkBehaviorEffect()
 {
 	delete [] this->laverageAlterValues;
+	delete [] this->ltotalAlterValues;
+	delete [] this->laverageInAlterValues;
+	delete [] this->ltotalInAlterValues;
 	delete [] this->laverageAlterMissing;
+	delete [] this->laverageInAlterMissing;
 }
 
 /**
@@ -69,12 +77,32 @@ void CovariateAndNetworkBehaviorEffect::initialize(const Data * pData,
 	{
 		delete [] this->laverageAlterValues;
 	}
+	if (this->ltotalAlterValues)
+	{
+		delete [] this->ltotalAlterValues;
+	}
+	if (this->laverageInAlterValues)
+	{
+		delete [] this->laverageInAlterValues;
+	}
+	if (this->ltotalInAlterValues)
+	{
+		delete [] this->ltotalInAlterValues;
+	}
 	if (this->laverageAlterMissing)
 	{
-		delete [] this->laverageAlterMissing;
+		delete[] this->laverageAlterMissing;
+	}
+	if (this->laverageInAlterMissing)
+	{
+		delete[] this->laverageInAlterMissing;
 	}
 	this->laverageAlterValues = new double[this->lpNetwork->n()];
+	this->ltotalAlterValues = new double[this->lpNetwork->n()];
+	this->laverageInAlterValues = new double[this->lpNetwork->m()];
+	this->ltotalInAlterValues = new double[this->lpNetwork->m()];
 	this->laverageAlterMissing = new bool[this->lpNetwork->n()];
+	this->laverageInAlterMissing = new bool[this->lpNetwork->m()];
 }
 
 /**
@@ -87,6 +115,15 @@ bool CovariateAndNetworkBehaviorEffect::missingDummy(int i) const
 }
 
 /**
+ * Returns if the dummy covariate value for the given actor is based on
+ * all missing values.
+ */
+bool CovariateAndNetworkBehaviorEffect::missingInDummy(int i) const
+{
+	return this->laverageInAlterMissing[i];
+}
+
+/**
  * Returns the average alter covariate value for the given actor.
  */
 double CovariateAndNetworkBehaviorEffect::averageAlterValue(int i) const
@@ -94,6 +131,28 @@ double CovariateAndNetworkBehaviorEffect::averageAlterValue(int i) const
 	return this->laverageAlterValues[i];
 }
 
+/**
+ * Returns the total alter covariate value for the given actor.
+ */
+double CovariateAndNetworkBehaviorEffect::totalAlterValue(int i) const
+{
+	return this->ltotalAlterValues[i];
+}
+/**
+ * Returns the average in-alter covariate value for the given actor.
+ */
+double CovariateAndNetworkBehaviorEffect::averageInAlterValue(int i) const
+{
+	return this->laverageInAlterValues[i];
+}
+
+/**
+ * Returns the total in-alter covariate value for the given actor.
+ */
+double CovariateAndNetworkBehaviorEffect::totalInAlterValue(int i) const
+{
+	return this->ltotalInAlterValues[i];
+}
 
 /**
  * Does the necessary preprocessing work for calculating the tie flip
@@ -107,12 +166,11 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 	// set up the covariate based on current values of the network
 	const Network * pNetwork = this->pNetwork();
 
-
 	for (int i = 0; i < pNetwork->n(); i++)
 	{
 		this->laverageAlterMissing[i] = false;
 		int numberNonMissing = 0;
-		this->laverageAlterValues[i] = 0;
+		this->ltotalAlterValues[i] = 0;
 		if (pNetwork->outDegree(i) > 0)
 		{
 			for (IncidentTieIterator iter = pNetwork->outTies(i);
@@ -120,7 +178,7 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 				 iter.next())
 			{
 				int j = iter.actor();
-				this->laverageAlterValues[i] += this->covariateValue(j);
+				this->ltotalAlterValues[i] += this->covariateValue(j);
 				if (!this->missingCovariate(j, this->period()))
 				{
 					numberNonMissing++;
@@ -132,7 +190,8 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 // 					this->missingCovariate(j, this->period()),
 // 					numberNonMissing, i);
 			}
-			this->laverageAlterValues[i] /= pNetwork->outDegree(i);
+			this->laverageAlterValues[i] =
+					(this->ltotalAlterValues[i] / pNetwork->outDegree(i));
 			if (numberNonMissing == 0)
 			{
 				this->laverageAlterMissing[i] = true;
@@ -140,11 +199,43 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 		}
 		else
 		{
-			this->laverageAlterValues[i] = 0;
+			this->laverageAlterValues[i] = this->covariateMean();
+			this->ltotalAlterValues[i] = 0;
 		}
 //		Rprintf("%d %f\n", i,this->laverageAlterValues[i]);
 	}
-}
 
+	for (int i = 0; i < pNetwork->m(); i++)
+	{
+		this->laverageInAlterMissing[i] = false;
+		int numberNonMissing = 0;
+		this->ltotalInAlterValues[i] = 0;
+		if (pNetwork->inDegree(i) > 0)
+		{
+			for (IncidentTieIterator iter = pNetwork->inTies(i);
+				 iter.valid();
+				 iter.next())
+			{
+				int j = iter.actor();
+				this->ltotalInAlterValues[i] += this->covariateValue(j);
+				if (!this->missingCovariate(j, this->period()))
+				{
+					numberNonMissing++;
+				}
+			}
+			this->laverageInAlterValues[i] =
+					(this->ltotalInAlterValues[i] / pNetwork->inDegree(i));
+			if (numberNonMissing == 0)
+			{
+				this->laverageInAlterMissing[i] = true;
+			}
+		}
+		else
+		{
+			this->laverageInAlterValues[i] = this->covariateMean();
+			this->ltotalInAlterValues[i] = 0;
+		}
+	}
+}
 
 }

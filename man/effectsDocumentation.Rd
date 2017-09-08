@@ -9,9 +9,9 @@ Function to create a table of documentation of effect names, short names etc.
 }
 \usage{
 effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
-  filename = ifelse(is.null(effects), "effects", deparse(substitute(effects))))
+     filename = ifelse(is.null(effects), "effects", deparse(substitute(effects))))
 }
-%- maybe also 'usage' for other objects documented here.
+%- maybe also "usage" for other objects documented here.
 \arguments{
   \item{effects}{
     A Siena effects object, or NULL.
@@ -32,7 +32,9 @@ effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
   a table, either latex or html. This table presents all the available
   effects present in this version of RSiena, not delimited
   by a particular data set. The default file name is "effects.tex" or
-  "effects.pdf", respectively.
+  "effects.pdf", respectively. The latter file is also shown in the browser
+  when requesting\cr
+  \code{RShowDoc("effects", package="RSiena")}
 
   The table lists all effects, with their name,
   shortName, whether an endowment (and creation) effect exists,
@@ -61,6 +63,6 @@ effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
 \examples{
 \dontrun{effectsDocumentation()}
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
+% Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.
 \keyword{ misc }

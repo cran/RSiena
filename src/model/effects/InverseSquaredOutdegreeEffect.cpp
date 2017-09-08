@@ -28,8 +28,7 @@ InverseSquaredOutdegreeEffect::InverseSquaredOutdegreeEffect(
 
 	if (this->lc < 1)
 	{
-		throw invalid_argument(
-			string("InverseSquaredOutdegreeEffect: ") +
+		throw invalid_argument(string("InverseSquaredOutdegreeEffect: ") +
 			"Parameter value must be at least 1");
 	}
 }

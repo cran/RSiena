@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include <cmath>
-
+#include "data/NetworkLongitudinalData.h"
 #include "IndegreeActivityEffect.h"
 #include "utils/SqrtTable.h"
 #include "network/Network.h"
@@ -63,6 +63,29 @@ double IndegreeActivityEffect::tieStatistic(int alter)
 		statistic = this->lsqrtTable->sqrt(inDegree);
 	}
 
+	return statistic;
+}
+
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+double IndegreeActivityEffect::endowmentStatistic(Network * pLostTieNetwork)
+{
+	double statistic = 0;
+	const Network* pStart = this->pData()->pNetwork(this->period());
+	int n = pStart->n();
+	for (int i = 0; i < n; i++)
+	{
+		int indeg = pStart->inDegree(i);
+		double rindeg = indeg;
+		if (this->lroot)
+		{
+			rindeg = this->lsqrtTable->sqrt(indeg);
+		}
+		statistic += rindeg * pLostTieNetwork->outDegree(i);
+	}
 	return statistic;
 }
 

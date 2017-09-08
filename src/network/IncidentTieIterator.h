@@ -14,41 +14,73 @@
 
 #include <map>
 
-namespace siena
-{
+#include "iterators/ITieIterator.h"
+
+namespace siena {
 
 /**
  * This class defines an iterator over incoming or outgoing ties of a specific
  * actor <i>i</i>. The ties are sorted in an increasing order of the neighbors
  * of <i>i</i>.
  */
-class IncidentTieIterator
-{
+class IncidentTieIterator: public ITieIterator {
 	// The class Network needs access to the private constructor.
 	friend class Network;
+	friend class DistanceTwoLayer;
 
 public:
 	IncidentTieIterator();
+	IncidentTieIterator(const IncidentTieIterator& rhs);
 
-	int actor() const;
-	int value() const;
-	bool valid() const;
-	void next();
+	/**
+	 * Returns the neighbor incident to the current tie.
+	 */
+	inline int actor() const {
+		if (valid()) {
+			return lcurrent->first;
+		}
+		throw InvalidIteratorException();
+	}
+
+	/**
+	 * Returns the value of the current tie.
+	 */
+	inline int value() const {
+		if (valid()) {
+			return lcurrent->second;
+		}
+		throw InvalidIteratorException();
+	}
+
+	/**
+	 * Indicates if the iterator still points to a valid tie.
+	 */
+	inline bool valid() const {
+		return lcurrent != lend;
+	}
+
+	/**
+	 * Moves the iterator to the next tie.
+	 */
+	inline void next() {
+		++lcurrent;
+	}
+
+	IncidentTieIterator* clone() const;
 
 private:
-	IncidentTieIterator(std::map<int, int> & ties);
-	IncidentTieIterator(std::map<int, int> & ties, int lowerBound);
+	IncidentTieIterator(const std::map<int, int> & ties);
+	IncidentTieIterator(const std::map<int, int> & ties, int lowerBound);
 
+
+	/////////////////////////////////////////////////////////
+	//NEVER CHANGE THIS ORDERING!!! CHECK INITIALIZATION LIST
+	/////////////////////////////////////////////////////////
 	// Points to the current element in the underlying map
 	std::map<int, int>::const_iterator lcurrent;
 
 	// Points to the end of the underlying map
 	std::map<int, int>::const_iterator lend;
-
-	// Indicates if the internal iterators have been initialized to
-	// point to elements of some underlying map.
-
-	bool linitialized;
 };
 
 }

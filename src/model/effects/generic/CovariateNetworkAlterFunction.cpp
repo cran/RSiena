@@ -79,6 +79,28 @@ void CovariateNetworkAlterFunction::initialize(const Data * pData,
 }
 
 /**
+ * Returns the overall mean of value
+ */
+double CovariateNetworkAlterFunction::covmean() const
+{
+	double themean = 0;
+
+	if (this->lpConstantCovariate)
+	{
+		themean = this->lpConstantCovariate->mean();
+	}
+	else if (this->lpChangingCovariate)
+	{
+		themean = this->lpChangingCovariate->mean();
+	}
+	// else lpBehaviorData: values are already centered,
+	 // see CovariateNetworkAlterFunction::value
+	 // themean is already 0
+
+	return themean;
+}
+
+/**
  * Returns the covariate value for the given actor.
  */
 double CovariateNetworkAlterFunction::value(int i) const

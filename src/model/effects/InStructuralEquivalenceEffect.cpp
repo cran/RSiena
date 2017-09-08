@@ -59,9 +59,8 @@ void InStructuralEquivalenceEffect::initialize(const Data * pData,
 	}
 	else
 	{
-		throw logic_error("Data for one-mode network variable '" +
-			this->pEffectInfo()->variableName() +
-			"' expected.");
+		throw std::logic_error("Data for one-mode network variable '" +
+			this->pEffectInfo()->variableName() + "' expected.");
 	}
 }
 

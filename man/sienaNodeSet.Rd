@@ -7,7 +7,7 @@
 \usage{
 sienaNodeSet(n, nodeSetName="Actors", names=NULL)
 }
-%- maybe also 'usage' for other objects documented here.
+%- maybe also "usage" for other objects documented here.
 \arguments{
   \item{n}{integer, size of set.}
   \item{nodeSetName}{character string naming the node set.}
@@ -20,7 +20,7 @@ sienaNodeSet(n, nodeSetName="Actors", names=NULL)
 }
 \value{
   Returns a Siena node set, an integer vector, possibly with names, plus the
-  attributes, class equal to 'sienaNodeSet', and nodeSetName equal to
+  attributes, class equal to "sienaNodeSet", and nodeSetName equal to
   the argument nodeSetName.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/ }}
@@ -28,6 +28,6 @@ sienaNodeSet(n, nodeSetName="Actors", names=NULL)
 \examples{
 students <- sienaNodeSet(50, "student")
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
+% Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.
 \keyword{classes }

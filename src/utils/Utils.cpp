@@ -9,6 +9,7 @@
  *****************************************************************************/
 
 #include "Utils.h"
+#include <Rmath.h>
 #include <sstream>
 
 namespace siena
@@ -40,6 +41,14 @@ double identity(int x)
 double invertor(int x)
 {
 	return 1.0 / (x + 1);
+}
+
+/**
+ * Returns the logarithm of (<i>x</i> + 1).
+ */
+double logarithmer(int x)
+{
+	return log(x + 1);
 }
 
 

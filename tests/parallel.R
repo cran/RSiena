@@ -1,13 +1,16 @@
 library(RSiena)
 
+
 ##test3
 mynet1 <- sienaDependent(array(c(tmp3, tmp4),dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff<- getEffects(mydata)
 mymodel<- model.create(findiff=TRUE, fn = simstats0c, projname='test3',
-                       cond=FALSE, nsub=2, n3=100, seed=3)
+                       cond=FALSE, nsub=2, n3=50, seed=3)
 print('test3')
-ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE, parallelTesting=TRUE, silent=TRUE)#,dll='../siena/src/RSiena.dll')
+ans<- siena07(mymodel, data=mydata, effects=myeff,
+     batch=TRUE, parallelTesting=TRUE, silent=TRUE)
+#,dll='../siena/src/RSiena.dll')
 ans
 ##test4
 mymodel$projname <- 'test4'
@@ -18,21 +21,40 @@ ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
 ##, verbose=TRUE)#,dll='../siena/src/RSiena.dll')
 ans
+##test5
+mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
+mydata <- sienaDataCreate(mynet1)
+myeff<- getEffects(mydata)
+mymodel<- model.create(fn = simstats0c, projname='test5', nsub=2, n3=50,
+                       cond=FALSE, seed=5)
+print('test5')
+ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
+              parallelTesting=TRUE, silent=TRUE)
+ans
+##test6
+mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
+mydata <- sienaDataCreate(mynet1)
+myeff<- getEffects(mydata)
+mymodel<- model.create(fn = simstats0c, projname='test6', nsub=2, n3=50,
+                       cond=FALSE, doubleAveraging=0,seed=5)
+print('test6')
+ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
+              parallelTesting=TRUE, silent=TRUE)
+ans
 ##test7
 mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
 mydata <- sienaDataCreate(mynet1)
 myeff<- getEffects(mydata)
-mymodel<- model.create(fn = simstats0c, projname='test7', nsub=2, n3=100,
-                       cond=FALSE, seed=5)
+mymodel<- model.create(fn = simstats0c, projname='test7', nsub=2, n3=50,
+                       cond=FALSE,  diagonalize=0.5, seed=5)
 print('test7')
 ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
 ##, verbose=TRUE)#,dll='../siena/src/RSiena.dll')
 ans
 ##test8
-mymodel$projname <- 'test8'
-mymodel$cconditional <- TRUE
-mymodel$condvarno <- 1
+mymodel<- model.create(fn = simstats0c, projname='test8', nsub=1, n3=50,
+                       cond=TRUE, condvarno=1, seed=5)
 print('test8')
 ans <- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
@@ -45,6 +67,7 @@ mynet2 <- sienaDependent(s50a,type='behavior')
 mydata <- sienaDataCreate(mynet1, mynet2)
 myeff <- getEffects(mydata)
 myeff <- setEffect(myeff, linear, initialValue=0.34699930338, name="mynet2")
+myeff <- setEffect(myeff, avAlt, name="mynet2", interaction1="mynet1")
 ##myeff$initialValue[98] <- 0.34699930338 ## siena3 starting values differ
 ##test10
 print('test10')
@@ -57,15 +80,10 @@ ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE,
 ans
 ##test11
 print('test11')
-data501 <- sienaDataCreateFromSession("s50.csv", modelName="s50")
-data501e <- sienaDataCreateFromSession("s50e.csv", modelName="s50e")
-data501paj <- sienaDataCreateFromSession("s50paj.csv", modelName="s50paj")
-
-model501e <- model.create( projname="s50e", cond=FALSE, nsub=2, n3=100, seed=6)
-ans501e <- siena07(model501e, data=data501e$mydata, effects=data501e$myeff,
-                   parallelTesting=TRUE, batch=TRUE, silent=TRUE)
-##, verbose=TRUE)
-ans501e
+mymodel<- model.create(fn = simstats0c, projname='test11', nsub=1, n3=50,
+                       behModelType=c(mynet2=2), seed=6)
+(ans <- siena07(mymodel, data=mydata, effects=myeff, batch=TRUE,
+               parallelTesting=TRUE, silent=TRUE))
 ##test12
 print('test12')
 use<- 1:30
@@ -77,8 +95,9 @@ senders <- sienaNodeSet(30,'Senders')
 mydata <- sienaDataCreate(mynet1, nodeSets=list(senders, receivers))
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, inPop)
-ans <- siena07(sienaModelCreate(n3=100, nsub=2,
+ans <- siena07(sienaModelCreate(n3=50, nsub=2,
                seed=1, projname="test12"),
                data=mydata, effects=myeff, batch=TRUE, silent=TRUE)
 ans
 tt <- sienaTimeTest(ans)
+tt

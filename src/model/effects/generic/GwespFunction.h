@@ -11,9 +11,9 @@
 
 #ifndef GWESPFUNCTION_H_
 #define GWESPFUNCTION_H_
-#define MAX_STATISTIC 1000
 
 #include "NetworkAlterFunction.h"
+#include "vector"
 
 namespace siena
 {
@@ -45,8 +45,8 @@ public:
 private:
 	EgocentricConfigurationTable * (NetworkCache::*lpTable)() const;
 	double lparameter;
+	vector<double> lcumulativeWeight;
 	double lweight;
-	double lcumulativeWeight[MAX_STATISTIC];
 	EgocentricConfigurationTable *lpInitialisedTable;
 
 };

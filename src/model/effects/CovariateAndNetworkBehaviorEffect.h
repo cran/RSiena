@@ -48,14 +48,22 @@ public:
 
 protected:
 	bool missingDummy(int i) const;
+	bool missingInDummy(int i) const;
 	double averageAlterValue(int i) const;
+	double totalAlterValue(int i) const;
+	double averageInAlterValue(int i) const;
+	double totalInAlterValue(int i) const;
 	inline const Network * pNetwork() const;
 
 private:
 	// The network this effect is interacting with
 	const Network * lpNetwork;
 	double * laverageAlterValues;
+	double * ltotalAlterValues;
+	double * laverageInAlterValues;
+	double * ltotalInAlterValues;
 	bool * laverageAlterMissing;
+	bool * laverageInAlterMissing;
 };
 
 // ----------------------------------------------------------------------------

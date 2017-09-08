@@ -10,9 +10,9 @@ Estimates a meta analysis based on a collection of Siena fits.
 siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 }
 \arguments{
-  \item{\dots}{names of Siena fit objects, returned from
-	\code{\link{siena07}}. They will be renamed if entered in format
-	\code{newname=oldname}.
+  \item{\dots}{names of Siena fit objects, returned from \code{\link{siena07}}.
+    They will be renamed if entered in format \code{newname=oldname}.
+    It is also allowed to give for \dots a list of Siena fit objects.
 }
 \item{projname}{
   Base name of report file if required
@@ -29,7 +29,7 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 }
 \details{
   A meta analysis is performed as described
-  in the Siena manual, section `Meta-analysis of Siena results'. This
+  in the Siena manual, section `Meta-analysis of Siena results". This
   consists of three parts: an iterated weighted least squares
   modification of the method described in the reference below;
   maximum likelihood estimates and confidence intervals based on
@@ -42,11 +42,18 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
   have the same name in each model fit.
 }
 \value{An object of class \code{\link{sienaMeta}}.  There are \code{print},
-  \code{summary} and \code{plot} methods for this class,
+  \code{summary} and \code{plot} methods for this class.
+  This object contains at least the following.
+  \item{thetadf}{Data frame containing the coefficients, standard errors
+    and score test results}
+  \item{projname}{Name for any output file to be produced by the print method}
+  \item{bound}{Estimates with standard error above this value were
+    excluded from the calculations}
+  \item{scores}{Object of class \code{by} indicating, for each effect in
+    the models, whether score test  information was present.}
 
-  An object of class \code{sienaMeta} is a list containing at least the
-  following. (Items \code{cor.est} to
-  \code{ns} appear once for each effect.)
+  Then for each effect, there is a list with at least the following.
+
   \item{cor.est}{Spearman rank correlation coefficient between estimates
                  and their standard errors.}
   \item{cor.pval}{p-value for above}
@@ -71,6 +78,12 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
   \item{sigma.confint}{confidence interval for population standard deviation
                     based on profile likelihood}
   \item{n1}{Number of fits on which the meta analysis is based}
+  \item{cjplus}{Test statistic for combination of right one-sided
+  Fisher combination tests}
+  \item{cjminus}{Test statistic for combination of left one-sided
+  Fisher combination tests}
+  \item{cjplusp}{p-value for \code{cjplus}}
+  \item{cjminusp}{p-value for \code{cjminus}}
   \item{scoreplus}{Test statistic for combination of right one-sided
   p-values from score tests}
   \item{scoreminus}{Test statistic for combination of left one-sided
@@ -78,21 +91,15 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
   \item{scoreplusp}{p-value for \code{scoreplus}}
   \item{scoreminusp}{p-value for \code{scoreminus}}
   \item{ns}{Number of fits on which the score test analysis is based}
-  \item{thetadf}{Data frame containing the coefficients, standard errors
-    and score test results}
-  \item{projname}{Name for any output file to be produced by the print method}
-  \item{bound}{Estimates with standard error above this value were
-    excluded from the calculations}
-  \item{scores}{Object of class \code{by} indicating, for each effect in
-    the models, whether score test  information was present.}
 }
 \references{
   T. A. B. Snijders and Chris Baerveldt.
   Multilevel network study of the effects
   of delinquent behavior on friendship
-  evolution. \emph{Journal of Mathematical Sociology}, 27: 123--151, 2003.
+  evolution. \emph{Journal of Mathematical Sociology}, 27: 123-151, 2003.
 
-  See also the manual and \url{http://www.stats.ox.ac.uk/~snijders/siena/}
+  See also the manual (Section 11.2)
+  and \url{http://www.stats.ox.ac.uk/~snijders/siena/}
 }
 \author{Ruth Ripley, Tom Snijders}
 
@@ -102,8 +109,8 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 \dontrun{
 # A meta-analysis for three groups does not make much sense
 # for generalizing to a population of networks,
-# but it the Fisher combinations of p-values are meaningful.
-# But using three groups shows the idea.
+# but the Fisher combinations of p-values are meaningful.
+# However, using three groups does show the idea.
 
 Group1 <- sienaDependent(array(c(N3401, HN3401), dim=c(45, 45, 2)))
 Group3 <- sienaDependent(array(c(N3403, HN3403), dim=c(37, 37, 2)))
@@ -111,7 +118,7 @@ Group4 <- sienaDependent(array(c(N3404, HN3404), dim=c(33, 33, 2)))
 dataset.1 <- sienaDataCreate(Friends = Group1)
 dataset.3 <- sienaDataCreate(Friends = Group3)
 dataset.4 <- sienaDataCreate(Friends = Group4)
-OneAlgorithm <- sienaAlgorithmCreate(projname = 'SingleGroups')
+OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups")
 effects.1 <- getEffects(dataset.1)
 effects.3 <- getEffects(dataset.3)
 effects.4 <- getEffects(dataset.4)
@@ -128,6 +135,15 @@ ans.1
 ans.3
 ans.4
 (meta <- siena08(ans.1, ans.3, ans.4))
+# For specifically presenting the Fisher combinations:
+# First determine the components of meta with estimated effects:
+which.est <- sapply(meta, function(x){ifelse(is.list(x),!is.null(x$cjplus),FALSE)})
+Fishers <- t(sapply(1:sum(which.est),
+        function(i){c(meta[[i]]$cjplus, meta[[i]]$cjminus,
+                        meta[[i]]$cjplusp, meta[[i]]$cjminusp, 2*meta[[i]]$n1 )}))
+Fishers <- as.data.frame(Fishers, row.names=names(meta)[which.est])
+names(Fishers) <- c('Fplus', 'Fminus', 'pplus', 'pminus', 'df')
+Fishers
 }
 }
 \keyword{models}

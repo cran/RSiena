@@ -33,6 +33,7 @@
 #include <iostream>
 #include <fstream>
 #include <Rinternals.h>
+#include "siena07internals.h"
 #include "data/Data.h"
 #include "network/OneModeNetwork.h"
 #include "network/TieIterator.h"
@@ -45,6 +46,7 @@
 #include "data/ChangingCovariate.h"
 #include "data/ConstantCovariate.h"
 #include "model/Model.h"
+#include "model/EffectInfo.h"
 #include "utils/Utils.h"
 #include "model/EpochSimulation.h"
 #include "model/variables/DependentVariable.h"
@@ -801,6 +803,242 @@ SEXP getChainList(const Chain& chain)
 	setAttrib(ans, en, end);
 	UNPROTECT(11);
 	return ans;
+}
+
+/**
+ * Create a list of tie flip contributions or behavior change contributions for each ministep in a chain
+ */
+SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
+{
+	// get the column names from the names attribute
+	SEXP cols;
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+
+	int netTypeCol; /* net type */
+	int nameCol; /* network name */
+	int effectCol;  /* short name of effect */
+	int parmCol;
+	int int1Col;
+	int int2Col;
+	int initValCol;
+	int typeCol;
+	int groupCol;
+	int periodCol;
+	int pointerCol;
+	int rateTypeCol;
+	int intptr1Col;
+	int intptr2Col;
+	int intptr3Col;
+	int settingCol;
+
+		getColNos(Names, &netTypeCol, &nameCol, &effectCol,
+				&parmCol, &int1Col, &int2Col, &initValCol,
+				&typeCol, &groupCol, &periodCol, &pointerCol,
+				&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+				&settingCol);
+
+	MiniStep * pMiniStep = chain.pFirst()->pNext();
+
+	SEXP CHANGECONTRIBUTIONS;
+	PROTECT(CHANGECONTRIBUTIONS = allocVector(VECSXP, chain.ministepCount() - 1));
+	for (int m = 0; m < chain.ministepCount() - 1; m++)
+	{
+		NetworkChange * pNetworkChange = dynamic_cast<NetworkChange *>(pMiniStep);
+		BehaviorChange * pBehaviorChange = dynamic_cast<BehaviorChange *>(pMiniStep);
+		SEXP MINISTEPCONTRIBUTIONS = 0;
+		SEXP EFFECTS;
+		SEXP NETTYPE;
+		PROTECT(NETTYPE = allocVector(STRSXP, 1));
+		SEXP netType;
+		PROTECT(netType = install("networkType"));
+		if (pNetworkChange || pBehaviorChange)
+		{
+			const char * netwName;
+			if(pNetworkChange)
+			{
+				netwName = pNetworkChange->variableName().c_str();
+				SET_STRING_ELT(NETTYPE, 0, mkChar("oneMode"));
+			}
+			else
+			{
+				netwName = pBehaviorChange->variableName().c_str();
+				SET_STRING_ELT(NETTYPE, 0, mkChar("behavior"));
+			}
+			for (int ii = 0; ii < length(EFFECTSLIST); ii++)
+			{
+				const char * networkName = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, ii),nameCol), 0));
+				if (strcmp(netwName, networkName) == 0)
+				{
+					SEXP NETNAME;
+					PROTECT(NETNAME = allocVector(STRSXP, 1));
+					SEXP netName;
+					PROTECT(netName = install("networkName"));
+					SET_STRING_ELT(NETNAME, 0, mkChar(networkName));
+					EFFECTS = VECTOR_ELT(EFFECTSLIST, ii);
+					map<const EffectInfo *, vector<double> >* contributions;
+					if(pNetworkChange)
+					{
+						contributions = pNetworkChange->changeContributions();
+					}
+					else
+					{
+						contributions = pBehaviorChange->changeContributions();
+					}
+					int choices = contributions->begin()->second.size();
+					int numberOfEffects =  length(VECTOR_ELT(EFFECTS,0));
+					int rateEffects = 0;
+					for(int e = 0; e < numberOfEffects; e++)
+					{
+						const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), e));
+						if (!(strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0))
+						{
+							rateEffects = rateEffects + 1;
+						}
+					}
+					int length = numberOfEffects-rateEffects;
+					PROTECT(MINISTEPCONTRIBUTIONS = allocMatrix(REALSXP,length, choices));
+					double * rcontr;
+					rcontr = REAL(MINISTEPCONTRIBUTIONS);
+					SEXP EFFECTNAMES;
+					PROTECT(EFFECTNAMES = allocVector(STRSXP,length));
+					SEXP effectNames;
+					PROTECT(effectNames = install("effectNames"));
+					SEXP EFFECTTYPES;
+					PROTECT(EFFECTTYPES = allocVector(STRSXP,length));
+					SEXP effectTypes;
+					PROTECT(effectTypes = install("effectTypes"));
+					int rates = 0;
+					for (int i = 0; i < numberOfEffects; i++)
+					{
+						const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
+						if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
+						{
+							EffectInfo * pEffectInfo = (EffectInfo *)R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS, pointerCol), i));
+							SET_STRING_ELT(EFFECTNAMES, i-rates, mkChar(pEffectInfo->effectName().c_str()));
+							SET_STRING_ELT(EFFECTTYPES, i-rates, mkChar(effectType));
+							vector<double> values = contributions->at(pEffectInfo);
+							for(int a = 0; a < choices; a++)
+							{
+								rcontr[i-rates + a*length] = values.at(a);
+							}
+						}
+						else
+						{
+							rates = rates+1;
+						}
+					}
+					setAttrib(MINISTEPCONTRIBUTIONS, effectNames, EFFECTNAMES);
+					setAttrib(MINISTEPCONTRIBUTIONS, effectTypes, EFFECTTYPES);
+					setAttrib(MINISTEPCONTRIBUTIONS, netName, NETNAME);
+					UNPROTECT(7);
+				}
+			}
+		}
+		setAttrib(MINISTEPCONTRIBUTIONS, netType, NETTYPE);
+		SET_VECTOR_ELT(CHANGECONTRIBUTIONS, m, MINISTEPCONTRIBUTIONS);
+		pMiniStep = pMiniStep->pNext();
+		UNPROTECT(2);
+	}
+	UNPROTECT(2);
+	return CHANGECONTRIBUTIONS;
+}
+
+
+SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
+{
+	int nEffects = 0;
+	for (int i = 0; i < length(EFFECTSLIST); i++)
+	{
+		nEffects += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+	}
+	SEXP EFFECTNAMES;
+	SEXP effectNames;
+	SEXP EFFECTTYPES;
+	SEXP effectTypes;
+	SEXP NETWORKNAMES;
+	SEXP networkNames;
+	SEXP NETWORKTYPES;
+	SEXP networkTypes;
+	// get the column names from the names attribute
+	SEXP cols;
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+
+	int netTypeCol; /* net type */
+	int nameCol; /* network name */
+	int effectCol;  /* short name of effect */
+	int parmCol;
+	int int1Col;
+	int int2Col;
+	int initValCol;
+	int typeCol;
+	int groupCol;
+	int periodCol;
+	int pointerCol;
+	int rateTypeCol;
+	int intptr1Col;
+	int intptr2Col;
+	int intptr3Col;
+	int settingCol;
+
+	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
+				&parmCol, &int1Col, &int2Col, &initValCol,
+				&typeCol, &groupCol, &periodCol, &pointerCol,
+				&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+				&settingCol);
+
+	int rateEffects = 0;
+	vector<string> effNames;
+	vector<string> effTypes;
+	vector<string> netNames;
+	vector<string> netTypes;
+
+	for (int i = 0; i < length(EFFECTSLIST); i++)
+	{
+		for(int e = 0; e < length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)); e++)
+		{
+			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), typeCol), e));
+			if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
+			{
+				EffectInfo * pEffectInfo = (EffectInfo *)R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), pointerCol), e));
+				effNames.push_back(pEffectInfo->effectName());
+				effTypes.push_back(effectType);
+				netNames.push_back(CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), nameCol), e)));
+				netTypes.push_back(CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), netTypeCol), e)));
+			}
+			else
+			{
+				rateEffects = rateEffects + 1;
+			}
+		}
+	}
+	int objEffects = nEffects-rateEffects;
+
+	PROTECT(EFFECTNAMES = allocVector(STRSXP,objEffects));
+	PROTECT(effectNames = install("effectNames"));
+	PROTECT(EFFECTTYPES = allocVector(STRSXP,objEffects));
+	PROTECT(effectTypes = install("effectTypes"));
+	PROTECT(NETWORKNAMES = allocVector(STRSXP,objEffects));
+	PROTECT(networkNames = install("networkNames"));
+	PROTECT(NETWORKTYPES = allocVector(STRSXP,objEffects));
+	PROTECT(networkTypes = install("networkTypes"));
+	for(int eff = 0; eff < objEffects; eff++)
+	{
+		SET_STRING_ELT(EFFECTNAMES, eff, mkChar(effNames.at(eff).c_str()));
+		SET_STRING_ELT(EFFECTTYPES, eff, mkChar(effTypes.at(eff).c_str()));
+		SET_STRING_ELT(NETWORKNAMES, eff, mkChar(netNames.at(eff).c_str()));
+		SET_STRING_ELT(NETWORKTYPES, eff, mkChar(netTypes.at(eff).c_str()));
+	}
+	if(stats)
+	{
+		setAttrib(stats, effectNames, EFFECTNAMES);
+		setAttrib(stats, effectTypes, EFFECTTYPES);
+		setAttrib(stats, networkNames, NETWORKNAMES);
+		setAttrib(stats, networkTypes, NETWORKTYPES);
+	}
+	UNPROTECT(9);
+	return NETWORKTYPES;
 }
 
 /** Create a ministep from a single ministep stored as a list (not dataframe).

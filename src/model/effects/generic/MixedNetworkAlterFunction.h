@@ -17,14 +17,12 @@
 #include "AlterFunction.h"
 #include "utils/NamedObject.h"
 
-using namespace std;
-
 namespace siena
 {
 
 class Network;
 class TwoNetworkCache;
-
+class NetworkCache;
 
 class MixedNetworkAlterFunction: public AlterFunction
 {
@@ -39,16 +37,20 @@ public:
 		Cache * pCache);
 
 protected:
+	bool firstOutTieExists(int alter) const;
+	bool secondOutTieExists(int alter) const;
 	inline const Network * pFirstNetwork() const;
 	inline const Network * pSecondNetwork() const;
 	inline TwoNetworkCache * pTwoNetworkCache() const;
+	inline NetworkCache * pFirstNetworkCache() const;
 
 private:
-	string lname1;
-	string lname2;
+	string lfirstNetworkName;
+	string lsecondNetworkName;
 	const Network * lpFirstNetwork;
 	const Network * lpSecondNetwork;
 	TwoNetworkCache * lpTwoNetworkCache;
+	NetworkCache * lpFirstNetworkCache;
 };
 
 
@@ -69,6 +71,11 @@ const Network * MixedNetworkAlterFunction::pSecondNetwork() const
 TwoNetworkCache * MixedNetworkAlterFunction::pTwoNetworkCache() const
 {
 	return this->lpTwoNetworkCache;
+}
+
+NetworkCache * MixedNetworkAlterFunction::pFirstNetworkCache() const
+{
+	return this->lpFirstNetworkCache;
 }
 
 }

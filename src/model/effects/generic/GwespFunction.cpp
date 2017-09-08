@@ -6,11 +6,11 @@
  * File: GwespFunction.cpp
  *
  * Description: This file contains the implementation of the class
- * GwespFunction.
+ * GwespFunction. Modified by Nynke Niezink, 10/02/14, Tom Snijders 11/10/15.
  *****************************************************************************/
-#include "R_ext/Print.h"
 
 #include "GwespFunction.h"
+#include "network/Network.h"
 #include "model/tables/NetworkCache.h"
 #include "model/tables/EgocentricConfigurationTable.h"
 #include <math.h>
@@ -22,23 +22,12 @@ namespace siena
  * Constructor.
  */
 GwespFunction::GwespFunction(string networkName,
-	EgocentricConfigurationTable *	(NetworkCache::*pTable)() const,
+	EgocentricConfigurationTable * (NetworkCache::*pTable)() const,
 	double parameter) :
 	NetworkAlterFunction(networkName)
 {
 	this->lparameter = parameter;
 	this->lweight = -0.01 * this->lparameter;
-	this->lcumulativeWeight[0] = 0;
-	for (int i = 1; i < MAX_STATISTIC; i++)
-	{
-		this->lcumulativeWeight[i] =
-			this->lcumulativeWeight[i - 1] + exp(this->lweight * (double) i);
-	}
-	// And normalize
-	for (int i = 1; i < MAX_STATISTIC; i++)
-	{
-		this->lcumulativeWeight[i] /= this->lcumulativeWeight[MAX_STATISTIC - 1];
-	}
 	this->lpTable = pTable;
 }
 
@@ -56,6 +45,18 @@ void GwespFunction::initialize(const Data * pData,
 {
 	NetworkAlterFunction::initialize(pData, pState, period, pCache);
 	this->lpInitialisedTable = (*this->pNetworkCache().*lpTable)();
+
+	// initialize the vector with weights for the GWESP statistic
+	// this is done several times during one estimation run (not elegant,
+	// but not computationally burdensome either)
+	double pow = 1;
+	int m = this->pNetwork()->m(); // n changed to m, TS, 1.1-290
+	this->lcumulativeWeight.resize(m); // default values 0
+	for (int i = 1; i < m; i++)
+	{
+		pow *= (1 - exp(this->lweight));
+		this->lcumulativeWeight[i] = exp(-(this->lweight)) * (1 - pow);
+	}
 }
 
 /**
@@ -66,14 +67,7 @@ void GwespFunction::initialize(const Data * pData,
 double GwespFunction::value(int alter)
 {
 	int statistic = lpInitialisedTable->get(alter);
-	if (statistic >= MAX_STATISTIC)
-	{
-		return 1.0;
-	}
-	else
-	{
-		return this->lcumulativeWeight[statistic];
-	}
+	return this->lcumulativeWeight[statistic];
 }
 
 

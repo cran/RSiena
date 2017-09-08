@@ -31,6 +31,7 @@ DataReport <- function(z, x, f)
     nBehavior <- sum(behavior)
     nBipartites <- sum(bipartite)
     oneModeNames <- attr(f, "netnames")[oneMode]
+    behaviorNames <- attr(f, "netnames")[behavior]
     ##  behaviorNames <- attr(f, "netnames")[behavior]
     ##  bipartiteNames <- attr(f, "netnames")[bipartite]
     nDepVars <- nOneMode + nBehavior + nBipartites
@@ -40,19 +41,31 @@ DataReport <- function(z, x, f)
     exoOptions <- attr(f, 'exooptions')
     if (nOneMode > 0)
     {
+		Report("Model Type:\n", outf)
         for (i in 1:nOneMode)
         {
             if (nOneMode > 1)
             {
-                Report(sprintf("Network %d %s\n", i, oneModeNames[i]), outf)
+                Report(sprintf("Network %d %s :", i, oneModeNames[i]), outf)
             }
-            Report(sprintf("Model Type %d: %s\n",
-                           z$modelType, ModelTypeStrings[z$modelType]), outf)
-            if (z$modelType != x$modelType)
+			Report(sprintf(" %s\n",ModelTypeStrings(z$modelType[i])), outf)
+        }
+           if (any(z$modelType != x$modelType))
             {
                 Report(c("Note that the model type requested has been",
                        "over-ridden\n"), outf)
             }
+        }
+    if (nBehavior > 0)
+    {
+		Report("Behavioral Model Type:\n",outf)
+        for (i in 1:nBehavior)
+        {
+            if (nBehavior > 1)
+            {
+                Report(sprintf("Behavior %d %s :", i, behaviorNames[i]), outf)
+            }
+			Report(sprintf(" %s\n",BehaviorModelTypeStrings(z$behModelType[i])), outf)
         }
     }
     if (x$cconditional  != z$cconditional)
@@ -132,8 +145,16 @@ DataReport <- function(z, x, f)
         }
     if (z$FinDiff.method)
     {
+		if ((x$nsub == 0)&(x$simOnly))
+		{
+        Report(c('Derivatives are estimated with the finite difference',
+                 'method.\n'), outf)
+		}
+		else
+		{
         Report(c('Standard errors are estimated with the finite difference',
                  'method.\n'), outf)
+		}
         if (!x$FinDiff.method)
         {
             Report("Note that the option requested has been over-ridden\n",
@@ -142,9 +163,21 @@ DataReport <- function(z, x, f)
     }
     else
     {
-        Report(c('Standard errors are estimated with the likelihood ratio',
+		if ((x$nsub == 0)&(x$simOnly))
+		{
+         Report(c('Derivatives are estimated with the likelihood ratio',
                'method.\n'), outf)
+		}
+		else
+		{
+         Report(c('Standard errors are estimated with the likelihood ratio',
+               'method.\n'), outf)
+		}
     }
+	if (x$dolby)
+	{
+		Report('Dolby method (regression on scores) is used.\n', outf)
+	}
     ## any max degree restrictions?
     if (any(x$MaxDegree > 0))
     {
@@ -164,6 +197,7 @@ DataReport <- function(z, x, f)
 						"but the maximum observed outdegree is", maxod,
 						".\n"), outf)
 						Report("This is incompatible.\n", outf)
+						cat('Some observed outdegrees higher than MaxDegree.\n')
 		stop("Incompatibility between data and MaxDegree in algorithm object.")
 					}
                 if (attr(f, 'symmetric')[match(mdnet, attr(f, "netnames"))])
@@ -181,10 +215,35 @@ DataReport <- function(z, x, f)
             }
         }
     }
-    Report(sprintf("Initial value of gain parameter is %10.7f.\n", x$firstg),
-           outf)
-    Report(sprintf("Number of subphases in Phase 2 is %d.\n\n", x$nsub), outf)
-    Report('Initial parameter values are \n', outf)
+    ## any universal offsets?
+    if (any(x$UniversalOffset != 0))
+	{
+		Report("Offset for symmetric type-3 model \n", outf)
+        for (i in 1:length(x$UniversalOffset))
+        {
+            if (x$UniversalOffset[i] != 0)
+            {
+                mdnet <- names(x$UniversalOffset)[i]
+                Report(c("Dependent network variable", mdnet, ': '), outf)
+				Report(c(sprintf("%9.4f",x$UniversalOffset[i]),'\n'), outf)
+			}
+		}
+		Report("\n", outf)
+	}
+	if ((x$nsub == 0)&(x$simOnly))
+	{
+		Report('Parameter values are \n', outf)
+	}
+	else
+	{
+		Report(sprintf("Initial value of gain parameter is %10.7f.\n",
+						x$firstg), outf)
+		Report(sprintf("Reduction factor for gain parameter is %10.7f.\n",
+						x$reduceg), outf)
+		Report(sprintf("Number of subphases in Phase 2 is %d.\n\n", x$nsub),
+						outf)
+		Report('Initial parameter values are \n', outf)
+	}
     if (z$cconditional)
     {
         if (observations == 1)

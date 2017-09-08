@@ -19,12 +19,24 @@ sienaGOF <- function(
 		cluster=NULL, robust=FALSE,
 		groupName="Data1", varName, ...)
 	{
-	require(MASS)
+	## require(MASS)
 	## require(Matrix)
 	##	Check input
+	if (sienaFitObject$maxlike)
+	{
+		stop(
+	"sienaGOF can only operate on results from Method of Moments estimation.")
+	}
 	if (! sienaFitObject$returnDeps)
 	{
 		stop("You must instruct siena07 to return the simulated networks")
+	}
+	if (!is.null(sienaFitObject$sf2.byIterations))
+	{
+		if (!sienaFitObject$sf2.byIterations)
+    	{
+        	stop("sienaGOF needs sf2 by iterations")
+    	}
 	}
 	iterations <- length(sienaFitObject$sims)
 	if (iterations < 1)
@@ -80,7 +92,7 @@ sienaGOF <- function(
 	attr(obsStats,"auxiliaryStatisticName") <-
 			deparse(substitute(auxiliaryFunction))
 	attr(obsStats,"joint") <- join
-
+	
 	##	Calculate the simulated auxiliary statistics
 	if (verbose)
 	{
@@ -93,31 +105,27 @@ sienaGOF <- function(
 			cat("Calculating auxiliary statistics for periods", period, ".\n")
 		}
 	}
-
-	if (!is.null(cluster)) {
-		ttcSimulation <- system.time(simStatsByPeriod <- lapply(period,
-			function (j) {
-				simStatsByPeriod <- parSapply(cluster, 1:iterations,
-					function (i)
-						{ auxiliaryFunction(i,
-									sienaFitObject$f,
-									sienaFitObject$sims, j, groupName, varName, ...)
-							if (verbose && (i %% 100 == 0) )
-								{
-								cat("  > Completed ", i," calculations\n")
-								flush.console()
-								}
-						})
-							simStatsByPeriod <- matrix(simStatsByPeriod,
-								ncol=iterations)
-							dimnames(simStatsByPeriod)[[2]] <-	1:iterations
-							t(simStatsByPeriod)
-						}))
+	if (!is.null(cluster)) 
+	{
+		ttcSimulation <- system.time(simStatsByPeriod <- 
+			lapply(period, function (j) {
+					simStatsByPeriod <- parSapply(cluster, 1:iterations,
+						function (i){auxiliaryFunction(i, sienaFitObject$f,
+										sienaFitObject$sims, j, groupName, varName, ...)})
+			simStatsByPeriod <- matrix(simStatsByPeriod, ncol=iterations)
+			dimnames(simStatsByPeriod)[[2]] <-	1:iterations
+			t(simStatsByPeriod)
+			}))
 	}
 	else
 	{
 		ttcSimulation <- system.time( simStatsByPeriod <- lapply(period,
 					function (j) {
+						if (verbose)
+						{
+							cat("  Period ", j, "\n")
+							flush.console()
+						}
 						simStatsByPeriod <- sapply(1:iterations, function (i)
 						{
 							if (verbose && (i %% 100 == 0) )
@@ -137,7 +145,7 @@ sienaGOF <- function(
 					})
 	  )
 	}
-
+	
 	## Aggregate by period if necessary to produce simStats
 	if (join)
 	{
@@ -219,6 +227,7 @@ sienaGOF <- function(
 				InvCovSimStats=a,
 				Rank=arank)
 		class(ret) <- "sienaGofTest"
+		attr(ret,"sienaFitName") <- deparse(substitute(sienaFitObject))
 		attr(ret,"auxiliaryStatisticName") <-
 				attr(obsStats,"auxiliaryStatisticName")
 		attr(ret, "key") <- plotKey
@@ -231,24 +240,20 @@ sienaGOF <- function(
 	mhdTemplate <- rep(0, sum(sienaFitObject$test))
 	names(mhdTemplate) <- rep(0, sum(sienaFitObject$test))
 
+	JoinedOneStepMHD_old <- mhdTemplate
+	OneStepMHD_old <- lapply(period, function(i) (mhdTemplate))
 	JoinedOneStepMHD <- mhdTemplate
-	JoinedPartialOneStepMHD <- mhdTemplate
-	JoinedGmmMhdValue <- mhdTemplate
-
 	OneStepMHD <- lapply(period, function(i) (mhdTemplate))
-	PartialOneStepMHD <- lapply(period, function(i) (mhdTemplate))
-	GmmMhdValue <- lapply(period, function(i) (mhdTemplate))
 
 	obsMhd <- NULL
 
-	ExpStat <- lapply(period, function(i) {
-				colMeans(simStatsByPeriod[[i]])
-			})
+	ExpStat <-
+		lapply(period, function(i) {colMeans(simStatsByPeriod[[i]])})
+	simStatsByPeriod_tilde <-
+		lapply(period, function(i) {
+			t(apply(simStatsByPeriod[[i]],1, function(x){x - ExpStat[[i]]}))})
+
 	OneStepSpecs <- matrix(0, ncol=sum(sienaFitObject$test),
-			nrow=length(sienaFitObject$theta))
-	PartialOneStepSpecs <- matrix(0, ncol=sum(sienaFitObject$test),
-			nrow=length(sienaFitObject$theta))
-	GmmOneStepSpecs <- matrix(0, ncol=sum(sienaFitObject$test),
 			nrow=length(sienaFitObject$theta))
 	if (robust) {
 		covInvByPeriod <- lapply(period, function(i) ginv(
@@ -270,29 +275,18 @@ sienaGOF <- function(
 		effectsObject <- sienaFitObject$requestedEffects
 		nSims <- sienaFitObject$Phase3nits
 		for (i in period) {
+			names(OneStepMHD_old[[i]]) <-
+					effectsObject$effectName[sienaFitObject$test]
 			names(OneStepMHD[[i]]) <-
 					effectsObject$effectName[sienaFitObject$test]
-			names(PartialOneStepMHD[[i]]) <-
-					effectsObject$effectName[sienaFitObject$test]
-			names(GmmMhdValue[[i]]) <-
-					effectsObject$effectName[sienaFitObject$test]
 		}
+		names(JoinedOneStepMHD_old) <-
+					effectsObject$effectName[sienaFitObject$test]
 		names(JoinedOneStepMHD) <-
-				effectsObject$effectName[sienaFitObject$test]
-		names(JoinedPartialOneStepMHD) <-
-				effectsObject$effectName[sienaFitObject$test]
-		names(JoinedGmmMhdValue) <-
 				effectsObject$effectName[sienaFitObject$test]
 
 		rownames(OneStepSpecs) <- effectsObject$effectName
 		colnames(OneStepSpecs) <- effectsObject$effectName[sienaFitObject$test]
-		rownames(PartialOneStepSpecs) <- effectsObject$effectName
-		colnames(PartialOneStepSpecs) <-
-				effectsObject$effectName[sienaFitObject$test]
-		rownames(GmmOneStepSpecs) <- effectsObject$effectName
-		colnames(GmmOneStepSpecs) <-
-				effectsObject$effectName[sienaFitObject$test]
-
 		counterTestEffects <- 0
 		for(index in which(sienaFitObject$test)) {
 			if (verbose) {
@@ -315,7 +309,7 @@ sienaGOF <- function(
 			dimnames(G) <- dimnames(SF)
 			if (!(sienaFitObject$maxlike || sienaFitObject$FinDiff.method))
 			{
-				D <- derivativeFromScoresAndDeviations(SF, G)
+				D <- derivativeFromScoresAndDeviations(SF, G, , , , TRUE, )
 			}
 			else
 			{
@@ -328,76 +322,95 @@ sienaGOF <- function(
 			doTests <- rep(FALSE, sum(effectsToInclude))
 			names(doTests) <- effectsObject$effectName[effectsToInclude]
 			doTests[effectsObject$effectName[index]] <- TRUE
+			redundant <- rep(FALSE, length(doTests))
 			mmThetaDelta <- as.numeric(ScoreTest(length(doTests), D,
-							sigma, fra, doTests,
+							sigma, fra, doTests, redundant,
 							maxlike=sienaFitObject$maxlike)$oneStep )
-			mmPartialThetaDelta <- rep(0,length(theta0))
-			mmPartialThetaDelta[length(theta0)] <- mmThetaDelta[length(theta0)]
-			JacobianExpStat <- lapply(period, function (i) {
+
+      # \mu'_\theta(X)
+			JacobianExpStat_old <- lapply(period, function (i) {
 				t(SF[,i,]) %*% simStatsByPeriod[[i]]/ nSims	 })
-			Gradient <- lapply(period, function(i) {
-						-2	* JacobianExpStat[[i]] %*%
-								covInvByPeriod[[i]] %*%
-								t( obsStatsByPeriod[[i]] - ExpStat[[i]] ) })
-			Hessian <- lapply(period, function (i) {
-							2 *
-							JacobianExpStat[[i]] %*%
-							covInvByPeriod[[i]] %*%
-							t(JacobianExpStat[[i]])
+			JacobianExpStat <- lapply(period, function (i) {
+				t(SF[,i,]) %*% simStatsByPeriod_tilde[[i]]/ nSims })
+
+      # List structure: Period, effect index
+      thetaIndices <- 1:sum(effectsToInclude)
+	  # \Gamma_i(\theta)  i=period, j=parameter, k=replication
+			ExpStatCovar_old <- lapply(period, function (i) {
+            lapply(thetaIndices, function(j){
+              Reduce("+", lapply(1:nSims,function(k){
+                simStatsByPeriod[[i]][k,] %*% t(simStatsByPeriod[[i]][k,]) * SF[k,i,j]
+              })) / nSims
+				- JacobianExpStat[[i]][j,] %*%
+			t(ExpStat[[i]]) - ExpStat[[i]] %*% t(JacobianExpStat[[i]][j,])
+            })
+        })
+			ExpStatCovar <- lapply(period, function (i) {
+				lapply(thetaIndices, function(j){
+				Reduce("+", lapply(1:nSims,function(k){
+			simStatsByPeriod_tilde[[i]][k,] %*%
+				t(simStatsByPeriod_tilde[[i]][k,]) * SF[k,i,j] })) / nSims})})
+
+      # \Xi_i(\theta)
+			JacobianCovar_old <- lapply(period, function (i) {
+				lapply(thetaIndices, function(j){
+					-1 * covInvByPeriod[[i]] %*% ExpStatCovar_old[[i]][[j]] %*%
+						covInvByPeriod[[i]] })
+			})
+      JacobianCovar <- lapply(period, function (i) {
+        lapply(thetaIndices, function(j){
+					-1 * covInvByPeriod[[i]] %*% ExpStatCovar[[i]][[j]] %*%
+						covInvByPeriod[[i]] })
+        })
+
+			Gradient_old <- lapply(period, function(i) {
+				sapply(thetaIndices, function(j){
+					( obsStatsByPeriod[[i]] - ExpStat[[i]] ) %*%
+						JacobianCovar_old[[i]][[j]] %*%
+					t( obsStatsByPeriod[[i]] - ExpStat[[i]] )
 					})
-			gmmThetaDelta <- -1 * as.numeric( ginv(Reduce("+", Hessian)) %*%
-							Reduce("+", Gradient) )
-			OneStepSpecs[effectsToInclude,counterTestEffects] <- theta0 +
-					mmThetaDelta
-			PartialOneStepSpecs[effectsToInclude,counterTestEffects] <-
-					theta0 + mmPartialThetaDelta
-			GmmOneStepSpecs[effectsToInclude,counterTestEffects] <- theta0 +
-					gmmThetaDelta
+				-2 * JacobianExpStat_old[[i]] %*% covInvByPeriod[[i]] %*%
+					t( obsStatsByPeriod[[i]] - ExpStat[[i]] )
+				})
+			Gradient <- lapply(period, function(i) {
+          sapply(thetaIndices, function(j){
+          ( obsStatsByPeriod[[i]] - ExpStat[[i]] ) %*%
+            JacobianCovar[[i]][[j]] %*%
+          t( obsStatsByPeriod[[i]] - ExpStat[[i]] )
+          })
+				-2 * JacobianExpStat[[i]] %*% covInvByPeriod[[i]] %*%
+            t( obsStatsByPeriod[[i]] - ExpStat[[i]] )
+					})
+
+			OneStepSpecs[effectsToInclude,counterTestEffects] <-
+								theta0 + mmThetaDelta
+
 			for (i in 1:length(obsMhd)) {
-				OneStepMHD[[i]][counterTestEffects] <-	as.numeric(
-					obsMhd[i] +
-					mmThetaDelta %*% Gradient[[i]] + 0.5 *
-					mmThetaDelta %*% Hessian[[i]] %*% mmThetaDelta)
-				GmmMhdValue[[i]][counterTestEffects] <-
-						as.numeric( obsMhd[i] +
-						gmmThetaDelta %*%
-						Gradient[[i]] + 0.5 *
-						gmmThetaDelta %*%
-						Hessian[[i]] %*%
-						gmmThetaDelta )
-				PartialOneStepMHD[[i]][counterTestEffects] <-
-						as.numeric(
-						obsMhd[i] +
-						mmPartialThetaDelta %*%
-						Gradient[[i]] +
-						0.5 *
-						mmPartialThetaDelta %*%
-						Hessian[[i]] %*%
-						mmPartialThetaDelta)
-			}
-			JoinedOneStepMHD[counterTestEffects] <-
-					Reduce("+",OneStepMHD)[counterTestEffects]
-			JoinedPartialOneStepMHD[counterTestEffects] <-
-					Reduce("+",PartialOneStepMHD)[counterTestEffects]
-			JoinedGmmMhdValue[counterTestEffects] <-
-					Reduce("+",GmmMhdValue)[counterTestEffects]
+				OneStepMHD_old[[i]][counterTestEffects] <-
+					as.numeric(obsMhd[i] + mmThetaDelta %*% Gradient_old[[i]] )
+      }
+			for (i in 1:length(obsMhd)) {
+				OneStepMHD[[i]][counterTestEffects] <-
+					as.numeric(obsMhd[i] + mmThetaDelta %*% Gradient[[i]] )
 		}
+			JoinedOneStepMHD_old[counterTestEffects] <-
+						Reduce("+",OneStepMHD_old)[counterTestEffects]
+			JoinedOneStepMHD[counterTestEffects] <-
+						Reduce("+",OneStepMHD)[counterTestEffects]
+		} # end 'for index'
 	}
 
 	names(res) <- names(obsStats)
 	class(res) <- "sienaGOF"
 	attr(res, "scoreTest") <- (sum(sienaFitObject$test) > 0)
 	attr(res, "originalMahalanobisDistances") <- obsMhd
+	attr(res, "oneStepMahalanobisDistances") <- OneStepMHD
 	attr(res, "joinedOneStepMahalanobisDistances") <-
 			JoinedOneStepMHD
+	attr(res, "oneStepMahalanobisDistances_old") <- OneStepMHD_old
+	attr(res, "joinedOneStepMahalanobisDistances_old") <-
+			JoinedOneStepMHD_old
 	attr(res, "oneStepSpecs") <- OneStepSpecs
-	attr(res, "partialOneStepMahalanobisDistances") <- PartialOneStepMHD
-	attr(res, "joinedPartialOneStepMahalanobisDistances") <-
-			JoinedPartialOneStepMHD
-	attr(res, "partialOneStepSpecs") <- PartialOneStepSpecs
-	attr(res, "gmmOneStepSpecs") <- GmmOneStepSpecs
-	attr(res, "gmmOneStepMahalanobisDistances") <- GmmMhdValue
-	attr(res, "joinedGmmOneStepMahalanobisDistances") <- JoinedGmmMhdValue
 	attr(res,"auxiliaryStatisticName") <-
 			attr(obsStats,"auxiliaryStatisticName")
 	attr(res, "simTime") <- attr(simStats,"time")
@@ -420,7 +433,7 @@ print.sienaGOF <- function (x, ...) {
 		cat(" >",titleStr, "\n")
 		for (i in 1:length(pVals))
 		{
-			cat(names(x)[i], ": ", pVals[i], "\n")
+			cat(names(x)[i], ": ", round(pVals[i],3), "\n")
 		}
 		for (i in 1:length(pVals))
 		{
@@ -436,7 +449,7 @@ print.sienaGOF <- function (x, ...) {
 	{
 		cat("Siena Goodness of Fit (",
 			attr(x,"auxiliaryStatisticName"),"), all periods\n=====\n")
-		cat(titleStr,pVals[1], "\n")
+		cat(titleStr, round(pVals[1],3), "\n")
 		if (x[[1]]$Rank < dim(x[[1]]$Observations)[2])
 			{
 				cat("**Note: Only", x[[1]]$Rank, "statistics are",
@@ -456,15 +469,16 @@ print.sienaGOF <- function (x, ...) {
 	originalMhd <- attr(x, "originalMahalanobisDistances")
 	if (attr(x, "joined")) {
 		cat("-----\nCalculated joint MHD = (",
-				sum(originalMhd),") for current model.\n")
+				round(sum(originalMhd),2),") for current model.\n")
 	}
 	else
 	{
 		for (j in 1:length(originalMhd)) {
 			cat("-----\nCalculated period ", j, " MHD = (",
-					originalMhd[j],") for current model.\n")
+					round(originalMhd[j],2),") for current model.\n")
 		}
 	}
+	invisible(x)
 }
 
 ##@summary.sienaGOF siena07 Summary method for sienaGOF
@@ -474,17 +488,9 @@ summary.sienaGOF <- function(object, ...) {
 	if (attr(x, "scoreTest")) {
 		oneStepSpecs <- attr(x, "oneStepSpecs")
 		oneStepMhd <- attr(x, "oneStepMahalanobisDistances")
-# Tom deleted the following statements, because they lead to warnings
-# when checking. In the current code they are superfluous.
-#		gmmMhd <- attr(x, "gmmOneStepMahalanobisDistances")
-#		gmmOneStepSpecs <- attr(x, "gmmOneStepSpecs")
-#		partialOneStepSpecs <- attr(x, "partialOneStepSpecs")
-#		partialOneStepMhd <- attr(x, "partialOneStepMahalanobisDistances")
-#		joinedPartialOneStepMhd <-
-#				attr(x, "joinedPartialOneStepMahalanobisDistances")
 		joinedOneStepMhd <- attr(x, "joinedOneStepMahalanobisDistances")
-#		joinedGmmMhd <- attr(x, "joinedGmmOneStepMahalanobisDistances")
-		cat("\nOne-step estimates for modified models.\n")
+		cat("\nOne-step estimates and predicted Mahalanobis distances")
+		cat(" for modified models.\n")
 		if (attr(x, "joined")) {
 			for (i in 1:ncol(oneStepSpecs)) {
 				a <- cbind(oneStepSpecs[,i, drop=FALSE] )
@@ -492,8 +498,8 @@ summary.sienaGOF <- function(object, ...) {
 				rownames(b) <- c("MHD")
 				a <- rbind(a, b)
 				a <- round(a, 3)
-				cat("\n**Model", colnames(a)[1], "\n")
-				colnames(a) <- "MMD"
+				cat("\n**Model including", colnames(a)[1], "\n")
+				colnames(a) <- "one-step"
 				print(a)
 			}
 		}
@@ -506,8 +512,8 @@ summary.sienaGOF <- function(object, ...) {
 					rownames(b) <- c("MHD")
 					a <- rbind(a, b)
 					a <- round(a, 3)
-					cat("\n**Model", colnames(a)[1], "\n")
-					colnames(a) <- c("MMD")
+					cat("\n**Model including", colnames(a)[1], "\n")
+					colnames(a) <- c("one-step")
 					print(a)
 				}
 			}
@@ -516,13 +522,14 @@ summary.sienaGOF <- function(object, ...) {
 	}
 	cat("\nComputation time for auxiliary statistic calculations on simulations: ",
 			attr(x, "simTime")["elapsed"] , "seconds.\n")
+	invisible(x)
 }
 
 ##@plot.sienaGOF siena07 Plot method for sienaGOF
 plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
-		key=NULL, perc=.05, period=1, main=main, ylab=ylab,	 ...)
+		key=NULL, perc=.05, period=1, ...)
 {
-	require(lattice)
+	## require(lattice)
 	args <- list(...)
 	if (is.null(args$main))
 	{
@@ -535,7 +542,7 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 	}
 	else
 	{
-		main=args
+		main=args$main
 	}
 
 	if (attr(x,"joined"))
@@ -553,6 +560,28 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 	## Need to check for useless statistics here:
 	n.obs <- nrow(obs)
 
+	screen <- sapply(1:ncol(obs),function(i){
+						(sum(is.nan(rbind(sims,obs)[,i])) == 0) }) &
+				(diag(var(rbind(sims,obs)))!=0)
+
+	if (any((diag(var(rbind(sims,obs)))==0)))
+	{	cat("Note: some statistics are not plotted because their variance is 0.\n")
+		cat("This holds for the statistic")
+		if (sum(diag(var(rbind(sims,obs)))==0) > 1){cat("s")}
+		cat(": ")
+		cat(paste(attr(x,"key")[which(diag(var(rbind(sims,obs)))==0)], sep=", "))
+		cat(".\n")
+	}
+
+	sims <- sims[,screen, drop=FALSE]
+	obs <- obs[,screen, drop=FALSE]
+	obsLabels <- round(x$Observations[,screen, drop=FALSE],3)
+
+	sims.min <- apply(sims, 2, min)
+	sims.max <- apply(sims, 2, max)
+	sims.min <- pmin(sims.min, obs)
+	sims.max <- pmax(sims.max, obs)
+
 	if (center)
 	{
 		sims.median <- apply(sims, 2, median)
@@ -560,17 +589,21 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 					(sims[,i] - sims.median[i]) )
 		obs <- matrix(sapply(1:ncol(sims), function(i)
 							(obs[,i] - sims.median[i])), nrow=n.obs )
+		sims.min <- sims.min - sims.median
+		sims.max <- sims.max - sims.median
 	}
 	if (scale)
 	{
-		sims.min <- apply(sims, 2, min)
-		sims.max <- apply(sims, 2, max)
-		sims <- sapply(1:ncol(sims), function(i) sims[,i]/(sims.max[i] -
-								sims.min[i] ) )
-		obs <- matrix(sapply(1:ncol(sims), function(i) obs[,i] /(sims.max[i] -
-										sims.min[i] )
-				), nrow=n.obs )
+		sims.range <- sims.max - sims.min + 1e-6
+		sims <- sapply(1:ncol(sims), function(i) sims[,i]/(sims.range[i]))
+		obs <- matrix(sapply(1:ncol(sims), function(i) obs[,i]/(sims.range[i]))
+				, nrow=n.obs )
+		sims.min <- sims.min/sims.range
+		sims.max <- sims.max/sims.range
 	}
+
+	ymin <- 1.05*min(sims.min) - 0.05*max(sims.max)
+	ymax <- -0.05*min(sims.min) + 1.05*max(sims.max)
 
 	if (is.null(args$ylab))
 	{
@@ -596,13 +629,6 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 		ylabel = args$ylab
 	}
 
-	screen <- sapply(1:ncol(obs),function(i){
-						(sum(is.nan(rbind(sims,obs)[,i])) == 0) }) &
-			(diag(var(rbind(sims,obs)))!=0)
-	sims <- sims[,screen, drop=FALSE]
-	obs <- obs[,screen, drop=FALSE]
-	obsLabels <- round(x$Observations[,screen, drop=FALSE],3)
-
 	if (is.null(args$xlab))
 	{
 		xlabel = paste( paste("p:", round(x$p, 3),
@@ -623,11 +649,12 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 		}
 		else
 		{
-			key <- attr(x,"key")
+			key <- attr(x,"key")[screen]
 		}
 	}
 	else
 	{
+		key <- key[screen] ## added 1.1-244
 		if (length(key) != ncol(obs))
 		{
 			stop("Key length does not match the number of variates.")
@@ -647,14 +674,15 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 	trellis.par.set("plot.symbol", plot.symbol)
 
 	panelFunction <- function(..., x=x, y=y, box.ratio){
-		ind.lower = max( round(itns * perc/2), 1)
-		ind.upper = round(itns * (1-perc/2))
-		yperc.lower = sapply(1:ncol(sims), function(i)
+		ind.lower <- max( round(itns * perc/2), 1)
+		ind.upper <- round(itns * (1-perc/2))
+		yperc.lower <- sapply(1:ncol(sims), function(i)
 					sort(sims[,i])[ind.lower]  )
-		yperc.upper = sapply(1:ncol(sims), function(i)
+		yperc.upper <- sapply(1:ncol(sims), function(i)
 					sort(sims[,i])[ind.upper]  )
 		if (violin) {
-			panel.violin(x, y, box.ratio=box.ratio, col = "transparent", ...)
+			panel.violin(x, y, box.ratio=box.ratio, col = "transparent",
+					bw="nrd", ...)
 		}
 		panel.bwplot(x, y, box.ratio=.1, fill = "gray", ...)
 		panel.xyplot(xAxis, yperc.lower, lty=3, col = "gray", lwd=3, type="l",
@@ -670,9 +698,158 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 		}
 	}
 	bwplot(as.numeric(sims)~rep(xAxis, each=itns), horizontal=FALSE,
-			panel = panelFunction, xlab=xlabel, ylab=ylabel,
+			panel = panelFunction, xlab=xlabel, ylab=ylabel, ylim=c(ymin,ymax),
 			scales=list(x=list(labels=key), y=list(draw=FALSE)),
-			main=main, ...)
+			main=main)
+
+}
+
+##@descriptives.sienaGOF siena07 Gives numerical values in the plot.
+descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
+			perc=.05, key=NULL, period=1, showAll=FALSE)
+{
+# adapted excerpt from plot.sienaGOF
+	if (attr(x,"joined"))
+	{
+		x <- x[[1]]
+	}
+	else
+	{
+		x <- x[[period]]
+	}
+
+	sims <- x$Simulations
+	obs <- x$Observations
+	itns <- nrow(sims)
+
+	screen <- sapply(1:ncol(obs),function(i){
+						(sum(is.nan(rbind(sims,obs)[,i])) == 0) })
+	if (!showAll)
+	{
+		screen <- screen & (diag(var(rbind(sims,obs)))!=0)
+	}
+	sims <- sims[,screen, drop=FALSE]
+	obs <- obs[,screen, drop=FALSE]
+	## Need to check for useless statistics here:
+	n.obs <- nrow(obs)
+
+	if (is.null(key))
+	{
+		if (is.null(attr(x, "key")))
+		{
+			key=(1:sum(screen))
+		}
+		else
+		{
+			key <- attr(x,"key")[screen]
+		}
+	}
+	else
+	{
+		if (length(key) != ncol(obs))
+		{
+			stop("Key length does not match the number of variates.")
+		}
+		key <- key[screen]
+	}
+
+	sims.themin <- apply(sims, 2, min)
+	sims.themax <- apply(sims, 2, max)
+	sims.mean <- apply(sims, 2, mean)
+	sims.min <- pmin(sims.themin, obs)
+	sims.max <- pmax(sims.themax, obs)
+
+	if (center)
+	{
+		sims.median <- apply(sims, 2, median)
+		sims <- sapply(1:ncol(sims), function(i)
+					(sims[,i] - sims.median[i]) )
+		obs <- matrix(sapply(1:ncol(sims), function(i)
+							(obs[,i] - sims.median[i])), nrow=n.obs )
+		sims.mean <- sims.mean - sims.median
+		sims.min <- sims.min - sims.median
+		sims.max <- sims.max - sims.median
+	}
+
+	if (scale)
+	{
+		sims.range <- sims.max - sims.min + 1e-6
+		sims <- sapply(1:ncol(sims), function(i) sims[,i]/(sims.range[i]))
+		obs <- matrix(sapply(1:ncol(sims), function(i) obs[,i]/(sims.range[i]))
+				, nrow=n.obs )
+		sims.mean <- sims.mean/sims.range
+		sims.min <- sims.min/sims.range
+		sims.max <- sims.max/sims.range
+	}
+
+	screen <- sapply(1:ncol(obs),function(i){
+						(sum(is.nan(rbind(sims,obs)[,i])) == 0) })
+	if (!showAll)
+	{
+		screen <- screen & (diag(var(rbind(sims,obs)))!=0)
+	}
+	sims <- sims[,screen, drop=FALSE]
+	obs <- obs[,screen, drop=FALSE]
+	sims.themin <- sims.themin[screen, drop=FALSE]
+	sims.themax <- sims.themax[screen, drop=FALSE]
+
+	ind.lower = max( round(itns * perc/2), 1)
+	ind.upper = round(itns * (1-perc/2))
+	ind.median = round(itns * 0.5)
+	yperc.mid = sapply(1:ncol(sims), function(i)
+				sort(sims[,i])[ind.median])
+	yperc.lower = sapply(1:ncol(sims), function(i)
+				sort(sims[,i])[ind.lower]  )
+	yperc.upper = sapply(1:ncol(sims), function(i)
+				sort(sims[,i])[ind.upper]  )
+	violins <- matrix(NA, 7, ncol(sims))
+	violins[1,] <- sims.themax
+	violins[2,] <- yperc.upper
+	violins[3,] <- sims.mean
+	violins[4,] <- yperc.mid
+	violins[5,] <- yperc.lower
+	violins[6,] <- sims.themin
+	violins[7,] <- obs
+	rownames(violins) <- c('max', 'perc.upper', 'mean',
+							'median', 'perc.lower', 'min', 'obs')
+	colnames(violins) <- key
+	violins
+}
+
+##@changeToStructural sienaGOF Utility to change
+# values in X to structural values in S
+# X must have values 0, 1.
+# NA values in X will be 0 in the result.
+changeToStructural <- function(X, S) {
+	if (any(S >= 10, na.rm=TRUE))
+		{
+			S[is.na(S)] <- 0
+			S0 <- Matrix(S==10)
+			S1 <- Matrix(S==11)
+# the 1* turns the logical into numeric
+			X <- 1*((X - S0 + S1)>=1)
+		}
+	X[is.na(X)] <- 0
+	drop0(X)
+}
+
+##@changeToNewStructural sienaGOF Utility to change
+# values in X to structural values in SAfter
+# for tie variables that have no structural values in SBefore.
+# X must have values 0, 1.
+# NA values in X or SBefore or SAfter will be 0 in the result.
+changeToNewStructural <- function(X, SBefore, SAfter) {
+		SB <- Matrix(SBefore>=10)
+		SA <- Matrix(SAfter>=10)
+		if (any(SA>SB, na.rm=TRUE))
+		{
+			S0 <- (SA>SB)*Matrix(SAfter==10)
+			S1 <- (SA>SB)*Matrix(SAfter==11)
+# the 1* turns the logical into numeric
+			X <- 1*((X - S0 + S1)>=1)
+		}
+	X[is.na(X)] <- 0
+	drop0(X)
 }
 
 ##@sparseMatrixExtraction sienaGOF Extracts simulated networks
@@ -680,11 +857,37 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 # this is the "standard" class for sparse numeric matrices
 # in the Matrix package. See the help file for "dgCMatrix-class".
 # Ties for ordered pairs with a missing value for wave=period or period+1
-#  are zeroed;
+# are zeroed;
 # note that this also is done in RSiena for calculation of target statistics.
+# To obtain equality between observed and simulated tie values
+# in the case of structurally determined values, the following is done.
+# The difficulty lies in the possibility
+# that there is change in structural values.
+# The reasoning is as follows:
+# structural values affect the following period.
+# Therefore the simulated values at the end of the period
+# should be compared with an observation containing the structural values
+# present at the beginning of the period.
+# This implies that observations (wave=period+1) should be modified to contain
+# the structural values of the preceding observation (wave=period).
+# But if there are any tie variables with
+# structural values for wave=period+1 and free values for wave=period,
+# then there is no valid reference value for the simulations in this period,
+# and the simulated tie values should be set to
+# the observed (structural) values for wave=period+1.
+# Concluding:
+# For ties that have a structurally determined value at wave=period,
+# this value is used for the observation at the end of the period.
+# For ties that have a structurally determined value at the end of the period
+# and a free value at the start,
+# the structurally determined value at wave=period+1 is used
+# for the simulations at the end of the period.
+# TODO: Calculate the matrix of structurals and of missings outside
+# of this procedure, doing it only once. Perhaps in sienaGOF.
 sparseMatrixExtraction <-
 	function(i, obsData, sims, period, groupName, varName){
 	# require(Matrix)
+	isBipartite <- "bipartite" == attr(obsData[[groupName]]$depvars[[varName]], "type")
 	dimsOfDepVar<- attr(obsData[[groupName]]$depvars[[varName]], "netdims")
 	if (attr(obsData[[groupName]]$depvars[[varName]], "sparse"))
 	{
@@ -702,18 +905,26 @@ sparseMatrixExtraction <-
 	{
 		# sienaGOF wants the observation;
 		# transform structurally fixed values into regular values
-		# by "modulo 10" operation
+		# by "modulo 10" (%%10) operation
+		# If preceding observation contains structural values
+		# use these to replace the observations at period+1.
 		if (attr(obsData[[groupName]]$depvars[[varName]], "sparse"))
 		{
-			returnValue <- drop0(
-			 Matrix(obsData[[groupName]]$depvars[[varName]][[period+1]] %% 10))
+			returnValue <- drop0(Matrix(
+				obsData[[groupName]]$depvars[[varName]][[period+1]] %% 10))
+			returnValue[is.na(returnValue)] <- 0
+			returnValue <- changeToStructural(returnValue,
+				Matrix(obsData[[groupName]]$depvars[[varName]][[period]]))
 		}
-		else
+		else # not sparse
 		{
 			returnValue <-
 			 Matrix(obsData[[groupName]]$depvars[[varName]][,,period+1] %% 10)
+			returnValue[is.na(returnValue)] <- 0
+			returnValue <- changeToStructural(returnValue,
+				Matrix(obsData[[groupName]]$depvars[[varName]][,,period]))
 		}
-		returnValue[is.na(returnValue)] <- 0
+		if(!isBipartite) diag(returnValue) <- 0 # not guaranteed by data input
 	}
 	else
 	{
@@ -723,9 +934,23 @@ sparseMatrixExtraction <-
 				sims[[i]][[groupName]][[varName]][[period]][,2],
 				x=sims[[i]][[groupName]][[varName]][[period]][,3],
 				dims=dimsOfDepVar[1:2] )
+		# If observation at end of period contains structural values
+		# use these to replace the simulations.
+		if (attr(obsData[[groupName]]$depvars[[varName]], "sparse"))
+		{
+			returnValue <- changeToNewStructural(returnValue,
+				Matrix(obsData[[groupName]]$depvars[[varName]][[period]]),
+				Matrix(obsData[[groupName]]$depvars[[varName]][[period+1]]))
+		}
+		else # not sparse
+		{
+			returnValue <- changeToNewStructural(returnValue,
+				Matrix(obsData[[groupName]]$depvars[[varName]][,,period]),
+				Matrix(obsData[[groupName]]$depvars[[varName]][,,period+1]))
+		}
 	}
-	## Zero missings:
-	1*((returnValue - missings) > 0)
+	## Zero missings (the 1* turns the logical into numeric):
+	1*drop0((returnValue - missings) > 0)
 }
 
 ##@networkExtraction sienaGOF Extracts simulated networks
@@ -736,122 +961,53 @@ sparseMatrixExtraction <-
 # Ties for ordered pairs with a missing value for wave=period or period+1
 # are zeroed;
 # note that this also is done in RSiena for calculation of target statistics.
+# Structural values are treated as in sparseMatrixExtraction.
 networkExtraction <- function (i, obsData, sims, period, groupName, varName){
-	require(network)
+	## suppressPackageStartupMessages(require(network))
 	dimsOfDepVar<- attr(obsData[[groupName]]$depvars[[varName]], "netdims")
 	isbipartite <- (attr(obsData[[groupName]]$depvars[[varName]], "type")
 						=="bipartite")
-	sparseData <- (attr(obsData[[groupName]]$depvars[[varName]], "sparse"))
 	# For bipartite networks in package <network>,
 	# the number of nodes is equal to
 	# the number of actors (rows) plus the number of events (columns)
-	# with all actors preceeding all events.
+	# with all actors preceding all events.
 	# Therefore the bipartiteOffset will come in handy:
 	bipartiteOffset <- ifelse (isbipartite, 1 + dimsOfDepVar[1], 1)
 
 	# Initialize empty networks:
 	if (isbipartite)
 	{
-		# for bipartite networks, package <<network>> numbers
-		# the second mode vertices consecutively to the first mode.
-		emptyNetwork <- network.initialize(dimsOfDepVar[1]+dimsOfDepVar[2],
+		emptyNetwork <- network::network.initialize(dimsOfDepVar[1]+dimsOfDepVar[2],
 											bipartite=dimsOfDepVar[1])
 	}
 	else
 	{
-		emptyNetwork <- network.initialize(dimsOfDepVar[1],	bipartite=NULL)
+		emptyNetwork <- network::network.initialize(dimsOfDepVar[1], bipartite=NULL)
 	}
-	if (sparseData)
+	# Use what was defined in the function above:
+	matrixNetwork <- sparseMatrixExtraction(i, obsData, sims,
+						period, groupName, varName)
+	sparseMatrixNetwork <- as(matrixNetwork, "dgTMatrix")
+# For dgTMatrix, slots i and j are the rows and columns,
+# numbered from 0 to dimension - 1. Slot x are the values.
+# Actors in class network are numbered starting from 1.
+# Hence 1 must be added to missings@i and missings@j.
+# sparseMatrixNetwork@x is a column of ones;
+# the 1 in the 3d column of cbind below is redundant
+# because of the default ignore.eval=TRUE in network.edgelist.
+# But it is good to be explicit.
+	if (sum(matrixNetwork) <= 0) # else network.edgelist() below will not work
 	{
-		# Which tie variables are regarded as missings:
-		missings <- as(
-			is.na(obsData[[groupName]]$depvars[[varName]][[period]]) |
-			is.na(obsData[[groupName]]$depvars[[varName]][[period+1]]),
-			"lgTMatrix")
-		# For lgTMatrix, slots i and j are the rows and columns,
-		# numbered from 0 to dimension - 1.
-		# Actors in class network are numbered starting from 1.
-		# Hence 1 must be added to missings@i and missings@j.
-		# Put the missings into network shape:
-		if (length(missings@i) <= 0)
-		{
-			missings <- emptyNetwork
-		}
-		else
-		{
-			missings <- network.edgelist(
-			  cbind(missings@i + 1, missings@j + bipartiteOffset, 1), emptyNetwork)
-		}
-	}
-	else # not sparse
-	{
-		# For adjacency matrices the size is evident.
-		if (isbipartite)
-		{
-			missings <- network(
-				(is.na(obsData[[groupName]]$depvars[[varName]][,,period]) |
-				is.na(obsData[[groupName]]$depvars[[varName]][,,period+1]))*1,
-				matrix.type="adjacency", bipartite=dimsOfDepVar[1])
-		}
-		else
-		{
-			missings <- network(
-				(is.na(obsData[[groupName]]$depvars[[varName]][,,period]) |
-				is.na(obsData[[groupName]]$depvars[[varName]][,,period+1]))*1,
-				matrix.type="adjacency")
-		}
-	}
-
-	if (is.null(i))
-	{
-		# sienaGOF wants the observation;
-		if (sparseData)
-		{
-		# transform structurally fixed values into regular values
-		# by "modulo 10" operation;
-		# drop NAs and 0 values
-			original <-
-				obsData[[groupName]]$depvars[[varName]][[period+1]] %% 10
-			original[is.na(original)] <- 0
-			original <- as(drop0(original), "dgTMatrix")
-		# now original@x is a column of ones;
-		# the 1 here is redundant because of the default ignore.eval=TRUE
-		# in network.edgelist
-			returnValue <- network.edgelist(
-					cbind(original@i + 1, original@j + bipartiteOffset, 1),
-					emptyNetwork) - missings
-
-		}
-		else # not sparse: deal with adjacency matrices
-		{
-			original <-
-				obsData[[groupName]]$depvars[[varName]][,,period+1] %% 10
-			original[is.na(original)] <- 0
-			if (isbipartite)
-			{
-				returnValue <- network(original, matrix.type="adjacency",
-									bipartite=dimsOfDepVar[1]) - missings
-			}
-			else
-			{
-				returnValue <- network(original, matrix.type="adjacency",
-									bipartite=FALSE) -	missings
-			}
-		}
+		returnValue <- emptyNetwork
 	}
 	else
 	{
-		# sienaGOF wants the i-th simulation;
-		# the 1 in cbind is redundant because of the default ignore.eval=TRUE
-		# in network.edgelist
-		bipartiteOffset <- ifelse (isbipartite, dimsOfDepVar[1], 0)
-		returnValue <- network.edgelist(
-			cbind(
-			 sims[[i]][[groupName]][[varName]][[period]][,1],
-			(sims[[i]][[groupName]][[varName]][[period]][,2] + bipartiteOffset),
-						1), emptyNetwork) - missings
+		returnValue <- network::network.edgelist(
+					cbind(sparseMatrixNetwork@i + 1,
+					sparseMatrixNetwork@j + bipartiteOffset, 1),
+					emptyNetwork)
 	}
-  returnValue
+	returnValue
 }
 
 ##@behaviorExtraction sienaGOF Extracts simulated behavioral variables.

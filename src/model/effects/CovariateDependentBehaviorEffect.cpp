@@ -68,6 +68,28 @@ void CovariateDependentBehaviorEffect::initialize(const Data * pData,
 
 
 /**
+ * Returns the observed overall mean of covariateValue
+ */
+double CovariateDependentBehaviorEffect::covariateMean() const
+{
+	double themean = 0;
+
+	if (this->lpConstantCovariate)
+	{
+		themean = this->lpConstantCovariate->mean();
+	}
+	else if (this->lpChangingCovariate)
+	{
+		themean = this->lpChangingCovariate->mean();
+	}
+	// else lpBehaviorData: values are already centered,
+	 // see CovariateNetworkAlterFunction::value
+	 // themean is already 0
+
+	return themean;
+}
+
+/**
  * Returns the covariate value for the given actor.
  */
 double CovariateDependentBehaviorEffect::covariateValue(int i) const

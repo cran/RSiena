@@ -5,8 +5,8 @@
 ## *
 ## * File: siena07.r
 ## *
-## * Description: This file contains the main controlling module for the model
-## * fitting
+## * Description: This file contains the main controlling module for the
+## * estimation.
 ## * Also contains utility functions used within siena07
 ## ****************************************************************************/
 
@@ -15,7 +15,7 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
 					useCluster = FALSE, nbrNodes = 2, initC=TRUE,
 					clusterString=rep("localhost", nbrNodes), tt=NULL,
 					parallelTesting=FALSE, clusterIter=!x$maxlike,
-					clusterType=c("PSOCK", "FORK"), ...)
+					clusterType=c("PSOCK", "FORK"), cl=NULL, ...)
 {
     exitfn <- function()
     {
@@ -29,23 +29,34 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
     }
     on.exit(exitfn())
 
-
+    # If the user is passing clusters through -cl- then change the 
+    # useCluster to TRUE, and assign the -nbrNodes- to number of nodes
+    if (!useCluster & length(cl))
+    {
+        useCluster <- TRUE
+        nbrNodes   <- length(cl)
+    }
+      
     time0 <-  proc.time()['elapsed']
     z <- NULL ## z is the object for all control information which may change.
     ## x is designed to be readonly. Only z is returned.
     z$x <- x
 
-    if (useCluster)
+    if (useCluster) 
     {
         if (parallelTesting)
         {
             stop("cannot parallel test with multiple processes")
         }
-		clusterType <- match.arg(clusterType)
-		if (.Platform$OS.type == "windows" && clusterType != "PSOCK")
-		{
-			stop("cannot use forking processes on Windows")
-		}
+      
+      if (!length(cl))
+      {
+        clusterType <- match.arg(clusterType)
+        if (.Platform$OS.type == "windows" && clusterType != "PSOCK")
+        {
+          stop("cannot use forking processes on Windows")
+        }
+      }
 		# The possibility to use snow now has been dropped
 		# because RSiena requires R >= 2.15.0
 		# and snow is superseded.
@@ -59,7 +70,7 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
 		#}
 		#else
 		#{
-		require(parallel)
+		## require(parallel)
 		#}
         if (clusterIter)
         {
@@ -159,17 +170,20 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
     }
 
     z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,
-                clusterIter, clusterType, ...)
+                clusterIter, clusterType, cl, ...)
 
     time1 <-  proc.time()['elapsed']
     Report(c("Total computation time", round(time1 - time0, digits=2),
              "seconds.\n"), outf)
 
     if (useCluster)
-	{
-        stopCluster(z$cl)
-		## need to reset the random number type to the normal one
-		assign(".Random.seed", z$oldRandomNumbers, pos=1)
+    {
+      # Only stop cluster if it wasn't provided by the user
+#	  if (!length(cl))
+#		  stopCluster(z$cl)
+      
+      ## need to reset the random number type to the normal one
+      assign(".Random.seed", z$oldRandomNumbers, pos=1)
 	}
 
     class(z) <- "sienaFit"
@@ -196,11 +210,18 @@ InitReports <- function(z, seed, newseed)
         revision <- paste(" R-forge revision: ", rforgeRevision, " ", sep="")
     }
     version <- packageDescription(pkgname, fields = "Version")
-    Report(c("\nSiena version ", version, " (",
+    Report(c("\nRSiena version ", version, " (",
              format(as.Date(packageDescription(pkgname, fields = "Date")),
                     "%d %b %y"), ")",
              revision, "\n\n"), sep = '',  outf )
+	if (z$x$simOnly)
+	{
+    Heading(1, outf, "Simulations.")
+	}
+	else
+	{
     Heading(1, outf, "Estimation by stochastic approximation algorithm.")
+	}
     if (is.null(seed))
     {
         Report("Random initialization of random number stream.\n", outf)
@@ -221,6 +242,7 @@ InitReports <- function(z, seed, newseed)
 ##@AnnouncePhase siena07 Progress reporting
 AnnouncePhase <- function(z, x, subphase=NULL)
 {
+	## require(tcltk)
     if (!is.batch())
     {
         tkdelete(z$tkvars$phase, 0, "end")
@@ -266,7 +288,8 @@ AnnouncePhase <- function(z, x, subphase=NULL)
     ## 2.5198421 = 2^(4/3); this gives a gain parameter of order n^(-3/4) ##
         if (x$nsub > 0)
         {
-            z$n2minimum[1] <- trunc(z$n2min0 * 2.52)
+			z$n2minimum[1] <- 
+				ifelse(is.null(x$n2start), trunc(z$n2min0 * 2.52), x$n2start)
             z$n2maximum[1] <- z$n2minimum[1] + 200
             if (x$nsub > 1)
             {

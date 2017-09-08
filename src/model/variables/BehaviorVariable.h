@@ -47,6 +47,10 @@ public:
 	virtual void setLeaverBack(const SimulationActorSet * pActorSet,
 		int actor);
 
+	void behaviorModelType(int type);
+	virtual BehaviorModelType behaviorModelType() const;
+	virtual bool behaviorModelTypeABSORB() const;
+
 	virtual void makeChange(int actor);
 
 	bool missingStartValue(int actor) const;
@@ -119,6 +123,9 @@ private:
 
 	// the actor under consideration
 	int lego;
+
+	// the model type
+	BehaviorModelType lbehaviorModelType;
 };
 
 }

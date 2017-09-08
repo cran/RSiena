@@ -10,6 +10,7 @@
  *****************************************************************************/
 #include <R_ext/Print.h>
 #include "CovariateDistance2AlterNetworkFunction.h"
+#include "CovariateNetworkAlterFunction.h"
 #include "network/Network.h"
 
 namespace siena
@@ -27,13 +28,20 @@ namespace siena
  */
 CovariateDistance2AlterNetworkFunction::
 CovariateDistance2AlterNetworkFunction(string networkName, string
-	covariateName, double parameter,  bool excludeMissing) :
+	covariateName, double parameter,  bool excludeMissing, bool total) :
 	CovariateDistance2NetworkFunction(networkName, covariateName)
 {
 	this->lparameter = parameter;
 	this->lexcludeMissing = excludeMissing;
+	this->ltotal = total;
 }
 
+/**
+ * Deallocates this effect object;
+ */
+	CovariateDistance2AlterNetworkFunction::~CovariateDistance2AlterNetworkFunction()
+{
+}
 
 /**
  * Returns the value of this function for the given alter. It is assumed
@@ -46,7 +54,14 @@ double CovariateDistance2AlterNetworkFunction::value(int alter)
 	double value = 0;
 	if (!(this->lexcludeMissing && this->missingDummy(alter)))
 	{
-		value = this->averageAlterValue(alter);
+		if (ltotal)
+		{
+			value = this->totalAlterValue(alter);
+		}
+		else
+		{
+			value = this->averageAlterValue(alter);
+		}
 		if (this->lparameter == 2)
 		{
 			int tieValue =  this->pNetwork()->tieValue(alter, this->ego());
@@ -57,13 +72,20 @@ double CovariateDistance2AlterNetworkFunction::value(int alter)
 				//this->ego(), CovariateDistance2NetworkFunction::value(this->ego()) );
 				if (degree > 1)
 				{
-					value = (degree * value -
-						CovariateDistance2NetworkFunction::value(this->ego()))/
-						(degree - 1);
+					if (ltotal)
+					{
+						value = (value -
+							CovariateNetworkAlterFunction::value(this->ego()));
+					}
+					else
+					{
+						value = (degree * value -
+				CovariateNetworkAlterFunction::value(this->ego()))/(degree - 1);
+					}
 				}
 				else
 				{
-					value = 0;
+					value = CovariateNetworkAlterFunction::covmean();
 				}
 				//Rprintf("stat after %d %f %d %f\n", degree, value,
 				//	this->ego(),

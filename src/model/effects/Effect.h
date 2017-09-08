@@ -11,6 +11,11 @@
 #ifndef EFFECT_H_
 #define EFFECT_H_
 
+// TODO Header files should not do 'using namespace'.  This might lead to
+// namespace conflicts which are very hard to resolve.  Removeing this breaks
+// almost all effects since the <effect>.cpp files depend on it.
+using namespace std;
+
 namespace siena
 {
 

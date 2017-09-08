@@ -16,8 +16,6 @@
 #include <string>
 #include "NetworkAlterFunction.h"
 
-using namespace std;
-
 namespace siena
 {
 
@@ -36,7 +34,7 @@ class BehaviorLongitudinalData;
 class CovariateNetworkAlterFunction: public NetworkAlterFunction
 {
 public:
-	CovariateNetworkAlterFunction(string networkName, string covariateName);
+	CovariateNetworkAlterFunction(std::string networkName, std::string covariateName);
 	virtual ~CovariateNetworkAlterFunction();
 
 	virtual void initialize(const Data * pData,
@@ -45,6 +43,10 @@ public:
 		Cache * pCache);
 
 protected:
+	double covmean() const; 
+	// this is the overall observed mean;
+	// except for centered actor covariates (not dependent behavior variables),
+	// for which it is 0.
 	double value(int i) const;
 	bool missing(int i) const;
 	double similarity(int i, int j) const;
@@ -53,7 +55,7 @@ protected:
 	BehaviorLongitudinalData * pBehaviorData() const;
 
 private:
-	string lcovariateName;
+	std::string lcovariateName;
 	int lperiod;
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;

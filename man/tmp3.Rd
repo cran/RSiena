@@ -3,7 +3,10 @@
 \docType{data}
 \title{van de Bunt's Freshman dataset, time point 3}
 \description{
-Third timepoint of van de Bunt's freshman dataset.
+Third timepoint of van de Bunt's freshman dataset.\cr
+
+Codes: 1 = best friendship; 2 = friendship; 3 = friendly relationship;
+4 = neutral relationship; 5 = troubled relationship; 0 = unknown person.
 }
 \format{
  Adjacency matrix for the network at time point 3.

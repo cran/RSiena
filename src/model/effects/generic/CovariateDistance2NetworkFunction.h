@@ -14,8 +14,6 @@
 
 #include "CovariateNetworkAlterFunction.h"
 
-using namespace std;
-
 namespace siena
 {
 
@@ -34,15 +32,23 @@ public:
 protected:
 	bool missingDummy(int i) const;
 	double averageAlterValue(int i) const;
-	double similarityNetwork(int i, int j) const;
+	double totalAlterValue(int i) const;
+	bool missingInDummy(int i) const;
+	double averageInAlterValue(int i) const;
+	double totalInAlterValue(int i) const;
+	double similarityAvAlt(int i, int j) const;
+	double varOutAvSimilarity(int i, int j) const;
+	double varInAvSimilarity(int i, int j) const;
 
 private:
 	double * laverageAlterValues;
+	double * ltotalAlterValues;
 	bool * laverageAlterMissing;
+	double * laverageInAlterValues;
+	double * ltotalInAlterValues;
+	bool * laverageInAlterMissing;
 
 };
-
-
 
 }
 

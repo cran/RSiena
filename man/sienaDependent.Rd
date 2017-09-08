@@ -5,7 +5,7 @@
 \description{
   Creates a Siena dependent variable: either a network, created from a matrix
   or array or list of sparse matrix of triples; or a behavior variable,
-  created from a matrix.
+  created from a matrix.\cr
   \code{sienaDependent()} and \code{sienaNet()} are identical functions;
   the second name was used from the start of the \code{RSiena} package,
   but the first name indicates more precisely the purpose of this function.
@@ -20,13 +20,13 @@ nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
 \arguments{
   \item{netarray}{matrix (type="behavior" only)
     or (for the other types) array of values or list of sparse matrices
-	of type "dgTMatrix"}
-  \item{type}{type of network, default "oneMode"}
-  \item{nodeSet}{character string naming the appropriate node set. A
-	vector containing 2 character strings for a bipartite network:
+	of type "dgTMatrix".}
+  \item{type}{type of dependent variable, default "oneMode".}
+  \item{nodeSet}{character string naming the appropriate node set.
+	For a bipartite network, a vector containing 2 character strings:
 	"rows" first, then "columns".}
   \item{sparse}{logical: TRUE indicates the data is in sparse matrix
-    format, FALSE otherwise }
+    format, FALSE otherwise.}
   \item{allowOnly}{logical: If TRUE, it will be detected when between any
     two consecutive waves the changes are non-decreasing or non-increasing,
     and if this is the case, this will also be a constraint for the
@@ -36,7 +36,13 @@ nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
     If FALSE, the parameters \code{uponly} and \code{downonly} always are
     set to FALSE, and changes in dependent variables will not be constrained
     to be non-decreasing or non-increasing.
-    For normal operation, TRUE is the appropriate option.}
+	This also will imply that some effects are excluded because they are
+	superfluous in such constrained situations.
+	This will be reported in the output of \code{\link{print01Report}}.
+
+    For normal operation, TRUE is the appropriate option.
+	For data sets that will be part of a multi-group object
+	created by \code{\link{sienaGroupCreate}}, FALSE is preferable.}
 }
 \details{
   Adds attributes so that the array or list of matrices can be used in a
@@ -50,11 +56,12 @@ matrices with attributes:
   \item{type}{oneMode, bipartite or behavior}
   \item{sparse}{Boolean: whether the network is given as a list of sparse matrices or not}
   \item{nodeSet}{Character string with name(s) of node set(s)}
-  \item{allowOnly}{The value of the allowOnly parameter}
+  \item{allowOnly}{The value of the \code{allowOnly} parameter}
 }
 \references{See \url{http://www.stats.ox.ac.uk/siena/}}
 \author{Ruth Ripley and Tom A.B. Snijders}
-\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaDataConstraint}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaNodeSet}},
+   \code{\link{sienaDataConstraint}}}
 \examples{
 mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mybeh <- sienaDependent(s50a, type="behavior")

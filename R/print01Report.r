@@ -1,15 +1,14 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: http://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: print01Report.r
 # *
 # * Description: This module contains the function to print the initial report
 # *****************************************************************************/
 ##@print01Report Reporting
-print01Report <- function(data, myeff, modelname="Siena", session=NULL,
-						  getDocumentation=FALSE)
+print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 {
 	##@reportDataObject1 internal print01Report
 	reportDataObject1 <- function(x)
@@ -33,8 +32,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 		}
 	}
 	##@reportDataObject internal print01Report
-	reportDataObject <- function(x, periodFromStart=0, multi=FALSE,
-								 session=session)
+	reportDataObject <- function(x, periodFromStart=0, multi=FALSE)
 	{
 		##@reportStart internal print01Report
 		reportStart <- function()
@@ -83,8 +81,9 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 				   outf)
 			Report(c(length(x$dyvCovars),
 					 "exogenous changing dyadic covariates,\n"), outf)
-			Report(c(c('no files',
-					   'file')[1 + as.numeric(length(x$compositionChange))],
+			Report(c(length(x$compositionChange),
+					c('no files','file',
+						'files')[1 + as.numeric(length(x$compositionChange))],
 					 "with times of composition change.\n"), outf)
 			if ((length(x$cCovars) > 0 || length(x$dycCovars) > 0) && multi)
 			{
@@ -128,31 +127,6 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 					}
 					for (k in 1:x$observations)
 					{
-						if (!is.null(session))
-						{
-							namesession <-
-								session[session$Name == netname, ]
-							filename <- namesession$Filename
-							if (length(filename) > 1)
-							{
-								if (namesession$Format[1] == "Siena net")
-								{
-									period <-
-										strsplit(namesession$Period, " ")
-									sub <- sapply(period, function(x) k %in% x)
-								}
-								else
-								{
-								   period <-
-									unlist(strsplit(namesession$Period, " "))
-								 sub <- match(k, period)
-								}
-								filename <- filename[sub]
-							}
-							Report(c("Observation moment ", k + periodFromStart,
-									 " was read from file ", filename, '. \n'),
-								   sep='', outf)
-						}
 						Report(c("For observation moment ", k + periodFromStart,
 								 ", degree distributions are as ",
 								 "follows:\nNodes\n"),
@@ -177,15 +151,19 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 							tmpdepvar <- depvar[, , k]
 							use <- tmpdepvar %in% c(10, 11)
 							tmpdepvar[use] <- tmpdepvar[use] - 10
+							if (attr(depvar, "type") != "bipartite")
+							{
+								diag(tmpdepvar) <- 0
+							}
 							outdeg <- rowSums(tmpdepvar, na.rm=TRUE)
 							indeg <- colSums(tmpdepvar, na.rm=TRUE)
-							diag(tmpdepvar) <- 0
 							missrow <- rowSums(is.na(tmpdepvar))
 							misscol <- colSums(is.na(tmpdepvar))
 						}
 						if (attr(depvar, "type") == "bipartite")
 						{
 							tmp <- format(cbind(1:atts$netdims[1], outdeg))
+							tmp2 <- format(cbind(1:atts$netdims[2], indeg))
 						}
 						else
 						{
@@ -196,7 +174,12 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 						Report(tmp[, 1], fill=60, outf)
 						Report("out-degrees\n", outf)
 						Report(tmp[, 2], fill=60, outf)
-						if (attr(depvar, "type") != "bipartite")
+						if (attr(depvar, "type") == "bipartite")
+						{
+							Report("in-degrees\n", outf)
+							Report(tmp2[, 2], fill=60, outf)
+						}
+						else
 						{
 							Report("in-degrees\n", outf)
 							Report(tmp[, 3], fill=60, outf)
@@ -289,19 +272,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 									 ", number of missing values ",
 									 "are:\n"),
 								   sep="", outf)
-							if (attr(depvar, "type") != "bipartite")
-							{
-								Report("Nodes\n", outf)
-								tmp <- format(cbind(1:atts$netdims[1],
-													missrow, misscol))
-								Report(tmp[, 1], fill=60, outf)
-								Report("missing in rows\n", outf)
-								Report(tmp[, 2], fill=60, outf)
-								Report("missing in columns\n", outf)
-								Report(tmp[, 3], fill=60, outf)
-								mult <- atts$netdims[1] - 1
-							}
-							else
+							if (attr(depvar, "type") == "bipartite")
 							{
 								Report("Senders\n", outf)
 								tmp <- format(cbind(1:atts$netdims[1],
@@ -316,6 +287,18 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 								Report("missing in columns\n", outf)
 								Report(tmp[, 2], fill=60, outf)
 								mult <- atts$netdims[2]
+							}
+							else
+							{
+								Report("Nodes\n", outf)
+								tmp <- format(cbind(1:atts$netdims[1],
+													missrow, misscol))
+								Report(tmp[, 1], fill=60, outf)
+								Report("missing in rows\n", outf)
+								Report(tmp[, 2], fill=60, outf)
+								Report("missing in columns\n", outf)
+								Report(tmp[, 3], fill=60, outf)
+								mult <- atts$netdims[1] - 1
 							}
 							Report(c("Total number of missing data: ",
 									 sum(missrow),
@@ -351,6 +334,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 								 "the value 0 is imputed.\n"), outf)
 					}
 				}
+			Report("\n", outf)
 			}
 			Report("\n", outf)
 		}
@@ -374,18 +358,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 												  "3"=, "23"=, "33"= "rd",
 												  "th"), sep="")
 					Report(c(mystr, " dependent actor variable named ",
-							 netname), sep="", outf)
-					if (!is.null(session))
-					{
-						filename <-
-							session$Filename[session$Name == netname]
-							Report(c(" was read from file ", filename, ".\n"),
-								   sep="", outf)
-					}
-					else
-					{
-						Report(".\n", outf)
-					}
+							 netname,".\n"), sep="", outf)
 					ranged <- atts$range2
 					Report(c("Maximum and minimum rounded values are ",
 							 round(ranged[1]), " and ",
@@ -475,28 +448,11 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			nCovars <- length(x$cCovars)
 			covars <- names(x$cCovars)
 			Heading(2, outf, "Reading constant actor covariates.")
-			if (!is.null(session))
+			Report(c(nCovars, "variable"),outf)
+			Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
+			for (i in seq(along=covars))
 			{
-				covarssession <- session[session$Type == "constant covariate", ]
-				for (i in 1:nrow(covarssession))
-				{
-					names <- strsplit(covarssession$Name[i],
-									  " ", fixed=TRUE)[[1]]
-					ncases <- length(x$cCovars[[match(names[1], covars)]])
-					Report(c("Covariate data file", covarssession$Filename[i],
-						   "with", length(names), "variables,", ncases,
-							 "cases, named:\n"), outf)
-					Report(paste(names, "\n"), outf, sep="")
-				}
-			}
-			else
-			{
-				Report(c(nCovars, "variable"),outf)
-				Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
-				for (i in seq(along=covars))
-				{
-					Report(c(format(covars[i], width=15), '\n'), outf)
-				}
+				Report(c(format(covars[i], width=15), '\n'), outf)
 			}
 			Report(c("\nA total of", nCovars,
 					 "non-changing individual covariate"), outf)
@@ -511,24 +467,49 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 								width=3, nsmall=1), '%)\n'), outf)
 			}
 			Report("\nInformation about covariates:\n", outf)
-			Report(c(format("minimum  maximum	  mean", width=38,
+			Report(c(format("minimum  maximum	  mean  centered", width=48,
 							justify="right"), "\n"), outf)
+			any.cent <- 0
+			any.noncent <- 0
 			for (i in seq(along=covars))
 			{
 				atts <- attributes(x$cCovars[[i]])
+				if (atts$centered)
+				{
+					cent <- "   Y"
+					any.cent <- any.cent+1
+				}
+				else
+				{
+					cent <- "   N"
+					any.noncent <- any.noncent+1
+				}
 				Report(c(format(covars[i], width=10),
 						 format(round(atts$range2[1], 1),
 								nsmall=1, width=8),
 						 format(round(atts$range2[2], 1),
 								nsmall=1, width=7),
 						 format(round(atts$mean, 3),
-								nsmall=3, width=10), "\n"), outf)
+								nsmall=3, width=10), cent, "\n"), outf)
 			}
 			if (nData <= 1)
 			{
-				Report(c("The mean value", ifelse(nCovars == 1, " is", "s are"),
-					 " subtracted from the covariate",
-					 ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+				if (any.noncent <= 0)
+				{
+					Report(c("The mean value", ifelse(nCovars == 1, " is", "s are"),
+						" subtracted from the",
+						ifelse(nCovars == 1, " centered", ""), " covariate",
+						ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+				}
+				else if (any.cent >= 1)
+				{
+					s.plural <- ""
+					if (any.cent >= 2){s.plural <- "s"}
+					Report(c("For the centered variable", s.plural,
+					", the mean value", ifelse(any.cent == 1, " is", "s are"),
+						" subtracted from the covariate", s.plural,
+						".\n"), sep="", outf)
+				}
 			}
 		}
 		##@reportChangingCovariates internal print01Report
@@ -539,75 +520,54 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			use <- ! covars %in% names(x$cCovars)
 			nCovars <- length(x$vCovars[use])
 			Heading(2, outf, "Reading exogenous changing actor covariates.")
-			if (!is.null(session))
+			Report(c(nCovars, "variable"),outf)
+			Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
+			for (i in seq(along=covars[use]))
 			{
-				if (nData > 1)
-				{
-					covarssession <-
-						session[session$Type == "constant covariate", ]
-					for (i in 1:nrow(covarssession))
-					{
-						names <- strsplit(covarssession$Name[i],
-										  " ", fixed=TRUE)[[1]]
-						ncases <- length(x$vCovars[[match(names[1], covars)]])
-						Report(c("Covariate data file",
-								 covarssession$Filename[i],
-								 "with", length(names), "variables,", ncases,
-								 "cases, named:\n"), outf)
-						Report(paste(names, "\n"), outf, sep="")
-					}
-				}
-				covarssession <- session[session$Type == "changing covariate", ]
-				for (i in seq(along=covarssession[,1]))
-				{
-					ncases <- nrow(x$vCovars[[match(covarssession$Name[i],
-													covars)]])
-					Report(c("Exogenous changing covariate ",
-							 covarssession$name[i], " read from file ",
-							 covarssession$Filename[i], ".\n"), sep="", outf)
-					Report(c("Number of cases is ", ncases, ".\n"), sep="",
-						   outf)
-				}
-			}
-			else
-			{
-				Report(c(nCovars, "variable"),outf)
-				Report(ifelse(nCovars == 1, ", named:\n", "s, named:\n"), outf)
-				for (i in seq(along=covars[use]))
-				{
-					Report(c(format(covars[use][i], width=15), '\n'), outf)
-				}
+				Report(c(format(covars[use][i], width=15), '\n'), outf)
 			}
 			Report(c("\nA total of", nCovars,
 					 "exogenous changing actor covariate"), outf)
 				Report(ifelse(nCovars == 1, ".\n\n", "s.\n\n"), outf)
 			Report("Number of missing cases per period:\n", outf)
-			Report(c(" period	", format(1:(x$observations - 1) +
-										 periodFromStart, width=9),
-					 "		 overall\n"), sep="", outf)
+			Report(c(" period             ", format(1:(x$observations - 1) +
+										 periodFromStart, width=8),
+					 "     overall\n"), sep="", outf)
 			for (i in seq(along=covars))
 			{
 				if (use[i])
 				{
 					thiscovar <- x$vCovars[[i]] ## matrix
 					misscols <- colSums(is.na(thiscovar))
-					Report(c(format(covars[i], width=10),
-							 format(misscols, width=8),
-							 format(sum(misscols), width=9), "	   (",
+					Report(c(format(covars[i], width=20),
+							 format(misscols, width=7),
+							 format(sum(misscols), width=8), "	   (",
 							 format(round(100 * sum(misscols)/nrow(thiscovar)/
 										  ncol(thiscovar), 1), nsmall=1,
 									width=3), '%)\n'), outf)
 				}
 			}
-			Report("\nInformation about changing covariates:\n", outf)
-			Report(c(format("minimum  maximum	  mean", width=38,
+			Report("\nInformation about changing covariates:\n\n", outf)
+			Report(c(format("minimum  maximum	  mean  centered", width=48,
 							justify="right"), "\n"), outf)
+			any.cent <- 0
+			any.noncent <- 0
 			for (i in seq(along=covars))
 			{
 				if (use[i])
 				{
 					atts <- attributes(x$vCovars[[i]])
-					Report(c(covars[i], '\n'), outf) # name
+					if (atts$centered)
+					{
+						cent <- "   Y"
+						any.cent <- any.cent+1
+					}
+					else
+					{
+						cent <- "   N"
+						any.noncent <- any.noncent+1
+					}
+					Report(c(format(covars[i], width=39), cent, '\n'), outf) # name
 					for (j in 1:(ncol(x$vCovars[[i]])))
 					{
 						Report(c("	period", format(j + periodFromStart,
@@ -621,15 +581,27 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 					}
 					Report(c(format("Overall", width=29),
 							 format(round(atts$mean, 3), width=10, nsmall=3),
-							 "\n"), outf)
-
+							 "\n\n"), outf)
 				}
 			}
 			if (nData <= 1)
 			{
-				Report("\nThe overall mean value", outf)
-				Report(c(ifelse(nCovars	 == 1, " is", "s are"),
-					 "subtracted from the covariate.\n\n"),	 outf)
+				if (any.noncent <= 0)
+				{
+					Report(c("The mean value", ifelse(nCovars == 1, " is", "s are"),
+						" subtracted from the",
+						ifelse(nCovars == 1, " centered", ""), " covariate",
+						ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+				}
+				else if (any.cent >= 1)
+				{
+					s.plural <- ""
+					if (any.cent >= 2){s.plural <- "s"}
+					Report(c("For the centered variable", s.plural,
+					", the mean value", ifelse(any.cent == 1, " is", "s are"),
+						" subtracted from the covariate", s.plural,
+						".\n"), sep="", outf)
+				}
 			}
 		}
 		##@reportConstantDyadicCovariates internal print01Report
@@ -658,32 +630,63 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 					myvar <- x$dycCovars[[i]]
 				}
 				diag(myvar) <- 0
-				Report(c(format(covars[i], width=15),
+				Report(c(format(covars[i], width=30),
 						 sum(is.na(myvar)), "  (",
 						 format(round(100 * sum(is.na(myvar))/
 									  (length(myvar) - nrow(myvar)), 1),
 								width=3, nsmall=1), '%)\n'), outf)
 			}
-			Report("\nMeans of	covariates:\n", outf)
-			Report(c(format("minimum  maximum	  mean", width=38,
+			Report("\nInformation about dyadic covariates:\n", outf)
+			Report(c(format("minimum  maximum	  mean  centered", width=67,
 							justify="right"), "\n"), outf)
+			any.cent <- 0
+			any.noncent <- 0
 			for (i in seq(along=covars))
 			{
 				atts <- attributes(x$dycCovars[[i]])
-				Report(c(format(covars[i], width=10),
+				if (atts$centered)
+				{
+					cent <- "   Y"
+					any.cent <- any.cent+1
+				}
+				else
+				{
+					cent <- "   N"
+					any.noncent <- any.noncent+1
+				}
+				Report(c(format(covars[i], width=30),
 						 format(round(atts$range2[1], 1),
 								nsmall=1, width=8),
 						 format(round(atts$range2[2], 1),
 								nsmall=1, width=7),
 						 format(round(atts$mean, 3),
-								nsmall=3, width=10), "\n"), outf)
+								nsmall=3, width=10), cent, "\n"), outf)
 			}
 			Report('\n', outf)
-			Report(c(ifelse(nCovars == 1,
-							"This mean value is ", "These mean values are "),
-					 "subtracted from the dyadic covariate",
-					 ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+
+			s.plural <- ifelse((any.cent >= 2),"s","")
+			if (any.noncent >= 1)
+			{
+				Report(c('The <mean> listed for the non-centered variable',
+						s.plural, ' is the attribute, not the observed mean.',
+						'\n'), sep="", outf)
+			}
+			if (any.noncent <= 0)
+			{
+				Report(c("The mean value", ifelse(nCovars == 1, " is", "s are"),
+					" subtracted from the",
+					ifelse(nCovars == 1, " centered", ""), " covariate",
+					ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+			}
+			else if (any.cent >= 1)
+			{
+				Report(c("For the centered variable", s.plural,
+				", the mean value", ifelse(any.cent == 1, " is", "s are"),
+					" subtracted from the covariate", s.plural,
+					".\n"), sep="", outf)
+			}
 		}
+
 		##@reportChangingDyadicCovariates internal print01Report
 		reportChangingDyadicCovariates <- function()
 		{
@@ -700,9 +703,9 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			}
 			Report("Number of tie variables with missing data per period:\n",
 				   outf)
-			Report(c(" period	", format(1:(x$observations - 1) +
-										  periodFromStart, width=9),
-					 "		 overall\n"), sep="", outf)
+			Report(c(" period   ", format(1:(x$observations - 1) +
+										  periodFromStart, width=7),
+					 "      overall\n"), sep="", outf)
 			for (i in seq(along=covars))
 			{
 				if (use[i])
@@ -719,28 +722,75 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 						missvals <- sapply(thiscovar, function(x)sum(is.na(x)))
 					}
 					Report(c(format(covars[i], width=10),
-							 format(missvals, width=8),
+							 format(missvals, width=6),
 							 format(sum(missvals), width=9), "	   (",
 							 format(round(100 * sum(missvals)/vardims[1]/
 										  vardims[2]), nsmall=1,
 										  width=3), '%)\n'), outf)
 				}
 			}
-			Report("\nMeans of	covariates:\n", outf)
+			Report("\nInformation about changing dyadic covariates:\n", outf)
+			Report(c(format("mean     centered", width=36,
+							justify="right"), "\n"), outf)
+			any.cent <- 0
+			any.noncent <- 0
 			for (i in seq(along=covars))
 			{
 				atts <- attributes(x$dyvCovars[[i]])
-				Report(c(format(covars[i], width=10),
-						 format(round(atts$mean, 3),
-								nsmall=3, width=10), "\n"), outf)
+				if (atts$centered)
+				{
+					cent <- "   Y"
+					any.cent <- any.cent+1
+				}
+				else
+				{
+					cent <- "   N"
+					any.noncent <- any.noncent+1
+				}
+				Report(c(format(covars[i], width=28), cent, '\n'), outf) # name
+				for (j in 1:(dim(x$dyvCovars[[i]])[3]))
+				{
+					Report(c("	period", format(j + periodFromStart,
+											   width=3),
+							 format(round(atts$meanp[j], 3),
+									nsmall=3, width=10), "\n"), outf)
+				}
+				if (!atts$centered) # else atts$mean is 0
+				{
+					Report(c(format("Overall", width=29),
+						 format(round(atts$mean, 3), width=10, nsmall=3),
+						 "\n"), outf)
+				}
+				Report("\n", outf)
 			}
 			Report('\n', outf)
-			Report(c(ifelse(nCovars == 1, "This ", "These "),
-					 "global mean value",
-					 ifelse(nCovars == 1, " is ", "s are "),
-					 "subtracted from the changing dyadic covariate",
-					 ifelse(nCovars ==1, ".\n\n", "s.\n\n")), sep="", outf)
+			s.plural <- ifelse((any.cent >= 2),"s","")
+			if (any.noncent >= 1)
+			{
+				Report(c('The <mean> listed for the non-centered variable',
+						s.plural, ' is the attribute, not the observed mean.',
+						'\n'), sep="", outf)
+			}
+			if (nCovars >= 1)
+			{
+				if (any.noncent <= 0)
+				{
+					Report(c("The mean value",
+						ifelse(nCovars == 1, " is", "s are"),
+						" subtracted from the",
+						ifelse(nCovars == 1, " centered", ""), " covariate",
+						ifelse(nCovars == 1, ".\n\n", "s.\n\n")), sep="", outf)
+				}
+				else if (any.cent >= 1)
+				{
+					Report(c("For the centered variable", s.plural,
+					", the mean value", ifelse(any.cent == 1, " is", "s are"),
+						" subtracted from the covariate", s.plural,
+						".\n"), sep="", outf)
+				}
+			}
 		}
+
 		##@reportCompositionChange internal print01Report
 		reportCompositionChange <- function()
 		{
@@ -749,7 +799,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			for (i in seq(along=comps))
 			{
 				nodeSet <- attr(comps[[i]], "nodeSet")
-				Report(c("Composition changes for nodeSet ", nodeSet, '.\n'),
+				Report(c("\nComposition changes for nodeSet ", nodeSet, '.\n\n'),
 					   sep="", outf)
 				events <- attr(comps[[i]], "events")
 				for (j in 1:nrow(events))
@@ -811,6 +861,20 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 		Report("\n\n", outf) ## end of reportDataObject
 	}
 	## create output file. ## start of print01Report proper
+	if (!(inherits(data, "siena")))
+	{
+		stop("The first argument needs to be a siena data object.")
+	}
+	if (!(inherits(modelname, "character")))
+	{
+		cat("Since version 1.1-279, an effects object should not be given\n")
+		cat(" in the call of print01Report. Consult the help file.\n")
+		stop("print01Report needs no effects object.")
+	}
+	if (!inherits(getDocumentation, 'logical'))
+	{
+		stop('wrong parameters; note: do not include an effects object as parameter!')
+	}
 	if (getDocumentation)
 	{
 		tt <- getInternals()
@@ -836,7 +900,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 	{
 		revision <- paste(" R-forge revision: ", rforgeRevision, " ", sep="")
 	}
-	Report(c("SIENA version ", packageValues[[1]], " (",
+	Report(c("RSiena version ", packageValues[[1]], " (",
 		format(as.Date(packageValues[[2]]), "%d %m %Y"), ")",
 			 revision, "\n\n"), sep="", outf)
 
@@ -867,16 +931,14 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 					paste("Subproject ", i, ": <", names(data)[i], ">",
 						  sep="", collapse="")
 					)
-			thisSession <- session[session$Group == names(data)[i],]
-			reportDataObject(data[[i]], periodFromStart, multi=TRUE,
-							 session=thisSession)
+			reportDataObject(data[[i]], periodFromStart, multi=TRUE)
 			periodFromStart <- periodFromStart + data[[i]]$observations
 	   }
 	}
 	else
 	{
 		Heading(1, outf, "Data input.")
-		reportDataObject(data[[1]], 0, multi=FALSE, session=session)
+		reportDataObject(data[[1]], 0, multi=FALSE)
 	}
 	atts <- attributes(data)
 	nets <- atts$types != "behavior"
@@ -892,35 +954,36 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			periodFromStart <- periodFromStart + data[[i]]$observations
 		}
 		Report("\n", outf)
-		if (length(atts$vCovars) == 1) 
+		if (length(atts$vCovars) == 1)
 		{
 			Report(c("The overall mean value ",
-				format(round(atts$vCovarMean, 4), nsmall=3, width=12), 
-					 " is subtracted from covariate ", atts$vCovars, 
+				format(round(atts$vCovarMean, 4), nsmall=3, width=12),
+					 " is subtracted from covariate ", atts$vCovars,
 					  ".\n\n"), sep="", outf)
 		}
-		else if (length(atts$vCovars) >= 2) 
+		else if (length(atts$vCovars) >= 2)
 		{
 			Report(c("The mean values are subtracted from the covariates:\n"), outf)
 			for (i in seq(along=atts$vCovars))
 			{
-				Report(c(format(atts$vCovars[i], width=15), 
+				Report(c(format(atts$vCovars[i], width=15),
 				format(round(atts$vCovarMean[i], 4), nsmall=3, width=12), '\n'), outf)
 			}
-		}		
+		}
 	}
 	periodNos <- attr(data, "periodNos")
 	if (any(atts$anyUpOnly[nets]))
 	{
 		netnames <- atts$netnames[nets]
 		upOnly <- atts$anyUpOnly[nets]
+		allUpOnly <- atts$allUpOnly[nets]
 		for (i in which(upOnly))
 		{
 			if (sum(nets) > 1)
 			{
 				Report(c("Network ", netnames[i], ":\n"), sep = "", outf)
 			}
-			if (atts$allUpOnly[i])
+			if (allUpOnly[i])
 			{
 				Report("All network changes are upward.\n", outf)
 				Report("This will be respected in the simulations.\n", outf)
@@ -946,13 +1009,14 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 	{
 		netnames <- atts$netnames[nets]
 		downOnly <- atts$anyDownOnly[nets]
+		allDownOnly <- atts$allDownOnly[nets]
 		for (i in which(downOnly))
 		{
 			if (sum(nets) > 1)
 			{
 				Report(c("Network ", netnames[i], "\n"), sep = "", outf)
 			}
-			if (atts$allDownOnly[i])
+			if (allDownOnly[i])
 			{
 				Report("All network changes are downward.\n", outf)
 				Report("This will be respected in the simulations.\n", outf)
@@ -980,11 +1044,12 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 	{
 		netnames <- atts$netnames[!nets]
 		upOnly <- atts$anyUpOnly[!nets]
+		allUpOnly <- atts$allUpOnly[!nets]
 		for (i in which(upOnly))
 		{
 			Report(c("\nBehavior variable ", netnames[i], ":\n"), sep = "",
 				   outf)
-			if (atts$allUpOnly[i])
+			if (allUpOnly[i])
 			{
 				Report("All behavior changes are upward.\n", outf)
 				Report("This will be respected in the simulations.\n", outf)
@@ -1013,10 +1078,11 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 	{
 		netnames <- atts$netnames[!nets]
 		downOnly <- atts$anyDownOnly[!nets]
+		allDownOnly <- atts$allDownOnly[!nets]
 		for (i in which(downOnly))
 		{
 			Report(c("\nBehavior ", netnames[i], ":\n"), sep = "", outf)
-			if (atts$allDownOnly[i])
+			if (allDownOnly[i])
 			{
 				Report("All behavior changes are downward.\n", outf)
 				Report("This will be respected in the simulations.\n", outf)
@@ -1061,7 +1127,6 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 					 netnames[i], ".\n"), sep = "", outf)
 		}
 	}
-   Report("\n", outf)
 
 	if (sum(atts$types == 'oneMode') > 0)
 	{
@@ -1135,15 +1200,15 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 		length(atts$vCovars) > 0)
 	{
 		netnames <- atts$netnames
-		vCovarSim2 <-
-			lapply(data, function(x)
-				   lapply(x$vCovars, function(y) attr(y, "simMeans")))
-		behSim2 <-
-			lapply(data, function(x)
-				   lapply(x$depvars, function(y) attr(y, "simMeans")))
-		cCovarSim2 <-
-			lapply(data, function(x)
-				   lapply(x$cCovars, function(y) attr(y, "simMeans")))
+#		vCovarSim2 <-
+#			lapply(data, function(x)
+#				   lapply(x$vCovars, function(y) attr(y, "simMeans")))
+#		behSim2 <-
+#			lapply(data, function(x)
+#				   lapply(x$depvars, function(y) attr(y, "simMeans")))
+#		cCovarSim2 <-
+#			lapply(data, function(x)
+#				   lapply(x$cCovars, function(y) attr(y, "simMeans")))
 		if (nData > 1)
 		{
 			vCovarSim <-
@@ -1167,7 +1232,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			{
 				if (atts$cCovarPoszvar[i])
 				{
-					Report(c("Similarity", format(atts$cCovars[i], width=12),
+					Report(c("Similarity", format(atts$cCovars[i], width=24),
 							 ':', format(round(atts$cCovarSim[i], 4), width=12,
 										 nsmall=4), '\n'), outf)
 				}
@@ -1180,7 +1245,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 				if (nData > 1)
 				{
 					thisSim <- sapply(behSim, function(x)x[[netnames[i]]])
-					Report(c("Similarity ", format(atts$netnames[i], width=12),
+					Report(c("Similarity ", format(atts$netnames[i], width=24),
 							 ":\n"), sep="", outf)
 					mystr <- format(paste("	 Subproject ", 1:nData, " <",
 								  atts$names, "> ", sep=""))
@@ -1194,7 +1259,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 				}
 				else
 				{
-					Report(c("Similarity", format(atts$netnames[i], width=12),
+					Report(c("Similarity", format(atts$netnames[i], width=24),
 							 ':', format(round(atts$bSim[i], 4), nsmall=4,
 										 width=12), '\n'), outf)
 				}
@@ -1208,7 +1273,7 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 				if (nData > 1)
 				{
 					thisSim <- sapply(vCovarSim, function(x)x[[covarnames[i]]])
-					Report(c("Similarity ", format(covarnames[i], width=12),
+					Report(c("Similarity ", format(covarnames[i], width=24),
 							 ":\n"), sep="", outf)
 					mystr <- format(paste("	 Subproject ", 1:nData, " <",
 										  atts$names, "> ", sep=""))
@@ -1222,104 +1287,9 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 				}
 				else
 				{
-					Report(c("Similarity", format(atts$vCovars[i], width=12),
+					Report(c("Similarity", format(atts$vCovars[i], width=24),
 							 ':', format(round(atts$vCovarSim[i], 4), width=12,
 										 nsmall=4), '\n'), outf)
-				}
-			}
-		}
-		## report on alter similarity means
-		Report(c("\nFor the distance-2 similarity variable calculated from",
-				 "each actor \ncovariate, the mean is also subtracted.\n",
-				 "These means are:\n"), outf)
-		if (nData == 1) ## ie we may have constant covariates
-		{
-			sims <- cCovarSim2[[1]]
-			for (i in seq(along=sims))
-			{
-				if (atts$cCovarPoszvar[i])
-				{
-					Report(c("Distance-2 Similarity ",
-							 format(atts$cCovars[i], width=12),
-							 ':', format(names(sims[[i]]), width=12,
-										 justify="right"), '\n'), sep="", outf)
-					Report(c(rep(" ",  35),
-							 format(round(sims[[i]], 4),  width=12, nsmall=4),
-							 '\n'), sep="", outf)
-				}
-			}
-		}
-		for (i in seq(along=atts$netnames))
-		{
-			if (atts$types[i] == "behavior" && atts$bPoszvar[i])
-			{
-				if (nData > 1)
-				{
-					thisSim <- lapply(behSim2, function(x)x[[netnames[i]]])
-					Report(c("Distance-2 Similarity ",
-							 format(atts$netnames[i], width=12), ":\n"),
-						   sep="", outf)
-					Report(c(rep(" ", 24),
-							 format(names(thisSim[[1]]),
-									width=12, justify="right"), "\n"), sep="",
-						   outf)
-					mystr <- format(paste("	 Subproject ", 1:nData, " <",
-								  atts$names, "> ", sep=""))
-					for (j in seq(along=thisSim))
-					{
-						Report(c(mystr[j], format(round(thisSim[[j]], 4),
-												  nsmall=4, width=12), "\n"),
-							   sep="", outf)
-					}
-					Report("\n", outf)
-				}
-				else
-				{
-					sims <- behSim2[[1]]
-					Report(c("Distance-2 Similarity ", format(atts$netnames[i],
-															 width=12),
-							 ':', format(names(sims[[i]]), width=12), '\n'),
-						   sep="", outf)
-					Report(c(rep(" ",  35), format(round(sims[[i]], 4), width=12,
-										 nsmall=4), '\n'), sep="", outf)
-				}
-			}
-		}
-		for (i in seq(along=atts$vCovars))
-		{
-			covarnames <- atts$vCovars
-			if (atts$vCovarPoszvar[i])
-			{
-				if (nData > 1)
-				{
-					thisSim <- lapply(vCovarSim2, function(x)x[[covarnames[i]]])
-					Report(c("Distance-2 Similarity ", format(covarnames[i],
-															  width=12),
-							 ":\n"), sep="", outf)
-					Report(c(rep(" ", 24), format(names(thisSim[[1]]),
-												  width=12, justify="right"),
-							 "\n"),	 sep="", outf)
-					mystr <- format(paste("	 Subproject ", 1:nData, " <",
-										  atts$names, "> ", sep=""))
-					for (j in seq(along=thisSim))
-					{
-						Report(c(mystr[j], format(round(thisSim[[j]], 4),
-												  nsmall=4, width=12), "\n"),
-							   sep="", outf)
-					}
-					Report("\n", outf)
-				}
-				else
-				{
-					sims <- vCovarSim2[[1]]
-					Report(c("Distance-2 Similarity", format(atts$vCovars[i],
-															 width=12),
-							 ':', format(names(sims[[i]]), width=12,
-										 justify="right"),
-							 '\n'), outf)
-					Report(c(rep(" ",  35), format(round(sims[[i]], 4), width=12,
-												   nsmall=4), '\n'), sep="",
-						   outf)
 				}
 			}
 		}
@@ -1366,7 +1336,8 @@ print01Report <- function(data, myeff, modelname="Siena", session=NULL,
 			  })
 		}
 	}
-	printInitialDescription(data, myeff, modelname)
+	myeff <- getEffects(data)
+	printInitialDescription(data, myeff, modelName=modelname)
 	##close the files
 	Report(closefiles=TRUE)
 }

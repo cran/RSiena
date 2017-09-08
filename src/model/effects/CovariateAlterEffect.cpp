@@ -11,6 +11,7 @@
 
 #include "CovariateAlterEffect.h"
 #include "network/Network.h"
+#include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -22,9 +23,22 @@ namespace siena
  * @param[in] squared indicates if the covariate values must be squared
  */
 CovariateAlterEffect::CovariateAlterEffect(const EffectInfo * pEffectInfo,
-	bool squared) :
+		const bool leftThresholded, const bool rightThresholded,
+		const bool squared) :
 		CovariateDependentNetworkEffect(pEffectInfo)
 {
+	this->lleftThresholded = leftThresholded;
+	this->lrightThresholded = rightThresholded;
+	this->lthreshold = pEffectInfo->internalEffectParameter();
+	// to make sure that there will be no numerical equality difficulties:
+	if (this->lleftThresholded)
+	{
+		this->lthreshold += 1e-12;
+	}
+	if (this->lrightThresholded)
+	{
+		this->lthreshold -= 1e-12;
+	}
 	this->lsquared = squared;
 }
 
@@ -34,11 +48,32 @@ CovariateAlterEffect::CovariateAlterEffect(const EffectInfo * pEffectInfo,
  */
 double CovariateAlterEffect::calculateContribution(int alter) const
 {
-	double change = this->value(alter);
+	double change = 0;
 
-	if (this->lsquared)
+	if (this->lleftThresholded)
 	{
-		change *= change;
+		if (this->value(alter) <= this->lthreshold)
+		{
+			change = 1;
+		}
+	}
+	else
+	{
+		if (this->lrightThresholded)
+		{
+			if (this->value(alter) >= this->lthreshold)
+			{
+				change = 1;
+			}
+		}
+		else
+		{
+			change = this->value(alter);
+			if (this->lsquared)
+			{
+				change *= change;
+			}
+		}
 	}
 
 	return change;
@@ -56,12 +91,7 @@ double CovariateAlterEffect::tieStatistic(int alter)
 
 	if (!this->missing(alter))
 	{
-		statistic = this->value(alter);
-
-		if (this->lsquared)
-		{
-			statistic *= statistic;
-		}
+		statistic = this->calculateContribution(alter);
 	}
 
 	return statistic;

@@ -56,7 +56,7 @@
 # Run reports to check that data is properly formated and
 # to get some basic descriptives
 
-		print01Report( myCoEvolutionData, myCoEvolutionEff,
+		print01Report( myCoEvolutionData,
 					   modelname = 's50_3_CoEvinit' )
 
 # Define the effects to include in the coevolution model

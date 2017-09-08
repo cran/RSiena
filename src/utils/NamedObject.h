@@ -14,8 +14,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -25,13 +23,13 @@ namespace siena
 class NamedObject
 {
 public:
-	NamedObject(string name);
+	NamedObject(std::string name);
 
-	string name() const;
+	std::string name() const;
 
 private:
 	// The name of this object
-	string lname;
+	std::string lname;
 };
 
 }

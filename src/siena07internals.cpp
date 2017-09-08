@@ -197,26 +197,25 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 	}
 	if (*settingCol < 0)
 	{
-	 	error("cannot find setting col");
+		error("cannot find setting col; reconstruct effects object with this version of RSiena");
 	}
-//Rprintf("%d parmcol\n", *parmCol);
+	//Rprintf("%d parmcol\n", *parmCol);
 }
-
 
 /**
  *  updates the parameter values for each of the effects.
  */
 void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
-						  pGroupData, Model * pModel)
+		pGroupData, Model * pModel)
 {
-    // get the column names from the names attribute
-    SEXP cols;
-    PROTECT(cols = install("names"));
-    SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	// get the column names from the names attribute
+	SEXP cols;
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
-    int nameCol; /* network name */
-    int effectCol;  /* short name of effect */
+	int nameCol; /* network name */
+	int effectCol;  /* short name of effect */
 	int parmCol;
 	int int1Col;
 	int int2Col;
@@ -283,13 +282,12 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 						NetworkLongitudinalData * pNetwork =
 							pData->pNetworkData(networkName);
 						pModel->basicRateParameter(pNetwork,
-							period,
-							currentValue);
+							period, currentValue);
 					}
 				}
 				else
 				{
-				 	if (!strcmp(netType, "behavior") == 0)
+				 	if (!(strcmp(netType, "behavior") == 0))
 				 	{
 				 		NetworkLongitudinalData * pNetwork =
 				 			pData->pNetworkData(networkName);
@@ -394,87 +392,87 @@ void setupOneModeObservations(SEXP ONEMODES,
                               pOneModeNetworkLongitudinalData)
 
 {
-    int observations = length(ONEMODES);
-    if (observations != pOneModeNetworkLongitudinalData->observationCount())
-    {
+	int observations = length(ONEMODES);
+	if (observations != pOneModeNetworkLongitudinalData->observationCount())
+	{
 		error ("wrong number of observations in OneMode");
-    }
-    SEXP uo;
-    PROTECT(uo = install("uponly"));
-    SEXP uponly = getAttrib(ONEMODES, uo);
-    SEXP dow;
-    PROTECT(dow = install("downonly"));
-    SEXP downonly = getAttrib(ONEMODES, dow);
-
-    for (int period = 0; period < (observations - 1); period++)
-    {
-        pOneModeNetworkLongitudinalData->upOnly(period,
-                                         LOGICAL(uponly)[period]);
-        pOneModeNetworkLongitudinalData->downOnly(period,
-                                         LOGICAL(downonly)[period]);
-    }
-    for (int period = 0; period < observations; period++)
-    {
-    	setupOneModeNetwork(VECTOR_ELT(ONEMODES, period),
-			pOneModeNetworkLongitudinalData,
-			period);
 	}
-    UNPROTECT(2);
+	SEXP uo;
+	PROTECT(uo = install("uponly"));
+	SEXP uponly = getAttrib(ONEMODES, uo);
+	SEXP dow;
+	PROTECT(dow = install("downonly"));
+	SEXP downonly = getAttrib(ONEMODES, dow);
+
+	for (int period = 0; period < (observations - 1); period++)
+	{
+		pOneModeNetworkLongitudinalData->upOnly(period,
+				LOGICAL(uponly)[period]);
+		pOneModeNetworkLongitudinalData->downOnly(period,
+				LOGICAL(downonly)[period]);
+	}
+	for (int period = 0; period < observations; period++)
+	{
+		setupOneModeNetwork(VECTOR_ELT(ONEMODES, period),
+				pOneModeNetworkLongitudinalData, period);
+	}
+	UNPROTECT(2);
 }
+
 /**
  * Create one group of one mode Networks
  *
  */
 void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 {
-    int nOneMode = length(ONEMODEGROUP);
+	int nOneMode = length(ONEMODEGROUP);
 
-    for (int oneMode = 0; oneMode < nOneMode; oneMode++)
-    {
+	for (int oneMode = 0; oneMode < nOneMode; oneMode++)
+	{
 		SEXP ONEMODES = VECTOR_ELT(ONEMODEGROUP, oneMode);
-        SEXP as;
-        PROTECT(as = install("nodeSet"));
-        SEXP actorSet = getAttrib(ONEMODES, as);
-        SEXP symm;
-        PROTECT(symm = install("symmetric"));
-        SEXP symmetric = getAttrib(ONEMODES, symm);
+		SEXP as;
+		PROTECT(as = install("nodeSet"));
+		SEXP actorSet = getAttrib(ONEMODES, as);
+		SEXP symm;
+		PROTECT(symm = install("symmetric"));
+		SEXP symmetric = getAttrib(ONEMODES, symm);
 		SEXP balm;
-        PROTECT(balm = install("balmean"));
-        SEXP balmean = getAttrib(ONEMODES, balm);
+		PROTECT(balm = install("balmean"));
+		SEXP balmean = getAttrib(ONEMODES, balm);
 		SEXP strm;
-        PROTECT(strm = install("structmean"));
-        SEXP structmean = getAttrib(ONEMODES, strm);
+		PROTECT(strm = install("structmean"));
+		SEXP structmean = getAttrib(ONEMODES, strm);
 		SEXP avin;
-        PROTECT(avin = install("averageInDegree"));
-        SEXP averageInDegree = getAttrib(ONEMODES,	avin);
+		PROTECT(avin = install("averageInDegree"));
+		SEXP averageInDegree = getAttrib(ONEMODES,	avin);
 		SEXP avout;
-        PROTECT(avout = install("averageOutDegree"));
-        SEXP averageOutDegree = getAttrib(ONEMODES,	avout);
- 		SEXP sets;
+		PROTECT(avout = install("averageOutDegree"));
+		SEXP averageOutDegree = getAttrib(ONEMODES,	avout);
+		SEXP sets;
 		PROTECT(sets = install("settings"));
 		SEXP Setting = getAttrib(ONEMODES, sets);
 		SEXP nm;
-        PROTECT(nm = install("name"));
-        SEXP name = getAttrib(ONEMODES, nm);
-        const ActorSet * myActorSet = pData->pActorSet(CHAR(STRING_ELT(
-					actorSet, 0)));
+		PROTECT(nm = install("name"));
+		SEXP name = getAttrib(ONEMODES, nm);
+		const ActorSet* myActorSet = pData->pActorSet(CHAR(STRING_ELT(actorSet, 0)));
 		OneModeNetworkLongitudinalData *  pOneModeNetworkLongitudinalData =
-			pData->createOneModeNetworkData(CHAR(STRING_ELT(name, 0)),
-                                     myActorSet);
+			pData->createOneModeNetworkData(CHAR(STRING_ELT(name, 0)), myActorSet);
+
 		for (int j = 0; j < length(Setting); j++)
 		{
 			const char * settingName = CHAR(STRING_ELT(Setting, j));
 			pOneModeNetworkLongitudinalData->addSettingName(settingName);
 		}
-       pOneModeNetworkLongitudinalData->symmetric(*(LOGICAL(symmetric)));
-        pOneModeNetworkLongitudinalData->balanceMean(*(REAL(balmean)));
-        pOneModeNetworkLongitudinalData->structuralMean(*(REAL(structmean)));
-        pOneModeNetworkLongitudinalData->
+
+		pOneModeNetworkLongitudinalData->symmetric(*(LOGICAL(symmetric)));
+		pOneModeNetworkLongitudinalData->balanceMean(*(REAL(balmean)));
+		pOneModeNetworkLongitudinalData->structuralMean(*(REAL(structmean)));
+		pOneModeNetworkLongitudinalData->
 			averageInDegree(*(REAL(averageInDegree)));
-        pOneModeNetworkLongitudinalData->
+		pOneModeNetworkLongitudinalData->
 			averageOutDegree(*(REAL(averageOutDegree)));
 		setupOneModeObservations(ONEMODES,
-			pOneModeNetworkLongitudinalData);
+				pOneModeNetworkLongitudinalData);
 		//	Rprintf("%f %f\n", pOneModeNetworkLongitudinalData->
 		//	averageInDegree(),  pOneModeNetworkLongitudinalData->
 		//	averageOutDegree());
@@ -485,8 +483,8 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 		//Rprintf("%f %f\n", pOneModeNetworkLongitudinalData->
 		//	averageInDegree(), pOneModeNetworkLongitudinalData->
 		//	averageOutDegree());
-        UNPROTECT(8);
-    }
+		UNPROTECT(8);
+	}
 }
 
 /**
@@ -725,18 +723,54 @@ void setupBehaviorGroup(SEXP BEHGROUP, Data *pData)
  *
  */
 void setupConstantCovariate(SEXP COCOVAR, ConstantCovariate *
-			    pConstantCovariate)
-
+		pConstantCovariate)
 {
-    int nActors = length(COCOVAR);
+	int nActors = length(COCOVAR);
 	// Rprintf("%x\n", pConstantCovariate);
-    double * start = REAL(COCOVAR);
+	double * start = REAL(COCOVAR);
+	SEXP mn;
+	PROTECT(mn = install("mean"));
+	SEXP ans = getAttrib(COCOVAR, mn);
+	double mean = REAL(ans)[0];
+	SEXP cn;
+	PROTECT(cn = install("centered"));
+	ans = getAttrib(COCOVAR, cn);
+	bool centered = LOGICAL(ans)[0];
+
+	// extract imputationValues if provided by user
+	SEXP im;
+	PROTECT(im = install("imputationValues"));
+	ans = getAttrib(COCOVAR, im);
+	bool impute = FALSE;
+	double * imputationValues;
+	if(!isNull(ans))
+	{
+		impute = TRUE;
+		imputationValues = REAL(ans);
+//		Rprintf("We have something to impute\n");
+	}
+
     for (int actor = 0; actor < nActors; actor++)
     {
 		double value = *start++;
 		if (ISNAN(value))
 		{
+			if (impute) // imputationValues already were centered, if necessary
+			{
+				pConstantCovariate->value(actor, imputationValues[actor]);
+//				Rprintf("We impute value %f for actor %d\n",
+//					imputationValues[actor], actor + 1);
+			}
+			else if (centered) // no user input provided
+			{
 			pConstantCovariate->value(actor, 0);
+//				Rprintf("We use 0 for actor %d\n", actor + 1);
+			}
+			else // no user input provided, not centered
+			{
+				pConstantCovariate->value(actor, mean);
+//				Rprintf("We use the mean %f for actor %d\n", mean, actor + 1);
+			}
 			pConstantCovariate->missing(actor, 1);
 		}
 		else
@@ -746,6 +780,7 @@ void setupConstantCovariate(SEXP COCOVAR, ConstantCovariate *
 
 		}
     }
+	UNPROTECT(3);
 }
 /**
  * Create one group of constant covariates
@@ -779,6 +814,21 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 				myActorSet);
         setupConstantCovariate(VECTOR_ELT(COCOVARGROUP,	constantCovariate),
 			pConstantCovariate);
+		SEXP mn;
+		PROTECT(mn = install("mean"));
+		SEXP obsmean = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), mn);
+		SEXP cn;
+		PROTECT(cn = install("centered"));
+		SEXP ans = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), cn);
+		bool centered = LOGICAL(ans)[0];
+		if (centered)
+		{
+			pConstantCovariate->mean(0);
+		}
+		else
+		{
+			pConstantCovariate->mean(REAL(obsmean)[0]);
+		}
 		SEXP sim;
 		PROTECT(sim = install("simMean"));
 		SEXP simMean = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
@@ -801,7 +851,7 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 		SEXP Range = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
 			range);
 		pConstantCovariate->range(REAL(Range)[0]);
-        UNPROTECT(6);
+        UNPROTECT(8);
     }
 }
 /**
@@ -809,33 +859,73 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
  *
  */
 void setupChangingCovariate(SEXP VARCOVAR,
-			    ChangingCovariate * pChangingCovariate)
-
+		ChangingCovariate * pChangingCovariate)
 {
-    int observations = ncols(VARCOVAR);
-    int nActors = nrows(VARCOVAR);
+	int observations = ncols(VARCOVAR);
+	int nActors = nrows(VARCOVAR);
 	double * start = REAL(VARCOVAR);
+	SEXP mn;
+	PROTECT(mn = install("mean"));
+	SEXP ans = getAttrib(VARCOVAR, mn);
+	double mean = REAL(ans)[0];
+	SEXP cn;
+	PROTECT(cn = install("centered"));
+	ans = getAttrib(VARCOVAR, cn);
+	bool centered = LOGICAL(ans)[0];
+
+	// extract imputationValues if provided by user
+	SEXP im;
+	PROTECT(im = install("imputationValues"));
+	ans = getAttrib(VARCOVAR, im);
+	bool impute = FALSE;
+	double * imputationValues = 0;
+	if(!isNull(ans))
+	{
+		impute = TRUE;
+		imputationValues = REAL(ans);
+	}
+
 	for (int period = 0; period < observations; period++)
-    {
+	{
 		for (int actor = 0; actor < nActors; actor++)
 		{
 			double value = *start++;
+			double imputationValue;
+			if (impute)
+			{
+				imputationValue = *imputationValues++;
+			}
+
 			if (ISNAN(value))
 			{
-				pChangingCovariate->value(actor, period,
-					0);
-				pChangingCovariate->missing(actor, period,
-					1);
+				if (impute) // imputationValues have been centered, if necessary
+				{
+					pChangingCovariate->value(actor, period, imputationValue);
+//					Rprintf("We impute value %f for actor %d in period %d\n",
+//										imputationValue, actor + 1, period + 1);
+				}
+				else if (centered) // no user input provided
+				{
+					pChangingCovariate->value(actor, period, 0);
+//					Rprintf("We use 0 for actor %d in period %d\n",
+//								actor + 1, period + 1);
+				}
+				else // no user input provided, not centered
+				{
+					pChangingCovariate->value(actor, period, mean);
+//					Rprintf("We use the mean %f for actor %d in period %d\n",
+//								mean, actor + 1, period + 1);
+				}
+				pChangingCovariate->missing(actor, period, 1);
 			}
 			else
 			{
-				pChangingCovariate->value(actor, period,
-					value);
-				pChangingCovariate->missing(actor, period,
-					0);
+				pChangingCovariate->value(actor, period, value);
+				pChangingCovariate->missing(actor, period, 0);
 			}
 		}
     }
+	UNPROTECT(3);
 }
 /**
  * Create one group of changing covariates
@@ -876,6 +966,21 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 				myActorSet);
 		setupChangingCovariate(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 			pChangingCovariate);
+		SEXP mn;
+		PROTECT(mn = install("mean"));
+		SEXP obsmean = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), mn);
+		SEXP cn;
+		PROTECT(cn = install("centered"));
+		SEXP ans = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), cn);
+		bool centered = LOGICAL(ans)[0];
+		if (centered)
+		{
+			pChangingCovariate->mean(0);
+		}
+		else
+		{
+			pChangingCovariate->mean(REAL(obsmean)[0]);
+		}
 		SEXP sim;
 		PROTECT(sim = install("simMean"));
 		SEXP simMean = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
@@ -898,7 +1003,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 		SEXP Range = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 			range);
 		pChangingCovariate->range(REAL(Range)[0]);
-		UNPROTECT(6);
+		UNPROTECT(8);
 	}
 }
 /**
@@ -1206,7 +1311,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 
 				if (strcmp(setting, "") == 0)
 				{
-					if (!strcmp(netType, "behavior") == 0)
+					if (!(strcmp(netType, "behavior") == 0))
 					{
 						NetworkLongitudinalData * pNetwork =
 							pData->pNetworkData(networkName);
@@ -1223,7 +1328,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 				}
 				else
 				{
-				 	if (!strcmp(netType, "behavior") == 0)
+				 	if (!(strcmp(netType, "behavior") == 0))
 				 	{
 				 		NetworkLongitudinalData * pNetwork =
 				 			pData->pNetworkData(networkName);
@@ -1309,6 +1414,132 @@ SEXP createInteractionEffects(SEXP EFFECTS, Model *pModel,
 
 	UNPROTECT(1);
 	return effectPtrs;
+}
+
+/**
+ *  Retrieves the contributions to all possible tie flips or behavior changes for each of the effects,
+ *  for one period. The call will relate to one group only, although all effects
+ *  are the same apart from the basic rates. Not used in maximum likelihood.
+ */
+void getChangeContributionStatistics(SEXP EFFECTSLIST,
+	const StatisticCalculator * pCalculator, vector<vector<double *> > *rChangeContributions)
+{
+
+	// get the column names from the names attribute
+	SEXP cols;
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+
+	int netTypeCol; /* net type */
+	int nameCol; /* network name */
+	int effectCol;  /* short name of effect */
+	int parmCol;
+	int int1Col;
+	int int2Col;
+	int initValCol;
+	int typeCol;
+	int groupCol;
+	int periodCol;
+	int pointerCol;
+	int rateTypeCol;
+	int intptr1Col;
+	int intptr2Col;
+	int intptr3Col;
+	int settingCol;
+
+	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
+			&parmCol, &int1Col, &int2Col, &initValCol,
+			&typeCol, &groupCol, &periodCol, &pointerCol,
+			&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+			&settingCol);
+
+	for (int ii = 0; ii < length(EFFECTSLIST); ii++)
+	{
+		SEXP EFFECTS = VECTOR_ELT(EFFECTSLIST, ii);
+
+		for (int i = 0; i < length(VECTOR_ELT(EFFECTS,0)); i++)
+		{
+			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
+			const char * netType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
+			if(strcmp(netType, "oneMode") == 0 || strcmp(netType, "behavior") == 0)
+			{
+				// todo At the moment, change contributions cannot be calculated for endowment or creation effects
+				// modifications in the corresponding methods (calculateNetworkEndowmentStatistics, calculateNetworkCreationStatistics,
+				// and calculateBehaviorStatistics) in StatisticCalculator.cpp would be necessary!!!
+				//if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
+				if (strcmp(effectType, "eval") == 0)
+				{
+					EffectInfo * pEffectInfo = (EffectInfo *) R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS,pointerCol), i));
+					if(rChangeContributions != 0)
+					{
+						rChangeContributions->push_back(pCalculator->staticChangeContributions(pEffectInfo));
+					}
+				}
+			}
+		}
+	}
+	UNPROTECT(1);
+}
+
+/**
+ *  Retrieves the statistics of individual actors for each of the effects,
+ *  for one period. The call will relate to one group only, although all effects
+ *  are the same apart from the basic rates. Not used in maximum likelihood.
+ */
+void getActorStatistics(SEXP EFFECTSLIST,
+	const StatisticCalculator * pCalculator, vector<double *> *rActorStatistics)
+{
+
+	// get the column names from the names attribute
+	SEXP cols;
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+
+	int netTypeCol; /* net type */
+	int nameCol; /* network name */
+	int effectCol;  /* short name of effect */
+	int parmCol;
+	int int1Col;
+	int int2Col;
+	int initValCol;
+	int typeCol;
+	int groupCol;
+	int periodCol;
+	int pointerCol;
+	int rateTypeCol;
+	int intptr1Col;
+	int intptr2Col;
+	int intptr3Col;
+	int settingCol;
+
+	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
+			&parmCol, &int1Col, &int2Col, &initValCol,
+			&typeCol, &groupCol, &periodCol, &pointerCol,
+			&rateTypeCol, &intptr1Col, &intptr2Col, &intptr3Col,
+			&settingCol);
+
+	for (int ii = 0; ii < length(EFFECTSLIST); ii++)
+	{
+		SEXP EFFECTS = VECTOR_ELT(EFFECTSLIST, ii);
+
+		for (int i = 0; i < length(VECTOR_ELT(EFFECTS,0)); i++)
+		{
+			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
+			const char * netType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
+			if(strcmp(netType, "oneMode") == 0 || strcmp(netType, "behavior") == 0)
+			{
+				if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
+				{
+					EffectInfo * pEffectInfo = (EffectInfo *) R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS,pointerCol), i));
+					if(rActorStatistics != 0)
+					{
+						rActorStatistics->push_back(pCalculator->actorStatistics(pEffectInfo));
+					}
+				}
+			}
+		}
+	}
+	UNPROTECT(1);
 }
 
 /**
@@ -1506,6 +1737,11 @@ void getStatistics(SEXP EFFECTSLIST,
 						{
 							score =
 								pVariable->inverseOutDegreeScore(pNetworkVariable);
+						}
+						else if (strcmp(effectName, "outRateLog") == 0)
+						{
+							score =
+								pVariable->logOutDegreeScore(pNetworkVariable);
 						}
 						else
 						{
@@ -1768,7 +2004,7 @@ void getScores(SEXP EFFECTSLIST, int period, int group,
 					const char * effectType =
 						CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), j));
 
-					if (!strcmp(effectType, "rate") == 0)
+					if (!(strcmp(effectType, "rate") == 0))
 					{
 						//	Rprintf("%s %s \n", effectType, netType);
 						EffectInfo * pEffectInfo2 = (EffectInfo *)

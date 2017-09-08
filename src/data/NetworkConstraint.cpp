@@ -17,9 +17,8 @@ namespace siena
 /**
  * Constructs a new network constraint.
  */
-NetworkConstraint::NetworkConstraint(string networkName1,
-	string networkName2,
-	NetworkConstraintType type)
+NetworkConstraint::NetworkConstraint(std::string networkName1,
+	std::string networkName2, NetworkConstraintType type)
 {
 	this->lnetworkName1 = networkName1;
 	this->lnetworkName2 = networkName2;

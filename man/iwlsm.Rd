@@ -98,7 +98,7 @@ psi.iwlsm(u, k, deriv = 0, w, sj2, hh)
   }
   \item{scale.est}{
     method of scale estimation: re-scaled MAD of the residuals (default)
-    or Huber's proposal 2 (which can be selected by either \code{"Huber"}
+    or Huber"s proposal 2 (which can be selected by either \code{"Huber"}
     or \code{"proposal 2"}).
   }
   \item{k2}{

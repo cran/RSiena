@@ -21,6 +21,7 @@ storeinFRANstore <- function(...)
 ##@phase2.1 siena07 Start phase 2
 phase2.1<- function(z, x, ...)
 {
+	## require(tcltk)
     #initialise phase2
     if (x$maxlike)
     {
@@ -36,10 +37,23 @@ phase2.1<- function(z, x, ...)
         tkconfigure(z$tkvars$subphaselabel,state='normal')
     }
     z$Deriv <- FALSE
+	msf <- as.matrix(cov(z$sf)) # as.matrix() just in case z$pp = 1
+#	z$sd <- sqrt(diag(msf))
+# Instead of the preceding line,
+# the following is used for equality with earlier versions.
     z$sd <- sqrt(apply(z$sf, 2, function(x) sum(x^2) / nrow(z$sf) - mean(x)^2))
     z$sd[z$fixed] <- 0
+	z$standardization <-
+						1/sqrt(diag(as.matrix(z$dinvv %*% msf %*% t(z$dinvv))))
+    Report(paste("standardization = ", round(z$standardization,4)), cf)
+	if (sum(z$fixed) < z$pp)
+	{
+		z$sf.invcov <-
+		 solve(msf[!z$fixed, !z$fixed] + 0.0001 * diag(z$pp - sum(z$fixed)))
+	}
     Report(paste('\nPhase 2 has', x$nsub, 'subphases.\n'), cf)
     z$gain <- x$firstg
+    z$reduceg <- x$reduceg
     if (x$nsub <= 0)
     {
         Report('With 0 subphases, there is no phase 2.\n', cf)
@@ -56,7 +70,7 @@ phase2.1<- function(z, x, ...)
     z
 }
 ##@proc2subphase siena07 Do one subphase of phase 2
-proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
+proc2subphase <- function(z, x, subphase, ...)
 {
     ## init subphase of phase 2
     z <- AnnouncePhase(z, x, subphase)
@@ -76,7 +90,7 @@ proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
     {
         z$repeatsubphase <- z$repeatsubphase + 1
         z$truncated <- rep(FALSE, z$n2max)
-        z$positivized <- matrix(FALSE, nrow = z$n2max, ncol = z$pp)
+        z$positivized <- rep(0, z$pp)
         z$ctime <- proc.time()[3]
         z$time1 <- proc.time()[3]
         z$thav <- z$theta
@@ -106,21 +120,24 @@ proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
             Report(msg, cf)
             Report(which(z$truncated), cf, fill=80)
         }
-        if (any(z$positivized))
+        if (any(z$positivized >= 1))
         {
             msg <- paste('Intervention 2.',subphase,
                          '.2: positivity restriction:\n ',sep='')
             Report(msg,cf)
-            subs <- which(rowSums(z$positivized) > 0)
-            msg<- sapply(subs, function(i, y)
-                         paste('Observation:', i, 'Coordinate(s):',
-                               paste((1:z$pp)[y[i,]], collapse = ' ')),
-                         y = z$positivized)
+            subs <- which((z$positivized) > 0)
+			msg <- paste('Positivized: ',
+						paste((1:z$pp)[subs], ': ', z$positivized[subs], '; ',
+						   collapse=' '))
+#            msg<- sapply(subs, function(i, y)
+#                         paste('Observation:', i, 'Coordinate(s):',
+#                               paste((1:z$pp)[y[i,]], collapse = ' ')),
+#                         y = z$positivized)
             Report(msg, cf, fill=80)
         }
         if ((subphase >= 1) && (z$maxacor >= sqrt(2.0 / (z$nit + 1))))
 		{
-			Report('Warning: an autocorrelation is positive at the end',cf)
+			Report('Note: an autocorrelation is positive at the end',cf)
 			Report(' of this subphase.\n',cf)
 			Report('Autocorrelations:\n',cf)
 			prtmat <- z$prod1 / z$prod0
@@ -143,27 +160,13 @@ proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
     {
         Report('The user asked for early end of phase 2.\n', outf)
     }
-    if (useAverage)
-    {
-		z$theta <- z$thav / z$thavn   # z$thavn = (z$nit + 1)
-    }
-    else
-	{
-		cat('\n')
-		cat('Regression\n')
-		##  use regression
-		cat(z$thav / z$thavn, '; ') #(z$nit + 1)
-		mylm <- lm(z$sf[1:z$nit, ] ~ z$thetaStore[1:z$nit, ])
-		coefs <- coef(mylm)[-1, ]
-		newvals <- solve(t(coefs), - mylm$coef[1, ])
-		z$theta <- newvals
-		cat(z$theta, '\n')
-	}
-    DisplayThetaAutocor(z)
     ##    cat('it',z$nit,'\n')
     ##recalculate autocor using -1 instead of -2 as error
     ac <- ifelse (z$prod0 > 1e-12, z$prod1 / z$prod0, -1)
     maxacor <- max(-99, ac[!z$fixed]) ##note -1 > -99
+	z$theta <- z$thav / z$thavn   # z$thavn = (z$nit + 1)
+
+    DisplayThetaAutocor(z)
     Report(paste('Phase ', z$Phase,'.', subphase, ' ended after ', z$nit,
                  ' iterations.\n', sep = ''), cf)
     if (x$checktime)
@@ -176,7 +179,7 @@ proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
     }
     if ((maxacor >= sqrt(2 / (z$nit + 1))) && (subphase >= 1))
     {
-        Report('Warning. Autocorrelation criterion not satisfied.\n', cf)
+        Report('Note. Autocorrelation criterion not satisfied.\n', cf)
     }
     WriteOutTheta(z)
     if (EarlyEndPhase2Flag())
@@ -199,7 +202,7 @@ proc2subphase <- function(z, x, subphase, useAverage=TRUE, ...)
 	}
 	else
 	{
-		z$gain <- z$gain * 0.5
+		z$gain <- z$gain * z$reduceg
 	}
     z
 } ##end of this subphase
@@ -209,10 +212,12 @@ doIterations<- function(z, x, subphase,...)
 {
     z$nit <- 0
     ac <- 0
-	z$maxacor <- 1
+	z$maxacor <- -1
+	z$minacor <- 1
     xsmall <- NULL
     zsmall <- makeZsmall(z)
     z$returnDeps <- FALSE
+	sumfra <- 0.0
     repeat
     {
         z$n <- z$n+1
@@ -231,6 +236,11 @@ doIterations<- function(z, x, subphase,...)
                 z$writefreq <- 20
             }
             z$writefreq <- roundfreq(z$writefreq)
+			if (is.batch())
+			{
+				z$writefreq <-  z$writefreq * 10 ##compensation for it
+				## running faster with no tcl/tk
+			}
         }
         if ((z$nit <= 10) || (z$nit %% z$writefreq ==0))
         {
@@ -322,35 +332,92 @@ doIterations<- function(z, x, subphase,...)
                 DisplayThetaAutocor(z)
             }
         }
-        ## limit change.  Reporting is delayed to end of phase.
-# The old version had a numerical ifelse condition:
-#          maxrat<- max(ifelse(z$sd, abs(fra)/ z$sd, 1.0))
-# But ifelse with a numerical first argument only tests the value 0,
-# which here has probability 0... So this really has no effect.
-# I (TS) do not understand this.
-# Therefore I changed it.
+## limit change.  Reporting is delayed to end of phase.
+# The truncation has been different from version 1.1-227 to 1.1-243,
+# due to a misunderstanding.
+# In version 1.1-244 it was changed back to the old Siena 3 way.
+# Except now the threshold is 5 instead of 10.
+# In version 1.1-285 the threshold is made a parameter from sienaModelCreate,
+# still with default 5;
+# and for the case !x$diagg, a multivariate truncation is used.
+
+		if (x$diagg)
+		{
+        maxRatio <- max(ifelse(z$fixed, 1.0, abs(fra)/ z$sd), na.rm=TRUE)
+		# note: this is a number, not a vector
+		}
+		else
+		{
+			if (z$pp > sum(z$fixed))
+			{
+				maxRatio <-
+					max(sqrt((t(fra[!z$fixed]) %*% z$sf.invcov %*% fra[!z$fixed]) /
+														(z$pp-sum(z$fixed))))
+# the max() is just to turn the (1,1) matrix into a number.
+			}
+			else
+			{
+				maxRatio <- 1.0
+			}
+		}
+		if ((is.na(maxRatio)) || (is.nan(maxRatio)))
+		{
+			maxRatio <- 1.0
+		}
+		if (maxRatio > x$truncation)
+		{
+			fra <- x$truncation*fra/maxRatio
+			z$truncated[z$nit] <- TRUE
+		}
+		if (subphase > x$doubleAveraging)
+		{
+			sumfra <- sumfra + fra
+			fra <- sumfra
+		}
+		if (x$standardizeVar)
+		{
+			if (x$diagg)
+			{
+				changestep <- fra / z$sd
+			}
+			else
+			{
+				if (x$standardizeWithTruncation)
+				{
+					changestep <- (as.vector(z$dinvv %*% fra))*pmin(z$standardization, 1)
+				}
+				else
+				{
+					changestep <- (as.vector(z$dinvv %*% fra))*z$standardization
+				}
+			}
+		}
+		else
+		{
         if (x$diagg)
 		{
             changestep <- fra / diag(z$dfra)
 		}
 		else
 		{
-			changestep <- as.vector(fra %*% z$dinvv)
+				changestep <- as.vector(z$dinvv %*% fra)
+			}
 		}
 		changestep[z$fixed] <- 0.0
-		maxratt <- max(abs(changestep))
-		if (maxratt > 5)
-		{
-			changestep <- 5*changestep/maxratt
-           	z$truncated[z$nit] <- TRUE
-		}
         fchange <- as.vector(z$gain * changestep)
         ## check positivity restriction
-        z$positivized[z$nit, ] <- z$posj & (fchange > z$theta)
+		z$positivized[fchange > z$theta] <- z$positivized[fchange > z$theta] +1
+		z$positivized[!z$posj] <- 0
         fchange <- ifelse(z$posj & (fchange > z$theta), z$theta * 0.5, fchange)
+		if (subphase > x$doubleAveraging)
+		{
+			zsmall$theta <- (z$thav/z$thavn) - fchange
+		}
+		else
+		{
         zsmall$theta <- zsmall$theta - fchange
+		}
         z$theta <- zsmall$theta
-#		z$thetaStore[z$nit,] <- z$theta
         z$thav <- z$thav + zsmall$theta
         z$thavn <- z$thavn + 1
         if (x$maxlike && !is.null(x$moreUpdates) && x$moreUpdates > 0)
@@ -365,13 +432,16 @@ doIterations<- function(z, x, subphase,...)
             break
         }
         ## do we stop?
+		if (!(is.na(z$minacor) || is.na(z$maxacor)))
+		{
         if ((z$nit >= z$n2min && z$maxacor < 1e-10)||
-			   (z$nit >= z$n2max)||
-			   ((z$nit >= 50) && (z$minacor < -0.8) &&
+				(z$nit >= z$n2max)
+				|| ((z$nit >= 50) && (z$minacor < -0.8) &&
                 (z$repeatsubphase < z$maxrepeatsubphase)))
         {
             break
         }
+		}
     }
     z
 }

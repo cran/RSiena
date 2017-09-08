@@ -25,7 +25,9 @@ enum MHStepType {INSDIAG, CANCDIAG, PERMUTE, INSPERM, DELPERM, INSMISS,
 
 class MiniStep;
 class Option;
-
+class DependentVariable;
+class NetworkVariable;
+    
 /**
  * This class provides the functionality necessary for simulating an ML model
  * between two observations.
@@ -86,6 +88,12 @@ public:
 	void recordOutcome(const MiniStep & miniStep, bool accept,
 		int stepType, bool misdat);
 
+    bool neighbourhoodChange(MiniStep * pMiniStep1, MiniStep * pMiniStep2,
+                             DependentVariable * pVariable,
+                             NetworkVariable * pNetworkVariable,
+                             int ego1, int alter1);
+    
+
 private:
 	void setStateBefore(MiniStep * pMiniStep);
 	void resetVariables();
@@ -109,9 +117,8 @@ private:
 	double lcurrentPermutationLength;
 	int lthisPermutationLength;
 
-
 	// A vector of options with missing values in the initial observation
-	vector<const Option *> linitialMissingOptions;
+	std::vector<const Option *> linitialMissingOptions;
 };
 
 }

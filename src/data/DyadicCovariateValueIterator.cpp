@@ -12,6 +12,8 @@
 #include "DyadicCovariateValueIterator.h"
 #include "utils/Utils.h"
 
+using namespace std;
+
 namespace siena
 {
 

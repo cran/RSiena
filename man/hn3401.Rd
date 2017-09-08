@@ -5,7 +5,7 @@
 \alias{HN3404}
 \alias{HN3406}
 \docType{data}
-\title{Network data: excerpt from 'Dutch Social Behavior Data Set'
+\title{Network data: excerpt from "Dutch Social Behavior Data Set"
 of Chris Baerveldt.
 }
 \description{

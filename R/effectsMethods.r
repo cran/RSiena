@@ -11,7 +11,7 @@
 ## ****************************************************************************/
 ##@print.sienaEffects Methods
 print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
-                               expandDummies=FALSE, ...)
+                               expandDummies=FALSE, includeRandoms=FALSE, dropRates=FALSE, ...)
 {
     if (!inherits(x, "sienaEffects"))
         stop("not a legitimate Siena effects object")
@@ -42,18 +42,28 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
     if (nrow(x) > 0)
     {
         nDependents <- length(unique(x$name))
-        userSpecifieds <- x$shortName[x$include] %in% c("unspInt", "behUnspInt")
+        userSpecifieds <- x$shortName[x$include] %in%
+												c("unspInt", "behUnspInt")
         endowments <- !x$type[x$include] %in% c("rate", "eval")
+											# includes creations and gmm
+		gmm <- any(x$type[x$include] %in% "gmm")
         timeDummies <- !x$timeDummy[x$include] == ","
-        specs <- x[, c("name", "effectName", "include", "fix", "test",
-                       "initialValue", "parm")]
+        specs <- as.data.frame(x[, c("name", "effectName", "include", "fix",
+											"test", "initialValue", "parm")])
+        specs.br <- x$basicRate
         if (includeOnly)
         {
             specs <- specs[x$include, ]
+            row.names(specs) <- 1:nrow(specs)
+        }
+        if (dropRates)
+        {
+            specs.br <- specs.br[x$include]
+            specs <- specs[!specs.br, ]
         }
         if (nDependents == 1)
         {
-            specs <- specs[, -1]
+            specs <- specs[, -1]  # drop name of dependent variable
         }
         if (any(endowments))
         {
@@ -71,13 +81,37 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
                 specs <- cbind(specs, effect3=x[x$include, "effect3"])
             }
         }
+		if (includeRandoms)
+		{
+		     specs <- cbind(specs, randomEffects=x[x$include, "randomEffects"])
+   		}
         specs[, "initialValue"] <- format(round(specs$initialValue,digits=5),
                                           width=10)
         if (nrow(specs) > 0)
         {
-            row.names(specs) <- 1:nrow(specs)
+			if (gmm)
+			{
+				cat('  For estimation by the Generalized Method of Moments\n')
+				cat('  Effects\n')
+				if (any(specs$type!='gmm'))
+				{
+					specs1 <- specs[specs$type!='gmm',]
+					row.names(specs1) <- 1:nrow(specs1)
+					print(as.matrix(specs1), quote=FALSE)
+				}
+				if (any(specs$type=='gmm'))
+				{
+					cat('\n	 Statistics\n')
+					specs2 <- specs[specs$type=='gmm',]
+					row.names(specs2) <- 1:nrow(specs2)
+					print(as.matrix(specs2[,c(1:2,7)]), quote=FALSE)
+				}
+			}
+			else
+			{
             print(as.matrix(specs), quote=FALSE)
         }
+		}
         else
         {
             print.data.frame(specs)
@@ -86,6 +120,21 @@ print.sienaEffects <- function(x, fileName=NULL, includeOnly=TRUE,
     else
     {
         print.data.frame(x)
+    }
+    if (includeRandoms)
+    {
+        nreff <- sum(x$randomEffects & x$include)
+        nrate <- sum(x$basicRate & x$include & (x$group==2))
+        if (nrate > 0) # else there is only one group, and counting should be different.
+        {
+            cat('Dimensions of priorMu and priorSigma for sienaBayes should be',
+                nreff, '+', nrate, '=', nreff+nrate,'.\n')
+        }
+        else if (dim(x)[1] > 1)
+        # to avoid the following if called from includeInteraction or setEffect
+        {
+            cat('There are', nreff, 'random effects.\n')
+        }
     }
     if (typeof(fileName)=="character")
     {
@@ -170,4 +219,80 @@ edit.sienaEffects <- function(name, ...)
     tmp <- tmp[, match(originalNames, names(tmp))]
     class(tmp) <- c("sienaEffects", class(tmp))
     tmp
+}
+
+##@updateSpecification Methods add specified effects from other effects object
+updateSpecification <- function(effects.to, effects.from, name.to=NULL, name.from=NULL)
+{
+	if (!inherits(effects.to, "data.frame"))
+	{
+		stop("effects.to is not a data.frame")
+	}
+	if (!inherits(effects.from, "data.frame"))
+	{
+		stop("effects.from is not a data.frame")
+	}
+	if (is.null(name.from))
+	{
+		prevEffects <-
+			effects.from[which((effects.from$type != 'gmm')&((effects.from$include))),]
+	}
+	else
+	{
+		if (!is.character(name.from))
+		{
+			stop("name.from should be a string")
+		}
+		prevEffects <-
+			effects.from[which((effects.from$type != 'gmm')&((effects.from$include))&
+				(effects.from$name == name.from)),]
+	}
+	oldlist <- apply(prevEffects, 1, function(x)
+					 paste(x[c("name", "shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period", "effect1", "effect2", "effect3")],
+						   collapse="|"))
+	efflist <- apply(effects.to, 1, function(x)
+					 paste(x[c("name", "shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period", "effect1", "effect2", "effect3")],
+							collapse="|"))
+	if (!(is.null(name.to)))
+	{
+		if (!is.character(name.to))
+		{
+			stop("name.to should be a string")
+		}
+		else if (name.to == "all") # omit matching on "name"
+		{
+			oldlist <- apply(prevEffects, 1, function(x)
+					 paste(x[c("shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period", "effect1", "effect2", "effect3")],
+						   collapse="|"))
+			efflist <- apply(effects.to, 1, function(x)
+					 paste(x[c("shortName",
+							   "type", "groupName",
+							   "interaction1", "interaction2",
+							   "period", "effect1", "effect2", "effect3")],
+							collapse="|"))
+		}
+	}
+	use <- (efflist %in% oldlist)
+	correspondence <- match(efflist, oldlist)
+	if (!(is.null(name.to)))
+	{
+		if (name.to != "all")
+		{
+			use <- (use & (effects.to$name == name.to))
+		}
+	}
+	effects.to$include[use] <- TRUE
+	effects.to$fix[use] <- prevEffects$fix[correspondence][use]
+	effects.to$test[use] <- prevEffects$test[correspondence][use]
+	effects.to$parameter[use] <- prevEffects$parameter[correspondence][use]
+	effects.to
 }

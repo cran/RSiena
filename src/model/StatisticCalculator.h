@@ -14,8 +14,6 @@
 
 #include <map>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -58,11 +56,19 @@ public:
 		const Model * pModel,
 		State * pState,
 		int period);
+	StatisticCalculator(const Data * pData,
+		const Model * pModel, State * pState,
+		int period, bool returnActorStatistics);
+	StatisticCalculator(const Data * pData,
+		const Model * pModel, State * pState,
+		int period, bool returnActorStatistics, bool returnStaticChangeContributions);
 	virtual ~StatisticCalculator();
 
 	double statistic(EffectInfo * pEffectInfo) const;
+	std::vector<double *> staticChangeContributions(EffectInfo * pEffect) const;
+	double * actorStatistics(EffectInfo * pEffect) const;
 	int distance(LongitudinalData * pData, int period) const;
-	int settingDistance(LongitudinalData * pData, string setting,
+	int settingDistance(LongitudinalData * pData, std::string setting,
 		int period) const;
 
 private:
@@ -81,12 +87,12 @@ private:
 	// Functions to calculate value of diffusion rate effect
 	double calculateDiffusionRateEffect(BehaviorLongitudinalData *
 		pBehaviorData, const Network * pStructural, int i,
-		string effectName);
+		std::string effectName);
 	double calculateDiffusionRateEffect(BehaviorLongitudinalData *
 		pBehaviorData, const Network * pStructural,
 		const ConstantCovariate * pConstantCovariate,
 		const ChangingCovariate * pChangingCovariate,
-		int i, string effectName);
+		int i, std::string effectName);
 
 	// The data to be used for calculating the statistics
 	const Data * lpData;
@@ -100,18 +106,30 @@ private:
 	// The period of the evolution we are interested in
 	int lperiod;
 
+	// indicates whether actor statistics are needed
+	bool lneedActorStatistics;
+	
+	// indicates whether change contributions are needed
+	bool lcountStaticChangeContributions;
+
 	// The resulting map of statistic values
-	map<EffectInfo *, double> lstatistics;
+	std::map<EffectInfo *, double> lstatistics;
+
+	// The resulting map of actor statistic values
+	std::map<EffectInfo *, double * > lactorStatistics;
+
+	// The change contributions of all effects
+	std::map<EffectInfo *, std::vector<double *> > lstaticChangeContributions;
 
 	// Array of simulated distances per variable
-	map<LongitudinalData *, int *> ldistances;
+	std::map<LongitudinalData *, int *> ldistances;
 
 	// Array of simulated distances per setting per network variable
-	map<LongitudinalData *, map<std::string, int *> > lsettingDistances;
+	std::map<LongitudinalData *, std::map<std::string, int *> > lsettingDistances;
 
 	State * lpPredictorState;
 
-    State * lpStateLessMissingsEtc;
+	State * lpStateLessMissingsEtc;
 };
 
 }

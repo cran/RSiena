@@ -15,8 +15,6 @@
 #include <string>
 #include "AlterFunction.h"
 
-using namespace std;
-
 namespace siena
 {
 

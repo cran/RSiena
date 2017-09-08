@@ -8,20 +8,17 @@
  * Description: This file contains the implementation of the
  * DiffusionEffectValueTable class.
  *****************************************************************************/
-using namespace std;
 #include <cmath>
 #include "DiffusionEffectValueTable.h"
 
-namespace siena
-{
+namespace siena {
 
 /**
  * Creates a new look-up table for <i>n</i> actors.
  */
 
 DiffusionEffectValueTable::DiffusionEffectValueTable(int numeratorRange,
-						     int denominatorRange)
-{
+		int denominatorRange) {
 	this->lvalues = new double[numeratorRange * denominatorRange];
 	this->lparameterValues = new double[numeratorRange * denominatorRange];
 
@@ -31,8 +28,7 @@ DiffusionEffectValueTable::DiffusionEffectValueTable(int numeratorRange,
 	this->ldenominatorRange = denominatorRange;
 	this->lnumeratorRange = numeratorRange;
 
-	for (int i = 0; i < numeratorRange * denominatorRange; i++)
-	{
+	for (int i = 0; i < numeratorRange * denominatorRange; i++) {
 		// exp(0) = 1
 
 		this->lvalues[i] = 1;
@@ -43,8 +39,7 @@ DiffusionEffectValueTable::DiffusionEffectValueTable(int numeratorRange,
 /**
  * Deallocates this look-up table.
  */
-DiffusionEffectValueTable::~DiffusionEffectValueTable()
-{
+DiffusionEffectValueTable::~DiffusionEffectValueTable() {
 	delete[] this->lvalues;
 	delete[] this->lparameterValues;
 
@@ -52,41 +47,34 @@ DiffusionEffectValueTable::~DiffusionEffectValueTable()
 	this->lparameterValues = 0;
 }
 
-
 /**
  * Returns the current value of the effect parameter.
  */
-double DiffusionEffectValueTable::parameter() const
-{
+double DiffusionEffectValueTable::parameter() const {
 	return this->lparameter;
 }
-
 
 /**
  * Stores the effect parameter.
  */
-void DiffusionEffectValueTable::parameter(double value)
-{
+void DiffusionEffectValueTable::parameter(double value) {
 	this->lparameter = value;
 }
-
 
 /**
  * Returns the value of the effect.
  */
 
-double DiffusionEffectValueTable::value(int numerator, int denominator)
-{
-	int arrayIndex = ((numerator - 1) * this->ldenominatorRange) +
-		(denominator - 1);
+double DiffusionEffectValueTable::value(int numerator, int denominator) {
+	int arrayIndex = ((numerator - 1) * this->ldenominatorRange)
+			+ (denominator - 1);
 
-	if (this->lparameterValues[arrayIndex] != this->lparameter)
-	{
+	if (this->lparameterValues[arrayIndex] != this->lparameter) {
 		// The value stored in the table was calculated for a different
 		// parameter, hence we must recalculate the value.
 
-		this->lvalues[arrayIndex] = exp(this->lparameter *
-			(double)numerator / (double)denominator);
+		this->lvalues[arrayIndex] = std::exp(
+				this->lparameter * (double) numerator / (double) denominator);
 		this->lparameterValues[arrayIndex] = this->lparameter;
 	}
 

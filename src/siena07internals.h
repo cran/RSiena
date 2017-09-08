@@ -12,13 +12,14 @@
 #ifndef SIENA07INTERNALS_H_
 #define SIENA07INTERNALS_H_
 
+#include <Rinternals.h>
 #include <vector>
 
 namespace siena
 {
 	class Data;
 	class Model;
-    class StatisticCalculator;
+	class StatisticCalculator;
 	class EpochSimulation;
 	class MLSimulation;
 	class NetworkLongitudinalData;
@@ -29,7 +30,7 @@ namespace siena
 	class ConstantDyadicCovariate;
 	class ChangingDyadicCovariate;
 }
-using namespace std;
+
 using namespace siena;
 
 /**
@@ -44,7 +45,7 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 /**
  *  updates the parameter values for each of the effects.
  */
-void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
+void updateParameters(SEXP EFFECTSLIST, SEXP THETA, std::vector<Data *> *
 	pGroupData, Model * pModel);
 
 /**
@@ -180,19 +181,38 @@ void setupExogenousEventGroup(SEXP EXOGEVENTGROUP, Data *pData);
 /**
  *  Creates all the basic effects for one network
  */
-SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
-	const char *networkName, int effectCol,
-	int parmCol, int int1Col, int int2Col,
-	int initValCol, int typeCol, int groupCol,
-	int periodCol, int rateTypeCol,
-	int netTypeCol, int settingCol);
+SEXP createEffects(SEXP EFFECTS, Model *pModel, std::vector<Data *> * pGroupData,
+		const char *networkName, int effectCol,
+		int parmCol, int int1Col, int int2Col,
+		int initValCol, int typeCol, int groupCol,
+		int periodCol, int rateTypeCol,
+		int netTypeCol, int settingCol);
 
 /**
  *  Creates all the interaction effects for one network
  */
 SEXP createInteractionEffects(SEXP EFFECTS, Model *pModel,
-	 const char *networkName, int effectCol, int initValCol,
-	int typeCol, int intptr1Col, int intptr2Col, int intptr3Col);
+		const char *networkName, int effectCol, int initValCol,
+		int typeCol, int intptr1Col, int intptr2Col, int intptr3Col);
+
+/**
+ *  Retrieves the contributions to all possible tie flips or behavior changes
+ *  for each of the effects, for one period. The call will relate to one group
+ *  only, although all effects are the same apart from the basic rates. Not
+ *  used in maximum likelihood.
+ */
+void getChangeContributionStatistics(SEXP EFFECTSLIST,
+	const StatisticCalculator * pCalculator,
+	std::vector<std::vector<double * > > *rChangeContributions);
+
+/**
+ *  Retrieves the statistics of individual actors for each of the effects,
+ *  for one period. The call will relate to one group only, although all effects
+ *  are the same apart from the basic rates. Not used in maximum likelihood.
+ */
+void getActorStatistics(SEXP EFFECTSLIST,
+	const StatisticCalculator * pCalculator,
+	std::vector<double *> *rActorStatistics);
 
 /**
  *  Retrieves the values of the statistics and scores for each of the effects,
@@ -203,7 +223,7 @@ void getStatistics(SEXP EFFECTSLIST,
 	const StatisticCalculator * pCalculator,
 	int period, int group, const Data *pData,
 	const EpochSimulation * pEpochSimulation,
-	vector<double> * rfra, vector<double> *rscore);
+	std::vector<double> * rfra, std::vector<double> *rscore);
 
 /**
  *  retrieves the values of the scores and derivatives for each of the effects,
@@ -212,6 +232,6 @@ void getStatistics(SEXP EFFECTSLIST,
  */
 void getScores(SEXP EFFECTSLIST, int period, int group,
 	const MLSimulation * pMLSimulation,
-	vector<double> * rderiv, vector<double> *rscore);
+	std::vector<double> * rderiv, std::vector<double> *rscore);
 
 #endif /*SIENA07INTERNALS_H_*/

@@ -33,7 +33,9 @@
 }
 \value{
  The function \code{print.sienaMeta} prints details of the merged
- estimates of the meta-analysis, with test statistics.
+ estimates of the meta-analysis carried out by \code{\link{siena08}}, 
+ with test statistics. See the help page for \code{\link{siena08}}
+ for what is produced by this function.
 
  The function \code{summary.sienaMeta} prints details as for the
  \code{print} method, but also details of the \code{sienaFit} objects
@@ -61,6 +63,7 @@
 }
 \author{Ruth Ripley, Tom Snijders
 }
+\seealso{\code{\link{siena08}}}
 
 \examples{
 \dontrun{
@@ -75,7 +78,7 @@ Group4 <- sienaDependent(array(c(N3404, HN3404), dim=c(33, 33, 2)))
 dataset.1 <- sienaDataCreate(Friends = Group1)
 dataset.3 <- sienaDataCreate(Friends = Group3)
 dataset.4 <- sienaDataCreate(Friends = Group4)
-OneAlgorithm <- sienaAlgorithmCreate(projname = 'SingleGroups')
+OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups")
 effects.1 <- getEffects(dataset.1)
 effects.3 <- getEffects(dataset.3)
 effects.4 <- getEffects(dataset.4)
@@ -93,6 +96,16 @@ ans.3
 ans.4
 (meta <- siena08(ans.1, ans.3, ans.4))
 summary(meta)
+# For specifically presenting the Fisher combinations:
+# First determine the number of estimated effects:
+(neff <- sum(sapply(meta, function(x){ifelse(is.list(x),!is.null(x$cjplus),FALSE)})))
+Fishers <- t(sapply(1:neff,
+        function(i){c(meta[[i]]$cjplus, meta[[i]]$cjminus,
+                        meta[[i]]$cjplusp, meta[[i]]$cjminusp, 2*meta[[i]]$n1 )}))
+Fishers <- as.data.frame(Fishers, row.names=names(meta)[1:neff])
+names(Fishers) <- c('Fplus', 'Fminus', 'pplus', 'pminus', 'df')
+Fishers
+# For plotting:
 plo <- plot(meta, layout = c(3,1))
 plo
 plo[3]

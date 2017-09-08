@@ -17,8 +17,6 @@
 #include <string>
 #include "data/Data.h"
 
-using namespace std;
-
 namespace siena
 {
 
@@ -48,117 +46,116 @@ class MiniStep;
 class EpochSimulation
 {
 public:
-    EpochSimulation(Data * pData, Model * pModel);
-    virtual ~EpochSimulation();
+	EpochSimulation(Data * pData, Model * pModel);
+	virtual ~EpochSimulation();
 
-    void initialize(int period);
+	void initialize(int period);
 
-    // Method of moments related
-    void runEpoch(int period);
+	// Method of moments related
+	void runEpoch(int period);
 
-    // Accessors
+	// Accessors
+	const Data * pData() const;
+	const Model * pModel() const;
+	const DependentVariable * pVariable(std::string name) const;
+	const std::vector<DependentVariable *> & rVariables() const;
+	const SimulationActorSet * pSimulationActorSet(
+			const ActorSet * pOriginalActorSet) const;
+	int period() const;
+	double time() const;
+	Cache * pCache() const;
 
-    const Data * pData() const;
-    const Model * pModel() const;
-    const DependentVariable * pVariable(string name) const;
-    const vector<DependentVariable *> & rVariables() const;
-    const SimulationActorSet * pSimulationActorSet(
-    	const ActorSet * pOriginalActorSet) const;
-    int period() const;
-    double time() const;
-    Cache * pCache() const;
+	// Scores
 
-    // Scores
-
-    double score(const EffectInfo * pEffect) const;
-    void score(const EffectInfo * pEffect, double value);
-	map<const EffectInfo *, double>
+	double score(const EffectInfo * pEffect) const;
+	void score(const EffectInfo * pEffect, double value);
+	std::map<const EffectInfo *, double>
 		derivative(const EffectInfo * pEffect1) const;
 	double derivative(const EffectInfo * pEffect1,
-		const EffectInfo * pEffect2) const;
+			const EffectInfo * pEffect2) const;
 	void derivative(const EffectInfo * pEffect1, const EffectInfo * pEffect2,
-		double value);
+			double value);
 	Chain * pChain();
 	void  pChain(Chain * pChain);
 	void clearChain();
 	void updateParameters(int period);
-    double calculateLikelihood() const;
+	double calculateLikelihood() const;
 
 	void simpleRates(bool flag);
 	bool simpleRates() const;
 
 	double lnFactorial(int a) const;
 protected:
-    void calculateRates();
-    double totalRate() const;
-    DependentVariable * chooseVariable() const;
-    int chooseActor(const DependentVariable * pVariable) const;
+	void calculateRates();
+	double totalRate() const;
+	DependentVariable * chooseVariable() const;
+	int chooseActor(const DependentVariable * pVariable) const;
 
-    // A vector of dependent variables with their current values
-    vector<DependentVariable *> lvariables;
+	// A vector of dependent variables with their current values
+	std::vector<DependentVariable *> lvariables;
 
 private:
-    void runStep();
-    void drawTimeIncrement();
-    bool reachedCompositionChange() const;
-    void makeNextCompositionChange();
+	void runStep();
+	void drawTimeIncrement();
+	bool reachedCompositionChange() const;
+	void makeNextCompositionChange();
 	void setLeaversBack();
-    void accumulateRateScores(double tau,
-    	const DependentVariable * pSelectedVariable = 0,
-    	int selectedActor = 0);
+	void accumulateRateScores(double tau,
+			const DependentVariable * pSelectedVariable = 0,
+			int selectedActor = 0);
 
-    // The observed data the model is based on
-    Data * lpData;
+	// The observed data the model is based on
+	Data * lpData;
 
-    // The actor-based model to be simulated
-    Model * lpModel;
+	// The actor-based model to be simulated
+	Model * lpModel;
 
-    // A wrapper object per actor set for simulation purposes
-    vector<SimulationActorSet *> lsimulationActorSets;
+	// A wrapper object per actor set for simulation purposes
+	std::vector<SimulationActorSet *> lsimulationActorSets;
 
-    // Stores the wrappers of each original actor set
-    map<const ActorSet *, SimulationActorSet *> lactorSetMap;
+	// Stores the wrappers of each original actor set
+	std::map<const ActorSet *, SimulationActorSet *> lactorSetMap;
 
-    // The dependent variable for look-ups by variable names
-    map<string, DependentVariable *> lvariableMap;
+	// The dependent variable for look-ups by variable names
+	std::map<std::string, DependentVariable *> lvariableMap;
 
-    // The current period to be simulated
-    int lperiod;
+	// The current period to be simulated
+	int lperiod;
 
-    // An array of cummulative rates used for the random selection of
-    // the dependent variable to change and the actor to make the change.
+	// An array of cummulative rates used for the random selection of
+	// the dependent variable to change and the actor to make the change.
 
-    double * lcummulativeRates;
+	double * lcummulativeRates;
 
-    // The total rate over all dependent variables
-    double ltotalRate;
+	// The total rate over all dependent variables
+	double ltotalRate;
 
-    // The current time of the simmulation
-    double ltime;
+	// The current time of the simmulation
+	double ltime;
 
-    // The current increment of time of the simmulation
-    double ltau;
+	// The current increment of time of the simmulation
+	double ltau;
 
-    // A sorted set of exogenous events of composition change
-    const EventSet * lpEvents;
+	// A sorted set of exogenous events of composition change
+	const EventSet * lpEvents;
 
-    // An iterator to the next event still to be processed.
-    EventSet::const_iterator lnextEvent;
+	// An iterator to the next event still to be processed.
+	EventSet::const_iterator lnextEvent;
 
-    // Target amount of change for this period if we are using conditional simulation
-    int ltargetChange;
+	// Target amount of change for this period if we are using conditional simulation
+	int ltargetChange;
 
-    // The dependent variable the simulation is conditioned upon
-    DependentVariable * lpConditioningVariable;
+	// The dependent variable the simulation is conditioned upon
+	DependentVariable * lpConditioningVariable;
 
-    // Values of scores in this simulation: one for each selected effect,
-    // including the rate effects, but excluding the basic rate effect.
+	// Values of scores in this simulation: one for each selected effect,
+	// including the rate effects, but excluding the basic rate effect.
 
-    map<const EffectInfo *, double> lscores;
-    map<const EffectInfo *, map <const EffectInfo *, double> > lderivatives;
+	std::map<const EffectInfo *, double> lscores;
+	std::map<const EffectInfo *, std::map <const EffectInfo *, double> > lderivatives;
 
-    State * lpState;
-    Cache * lpCache;
+	State * lpState;
+	Cache * lpCache;
 
 	Chain * lpChain;
 	bool lsimpleRates;

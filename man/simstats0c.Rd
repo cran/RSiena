@@ -5,7 +5,7 @@
 \alias{terminateFRAN}
 \title{Versions of FRAN}
 \description{
- The functions to be called as 'FRAN' by \code{\link{siena07}}.
+ The functions to be called as "FRAN" by \code{\link{siena07}}.
  They call compiled C++.
 }
 \usage{
@@ -63,6 +63,7 @@ terminateFRAN(z, x)
     with \command{sienaProfile.exe}.}
 }
 \details{
+  Not for general users' use.\cr
   The name of \code{simstats0c} or \code{maxlikec}
   should be used for the element FRAN of the model object, the former  when using
   estimation by forward simulation, the latter for maximum likelihood estimation.

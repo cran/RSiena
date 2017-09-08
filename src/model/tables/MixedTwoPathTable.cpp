@@ -47,8 +47,23 @@ void MixedTwoPathTable::calculate()
 {
 	// Reset the counters to zeroes
 	this->reset();
-	this->performFirstStep(
-		this->pFirstNetwork()->outTies(this->ego()));
+	if (this->lfirstStepDirection == FORWARD)
+	{
+		this->performFirstStep(
+				this->pFirstNetwork()->outTies(this->ego()));
+	}
+	else if (this->lfirstStepDirection == BACKWARD)
+	{
+		this->performFirstStep(
+				this->pFirstNetwork()->inTies(this->ego()));
+	}
+	else
+	{
+		const OneModeNetwork * pOneModeFirstNetwork =
+			dynamic_cast<const OneModeNetwork *>(this->pFirstNetwork());
+		this->performFirstStep(
+				pOneModeFirstNetwork->reciprocatedTies(this->ego()));
+	}
 }
 
 
@@ -69,9 +84,24 @@ void MixedTwoPathTable::performFirstStep(Iterator iter)
 	{
 		int middleActor = iter.actor();
 		iter.next();
-
-		this->performSecondStep(
-			this->pSecondNetwork()->outTies(middleActor));
+		// Choose the right iterator for the second step
+		if (this->lsecondStepDirection == FORWARD)
+		{
+			this->performSecondStep(
+					this->pSecondNetwork()->outTies(middleActor));
+		}
+		else if (this->lsecondStepDirection == BACKWARD)
+		{
+			this->performSecondStep(
+					this->pSecondNetwork()->inTies(middleActor));
+		}
+		else
+		{
+			const OneModeNetwork * pOneModeSecondNetwork =
+				dynamic_cast<const OneModeNetwork *>(this->pSecondNetwork());
+			this->performSecondStep(
+					pOneModeSecondNetwork->reciprocatedTies(middleActor));
+		}
 	}
 }
 

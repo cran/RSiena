@@ -32,6 +32,19 @@ CovariateSimilarityEffect::CovariateSimilarityEffect(
 	this->lreciprocal = reciprocal;
 }
 
+/**
+ * Constructor.
+ * @param[in] pEffectInfo the effect descriptor
+ * @param[in] reciprocal indicates if only reciprocal ties have to be
+ * considered
+ * @param simulatedState If `true` the value() function uses the simulated
+ *        state, if any or the value at the end of the period.
+ */
+CovariateSimilarityEffect::CovariateSimilarityEffect(
+	const EffectInfo * pEffectInfo, bool reciprocal, const bool simulatedState) :
+		CovariateDependentNetworkEffect(pEffectInfo, simulatedState) {
+	this->lreciprocal = reciprocal;
+}
 
 /**
  * Calculates the contribution of a tie flip to the given actor.

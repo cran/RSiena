@@ -15,6 +15,7 @@
 #include "utils/SqrtTable.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
+#include "data/NetworkLongitudinalData.h"
 
 namespace siena
 {
@@ -64,6 +65,23 @@ double OutdegreeActivitySqrtEffect::calculateContribution(int alter)
 double OutdegreeActivitySqrtEffect::tieStatistic(int alter)
 {
 	return this->lsqrtTable->sqrt(this->pNetwork()->outDegree(this->ego()));
+}
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+double OutdegreeActivitySqrtEffect::endowmentStatistic(Network * pLostTieNetwork)
+{
+	double statistic = 0;
+	const Network* pStart = this->pData()->pNetwork(this->period());
+	int n = pStart->n();
+	for (int i = 0; i < n; i++)
+	{
+		double routdeg =  this->lsqrtTable->sqrt(pStart->outDegree(i));
+		statistic += routdeg * pLostTieNetwork->outDegree(i);
+	}
+	return statistic;
 }
 
 }

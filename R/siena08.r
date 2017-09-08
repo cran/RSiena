@@ -11,7 +11,15 @@
 ##@siena08 siena08
 siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 {
+	fitList <- (!inherits(list(...)[[1]], 'sienaFit'))
+	if (fitList)
+	{
+		dots <- (list(...))[[1]]
+	}
+	else
+	{
     dots <- as.list(substitute(list(...)))[-1] ##first entry is the word 'list'
+	}
     if (length(dots) == 0)
     {
         stop('need some sienafits')
@@ -25,7 +33,16 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
     {
         fixup <- nm == ''
     }
+	if (fitList)
+	{
+		listName <- deparse(substitute(fitList))
+		dep <- paste(listName, seq(along=fitList), sep='')
+	}
+	else
+	{
     dep <- sapply(dots[fixup], function(x) deparse(x)[1])
+		dots <- list(...)
+	}
     if (is.null(nm))
     {
         nm <- dep
@@ -34,7 +51,6 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
     {
         nm[fixup] <- dep
     }
-    dots <- list(...)
     names(dots) <- nm
     if (any(duplicated(nm)))
     {
@@ -208,6 +224,8 @@ print.sienaMeta <- function(x, file=FALSE, ...)
 
     ## estimates
 
+    Report(c("\nTests for mean parameters use a t-distribution with N-1 d.f.,\n" ,
+	         "where N = number of included groups.\n"), sep="", outf)
     Report(c("\nUpper bound used for standard error is",
              format(round(x$bound, 4), width=9, nsmall=2), ".\n"), sep="", outf)
 
@@ -369,7 +387,7 @@ reportp <- function(p, ndec)
 ##@plot.sienaMeta Methods
 plot.sienaMeta <- function(x, ..., layout = c(2,2))
 {
-    library(lattice)
+    ## library(lattice)
     tmp <- xyplot(theta ~ se|effects,
                   data=x$thetadf[is.na(x$thetadf$scoretests),],
                   ylab="estimates",
@@ -472,7 +490,7 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
             revision <- paste(" R-forge revision: ", rforgeRevision,
                               " ", sep="")
         }
-        Report(c("SIENA version ", packageValues[[1]], " (",
+        Report(c("RSiena version ", packageValues[[1]], " (",
                  format(as.Date(packageValues[[2]]), "%d %m %Y"), ")",
                  revision, "\n\n"), sep="", outf)
     }
@@ -670,11 +688,10 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
                                                  width=9),
                         " (d.f. = ", 2 * y$ns, "), ",
                         reportp(y$scoreplusp, 3), "\n"), sep="", outf)
-               Report("Combination of left one-sided p-values:\n", outf)
-               Report(c("Chi-squared = ",
-                        format(round(y$scoreminus, 4), width=9),
-                        " (d.f. = ", 2 * y$ns, "), ",
-                        reportp(y$scoreminusp, 3), "\n"), sep="", outf)
+        Report("Bonferroni combination of left and right one-sided p-values:\n",
+						outf)
+               Report(c(reportp(2*min(y$scoreminusp, y$scoreplusp), 3), "\n"),
+						sep="", outf)
            }
        }, y=x))
     }

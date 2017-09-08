@@ -40,6 +40,8 @@ public:
 	const int * values(int observation) const;
 	const int * valuesLessMissings(int observation) const;
 	const int * valuesLessMissingStarts(int observation) const;
+	void behModelType(int type);
+	int behModelType() const;
 
 	int min() const;
 	int max() const;
@@ -69,6 +71,9 @@ private:
 	// An array of values per each observation
 	int ** lvaluesLessMissingStarts;
 
+	// The behavioral model type.
+	int lbehModelType;
+
 	// The smallest non-missing value
 	int lmin;
 
@@ -91,7 +96,7 @@ private:
 	// lobservedDistributions[observation][value] stores the frequency of
 	// the given value at the given observation.
 
-	map<int, double> * lobservedDistributions;
+	std::map<int, double> * lobservedDistributions;
 };
 
 }

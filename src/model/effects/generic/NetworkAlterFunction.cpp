@@ -13,6 +13,8 @@
 #include "network/Network.h"
 #include "model/State.h"
 #include "model/tables/Cache.h"
+#include "model/tables/NetworkCache.h"
+
 
 namespace siena
 {
@@ -45,6 +47,22 @@ void NetworkAlterFunction::initialize(const Data * pData,
 	AlterFunction::initialize(pData, pState, period, pCache);
 	this->lpNetwork = pState->pNetwork(this->name());
 	this->lpNetworkCache = pCache->pNetworkCache(this->lpNetwork);
+}
+
+/**
+ * Returns if there is a tie from the current ego to the given alter.
+ */
+bool NetworkAlterFunction::outTieExists(int alter) const
+{
+	return this->lpNetworkCache->outTieExists(alter);
+}
+
+/**
+ * Returns if there is a tie from the given alter to the current ego.
+ */
+bool NetworkAlterFunction::inTieExists(int alter) const
+{
+	return this->lpNetworkCache->inTieExists(alter);
 }
 
 }

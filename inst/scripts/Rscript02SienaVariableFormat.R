@@ -2,7 +2,7 @@
 ###
 ### - Rscript02SienaVariableFormat.R: a script for the introduction to RSiena -
 ###
-###                               version April 14, 2013
+###                               version May 23, 2016
 ###############################################################################
 #
 # The introductory script is divided into the following script files:
@@ -210,7 +210,7 @@
 # Before we explain the object myeff and how we shall be going to use it,
 # we first produce a data description which is available now:
 
-        print01Report( mydata, myeff, modelname = 's50_3_init' )
+        print01Report( mydata, modelname = 's50_3_init' )
 
 # This writes a basic report of the data to the file
 # s50_3_init.out in the current working directory. Locate and open it!
@@ -272,7 +272,6 @@
 
 # ---- 1. Adding/removing effects using fix() ----------------------------------
 # fix calls a data editor internal to R, so we can manually edit the effects.
-# This operates the same as in the Gui.
 
 #        fix( myeff )
 

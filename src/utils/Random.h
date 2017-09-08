@@ -14,8 +14,6 @@
 
 #include <vector>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -75,7 +73,7 @@ int nextIntWithCumulativeProbabilities(int n, const T * p)
  * Permutes the elements in the given vector.
  */
 template<class T>
-void permuteVector(vector<T> & rVector)
+void permuteVector(std::vector<T> & rVector)
 {
 	for (unsigned i = 1; i < rVector.size(); i++)
 	{

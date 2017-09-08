@@ -23,9 +23,12 @@ namespace siena
  * Constructor.
  */
 AverageAlterEffect::AverageAlterEffect(
-	const EffectInfo * pEffectInfo) :
+	const EffectInfo * pEffectInfo, bool divide, bool alterPopularity) :
 		NetworkDependentBehaviorEffect(pEffectInfo)
 {
+	this->ldivide = divide;
+	// Indicates whether there will be division by the outdegree of ego
+	this->lalterPopularity = alterPopularity;
 }
 
 
@@ -39,6 +42,7 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 	double contribution = 0;
 	const Network * pNetwork = this->pNetwork();
 
+	contribution = totalAlterValue(actor);
 	if (pNetwork->outDegree(actor) > 0)
 	{
 		// The formula for the effect:
@@ -47,19 +51,25 @@ double AverageAlterEffect::calculateChangeContribution(int actor,
 		// v_i to v_i + d (d being the given amount of change in v_i).
 		// This is d * avg(v_j), the average being taken over all neighbors
 		// of i. This is what is calculated below.
-
-		double totalAlterValue = 0;
-
-		for (IncidentTieIterator iter = pNetwork->outTies(actor);
-			iter.valid();
-			iter.next())
+		// if (not divide), instead of avg the total is used.
+		if (this->lalterPopularity)
 		{
-			double alterValue = this->centeredValue(iter.actor());
-			totalAlterValue += alterValue;
+			for (IncidentTieIterator iter = pNetwork->outTies(actor);
+				 iter.valid();
+				 iter.next())
+			{
+				int j = iter.actor();
+				contribution += (this->centeredValue(j)) * (pNetwork->inDegree(j));
+			}
 		}
-
-		contribution = difference * totalAlterValue /
-			pNetwork->outDegree(actor);
+		else
+		{
+		contribution = difference * totalAlterValue(actor);
+		}
+		if (this->ldivide)
+		{
+			contribution /= pNetwork->outDegree(actor);
+		}
 	}
 
 	return contribution;
@@ -80,25 +90,29 @@ double AverageAlterEffect::egoStatistic(int i, double * currentValues)
 		 iter.valid();
 		 iter.next())
 	{
-		int j = iter.actor();
-
-		if (!this->missing(this->period(), j) &&
-			!this->missing(this->period() + 1, j))
+		if (this->lalterPopularity)
 		{
-			statistic += currentValues[j];
-			neighborCount++;
+			int j = iter.actor();
+			statistic += (currentValues[j]) * (pNetwork->inDegree(j));
 		}
+		else
+		{
+			statistic += currentValues[iter.actor()];
+		}
+		neighborCount++;
 	}
 
 	if (neighborCount > 0)
 	{
-		statistic *= currentValues[i] / neighborCount;
+		statistic *= currentValues[i];
+		if (this->ldivide)
+		{
+			statistic /= neighborCount;
+		}
 	}
 
 	return statistic;
 }
-
-
 
 /**
  * Returns the statistic corresponding to the given ego as part of
@@ -115,7 +129,7 @@ double AverageAlterEffect::egoEndowmentStatistic(int ego,
 
 	if (difference[ego] > 0)
 	{
-		if (pNetwork->outDegree(ego))
+		if (pNetwork->outDegree(ego) > 0)
 		{
 			double thisStatistic = 0;
 			double previousStatistic = 0;
@@ -125,17 +139,21 @@ double AverageAlterEffect::egoEndowmentStatistic(int ego,
 				 iter.next())
 			{
 				double alterValue = currentValues[iter.actor()];
-				double alterPreviousValue = currentValues[iter.actor()];
-				// +		difference[iter.actor()];
-				thisStatistic += iter.value() * alterValue;
-				previousStatistic += iter.value() * alterPreviousValue;
+				double alterPreviousValue = currentValues[iter.actor()]
+													+ difference[iter.actor()]; // this addition was absent until 1.1-292
+				thisStatistic += alterValue;
+				previousStatistic += alterPreviousValue;
+//				thisStatistic += iter.value() * alterValue; these lines also until 1.1-291; but iter.value is always 1?
+//				previousStatistic += iter.value() * alterPreviousValue;
 			}
 
-			thisStatistic *= currentValues[ego] / pNetwork->outDegree(ego);
-			previousStatistic *=
-				(currentValues[ego] + difference[ego]) /
-				pNetwork->outDegree(ego);
+			thisStatistic *= currentValues[ego];
+			previousStatistic *= (currentValues[ego] + difference[ego]);
 			statistic = thisStatistic - previousStatistic;
+			if (this->ldivide)
+			{
+				statistic /= pNetwork->outDegree(ego);
+			}
 		}
 	}
 

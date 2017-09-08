@@ -32,7 +32,7 @@ siena07Gui <- function(tt, getDocumentation=FALSE)
     }
     if (is.null(tt))
     {
-        library(tcltk)
+        ## require(tcltk)
         tt <- tktoplevel()
     }
     tkwm.title(tt,'Siena07')

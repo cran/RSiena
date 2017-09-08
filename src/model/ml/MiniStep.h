@@ -13,8 +13,8 @@
 #define MINISTEP_H_
 
 #include <string>
-
-using namespace std;
+#include <vector>
+#include <map>
 
 namespace siena
 {
@@ -27,6 +27,7 @@ class LongitudinalData;
 class DependentVariable;
 class Chain;
 class Option;
+class EffectInfo;
 
 
 // ----------------------------------------------------------------------------
@@ -47,7 +48,7 @@ public:
 
 	inline int ego() const;
 	int variableId() const;
-	string variableName() const;
+	std::string variableName() const;
 
 	virtual bool networkMiniStep() const;
 	virtual bool behaviorMiniStep() const;
@@ -99,6 +100,10 @@ public:
 	virtual MiniStep * createCopyMiniStep() const;
 
 	virtual bool firstOfConsecutiveCancelingPair() const;
+
+	std::map<const EffectInfo *, std::vector<double> >* changeContributions() const;
+	void changeContributions(std::map<const EffectInfo *, std::vector<double> > * contributions);
+
 
 protected:
 	void pOption(const Option * pOption);
@@ -172,6 +177,9 @@ private:
 	// of the same chain and x precedes y in the chain.
 
 	double lorderingKey;
+
+	// Stores for each effect its contributions to the tie flip probabilities or behavior change probabilities
+	std::map<const EffectInfo *, std::vector<double> > * lpChangeContributions;
 };
 
 

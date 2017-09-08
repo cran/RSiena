@@ -24,12 +24,19 @@ namespace siena
 class TransitiveTripletsEffect : public NetworkEffect
 {
 public:
-	TransitiveTripletsEffect(const EffectInfo * pEffectInfo);
+	TransitiveTripletsEffect(const EffectInfo * pEffectInfo, 
+					bool twoPath, bool twoInStar);
 
 	virtual double calculateContribution(int alter) const;
 
 protected:
 	virtual double tieStatistic(int alter);
+	
+private:
+	// twoPath indicates whether twopaths will be closed,
+	// twoInStar indicates whether two-instars will be closed.
+	bool ltwoPath;
+	bool ltwoInStar;
 };
 
 }

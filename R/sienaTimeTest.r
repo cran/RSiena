@@ -25,6 +25,20 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
     {
         stop("User interrupted run, object possibly incomplete")
     }
+	if (!is.null(sienaFit$gmm))
+	{
+		if (sienaFit$gmm)
+    	{
+        	stop("sienaTimeTest cannot be applied to results of GMoM estimation")
+    	}
+	}
+	if (!is.null(sienaFit$sf2.byIterations))
+	{
+		if (!sienaFit$sf2.byIterations)
+    	{
+        	stop("sienaTimeTest needs sf2 by iterations")
+    	}
+	}
     waveNumbers <- attr(sienaFit$f, "periodNos")
     nWaves <- length(waveNumbers)
 
@@ -43,7 +57,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	{
 		if (is.null(sienaFit$sdf2[[1]][[1]]))
 		{
-			stop("rerun Siena07 with the byWave option TRUE")
+			stop("rerun siena07 with the byWave option TRUE")
 		}
 	}
 	## get the desired effects
@@ -185,7 +199,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
         SF[subs1] <- scores[subs2]
         ## Put names onto SF for easy reference
         dimnames(SF) <- dimnames(G)
-        D <- derivativeFromScoresAndDeviations(SF, G)
+        D <- derivativeFromScoresAndDeviations(SF, G, , , , TRUE, )
     }
     else
     {
@@ -314,24 +328,28 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 			excludedNumber <- sum(extraExclusions)
 			if (excludedNumber <= 1)
 			{
-				cat(" effect",which(extraExclusions),".\n")
+				cat(" effect",":\n")
+				cat(paste(row(fitEffects)[baseInFit,][extraExclusions,][1],'.',
+				fitEffects$effectName[baseInFit][which(extraExclusions)],"\n "))
 			}
 			else
 			{
-				cat("\neffects ", which(extraExclusions)[1],
-					paste(", ",which(extraExclusions)[2:excludedNumber],sep=""),
-					".\n", sep="")
+				cat(" effects:\n")
+				cat(paste(row(fitEffects)[baseInFit,][extraExclusions,][,1],'.',
+				fitEffects$effectName[baseInFit][which(extraExclusions)],"\n "))
 			}
 			rankSigma <- qr(sigma)$rank
 			if (rankSigma < dim(sigma)[1])
 			{
 		cat("After these exclusions, there still are linear dependencies.\n")
+		cat("Advice: use sienaTimeTest with a smaller set of effects.\n\n")
 		stop("Please rerun sienaTimeTest with appropriate excluded effects.")
 			}
 		}
 		else
 		{
 			cat("Automatic discovery of dependencies had no effect.\n")
+			cat("Advice: use sienaTimeTest with a smaller set of effects.\n\n")
 		stop("Please rerun sienaTimeTest with appropriate excluded effects.")
 		}
 	}
@@ -339,7 +357,8 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
     ## with the score type test of Schweinberger (2007-2012)
 	fra <- apply(G, 3, sum) / nSims
 	doTests <- toTest$toTest
-	jointTest <- ScoreTest(nrow(toTest), D, sigma, fra, doTests,
+	redundant <- rep(FALSE, length(doTests))
+	jointTest <- ScoreTest(nrow(toTest), D, sigma, fra, doTests, redundant,
                            maxlike=sienaFit$maxlike)
 	jointTestP <- 1 - pchisq(jointTest$testresOverall, nDummies)
 	if (! condition)
@@ -353,14 +372,17 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
                                  doTests <- rep(FALSE, nEffects + nDummies)
                                  doTests[nEffects + i] <- TRUE
                                  test <- ScoreTest(nrow(toTest), D, sigma,
-										fra, doTests, maxlike=sienaFit$maxlike)
+							fra, doTests, redundant, maxlike=sienaFit$maxlike)
                                  test$testresulto[1]
                              }
                                  )
 	}
 	individualTestP <- 2 * (1- pnorm(abs(individualTest)))
+	if (!is.na(jointTestP))
+	{
 	rownames(jointTestP) <- "Joint Significant Test"
 	colnames(jointTestP) <- "p-Val"
+	}
 	thetaOneStep <- c(sienaFit$theta[estimatedInFit], rep(0, nDummies)) +
 		jointTest$oneStep
 	## Define the null hypothesis for the later tests (effect-wise and group-wise)
@@ -386,8 +408,9 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 						## Control for everything.
 							doTests[toTest$baseEffect == (x$baseEffect[1]) &
 										toTest$toTest] <- TRUE
+							redundant <- rep(FALSE, length(doTests))
 							test <- ScoreTest(nEffects + nDummies, D, sigma,
-									fra, doTests, maxlike=sienaFit$maxlike)
+								fra, doTests, redundant, maxlike=sienaFit$maxlike)
 							test$testresOverall
 						}
                      }
@@ -542,7 +565,8 @@ transformed.scoreTest <- function(dfra, msf, fra, A, nullHyp, maxlike)
 	g <- AA %*% fra
 	tested <- rep(FALSE, dim(AA)[1])
 	tested[(sum(nullHyp)+1):dim(AA)[1]] <- TRUE
-	EvaluateTestStatistic(maxlike, tested, D, sig, g)$cvalue
+	redundant <- rep(FALSE, dim(AA)[1])
+	EvaluateTestStatistic(maxlike, tested, redundant, D, sig, g)$cvalue
 }
 ##@partial.scoreTest siena07 score test for part of the additional effects
 partial.scoreTest <- function(dfra, msf, fra, test, nullHyp, maxlike)
@@ -685,7 +709,7 @@ print.sienaTimeTest <- function(x, ...)
 plot.sienaTimeTest <- function(x, pairwise=FALSE, effects,
 	scale=0.2, plevels=c(0.1, 0.05, 0.025), ...)
 {
-	require(lattice)
+	## require(lattice)
     tmp <- paste(" (", 1:length(x$BaseRowInD), ") ",
 				 rownames(x$IndividualTest)[x$BaseRowInD], "\n", sep="")
     if (missing(effects))
@@ -849,7 +873,8 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
         return(getInternals())
     }
     nGroups <- max(unique(effects$group))
-    groupPeriods <- as.numeric(tapply(effects$period, effects$group,
+	# note that period is a character and must be changed to numeric
+    groupPeriods <- as.numeric(tapply(as.numeric(effects$period), effects$group,
                                       max, na.rm=TRUE)) + 1
     intervals <- rep(1:length(groupPeriods), groupPeriods)
     localPeriodNos <- unlist(sapply(groupPeriods, function(x)1:x))

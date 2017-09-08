@@ -15,8 +15,6 @@
 #include <map>
 #include <set>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -38,21 +36,21 @@ public:
 	void next();
 
 private:
-	DyadicCovariateValueIterator(map<int, double> & rValues,
-		set<int> & rMissings);
+	DyadicCovariateValueIterator(std::map<int, double> & rValues,
+		std::set<int> & rMissings);
 	void skipMissings();
 
 	// Points to the current element in the map of values
-	map<int, double>::const_iterator lcurrent;
+	std::map<int, double>::const_iterator lcurrent;
 
 	// Points to the end of the map of values
-	map<int, double>::const_iterator lend;
+	std::map<int, double>::const_iterator lend;
 
 	// Points to the current element in the set of missing values
-	set<int>::const_iterator lmissingCurrent;
+	std::set<int>::const_iterator lmissingCurrent;
 
 	// Points to the end of the set of missing values
-	set<int>::const_iterator lmissingEnd;
+	std::set<int>::const_iterator lmissingEnd;
 };
 
 }

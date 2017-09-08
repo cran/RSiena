@@ -69,8 +69,7 @@ double IndegreePopularityEffect::tieStatistic(int alter)
 	}
 	else
 	{
-		// TODO: Why do we multiply by the number of senders? Ask Tom.
-		statistic = degree * pNetwork->n();
+		statistic = degree;
 	}
 
 	return statistic;

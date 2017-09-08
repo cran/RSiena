@@ -28,12 +28,21 @@ namespace siena
  */
 
 SameCovariateTransitiveTripletsEffect::SameCovariateTransitiveTripletsEffect(
-									const EffectInfo * pEffectInfo, bool reciprocal) :
+									const EffectInfo * pEffectInfo, bool same):
 	CovariateDependentNetworkEffect(pEffectInfo)
 {
-// currently not used:
+	this->lsame = same;
+}
+
+bool SameCovariateTransitiveTripletsEffect::inequalityCondition(int a) const
+{
+	if (lsame)
 	{
-		this->lreciprocal = reciprocal;
+		return (fabs(a) < EPSILON);
+	}
+	else
+	{
+		return (fabs(a) >= EPSILON);
 	}
 }
 
@@ -45,19 +54,19 @@ double SameCovariateTransitiveTripletsEffect::calculateContribution(
 {
 	// If we are introducing a tie from the ego i to the alter j, then each
 	// two-path from i to j with v_i = v_j contributes one unit;
-   // in addition, each in-star i -> h <- j with v_i = v_h 
+   // in addition, each in-star i -> h <- j with v_i = v_h
    // also contributes one unit.
    // This number is not stored in a table and is calculated from scratch.
 
 	int contribution1 = 0;
 	const Network * pNetwork = this->pNetwork();
 
-	if (fabs(this->value(alter) - this->value(this->ego())) < EPSILON)
+	if (this->inequalityCondition(this->value(alter) - this->value(this->ego())))
 	{
 		contribution1 = this->pTwoPathTable()->get(alter);
 	}
 
-	// The following probably can be done more efficiently 
+	// The following probably can be done more efficiently
 	// using CommonNeighborIterator.
 	// Iterate over ego's outgoing ties
 	for (IncidentTieIterator iter = pNetwork->outTies(this->ego());
@@ -66,7 +75,7 @@ double SameCovariateTransitiveTripletsEffect::calculateContribution(
 	{
 		// Get the receiver of the outgoing tie.
 		int h = iter.actor();
-		if (fabs(this->value(h) - this->value(this->ego())) < EPSILON &&
+		if (this->inequalityCondition(this->value(h) - this->value(this->ego())) &&
             pNetwork->tieValue(alter, h) >= 1)
 		{
 		 contribution1++ ;
@@ -83,15 +92,15 @@ double SameCovariateTransitiveTripletsEffect::calculateContribution(
  */
 double SameCovariateTransitiveTripletsEffect::tieStatistic(int alter)
 {
-	
+
 	double statistic = 0;
 
 	if (!this->missing(this->ego()) && !this->missing(alter) &&
-		fabs(this->value(alter) - this->value(this->ego())) < EPSILON)
+		this->inequalityCondition(this->value(alter) - this->value(this->ego())))
 	{
 		statistic = this->pTwoPathTable()->get(alter);
 	}
-	
+
 	return statistic;
 }
 

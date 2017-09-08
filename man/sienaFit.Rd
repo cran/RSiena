@@ -14,45 +14,49 @@
 
 \method{summary}{sienaFit}(object,  ...)
 
-\method{print}{summary.sienaFit}(x,  ...)
+\method{print}{summary.sienaFit}(x, matrices=TRUE, ...)
 
 \method{xtable}{sienaFit}(x, caption = NULL, label = NULL, align = NULL,
                 digits = NULL, display = NULL, ...)
 
-siena.table(x, type='tex', file=paste(deparse(substitute(x)), '.', type,sep=""),
+siena.table(x, type="tex", file=paste(deparse(substitute(x)), ".", type,sep=""),
             vertLine=TRUE, tstatPrint=FALSE, sig=FALSE, d=3)
 }
 \arguments{
   \item{object}{An object of class \code{sienaFit}, produced by
     \code{\link{siena07}}.}
   \item{x}{An object of class \code{sienaFit}, or
-    \code{summary.sienaFit} as appropriate}
-  \item{tstat}{Boolean: add the t-statistics for convergence to the report}
-  \item{type}{Type of output to produce; must be either \code{'tex'} or
-    \code{'html'}}
+    \code{summary.sienaFit} as appropriate.}
+  \item{matrices}{Boolean: whether also to print in the summary the 
+   covariance matrix of the estimates, the derivative matrix of expected 
+   statistics X by parameters, and the covariance matrix of the statistics.}
+  \item{tstat}{Boolean: if this is NULL, the t-statistics for convergence
+     will not be added to the report.}
+  \item{type}{Type of output to produce; must be either \code{"tex"} or
+    \code{"html"}.}
   \item{file}{Name of the file; defaults to the name of the \code{sienaFit}
-    object}
+    object.}
   \item{vertLine}{Boolean: add vertical lines separating the columns in
-    \code{siena.table}}
+    \code{siena.table}.}
   \item{tstatPrint}{Boolean: add a column of significance t values (parameter
-    estimate/standard error estimate) to \code{siena.table}}
+    estimate/standard error estimate) to \code{siena.table}.}
   \item{sig}{Boolean: adds symbols (daggers and asterisks) indicating
-    significance levels for the parameter estimates to \code{siena.table}}
-  \item{d}{The number of decimals places used in \code{siena.table}}
+    significance levels for the parameter estimates to \code{siena.table}.}
+  \item{d}{The number of decimals places used in \code{siena.table}.}
   \item{caption}{
-    See documentation for \code{\link[xtable]{xtable}}}
+    See documentation for \code{\link[xtable]{xtable}}.}
   \item{label}{
-    See documentation for \code{\link[xtable]{xtable}}}
+    See documentation for \code{\link[xtable]{xtable}}.}
   \item{align}{
-    See documentation for \code{\link[xtable]{xtable}}}
+    See documentation for \code{\link[xtable]{xtable}}.}
   \item{digits}{
-    See documentation for \code{\link[xtable]{xtable}}}
+    See documentation for \code{\link[xtable]{xtable}}.}
   \item{display}{
     See documentation for \code{\link[xtable]{xtable}}}
   \item{\dots}{
     Add extra parameters for  \code{\link[xtable]{print.xtable}}
     here. e.g.
-    \code{type}, \code{file}}
+    \code{type}, \code{file}.}
 }
 \description{
   \code{print}, \code{summary}, and \code{xtable} methods for
@@ -75,8 +79,10 @@ siena.table(x, type='tex', file=paste(deparse(substitute(x)), '.', type,sep=""),
 
   The function \code{siena.table} outputs a latex or html table of
   the estimates and standards errors of a \code{sienaFit} object.
-  The table will be written to the current directory and
-  has a footnote reporting the maximum of the convergence t ratios.
+  The table will be written to a file in the current directory and
+  has a footnote reporting the maximum of the convergence t-ratios.
+
+  See the manual for how to import these tables easily into MS-Word.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
 }
@@ -92,7 +98,9 @@ myeff <- getEffects(mydata)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 ans
 summary(ans)
-\donttest{xtable(ans, type='html', file='ans.html')}
-\donttest{siena.table(ans, type='html', tstat=TRUE, d=2)}
+\dontrun{
+xtable(ans, type="html", file="ans.html")
+siena.table(ans, type="html", tstat=TRUE, d=2)
 }
-\keyword{method}
+}
+\keyword{methods}

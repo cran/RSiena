@@ -13,6 +13,7 @@
 #define NETWORKDEPENDENTBEHAVIOREFFECT_H_
 
 #include "BehaviorEffect.h"
+#include "model/variables/BehaviorVariable.h"
 
 namespace siena
 {
@@ -35,18 +36,33 @@ class NetworkDependentBehaviorEffect : public BehaviorEffect
 {
 public:
 	NetworkDependentBehaviorEffect(const EffectInfo * pEffectInfo);
+	NetworkDependentBehaviorEffect(const EffectInfo * pEffectInfo, const bool simulatedState);
+	virtual ~NetworkDependentBehaviorEffect();
 
 	virtual void initialize(const Data * pData,
 		State * pState,
 		int period,
 		Cache * pCache);
+	virtual void initialize(const Data *pData,
+			State *pState, State *pSimulatedState, int period, Cache *pCache);
 
 protected:
 	inline const Network * pNetwork() const;
+	double totalAlterValue(int i) const;
+	double totalInAlterValue(int i) const;
+	virtual void preprocessEgo(int ego);
 
 private:
+	//! If `1` value(), missing() and similarity() returns the simulated value
+	//! (if the covariate is a behavior) or the observed value at the end of the
+	//! period.
+	const int lSimulatedOffset;
+
 	// The network this effect is interacting with
 	const Network * lpNetwork;
+	// total out- and in-alter values
+	double * ltotalAlterValues;
+	double * ltotalInAlterValues;
 };
 
 

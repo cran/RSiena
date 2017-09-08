@@ -13,8 +13,6 @@
 
 #include <map>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -45,8 +43,8 @@ public:
 	void initialize(int ego);
 
 private:
-	map<const Network *, NetworkCache *> lnetworkCaches;
-	map<const Network *, map <const Network *, TwoNetworkCache *> >
+	std::map<const Network *, NetworkCache *> lnetworkCaches;
+	std::map<const Network *, std::map<const Network *, TwoNetworkCache *> >
 		ltwoNetworkCaches;
 	int lego;
 };

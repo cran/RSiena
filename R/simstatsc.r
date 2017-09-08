@@ -33,6 +33,14 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
     {
         returnDeps <- z$returnDeps
     }
+    if (is.null(z$returnActorStatistics))
+	{
+		z$returnActorStatistics <- FALSE
+	}
+	if (is.null(z$returnChangeContributions))
+	{
+		z$returnChangeContributions <- FALSE
+	}
     if (is.null(f$seeds))
     {
         seeds <- NULL
@@ -73,11 +81,12 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
 	#}
     ## z$int2 is the number of processors if iterating by period, so 1 means
     ## we are not. Now have removed option to parallelize by period
-	ans <- .Call('model', PACKAGE=pkgname, z$Deriv, f$pData, seeds,
+	ans <- .Call(C_forwardModel, PACKAGE=pkgname, z$Deriv, f$pData, seeds,
 				 fromFiniteDiff, f$pModel, f$myeffects, z$theta,
 				 randomseed2, returnDeps, z$FinDiff.method,
 				 !is.null(z$cl) && useStreams, z$addChainToStore,
-				  z$returnChains, returnLoglik)
+				  z$returnChains, returnLoglik, 
+				  z$returnActorStatistics, z$returnChangeContributions)
     if (!fromFiniteDiff)
     {
         if (z$FinDiff.method)
@@ -119,6 +128,22 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
 	{
 		loglik <- NULL
 	}
+	if(z$returnChangeContributions)
+	{	
+		changeContributions <- ans[[9]]
+	}
+	else
+	{
+		changeContributions <- NULL
+	}
+	if(z$returnActorStatistics)
+	{
+		actorStatistics <- ans[[10]]
+	}
+	else
+	{
+		actorStatistics <- NULL
+	}
     if (returnDeps)
     {
         ## attach the names
@@ -137,16 +162,17 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
     }
 		 ## browser()
     list(sc = sc, fra = fra, ntim0 = ntim, feasible = TRUE, OK = TRUE,
-         sims=sims, f$seeds, chain=chain, loglik=loglik)
+         sims=sims, f$seeds, chain=chain, loglik=loglik,
+		 actorStatistics = actorStatistics, changeContributions = changeContributions)
 }
 
 ##@clearData siena07 Finalizer to clear Data object in C++
 clearData <- function(pData)
 {
-    .Call('deleteData', PACKAGE=pkgname, pData)
+    .Call(C_deleteData, PACKAGE=pkgname, pData)
 }
 ##@clearModel siena07 Finalizer to clear Model object in C++
 clearModel <- function(pModel)
 {
-    .Call('deleteModel', PACKAGE=pkgname, pModel)
+    .Call(C_deleteModel, PACKAGE=pkgname, pModel)
 }

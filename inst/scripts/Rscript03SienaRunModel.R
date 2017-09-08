@@ -364,7 +364,7 @@
 
 	  myeff <- getEffects( mydata )  # create effects structure
 
-	  print01Report( mydata, myeff, modelname = 's50_3_init' )
+	  print01Report( mydata, modelname = 's50_3_init' )
 
 	  myeff <- includeEffects( myeff, transTrip, cycle3 )
 	  myeff <- includeEffects( myeff, egoX, altX,

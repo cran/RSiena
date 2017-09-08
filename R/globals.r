@@ -144,14 +144,14 @@ Heading<- function(level=1, dest, text, fill=FALSE)
     ch <- c("=", "-", " ")[level]
     if (missing(dest))
     {
-        Report(c("@", level, "\n", text, "\n"), sep="", fill=fill)
+        Report(c("\n", "@", level, "\n", text, "\n"), sep="", fill=fill)
         Report(rep(ch, sum(nchar(text)) + 3), sep="", fill=fill)
         Report("\n\n")
     }
     else
     {
         dest <- deparse(substitute(dest))
-        Report(c("@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
+        Report(c("\n", "@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
         Report(rep(ch, sum(nchar(text))), hdest=dest, sep="", fill=fill)
         if (level < 3)
         {

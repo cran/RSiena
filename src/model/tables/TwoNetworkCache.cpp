@@ -20,6 +20,8 @@ namespace siena
 
 /**
  * Constructs a  twonetwork cache for the given networks.
+ * Note that first network = W (explanatory network),
+ * second network = X (dependent network)
  */
 TwoNetworkCache::TwoNetworkCache(const Network * pFirstNetwork,
 	const Network * pSecondNetwork)
@@ -55,6 +57,12 @@ TwoNetworkCache::TwoNetworkCache(const Network * pFirstNetwork,
 		this->lpTwoPathTable = 0;
 	}
 
+	this->lpInStarTable =
+		new MixedTwoPathTable(this, FORWARD, BACKWARD);
+
+	this->lpOutStarTable =
+		new MixedTwoPathTable(this, BACKWARD, FORWARD);
+
 	this->initialize(-1);
 }
 
@@ -67,10 +75,14 @@ TwoNetworkCache::~TwoNetworkCache()
 	delete[] this->lfirstOutTieValues;
 	delete[] this->lsecondOutTieValues;
 	delete this->lpTwoPathTable;
+	delete this->lpInStarTable;
+	delete this->lpOutStarTable;
 
 	this->lfirstOutTieValues = 0;
 	this->lsecondOutTieValues = 0;
 	this->lpTwoPathTable = 0;
+	this->lpInStarTable = 0;
+	this->lpOutStarTable = 0;
 }
 
 
@@ -93,6 +105,21 @@ void TwoNetworkCache::initialize(int ego)
 		}
 	}
 
+	for (int i = 0; i < this->lpSecondNetwork->m(); i++)
+	{
+		this->lsecondOutTieValues[i] = 0;
+	}
+
+	if (ego >= 0 && ego < this->lpSecondNetwork->n())
+	{
+		for (IncidentTieIterator iter = this->lpSecondNetwork->outTies(ego);
+			iter.valid();
+			iter.next())
+		{
+			this->lsecondOutTieValues[iter.actor()] = iter.value();
+		}
+	}
+
 
 	// Initialize all configuration tables
 
@@ -100,6 +127,10 @@ void TwoNetworkCache::initialize(int ego)
 	{
 		this->lpTwoPathTable->initialize(ego);
 	}
+
+	this->lpInStarTable->initialize(ego);
+
+	this->lpOutStarTable->initialize(ego);
 
 }
 

@@ -22,8 +22,11 @@ namespace siena
  * Constructor.
  */
 TransitiveTripletsEffect::TransitiveTripletsEffect(
-	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
+	const EffectInfo * pEffectInfo, bool twoPath, bool twoInStar) : 
+						NetworkEffect(pEffectInfo)
 {
+	this->ltwoPath = twoPath;
+	this->ltwoInStar = twoInStar;
 }
 
 
@@ -35,9 +38,12 @@ double TransitiveTripletsEffect::calculateContribution(int alter) const
 	// If we are introducing a tie from the ego i to the alter j, then each
 	// two-path from i to j contributes one transitive triplet, just as each
 	// in-star between i and j.
+	double contribution = 0;
 
-	return this->pTwoPathTable()->get(alter) +
-		this->pInStarTable()->get(alter);
+	if (ltwoPath) contribution += this->pTwoPathTable()->get(alter);
+	if (ltwoInStar) contribution += this->pInStarTable()->get(alter);
+
+	return contribution;
 }
 
 

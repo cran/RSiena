@@ -29,9 +29,11 @@ namespace siena
  * Constructor.
  */
 AltersCovariateAverageEffect::AltersCovariateAverageEffect(
-	const EffectInfo * pEffectInfo) :
+	const EffectInfo * pEffectInfo, bool divide) :
 	CovariateAndNetworkBehaviorEffect(pEffectInfo)
 {
+	this->ldivide = divide;
+	// Indicates whether there will be division by the outdegree of ego
 }
 
 
@@ -43,8 +45,16 @@ AltersCovariateAverageEffect::AltersCovariateAverageEffect(
 double AltersCovariateAverageEffect::calculateChangeContribution(int actor,
 	int difference)
 {
-	return difference * this->averageAlterValue(actor);
-
+	double statistic = 0;
+	if (this->ldivide)
+	{
+		statistic = difference * this->averageAlterValue(actor);
+	}
+	else
+	{
+		statistic = difference * this->totalAlterValue(actor);
+	}
+	return statistic;
 }
 
 /**
@@ -57,7 +67,14 @@ double AltersCovariateAverageEffect::egoStatistic(int ego, double * currentValue
 
 	if (!this->missingDummy(ego))
 	{
-		statistic = currentValues[ego] * this->averageAlterValue(ego);
+		if (this->ldivide)
+		{
+			statistic = currentValues[ego] * this->averageAlterValue(ego);
+		}
+		else
+		{
+			statistic = currentValues[ego] * this->totalAlterValue(ego);
+		}
 	}
 	return statistic;
 }
@@ -75,10 +92,15 @@ double AltersCovariateAverageEffect::egoEndowmentStatistic(int ego,
 
 	if (difference[ego] > 0 && !this->missingDummy(ego))
 	{
-		//statistic = currentValues[ego] * this->averageAlterValue(ego);
-		statistic -= difference[ego] * this->averageAlterValue(ego);
+		if (this->ldivide)
+		{
+			statistic -= difference[ego] * this->averageAlterValue(ego);
+		}
+		else
+		{
+			statistic -= difference[ego] * this->totalAlterValue(ego);
+		}
 	}
-
 	return statistic;
 }
 

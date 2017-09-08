@@ -26,6 +26,8 @@ class CovariateSimilarityEffect : public CovariateDependentNetworkEffect
 public:
 	CovariateSimilarityEffect(const EffectInfo * pEffectInfo,
 		bool reciprocal);
+	CovariateSimilarityEffect(const EffectInfo * pEffectInfo,
+		bool reciprocal, const bool simulatedState);
 
 	virtual double calculateContribution(int alter) const;
 

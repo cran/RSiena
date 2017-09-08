@@ -23,7 +23,8 @@ terminateFRAN <- function(z, x)
     if (sum(z$test))
     {
         z$fra <- colMeans(z$sf, na.rm=TRUE)
-        ans <- ScoreTest(z$pp, z$dfra, z$msf, z$fra, z$test, x$maxlike)
+		z$redundant <- (z$fix & (!z$test))
+        ans <- ScoreTest(z$pp, z$dfra, z$msf, z$fra, z$test, z$redundant, x$maxlike)
         z <- c(z, ans)
         TestOutput(z, x)
     }

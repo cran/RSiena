@@ -55,6 +55,10 @@ public:
 	virtual bool constrained() const;
 	virtual bool symmetric() const;
 
+	void networkModelType(int type);
+	virtual NetworkModelType networkModelType() const;
+	virtual bool networkModelTypeB() const;
+
 	virtual void initialize(int period);
 	virtual bool canMakeChange(int actor) const;
 	virtual void makeChange(int actor);
@@ -89,10 +93,11 @@ private:
 	void accumulateRateScores(double tau, const DependentVariable *
 		pSelectedVariable, int selectedActor);
 	void calculateSymmetricTieFlipContributions(int alter, int sub);
-	void calculateSymmetricTieFlipProbabilities(int alter, int sub);
+	void calculateSymmetricTieFlipProbabilities(int alter, int sub, bool aagree);
 	bool calculateModelTypeBProbabilities();
 	bool diagonalMiniStep(int ego, int alter) const;
 
+	void initializeSetting();
 	// The current state of the network
 	Network * lpNetwork;
 
@@ -143,7 +148,7 @@ private:
 	// A vector of filters that may decide that some tie flips from an
 	// ego are not permitted.
 
-	vector<PermittedChangeFilter *> lpermittedChangeFilters;
+	std::vector<PermittedChangeFilter *> lpermittedChangeFilters;
 
 	// Vectors of tie flip contributions to effects for models with
 	// cooperation between actor and alter.
@@ -170,11 +175,14 @@ private:
 
 	double lsymmetricProbability;
 
-	vector<int> * lsetting;
+	std::vector<int> * lsetting;
 
 	// whether this is a one mode network or not
 
 	bool loneMode;
+
+	// the model type
+	NetworkModelType lnetworkModelType;
 };
 
 

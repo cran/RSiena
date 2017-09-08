@@ -10,19 +10,26 @@
 # *****************************************************************************/
 
 ##@effectsDocumentation Documentation
-effectsDocumentation <- function(effects= NULL, type="html", display=(type=="html"),
-     filename=ifelse(is.null(effects), "effects", deparse(substitute(effects))))
+effectsDocumentation <- function(effects= NULL, type="html",
+	display=(type=="html"),
+	filename=ifelse(is.null(effects), "effects", deparse(substitute(effects))))
 {
+	## require(xtable)
 	if (is.null(effects))
 	{
-    x <- allEffects[, c("effectGroup", "effectName", "shortName",
+		x <- RSiena::allEffects[, c("effectGroup", "effectName", "shortName",
                         "endowment", "interaction1", "interaction2",
                         "parm", "interactionType")]
 	}
 	else
 	{
-    x <- as.data.frame(effects[, c("name", "effectName", "shortName", "type",
-                        "interaction1", "interaction2",
+		if (!inherits(effects,"sienaEffects"))
+		{
+			stop(paste(deparse(substitute(effects)),
+			     "is not a sienaEffects object."))
+		}
+		x <- as.data.frame(effects[, c("name", "effectName", "shortName",
+						"type", "interaction1", "interaction2",
                         "parm", "interactionType")])
 	}
     storage.mode(x$parm) <- "integer"
@@ -64,6 +71,7 @@ effectsDocumentation <- function(effects= NULL, type="html", display=(type=="htm
                  "nonSymmetricSymmetricObjective",
                  "nonSymmetricBipartiteObjective",
                  "covarNetNetObjective",
+				 "tripleNetworkObjective",
 
                  "symmetricObjective",
                  "dyadObjective",
@@ -77,16 +85,23 @@ effectsDocumentation <- function(effects= NULL, type="html", display=(type=="htm
                  "bipartiteNonSymmetricObjective",
                  "bipartiteSymmetricObjective",
                  "bipartiteBipartiteObjective",
-                 "covarNetNetObjective",
 
                  "behaviorObjective",
                  "behaviorOneModeObjective",
                  "behaviorSymmetricObjective",
                  "behaviorBipartiteObjective",
+				 "behaviorOneOneModeObjective",
+				 "behaviorSymSymObjective",
+				 "behaviorOneModeSymObjective",
+				 "behaviorBipBipObjective",
                  "covarBehaviorObjective",
+				 "covarBehaviorNetObjective",
+				 "dyadBehaviorNetObjective",
+				 "covarABehaviorBipartiteObjective",
+				 "covarBBehaviorBipartiteObjective",
                  "unspecifiedBehaviorInteraction")
 
-    mytab <- table(allEffects[,1])
+	mytab <- table(RSiena::allEffects[,1])
 
     addtorowPos <- cumsum(c(0, mytab[myorder]))[1:length(myorder)]
     addtorowText <- names(mytab[myorder])
@@ -112,7 +127,7 @@ effectsDocumentation <- function(effects= NULL, type="html", display=(type=="htm
 		order2 <- match(myorder, x[, 2])
 		order3 <- as.vector(mytab[myorder])
 		order4 <- unlist(apply(cbind(order2, order3), 1,
-                           function(x)x[1]:(x[1] + x[2] -1)))
+						   function(x)x[1]:(max(x[1] + x[2] -1,1))))
 		y <- x[order4, -2]
 	}
 	else

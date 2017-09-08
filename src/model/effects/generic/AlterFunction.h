@@ -20,6 +20,10 @@ class Data;
 class State;
 class Cache;
 
+// TODO Header files should not do 'using namespace'.  This might lead to
+// namespace conflicts which are very hard to resolve.  Removeing this breaks
+// almost all alterfunction since the <alterfunction>.cpp files depend on it.
+using namespace std;
 
 class AlterFunction
 {

@@ -8,19 +8,16 @@
  * Description: This file contains the implementation of the
  * EffectValueTable class.
  *****************************************************************************/
-using namespace std;
 #include <cmath>
 
 #include "EffectValueTable.h"
 
-namespace siena
-{
+namespace siena {
 
 /**
  * Creates a new look-up table for <i>n</i> actors and the given function.
  */
-EffectValueTable::EffectValueTable(int n, double (* pFunction)(int))
-{
+EffectValueTable::EffectValueTable(int n, double (*pFunction)(int)) {
 	this->lpFunction = pFunction;
 	this->lvalues = new double[n];
 	this->lparameterValues = new double[n];
@@ -29,8 +26,7 @@ EffectValueTable::EffectValueTable(int n, double (* pFunction)(int))
 
 	this->lparameter = 0;
 
-	for (int i = 0; i < n; i++)
-	{
+	for (int i = 0; i < n; i++) {
 		// exp(0) = 1
 
 		this->lvalues[i] = 1;
@@ -38,12 +34,10 @@ EffectValueTable::EffectValueTable(int n, double (* pFunction)(int))
 	}
 }
 
-
 /**
  * Deallocates this look-up table.
  */
-EffectValueTable::~EffectValueTable()
-{
+EffectValueTable::~EffectValueTable() {
 	delete[] this->lvalues;
 	delete[] this->lparameterValues;
 
@@ -52,36 +46,29 @@ EffectValueTable::~EffectValueTable()
 	this->lpFunction = 0;
 }
 
-
 /**
  * Returns the current value of the effect parameter.
  */
-double EffectValueTable::parameter() const
-{
+double EffectValueTable::parameter() const {
 	return this->lparameter;
 }
-
 
 /**
  * Stores the effect parameter.
  */
-void EffectValueTable::parameter(double value)
-{
+void EffectValueTable::parameter(double value) {
 	this->lparameter = value;
 }
-
 
 /**
  * Returns the value of the effect for the argument <i>i</i>.
  */
-double EffectValueTable::value(int i)
-{
-	if (this->lparameterValues[i] != this->lparameter)
-	{
+double EffectValueTable::value(int i) {
+	if (this->lparameterValues[i] != this->lparameter) {
 		// The value stored in the table was calculated for a different
 		// parameter, hence we must recalculate the value.
 
-		this->lvalues[i] = exp(this->lparameter * this->lpFunction(i));
+		this->lvalues[i] = std::exp(this->lparameter * this->lpFunction(i));
 		this->lparameterValues[i] = this->lparameter;
 	}
 

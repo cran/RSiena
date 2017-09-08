@@ -81,7 +81,7 @@ double SimilarityEffect::calculateChangeContribution(int actor,
 			int j = iter.actor();
 			int alterValue = this->value(j);
 			int change =
-				abs(oldValue - alterValue) - abs(newValue - alterValue);
+				std::abs(oldValue - alterValue) - std::abs(newValue - alterValue);
 
 			if (this->lalterPopularity)
 			{

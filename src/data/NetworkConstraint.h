@@ -14,8 +14,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace siena
 {
 
@@ -40,20 +38,20 @@ enum NetworkConstraintType {HIGHER, DISJOINT, AT_LEAST_ONE};
 class NetworkConstraint
 {
 public:
-	NetworkConstraint(string networkName1,
-		string networkName2,
+	NetworkConstraint(std::string networkName1,
+		std::string networkName2,
 		NetworkConstraintType type);
 
-	inline string networkName1() const;
-	inline string networkName2() const;
+	inline std::string networkName1() const;
+	inline std::string networkName2() const;
 	inline NetworkConstraintType type() const;
 
 private:
 	// The name of the first network involved in this constraint
-	string lnetworkName1;
+	std::string lnetworkName1;
 
 	// The name of the second network involved in this constraint
-	string lnetworkName2;
+	std::string lnetworkName2;
 
 	// The type of the constraint
 	NetworkConstraintType ltype;
@@ -67,7 +65,7 @@ private:
 /**
  * Returns the name of the first network variable involved in this constraint.
  */
-string NetworkConstraint::networkName1() const
+std::string NetworkConstraint::networkName1() const
 {
 	return this->lnetworkName1;
 }
@@ -76,7 +74,7 @@ string NetworkConstraint::networkName1() const
 /**
  * Returns the name of the second network variable involved in this constraint.
  */
-string NetworkConstraint::networkName2() const
+std::string NetworkConstraint::networkName2() const
 {
 	return this->lnetworkName2;
 }

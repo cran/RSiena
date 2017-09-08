@@ -71,7 +71,7 @@ phase3 <- function(z, x, ...)
     writefreq <- z$writefreq
     if (is.null(z$writefreq))
     {
-        z$writefreq <- 10
+        z$writefreq <- 20
     }
 	z <- doPhase1or3Iterations(3, z, x, zsmall, xsmall, nits, 0, nits11,
 							   writefreq)
@@ -103,123 +103,136 @@ phase3.2 <- function(z, x, ...)
                  'with better initial values or a reduced model.\n',
                  '(Check that you entered the data properly!)\n'), outf)
     }
-    Heading(2, outf, c('End of stochastic approximation algorithm, phase ',
-                       z$Phase, '.'))
-    Report(c('Total of', z$n,'iterations.\n'), outf)
-    Report(c('Parameter estimates based on', z$n - z$Phase3nits,
-             'iterations,\n'), outf)
-    if (!x$maxlike && z$cconditional)
+	if ((x$nsub == 0)&(x$simOnly))
 	{
-        Report(c('basic rate parameter',
-                 c('', 's')[as.integer(z$f$observations > 2) + 1],
-                 ' as well as \n'), sep='', outf)
+	# nothing
 	}
-	Report(c('convergence diagnostics, covariance and derivative matrices ',
-			 'based on ', z$Phase3nits, ' iterations.\n\n'), sep='', outf)
-    Report('Information for convergence diagnosis.\n', outf)
-    Report(c('Averages, standard deviations, ',
-           'and t-ratios for deviations from targets:\n'), sep='', outf)
-  #  Report(c(date(),'\n'),bof)
-    if (x$maxlike)
+	else
 	{
-        Report('\nMaximum Likelihood estimation.', bof)
-	}
-    else
-	{
-		if (z$cconditional)
-		{
-			Report('\nconditional moment estimation.', bof)
+        Heading(2, outf, c('End of stochastic approximation algorithm, phase ',
+                           z$Phase, '.'))
+        Report(c('Total of', z$n,'iterations.\n'), outf)
+        Report(c('Parameter estimates based on', z$n - z$Phase3nits,
+                 'iterations,\n'), outf)
+        if (!x$maxlike && z$cconditional)
+ 		{
+            Report(c('basic rate parameter',
+                     c('', 's')[as.integer(z$f$observations > 2) + 1],
+                     ' as well as \n'), sep='', outf)
+ 		}
+ 		Report(c('convergence diagnostics, covariance and derivative matrices ',
+ 				 'based on ', z$Phase3nits, ' iterations.\n\n'), sep='', outf)
+        Report('Information for convergence diagnosis.\n', outf)
+        Report(c('Averages, standard deviations, ',
+               'and t-ratios for deviations from targets:\n'), sep='', outf)
+   #  #  Report(c(date(),'\n'),bof)
+        if (x$maxlike)
+ 		{
+            Report('\nMaximum Likelihood estimation.', bof)
+ 		}
+        else
+ 		{
+ 			if (z$cconditional)
+ 			{
+ 				Report('\nconditional moment estimation.', bof)
 
-		}
-		else
-		{
-			Report('\nunconditional moment estimation.', bof)
-		}
-	}
-    Report('\nInformation for convergence diagnosis.\n', bof)
-    Report(c('Averages, standard deviations, ',
-        'and t-ratios for deviations from targets:\n'), bof, sep='')
-    ##calculate t-ratios
-    dmsf <- diag(z$msf)
-    sf <- colMeans(z$sf)
-	# TS: I wonder why "use" and "use2" are the names in the following lines;
-	# the coordinates with "use" are <<not>> used.
-    use <- dmsf < 1e-20 * z$scale * z$scale
-    use2 <- abs(sf) < 1e-10 * z$scale
-    dmsf[use] <- 1e-20 * z$scale[use] * z$scale[use]
-    tstat <- rep(NA, z$pp)
-    tstat[!use]<- sf[!use] / sqrt(dmsf[!use])
-    tstat[use & use2] <- 0
-    tstat[use & !use2] <- 999
-    z$tstat <- tstat
-	# tconv.max = Maximum value of t-ratio for convergence,
-	# for any linear combination.
-	z$tconv.max <- NA
-	if (sum(!z$fixed) > 0)
-	{
-		mean.dev <- colSums(z$sf)[!z$fixed]/dim(z$sf)[1]
-		cov.dev <- z$msf[!z$fixed,!z$fixed]
-		if (inherits(try(thisproduct <- solve(cov.dev, mean.dev)),"try-error"))
-		{
-			Report('Maximum t-ratio for convergence not computable.\n', outf)
-		}
-		else
-		{
-			z$tconv.max <- sqrt(t(mean.dev) %*% thisproduct)
-		}
-	}
-    mymess1 <- paste(format(1:z$pp,width=3), '. ',
-                    format(round(sf, 4), width=8, nsmall=4), ' ',
-                    format(round(sqrt(dmsf), 4) ,width=8, nsmall=4), ' ',
-                    format(round(tstat, 4), width=8, nsmall=3), sep='')
-    mymess2 <- c('', '    (fixed parameter)')[as.numeric(z$fixed) + 1]
-    mymess <- paste(mymess1, mymess2)
-    PrtOutMat(as.matrix(mymess), outf)
-    PrtOutMat(as.matrix(mymess1), bof)
-    ##  Report(mymess1, bof, fill=80)
-    tmax <- max(abs(tstat)[!z$fixed & !z$BasicRateFunction & z$resist > 0.9])
-    z$tconv <- tstat
-    error <- (abs(tmax) > 4.0 / sqrt(z$Phase3nits)) && (abs(tmax) > 0.3)
-    if (tmax >= 0.4 & !z$error)
-	{
-        z$error <- TRUE
-	}
-	Report('Good convergence is indicated by the t-ratios ', outf)
-    if (any(z$fixed))
-	{
-		Report('of non-fixed parameters ', outf)
-	}
-    Report('being close to zero.\n', outf)
-    if (z$Phase3nits < 100)
-	{
-        Report(c('(Since the diagnostic checks now are based only on ',
-                 z$Phase3nits,
-                 ' iterations,', '\nthey are not reliable.)\n'), sep='', outf)
-	}
-    if (error) ## also test subphase here but not relevant to phase 3, I think
-    {
-        Report('One or more of the t-statistics are rather large.\n', outf)
-        if (tmax > 0.5)
-		{
-            Report('Convergence of the algorithm is doubtful.\n', outf)
-		}
-		## removed repfortotal loop possibility here as not functioning now
-        if (z$Phase3nits <= 50)
-		{
-            Report(c('Note that the standard deviations are based on',
-                     'few simulations.\n'), outf)
-		}
+ 			}
+ 			else
+ 			{
+ 				Report('\nunconditional moment estimation.', bof)
+ 			}
+ 		}
+        Report('\nInformation for convergence diagnosis.\n', bof)
+        Report(c('Averages, standard deviations, ',
+            'and t-ratios for deviations from targets:\n'), bof, sep='')
+        ##calculate t-ratios
+        dmsf <- diag(z$msf)
+        sf <- colMeans(z$sf)
+        toosmall <- dmsf < 1e-20 * z$scale * z$scale
+        toosmall2 <- abs(sf) < 1e-10 * z$scale
+        dmsf[toosmall] <- 1e-20 * z$scale[toosmall] * z$scale[toosmall]
+        tstat <- rep(NA, z$pp)
+        tstat[!toosmall]<- sf[!toosmall] / sqrt(dmsf[!toosmall])
+        tstat[toosmall & toosmall2] <- 0
+        tstat[toosmall & !toosmall2] <- NA
+        z$tstat <- tstat
+ 		# tconv.max = Maximum value of t-ratio for convergence,
+ 		# for any linear combination.
+ 		z$tconv.max <- NA
+ 		if (sum(!z$fixed) > 0)
+ 		{
+ 			mean.dev <- colSums(z$sf)[!z$fixed]/dim(z$sf)[1]
+ 			cov.dev <- z$msf[!z$fixed,!z$fixed]
+ 			if (inherits(try(thisproduct <- solve(cov.dev, mean.dev), silent=TRUE),
+ 						"try-error"))
+ 			{
+ 	Report('Overall maximum t-ratio for convergence not computable.\n', outf)
+ 			}
+ 			else
+ 			{
+ 				z$tconv.max <- sqrt(t(mean.dev) %*% thisproduct)
+ 			}
+ 		}
+        mymess1 <- paste(format(1:z$pp,width=3), '. ',
+                        format(round(sf, 4), width=8, nsmall=4), ' ',
+                        format(round(sqrt(dmsf), 4) ,width=8, nsmall=4), ' ',
+                        format(round(tstat, 4), width=8, nsmall=3), sep='')
+        mymess2 <- c('', '    (fixed parameter)')[as.numeric(z$fixed) + 1]
+        mymess <- paste(mymess1, mymess2)
+        PrtOutMat(as.matrix(mymess), outf)
+        PrtOutMat(as.matrix(mymess1), bof)
+        ##  Report(mymess1, bof, fill=80)
+        tmax <- max(abs(tstat)[!z$fixed])
+        z$tconv <- tstat
+		z$tmax <- tmax
+        error <- (is.na(tmax)) ||
+						(abs(tmax) > 4.0 / sqrt(z$Phase3nits)) && (abs(tmax) > 0.3)
+        if ((is.na(tmax)) || (tmax >= 0.4))
+ 		{
+            z$error <- TRUE
+ 		}
+ 		Report('Good convergence is indicated by the t-ratios ', outf)
+        if (any(z$fixed))
+ 		{
+ 			Report('of non-fixed parameters ', outf)
+ 		}
+        Report('being close to zero.\n', outf)
+		Report(c('\nOverall maximum convergence ratio = ',
+			round(z$tconv.max, digits=4), '.\n'), outf)
+        if (z$Phase3nits < 100)
+ 		{
+            Report(c('(Since the diagnostic checks now are based only on ',
+                     z$Phase3nits,
+                     ' iterations,', '\nthey are not reliable.)\n'), sep='', outf)
+ 		}
+        if (error) ## also test subphase here but not relevant to phase 3, I think
+        {
+            Report('One or more of the t-statistics are rather large.\n', outf)
+			doubts <- ifelse(is.na(tmax), TRUE, tmax > 0.5)
+            if (doubts)
+ 			{
+                Report('Convergence of the algorithm is doubtful.\n', outf)
+ 			}
+ 			## removed repfortotal loop possibility here as not functioning now
+            if (z$Phase3nits <= 50)
+ 			{
+                Report(c('Note that the standard deviations are based on',
+                         'few simulations.\n'), outf)
+ 			}
+ 		}
 	}
     if (x$maxlike)
     {
+        sfl <- apply(z$sf, 2,
+                       function(x)acf(x, plot=FALSE, lag.max=1)[[1]][[2]])
         Report('Autocorrelations during phase 3 : \n', outf)
         Report(paste(format(1:z$pp, width=3), '. ',
-                     format(z$sfl, width=8, digits=4),
+                     format(sfl, width=8, digits=4),
                      '\n', collapse="", sep=""), outf)
         Report ('\n', outf)
         Report('Autocorrelations during phase 3 : \n', cf)
         Report(paste(format(1:z$pp, width=3), '. ',
-                     format(z$sfl, width=8, digits=4),
+                     format(sfl, width=8, digits=4),
                      '\n', collapse="", sep=""), cf)
         Report ('\n', cf)
     }
@@ -239,6 +252,7 @@ phase3.2 <- function(z, x, ...)
 			}
 		}
 	}
+	errorMessage.cov <- ''
 	if (!x$simOnly)
 	{
 		if (x$maxlike)
@@ -255,20 +269,44 @@ phase3.2 <- function(z, x, ...)
 			dfrac[z$fixed, ] <- 0
 			dfrac[ ,z$fixed] <- 0
 			diag(dfrac)[z$fixed] <- 1
-			if (inherits(try(cov <- solve(dfrac)),"try-error"))
+			if (inherits(try(cov.est <- solve(dfrac), silent=TRUE),"try-error"))
 			{
 				Report('Noninvertible estimated covariance matrix : \n', outf)
-				cov <- NULL
+	errorMessage.cov <- '***Warning: linear dependencies between statistics ***'
+				cov.est <- NA * dfrac
 			}
 		}
 		else
 		{
-			cov <- z$dinv %*% z$msfc %*% t(z$dinv)
+			cov.est <- z$dinv %*% z$msfc %*% t(z$dinv)
 		}
 		error <- FALSE
-		if (inherits(try(msfinv <- solve(z$msfc)), "try-error"))
+		ei <- eigen(z$msfc)
+		mineivalue <- min(ei[[1]])
+		if ((mineivalue < 1e-12) && (x$n3 > z$pp + 20)) # 1e-12 seems a small enough bound
 		{
-			Report('Covariance matrix not positive definite: \n', outf)
+			Report('*** Warning: Covariance matrix not positive definite *** \n', outf)
+			Report('***            Standard errors not reliable           *** \n', outf)
+			maxei <- max(abs(ei[[2]][,z$pp]))
+			# last eigenvector corresponds to smallest eigenvalue
+			smallei <- ei[[2]][,z$pp]/maxei
+			Report(
+			 'The approximate linear combination that has variance 0 is\n', outf)
+			thetext <- paste(round(smallei,2)[which(abs(smallei) > 0.1)],
+							' * beta[',
+							(1:z$pp)[which(abs(smallei) > 0.1)], ']',
+							sep="", collapse=" + ")
+			Report(thetext, outf)
+			Report('\n',outf)
+			fromBayes <- 'fromBayes' %in% names(x)
+			if (!fromBayes)
+			{
+			cat('*** Warning: Covariance matrix not positive definite *** \n')
+			cat('*** Standard errors not reliable ***\n')
+			cat('The following is approximately a linear combination \n')
+			cat('for which the data carries no information:\n',
+			     thetext,'\n')
+			cat('It is advisable to drop one or more of these effects.\n')
 			if (any(z$fixed || any(z$newfixed)))
 			{
 				Report(c('(This may be unimportant, and related to the fact\n',
@@ -276,27 +314,23 @@ phase3.2 <- function(z, x, ...)
 			}
 			else
 			{
-				Report(c('This may mean that the reported standard errors ',
-						'are invalid.\n'), outf)
+				Report('Do not use any reported standard errors.\n', outf)
+				errorMessage.cov <- '*** Warning: Noninvertible estimated covariance matrix ***'
 			}
-			z$msfinv <- NULL
+			}
+			cov.est <- NA * z$msfc
 		}
-		else
+		if (!is.null(cov.est))
 		{
-			z$msfinv <- msfinv
+			zerovar <- ((diag(cov.est) < 1e-9) | (is.na(diag(cov.est))))
+			z$diver <- (z$fixed | z$diver | zerovar) & (!z$AllUserFixed)
+			cov.est[z$diver, ] <- NA
+			cov.est[, z$diver] <- NA
 		}
-		if (!is.null(cov))
-		{
-			z$diver <- (z$fixed | z$diver | diag(cov) < 1e-9) & (!z$AllUserFixed)
-			## beware: recycling works for one direction but not the other
-			diag(cov)[z$diver] <- 99 * 99
-			cov[z$diver, ] <- rep(Root(diag(cov)), each=sum(z$diver)) * 33
-			diag(cov)[z$diver] <- 99 * 99
-			cov[, z$diver] <- rep(Root(diag(cov)), sum(z$diver)) * 33
-			diag(cov)[z$diver] <- 99 * 99
-		}
-		z$covtheta <- cov
+		z$covtheta <- cov.est
 	}
+	z$errorMessage.cov <- errorMessage.cov
+	z$sf.invcov <- NULL
 	## ans<-InstabilityAnalysis(z)
 	z
 }
@@ -305,15 +339,17 @@ phase3.2 <- function(z, x, ...)
 CalculateDerivative3<- function(z,x)
 {
     z$mnfra <- colMeans(z$sf)
+	estMeans <- z$mnfra + z$targets
+	z$regrCoef <- rep(0, z$pp)
+	z$regrCor <- rep(0, z$pp)
     if (z$FinDiff.method || x$maxlike)
     {
 		dfra <- t(as.matrix(Reduce("+", z$sdf) / length(z$sdf)))
-		z$regrCoef <- rep(0, z$pp)
-		z$regrCor <- rep(0, z$pp)
     }
 	else
     {
-        dfra <-  derivativeFromScoresAndDeviations(z$ssc, z$sf2)
+        dfra <- derivativeFromScoresAndDeviations(z$ssc, z$sf2,
+								z$dfras, z$sscs, z$sf2s, z$sf2.byIteration, z$Phase3nits)
         if (any(diag(dfra) < 0))
         {
             sub <- which(diag(dfra) < 0)
@@ -323,29 +359,41 @@ CalculateDerivative3<- function(z,x)
             Report(c("Warning: diagonal element(s)", sub,
                      " of derivative matrix < 0\n"), cf)
         }
-		scores <- apply(z$ssc, c(1,3), mean)
+		if (x$dolby)
+		{
+			if (z$sf2.byIteration)
+			{
+		scores <- apply(z$ssc, c(1,3), sum)  # z$nit by z$pp matrix
+			}
+			else
+			{
+				scores <- z$scores
+			}
 		for (i in 1:z$pp)
 		{
-			if (var(scores[,i]) > 0)
+			oldwarn <- getOption("warn")
+			options(warn = -1)
+			if ((var(scores[,i]) > 0)&&(var(z$sf[,i]) > 0))
 			{
 				z$regrCoef[i] <- cov(z$sf[,i], scores[,i])/var(scores[,i])
 				z$regrCor[i] <- cor(z$sf[,i], scores[,i])
 			}
+			if (is.na(z$regrCor[i])){z$regrCor[i] <- 0}
+			if (is.na(z$regrCoef[i])){z$regrCoef[i] <- 0}
+			options(warn = oldwarn)
+		}
+			estMeans <- estMeans - (z$regrCoef * colMeans(scores))
 		}
 		Report('Correlations between scores and statistics:\n', cf)
 		PrtOutMat(format(as.matrix(t(z$regrCor)), digits = 2, nsmall = 2), cf)
     }
+	z$estMeans <- estMeans
     z$diver <- rep(FALSE, z$pp)
     if (z$AllUserFixed & any(abs(diag(dfra)) < 1e-6))
 	{
         z$diver[abs(diag(dfra)) < 1e-6] <- TRUE
 	}
 	z$msf <- cov(z$sf)
-    if (z$Phase3nits > 2)
-    {
-        z$sfl <- apply(z$sf, 2,
-                       function(x)acf(x, plot=FALSE, lag.max=1)[[1]][[2]])
-    }
     z$dfra1 <- z$dfra
     z$dfra <- dfra
     z
@@ -365,18 +413,19 @@ PotentialNR <-function(z,x,MakeStep=FALSE)
         z$msfc[, z$fixed] <- 0
         diag(z$msfc)[z$fixed] <- 1
     }
-    if (inherits(try(dinv <- solve(z$dfrac)), "try-error"))
+    if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
     {
         Report('Error message from inversion of dfra: \n', cf)
         diag(z$dfrac) <- diag(z$dfrac)+0.1*z$scale
         Report('Intervention 3.4: ridge added after phase 3.\n', cf)
-        if (inherits(try(dinv <- solve(z$dfrac)), "try-error"))
+        if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
         {
             Report(c('Warning. After phase 3, derivative matrix non-invertible',
                      'even with a ridge.\n'), cf)
+			z$errorMessage.cov <- '*** Warning: Noninvertible derivative matrix ***'
             fchange <- 0
             z$dinv <- z$dfrac
-			z$dinv[,] <- 999
+			z$dinv[,] <- NA # 999
         }
         else
         {
@@ -394,6 +443,8 @@ PotentialNR <-function(z,x,MakeStep=FALSE)
     PrtOutMat(z$dfrac, cf)
     Report('inverse of dfra :\n', cf)
     PrtOutMat(z$dinv, cf)
+	try(if (x$errorMessage.cov > '') {Report(z$errorMessage.cov, cf)}, silent=TRUE)
+			# "Try" for downward compatilibity
     Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
              'would add the following numbers to the parameters, yielding ',
              'the following results:\n'), sep='', cf)
@@ -407,6 +458,7 @@ PotentialNR <-function(z,x,MakeStep=FALSE)
         Report(c('\nAt the end of phase ', z$phase,
 				 ', parameter values are \n'), outf)
         Report(paste(1:z$pp,'. ',format(z$theta,width=18,digits=6)),outf)
+		try(Report(z$errorMessage.cov, outf), silent=TRUE)
         Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
 				 'would add the ',
                  'following numbers to the parameters:\n'), outf)
@@ -432,6 +484,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 								  nits11=0, writefreq)
 {
 	int <- z$int
+	nWaves <- z$observations - 1
 	for (nit in nits)
 	{
 		z$nit <- nit
@@ -494,7 +547,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 					}
 					if (is.batch())
 					{
-						z$writefreq <-  z$writefreq * 2 ##compensation for it
+						z$writefreq <-  z$writefreq * 5 ##compensation for it
 						## running faster with no tcl/tk
 					}
 					z$writefreq <- roundfreq(z$writefreq)
@@ -565,9 +618,19 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 		{
 			fra <- colSums(zz$fra)
 			fra <- fra - z$targets
+			if (z$FinDiff.method)
+			{
 			fra2 <- zz$fra
+			}
 			z$sf[z$nit, ] <- fra
+			if (z$sf2.byIteration)
+			{
 			z$sf2[z$nit, , ] <- zz$fra
+			}
+			else
+			{
+				z$sf2s <- z$sf2s + zz$fra
+			}
 			z$sims[[z$nit]] <- zz$sims
 			z$chain[[z$nit]] <- zz$chain
 			fra <- fra + z$targets
@@ -579,11 +642,21 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				fra <- colSums(zz[[i]]$fra)
 				fra <- fra - z$targets
 				z$sf[z$nit + (i - 1), ] <- fra
+				if (z$sf2.byIteration)
+				{
 				z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
+				}
+				else
+				{
+					z$sf2s <- z$sf2s + zz[[i]]$fra
+				}
 				z$sims[[z$nit + (i - 1)]] <- zz[[i]]$sims
 			}
+			if (z$FinDiff.method)
+			{
 			fra2 <- t(sapply(zz, function(x)x$fra))
 			dim(fra2) <- c(int, nrow(zz[[1]]$fra), z$pp)
+			}
 			fra <- t(sapply(zz, function(x) colSums(x$fra)))
 		}
 		if (x$maxlike)
@@ -612,7 +685,20 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			{
 				if (!is.null(zz[['sc']]))
 				{
+					if (z$sf2.byIteration)
+					{
 					z$ssc[z$nit , ,] <- zz$sc
+				}
+					else
+					{
+						z$sscs <- z$sscs + zz$sc
+						z$scores[z$nit,] <- colSums(zz$sc)
+# z$dfras + rowSums(sapply(1:nWaves, function(j){outer(zz$sc[j,], zz$fra[j, ])}))
+						for (j in 1:nWaves)
+						{
+							z$dfras <- z$dfras + outer(zz$sc[j,], zz$fra[j, ])
+						}
+					}
 				}
 			}
 			else
@@ -621,7 +707,19 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
                 {
                     if (!is.null(zz[[i]][['sc']]))
 					{
+						if (z$sf2.byIteration)
+						{
                         z$ssc[z$nit + (i - 1), , ] <- zz[[i]]$sc
+					}
+						else
+						{
+							z$sscs <- z$sscs + zz[[i]]$sc
+							z$scores[z$nit + (i - 1), ] <- colSums(zz[[i]]$sc)
+							for (j in 1:nWaves)
+							{
+								z$dfras <- z$dfras + outer(zz[[i]]$sc[j,], zz[[i]]$fra[j, ])
+							}
+						}
 					}
                 }
             }
@@ -657,6 +755,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			{
 				val <- val + 1
 			}
+			z$Phase1nits <- nit
 			z$pb <- setProgressBar(z$pb, val)
 			progress <- val / z$pb$pbmax * 100
 			if (z$nit <= 5 || z$nit %% z$writefreq == 0 || z$nit %%5 == 0 ||
@@ -716,10 +815,22 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 									 'phase-3 iterations.\n\n'), outf)
 						}
 						z$sf <- z$sf[1:nit, , drop=FALSE]
+
+
+						if (z$sf2.byIteration)
+						{
 						z$sf2 <- z$sf2[1:nit, , , drop=FALSE]
-						if (!x$maxlike)
+						}
+						if (!z$maxlike && !z$FinDiff.method)
+						{
+							if (z$sf2.byIteration)
 						{
 							z$ssc <- z$ssc[1:nit, , , drop=FALSE]
+						}
+						else
+						{
+								z$scores <- z$scores[1:nit, , drop=FALSE]
+							}
 						}
 						else
 						{

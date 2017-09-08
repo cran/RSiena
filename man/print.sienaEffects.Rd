@@ -11,7 +11,7 @@
 }
 \usage{
 \method{print}{sienaEffects}(x, fileName = NULL, includeOnly=TRUE,
-expandDummies = FALSE, ...)
+expandDummies = FALSE, includeRandoms = FALSE, dropRates=FALSE, ...)
 \method{summary}{sienaEffects}(object, fileName = NULL,
 includeOnly=TRUE, expandDummies = FALSE, ...)
 \method{print}{summary.sienaEffects}(x, fileName = NULL, ...)
@@ -27,6 +27,9 @@ includeOnly=TRUE, expandDummies = FALSE, ...)
 	flag TRUE will be printed.}
   \item{expandDummies}{Interpret the \code{timeDummy} column and show
 	any effects which would be added by \code{sienaTimeFix}}
+  \item{includeRandoms}{Boolean. If TRUE, also the
+	\code{randomEffects} column will be printed.}
+  \item{dropRates}{Boolean. If TRUE, do not print the rows for basic rate effects.}
   \item{\dots}{For extra arguments (none used at present)}
 }
 \value{
@@ -48,7 +51,7 @@ includeOnly=TRUE, expandDummies = FALSE, ...)
 \seealso{\code{\link{sienaTimeTest}}, \code{\link{effectsDocumentation}}}
 \examples{
 mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
-mybeh <- sienaDependent(s50a, type='behavior')
+mybeh <- sienaDependent(s50a, type="behavior")
 mycovar <- coCovar(rnorm(50))
 mydyadcovar <- coDyadCovar(matrix(as.numeric(rnorm(2500) > 2), nrow=50))
 mydata <- sienaDataCreate(mynet1, mybeh, mycovar, mydyadcovar)

@@ -38,6 +38,8 @@ class SqrtTable;
  */
 class IndegreePopularityEffect : public NetworkEffect
 {
+friend class BothDegreesEffect;
+
 public:
 	IndegreePopularityEffect(const EffectInfo * pEffectInfo, bool root);
 

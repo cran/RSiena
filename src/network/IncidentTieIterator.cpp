@@ -10,20 +10,16 @@
  *****************************************************************************/
 
 #include "IncidentTieIterator.h"
-#include "../utils/Utils.h"
 
-namespace siena
-{
+namespace siena {
 
 /**
  * Creates a dummy iterator with no underlying collection of ties.
  */
-IncidentTieIterator::IncidentTieIterator()
-{
-	// The internal iterators lcurrent and lend are not initialized,
-	// and consequently this iterator is not valid.
-
-	this->linitialized = false;
+IncidentTieIterator::IncidentTieIterator() :
+		ITieIterator(), //
+		lcurrent(), //
+		lend(lcurrent) {
 }
 
 
@@ -32,13 +28,21 @@ IncidentTieIterator::IncidentTieIterator()
 // given map. The values of the pairs in the map represent the values
 // of ties, and the keys represent the corresponding neighbors.
 //
-IncidentTieIterator::IncidentTieIterator(std::map<int, int> & ties)
-{
-	this->lcurrent = ties.begin();
-	this->lend = ties.end();
-	this->linitialized = true;
+IncidentTieIterator::IncidentTieIterator(const std::map<int, int> & ties) :
+		ITieIterator(), //
+		lcurrent(ties.begin()), //
+		lend(ties.end()) {
 }
 
+IncidentTieIterator::IncidentTieIterator(const IncidentTieIterator& rhs) :
+		ITieIterator(rhs), //
+		lcurrent(rhs.lcurrent), //
+		lend(rhs.lend) {
+}
+
+IncidentTieIterator* IncidentTieIterator::clone() const {
+	return new IncidentTieIterator(*this);
+}
 
 //
 // Creates an iterator over a collection of ties represented by the
@@ -46,58 +50,11 @@ IncidentTieIterator::IncidentTieIterator(std::map<int, int> & ties)
 // of ties, and the keys represent the corresponding neighbors. Only
 // neighbors that are greater or equal with the given bound are returned.
 //
-IncidentTieIterator::IncidentTieIterator(std::map<int, int> & ties,
-	int lowerBound)
-{
-	this->lcurrent = ties.lower_bound(lowerBound);
-	this->lend = ties.end();
-	this->linitialized = true;
-}
-
-
-/**
- * Returns the neighbor incident to the current tie.
- */
-int IncidentTieIterator::actor() const
-{
-	if (!this->valid())
-	{
-		throw InvalidIteratorException();
-	}
-
-	return this->lcurrent->first;
-}
-
-
-/**
- * Returns the value of the current tie.
- */
-int IncidentTieIterator::value() const
-{
-	if (!this->valid())
-	{
-		throw InvalidIteratorException();
-	}
-
-	return this->lcurrent->second;
-}
-
-
-/**
- * Indicates if the iterator still points to a valid tie.
- */
-bool IncidentTieIterator::valid() const
-{
-	return this->linitialized && this->lcurrent != this->lend;
-}
-
-
-/**
- * Moves the iterator to the next tie.
- */
-void IncidentTieIterator::next()
-{
-	this->lcurrent++;
+IncidentTieIterator::IncidentTieIterator(const std::map<int, int> & ties,
+		int lowerBound) :
+		ITieIterator(), //
+		lcurrent(ties.lower_bound(lowerBound)), //
+		lend(ties.end()) {
 }
 
 }

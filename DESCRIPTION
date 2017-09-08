@@ -1,22 +1,23 @@
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.1-232
-Date: 2013-06-18
-Author: Ruth Ripley, Krists Boitmanis, Tom A.B. Snijders
-Depends: R (>= 2.15.0)
-Imports: Matrix
-Suggests: tcltk, network, codetools, lattice, MASS, parallel, xtable,
-        tools
+Version: 1.2-3
+Date: 2017-09-08
+Author: Ruth Ripley, Krists Boitmanis, Tom A.B. Snijders, Felix Schoenenberger
+Depends: R (>= 2.15.0), utils
+Imports: Matrix, tcltk, lattice, parallel, MASS, methods
+Suggests: xtable, network, tools, codetools
 SystemRequirements: GNU make, tcl/tk 8.5, Tktable
 Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
-Description: Fits models to longitudinal network data
-License: GPL-2
+Description: Statistical modelling for longitudinal network data
+	using stochastic actor-oriented models.
+License: GPL (>= 3)
 LazyLoad: yes
 LazyData: yes
+Biarch: yes
 NeedsCompilation: yes
 BuildResaveData: no
 URL: http://www.stats.ox.ac.uk/~snijders/siena
-Packaged: 2013-06-19 15:43:47 UTC; ripley
+Packaged: 2017-09-08 11:40:18 UTC; Tom.Snijders
 Repository: CRAN
-Date/Publication: 2013-06-19 17:47:06
+Date/Publication: 2017-09-08 14:54:27 UTC

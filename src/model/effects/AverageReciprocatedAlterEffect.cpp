@@ -24,9 +24,11 @@ namespace siena
  * Constructor.
  */
 AverageReciprocatedAlterEffect::AverageReciprocatedAlterEffect(
-	const EffectInfo * pEffectInfo) :
+	const EffectInfo * pEffectInfo, bool divide) :
 		NetworkDependentBehaviorEffect(pEffectInfo)
 {
+	this->ldivide = divide;
+	// Indicates whether there will be division by the outdegree of ego
 }
 
 
@@ -59,8 +61,11 @@ double AverageReciprocatedAlterEffect::calculateChangeContribution(int actor,
 			totalAlterValue += alterValue;
 		}
 
-		contribution = difference * totalAlterValue /
-			pNetwork->reciprocalDegree(actor);
+		contribution = difference * totalAlterValue;
+		if (this->ldivide)
+		{
+			contribution /= pNetwork->reciprocalDegree(actor);
+		}
 	}
 
 	return contribution;
@@ -102,7 +107,11 @@ double AverageReciprocatedAlterEffect::egoStatistic(int i,
 
 	if (neighborCount > 0)
 	{
-		statistic *= currentValues[i] / neighborCount;
+		statistic *= currentValues[i];
+		if (this->ldivide)
+		{
+			statistic /= neighborCount;
+		}
 	}
 
 	return statistic;

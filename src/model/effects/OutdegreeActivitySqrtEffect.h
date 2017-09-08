@@ -22,6 +22,7 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class SqrtTable;
+class Network;
 
 
 // ----------------------------------------------------------------------------
@@ -34,6 +35,8 @@ class SqrtTable;
  */
 class OutdegreeActivitySqrtEffect : public NetworkEffect
 {
+friend class BothDegreesEffect;
+
 public:
 	OutdegreeActivitySqrtEffect(const EffectInfo * pEffectInfo);
 
@@ -41,6 +44,7 @@ public:
 
 protected:
 	virtual double tieStatistic(int alter);
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
 
 private:
 	// Lookup table for fast square root calculations

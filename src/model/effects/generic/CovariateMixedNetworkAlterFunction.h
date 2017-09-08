@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 // combines MixedNetworkAlterFunction and CovariateNetworkAlterFunction
- 
+
 #ifndef COVARIATEMIXEDNETWORKALTERFUNCTION_H_
 #define COVARIATEMIXEDNETWORKALTERFUNCTION_H_
 
@@ -18,8 +18,6 @@
 #include "AlterFunction.h"
 #include "utils/NamedObject.h"
 #include "MixedNetworkAlterFunction.h"
-
-using namespace std;
 
 namespace siena
 {
@@ -44,9 +42,7 @@ public:
 	virtual ~CovariateMixedNetworkAlterFunction();
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 protected:
 	double value(int i) const;
@@ -62,8 +58,6 @@ private:
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;
 	BehaviorLongitudinalData * lpBehaviorData;
-	string lname1;
-	string lname2;
 	const Network * lpFirstNetwork;
 	const Network * lpSecondNetwork;
 	TwoNetworkCache * lpTwoNetworkCache;

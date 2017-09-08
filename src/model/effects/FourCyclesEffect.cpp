@@ -18,15 +18,18 @@
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
+using namespace std;
+
 namespace siena
 {
 
 /**
  * Constructor.
  */
-FourCyclesEffect::FourCyclesEffect(const EffectInfo * pEffectInfo) :
+FourCyclesEffect::FourCyclesEffect(const EffectInfo * pEffectInfo, bool TwoMode) :
 	NetworkEffect(pEffectInfo)
 {
+	this->lTwoMode = TwoMode;
 	this->lcounters = 0;
 
 	if (pEffectInfo->internalEffectParameter() != 1 &&
@@ -66,7 +69,22 @@ void FourCyclesEffect::initialize(const Data * pData,
 	NetworkEffect::initialize(pData, pState, period, pCache);
 
 	delete[] this->lcounters;
-	this->lcounters = new int[this->pNetwork()->m()];
+	if (this->lTwoMode)
+	{
+		this->lcounters = new long int[this->pNetwork()->m()];
+		for (int j = 0; j < this->pNetwork()->m(); j++)
+		{
+			lcounters[j] = 0;
+		}
+	}
+	else
+	{
+		this->lcounters = new long int[this->pNetwork()->n()];
+		for (int j = 0; j < this->pNetwork()->n(); j++)
+		{
+			lcounters[j] = 0;
+		}
+	}
 }
 
 
@@ -111,13 +129,19 @@ void FourCyclesEffect::preprocessEgo(int ego)
  */
 void FourCyclesEffect::countThreePaths(int i,
 	const Network * pNetwork,
-	int * counters) const
+	long int * counters) const
 {
-	int m = pNetwork->m();
+
 
 	// Initialize
 
-	for (int j = 0; j < m; j++)
+	int nm = pNetwork->n();
+	if (this->lTwoMode)
+	{
+		nm = pNetwork->m();
+	}
+
+	for (int j = 0; j < nm; j++)
 	{
 		counters[j] = 0;
 	}
@@ -199,7 +223,14 @@ double FourCyclesEffect::tieStatistic(int alter)
 	// Avoid counting each 4-cycle four times in the evaluation statistic.
 	// TODO: Is it okay to divide by 4 for endowment statistic as well?
 
+	if (this->lroot)
+	{
+	return 0.5*(this->lpSqrtTable->sqrt(this->lcounters[alter]));
+	}
+	else
+	{
 	return this->lcounters[alter] * 0.25;
+	}
 }
 
 }

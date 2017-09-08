@@ -46,6 +46,7 @@ public:
 
 protected:
 	virtual double tieStatistic(int alter);
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
 
 private:
 	// Indicates if the square root of indegrees must be used

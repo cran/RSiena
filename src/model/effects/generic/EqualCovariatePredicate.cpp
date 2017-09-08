@@ -24,7 +24,6 @@ EqualCovariatePredicate::EqualCovariatePredicate(string covariateName) :
 {
 }
 
-
 /**
  * Returns if this predicate holds for the given alter. It is assumed
  * that the predicate has been initialized before and pre-processed with

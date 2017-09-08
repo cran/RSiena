@@ -33,7 +33,7 @@ namespace siena
 std::string toString(int i);
 double identity(int x);
 double invertor(int x);
-
+double logarithmer(int x);
 
 /**
  * This method tests if the given element belongs to the given container.

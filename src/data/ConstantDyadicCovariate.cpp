@@ -13,6 +13,8 @@
 #include "data/ActorSet.h"
 #include "data/DyadicCovariateValueIterator.h"
 
+using namespace std;
+
 namespace siena
 {
 

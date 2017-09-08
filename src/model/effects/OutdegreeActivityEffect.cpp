@@ -10,7 +10,8 @@
  *****************************************************************************/
 
 #include "OutdegreeActivityEffect.h"
-#include "network/Network.h"
+#include "network/OneModeNetwork.h"
+#include "data/NetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
 
 namespace siena
@@ -64,6 +65,23 @@ double OutdegreeActivityEffect::calculateContribution(int alter) const
 double OutdegreeActivityEffect::tieStatistic(int alter)
 {
 	return this->pNetwork()->outDegree(this->ego());
+}
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+double OutdegreeActivityEffect::endowmentStatistic(Network * pLostTieNetwork)
+{
+	double statistic = 0;
+	const Network* pStart = this->pData()->pNetwork(this->period());
+	int n = pStart->n();
+	for (int i = 0; i < n; i++)
+	{
+		int outdeg = pStart->outDegree(i);
+		statistic += outdeg * pLostTieNetwork->outDegree(i);
+	}
+	return statistic;
 }
 
 }

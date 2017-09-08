@@ -2,7 +2,7 @@
 \alias{maxlikefn}
 \title{A ML version of FRAN}
 \description{
- A function to be called as 'FRAN'. All in R. very slow. work in
+ A function to be called as "FRAN". All in R. very slow. work in
  progress.
 }
 \usage{
@@ -29,7 +29,7 @@ Probability of permutation step. (set to zero in startup phase.)
   }
   \item{multfactor}{Factor controlling number of MH steps. Will be read
 	from the model in preference, and that is easier to alter! But I
-	don't want to alter that program yet..
+	don"t want to alter that program yet..
   }
 
   \item{promul}{Probability of choosing a random single multiple in

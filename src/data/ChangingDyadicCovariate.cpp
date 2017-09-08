@@ -14,6 +14,8 @@
 #include "data/ActorSet.h"
 #include "data/DyadicCovariateValueIterator.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -24,7 +26,7 @@ namespace siena
  * @param[in] pSecondActorSet the other of the involved actor sets
  * @param[in] observationCount the number of observations of the covariate
  */
-ChangingDyadicCovariate::ChangingDyadicCovariate(std::string name,
+ChangingDyadicCovariate::ChangingDyadicCovariate(string name,
 	const ActorSet * pFirstActorSet,
 	const ActorSet * pSecondActorSet,
 	int observationCount) :

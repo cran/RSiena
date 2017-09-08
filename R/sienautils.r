@@ -122,7 +122,7 @@ sienaNodeSet <- function(n, nodeSetName="Actors", names=NULL)
 }
 
 ##@coCovar Create
-coCovar <- function(val, nodeSet="Actors")
+coCovar <- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 {
     ##vector, numeric or factor
     if (!is.vector(val))
@@ -133,13 +133,30 @@ coCovar <- function(val, nodeSet="Actors")
 	{
         stop("val must be numeric or a factor")
 	}
+	if (!is.null(imputationValues))
+    {
+		if (!(is.numeric(imputationValues) || is.factor(imputationValues)))
+		{
+			stop("imputationValues must be numeric or a factor")
+		}
+		if (anyNA(imputationValues))
+		{
+			stop("imputationValues must not contain any NA values")
+		}
+		if (length(imputationValues) != length(val))
+		{
+			stop("imputationValues must have the same length as val")
+		}
+	}
     out <- val
     class(out) <- "coCovar"
+    attr(out, "centered") <- centered
     attr(out, "nodeSet") <- nodeSet
+    attr(out, "imputationValues") <- imputationValues
     out
 }
 ##@varCovar Create
-varCovar<- function(val, nodeSet="Actors")
+varCovar<- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 {
     ##matrix, numeric or factor, nrow = nactors and cols = observations-1
     if (!is.matrix(val))
@@ -150,14 +167,31 @@ varCovar<- function(val, nodeSet="Actors")
 	{
         stop("val must be numeric or a factor")
 	}
+    if (!is.null(imputationValues))
+    {
+		if (!(is.numeric(imputationValues) || is.factor(imputationValues)))
+		{
+			stop("imputationValues must be numeric or a factor")
+		}
+		if (any(is.na(imputationValues)))
+		{
+			stop("imputationValues must not contain any NA values")
+		}
+		if (any(dim(imputationValues) != dim(val)))
+		{
+			stop("imputationValues must have the same dimension as val")
+		}
+	}
     out <- val
     class(out) <- "varCovar"
+    attr(out, "centered") <- centered
     attr(out, "nodeSet") <- nodeSet
+    attr(out, "imputationValues") <- imputationValues
     out
 }
 
 ##@coDyadCovar Create
-coDyadCovar<- function(val, nodeSets=c("Actors","Actors"),
+coDyadCovar<- function(val, centered=TRUE, nodeSets=c("Actors","Actors"),
 					   sparse=is(val,"dgTMatrix"),
 					   type=c("oneMode", "bipartite"))
 {
@@ -223,13 +257,15 @@ coDyadCovar<- function(val, nodeSets=c("Actors","Actors"),
     out <- val
     class(out) <- "coDyadCovar"
 	attr(out, "type") <- type
+    attr(out, "centered") <- centered
     attr(out, "nodeSet") <- nodeSets
     attr(out, "sparse") <- sparse
     attr(out, "vardims") <- vardims
     out
 }
 ##@varDyadCovar Create
-varDyadCovar<- function(val, nodeSets=c("Actors","Actors"), sparse=is.list(val),
+varDyadCovar<- function(val, centered=TRUE,
+						nodeSets=c("Actors","Actors"), sparse=is.list(val),
 					   type=c("oneMode", "bipartite"))
 {
     ##array, numeric or factor, dims= those of net by observations-1 -
@@ -293,6 +329,7 @@ varDyadCovar<- function(val, nodeSets=c("Actors","Actors"), sparse=is.list(val),
     out <- val
     class(out) <- "varDyadCovar"
 	attr(out, "type") <- type
+    attr(out, "centered") <- centered
     attr(out, "nodeSet") <- nodeSets
     attr(out, "sparse") <- sparse
     attr(out, "vardims") <- vardims
@@ -302,6 +339,10 @@ varDyadCovar<- function(val, nodeSets=c("Actors","Actors"), sparse=is.list(val),
 sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
                     nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
 {
+	if (inherits(netarray,'data.frame'))
+	{
+		stop("The first argument must not be a data.frame, but an array or a list of sparse matrices.")
+	}
 	if (!sparse)
     {
         if (!is.array(netarray))
@@ -457,6 +498,7 @@ validateSienaDependent <- function(net)
 }
 
 ##@sienaDataConstraint DataCreate
+## TS 15-07-14: I think this function is not used anywhere and can be dropped.
 sienaDataConstraint <- function(x, net1, net2, type=c("higher",
                                                 "disjoint", "atLeastOne"),
                                  value=FALSE)

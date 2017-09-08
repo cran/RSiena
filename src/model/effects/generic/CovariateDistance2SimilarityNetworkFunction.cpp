@@ -45,7 +45,7 @@ double CovariateDistance2SimilarityNetworkFunction::value(int alter)
 	if (!this->lexcludeMissing || (!this->missingDummy(alter) &&
 				!this->missingDummy(this->ego())))
 	{
-		value = this->similarityNetwork(this->ego(), alter);
+		value = this->similarityAvAlt(this->ego(), alter);
   	}
 	return value;
 }

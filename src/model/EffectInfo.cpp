@@ -11,6 +11,8 @@
 
 #include "EffectInfo.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -131,6 +133,11 @@ double EffectInfo::internalEffectParameter() const
 string EffectInfo::effectName() const
 {
 	return this->leffectName;
+}
+
+string EffectInfo::effectType() const
+{
+	return this->leffectType;
 }
 
 

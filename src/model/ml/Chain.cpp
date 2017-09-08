@@ -28,6 +28,8 @@
 #include "data/NetworkLongitudinalData.h"
 #include "model/variables/DependentVariable.h"
 
+using namespace std;
+
 namespace siena
 {
 SEXP getChainDF(const Chain& chain, bool sort);

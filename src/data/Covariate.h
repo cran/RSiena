@@ -41,6 +41,8 @@ public:
 
 	const ActorSet * pActorSet() const;
 
+	inline double mean() const;
+	void mean(double value);
 	inline double range() const;
 	void range(double range);
 	inline double similarityMean() const;
@@ -54,6 +56,10 @@ private:
 	// The underlying set of actors
 	const ActorSet * lpActorSet;
 
+	// The average covariate value (to be passed from outside)
+	// If centered, this is 0.
+	double lmean;
+	
 	// The overall range of values (to be passed from outside)
 	double lrange;
 
@@ -68,6 +74,14 @@ private:
 // ----------------------------------------------------------------------------
 // Section: Inline methods
 // ----------------------------------------------------------------------------
+
+/**
+ * Returns the average value of this covariate.
+ */
+double Covariate::mean() const
+{
+	return this->lmean;
+}
 
 /**
  * Returns the range of values of this covariate.

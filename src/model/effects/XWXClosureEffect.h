@@ -23,7 +23,7 @@ namespace siena
 class XWXClosureEffect : public DyadicCovariateDependentNetworkEffect
 {
 public:
-	XWXClosureEffect(const EffectInfo * pEffectInfo);
+	XWXClosureEffect(const EffectInfo * pEffectInfo, bool tp, bool inst);
 	virtual ~XWXClosureEffect();
 
 	virtual void initialize(const Data * pData,
@@ -54,6 +54,9 @@ private:
 	// each j.
 
 	double * linStarSums;
+	// divide indicates whether there will be division by the indegree
+	bool ltp; // contribution from twopaths
+	bool linst; // contribution from instars
 };
 
 }

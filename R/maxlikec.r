@@ -28,7 +28,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 		{
 			theta <- z$theta
 		}
-        ans <- .Call("mlPeriod", PACKAGE=pkgname, z$Deriv, f$pData,
+        ans <- .Call(C_mlPeriod, PACKAGE=pkgname, z$Deriv, f$pData,
                      f$pModel, f$myeffects, theta,
 					 1, 1, z$nrunMH, z$addChainToStore,
                      z$returnDataFrame,
@@ -153,7 +153,7 @@ doMLModel <- function(x, Deriv, thetaMat, nrunMH, addChainToStore,
 	{
 		theta <- theta
 	}
-    .Call("mlPeriod", PACKAGE=pkgname, Deriv, f$pData,
+    .Call(C_mlPeriod, PACKAGE=pkgname, Deriv, f$pData,
           f$pModel, f$myeffects, theta,
           as.integer(x[1]), as.integer(x[2]), nrunMH[x[3]], addChainToStore,
 		  returnDataFrame, returnChains,

@@ -65,6 +65,10 @@ double HigherCovariateEffect::tieStatistic(int alter)
 	{
 		statistic = 1;
 	}
+	else if (this->value(this->ego()) == this->value(alter))
+	{
+		statistic = 0.5;
+	}
 
 	return statistic;
 }

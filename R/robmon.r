@@ -6,14 +6,14 @@
 # * File: robmon.r
 # *
 # * Description: This module contains the function robmon which controls
-# * the phases of the robbins-munro stochastic approximation algorithm.
+# * the phases of the robbins-monro stochastic approximation algorithm.
 # *****************************************************************************/
-##args:x: model object - intended to be read only
+##args:x: model/algorithm object - intended to be read only
 ##     z: model fitting object
 ## returns updated z
 ##@robmon siena07 Controls MOM process
 robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
-                   clusterIter, clusterType, ...)
+                   clusterIter, clusterType, cl, ...)
 {
     z$FinDiff.method<- x$FinDiff.method
     z$n <- 0
@@ -28,6 +28,14 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$gain <- x$firstg
     z$haveDfra <- FALSE
     z$maxlike <- x$maxlike
+	if (is.null(x$sf2.byIteration)) # keep compatible
+	{
+		z$sf2.byIteration <- TRUE
+	}
+	else
+	{
+		z$sf2.byIteration <- x$sf2.byIteration
+	}
 	if (z$maxlike && !is.batch())
 	{
 		tkconfigure(z$tkvars$phaselabel, text="MCMC Burnin")
@@ -69,16 +77,18 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         {
             stop("Not enough observations to use the nodes")
         }
-		unlink("cluster.out")
-		if (clusterType == "FORK")
-		{
-			cl <- makeCluster(nbrNodes, type = clusterType,
-                          outfile = "cluster.out")
-		}
-		else
-		{
-			cl <- makeCluster(clusterString, type = clusterType,
-                          outfile = "cluster.out")
+		if (!length(cl)) {
+		    unlink("cluster.out")
+  		  if (clusterType == "FORK")
+  		  {
+  		    cl <- makeCluster(nbrNodes, type = clusterType,
+  		                      outfile = "cluster.out")
+  		  }
+  		  else
+  		  {
+  		    cl <- makeCluster(clusterString, type = clusterType,
+  		                      outfile = "cluster.out")
+  		  }
 		}
         clusterCall(cl, library, pkgname, character.only = TRUE)
 		##parLapply(cl, c('f1','f2'), sink)
@@ -126,7 +136,15 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         Report('This is not allowed; changed to 0.0001.\n', outf)
         z$gain <- 0.0001
     }
+    if (x$reduceg <= 0)
+    {
+        Report(c('Reduction factor for the gain parameter is ', x$reduceg,
+                 '.\n'), outf)
+        Report('This is not allowed; changed to 0.2.\n', outf)
+        x$reduceg <- 0.2
+    }
     Report(c('Initial value for gain parameter = ', format(z$gain),
+			 '.\nReduction factor for gain parameter = ', format(x$reduceg),
              '.\nStart of the algorithm.\n'), cf, sep='')
     Report('Observed function values are \n', cf)
 	targets <- if (!z$maxlike) z$targets else z$maxlikeTargets
@@ -138,7 +156,6 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$theta0 <- z$theta
 	## store starting value without any conditioning variables
     z$anyposj <- any(z$posj)
-    z$resist <- rep(1, z$pp)
     z$n1 <- 7 + 3 * z$pp
 	if (x$dolby){z$n1 <- max(z$n1, 50)}
     if (any(!z$fixed))
@@ -149,7 +166,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     {
         z$AllUserFixed <- TRUE
     }
-    ##browser()
+
     repeat  ##this is startagain:
     {
       z$epsilonProblem <- FALSE
@@ -213,7 +230,6 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                         break
                     }
                     z<- phase1.2(z, x, ...)
-                    ## browser()
                     if (!z$OK || z$DerivativeProblem ||
                         UserInterruptFlag() || UserRestartFlag())
                     {
@@ -333,12 +349,18 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
 	if (!x$simOnly)
 	{
 		z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)
-		z$covtheta[z$diver, ] <- Root(diag(z$covtheta)) * 33
+		z$covtheta[z$diver, ] <- NA # was Root(diag(z$covtheta)) * 33
 		##not sure this does not use very small vals
-		z$covtheta[, z$diver] <- Root(diag(z$covtheta)) * 33
-		diag(z$covtheta)[z$diver] <- 999
+		z$covtheta[, z$diver] <- NA # was Root(diag(z$covtheta)) * 33
+		diag(z$covtheta)[z$diver] <- NA # was 999
+		z$se <- sqrt(diag(z$covtheta))
 	}
+	z$gmm <- FALSE
     z$termination <- 'OK'
+    if (useCluster)
+    {
+		stopCluster(cl)
+	}
     z
 }
 

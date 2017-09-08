@@ -60,6 +60,8 @@ includeTimeDummy(myeff, ..., timeDummy="all", name=myeff$name[1], type="eval",
   include these in the data set through \code{\link{sienaDataCreate}},
   and include interactions of other effects with ego effects of these
   time-dependent actor covariates by \code{\link{includeInteraction}}.
+  This is illustrated in an example in the help file for
+  \code{\link{sienaTimeTest}}.
   Using \code{\link{includeTimeDummy}} is easier; on the other hand,
   using self-defined interactions with time-dependent variables
   gives more control (e.g., it will allow to specify linear time dependence

@@ -22,11 +22,13 @@ namespace siena
 /**
  * Constructor.
  */
-XWXClosureEffect::XWXClosureEffect(const EffectInfo * pEffectInfo) :
+XWXClosureEffect::XWXClosureEffect(const EffectInfo * pEffectInfo, bool tp, bool inst) :
 	DyadicCovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->ltwoPathSums = 0;
 	this->linStarSums = 0;
+	this->ltp = tp;
+	this->linst = inst;
 }
 
 
@@ -164,7 +166,10 @@ void XWXClosureEffect::calculateInStarSums(int i,
  */
 double XWXClosureEffect::calculateContribution(int alter) const
 {
-	return this->ltwoPathSums[alter] + this->linStarSums[alter];
+	double statistic = 0;
+	if (this->ltp) statistic = this->ltwoPathSums[alter];
+	if (this->linst) statistic += this->linStarSums[alter];
+	return statistic;
 }
 
 

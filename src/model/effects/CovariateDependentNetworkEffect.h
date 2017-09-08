@@ -38,15 +38,18 @@ class BehaviorLongitudinalData;
 class CovariateDependentNetworkEffect : public NetworkEffect
 {
 public:
-	CovariateDependentNetworkEffect(const EffectInfo * pEffectInfo);
+	explicit CovariateDependentNetworkEffect(const EffectInfo * pEffectInfo);
+	CovariateDependentNetworkEffect(const EffectInfo * pEffectInfo, const bool simulated);
 
 	virtual void initialize(const Data * pData,
 		State * pState,
 		int period,
 		Cache * pCache);
+	virtual void initialize(const Data * pData, State * pState,
+			State * pSimulatedState, int period, Cache * pCache);
 
 protected:
-	double value(int i) const;
+	double value(const int i) const;
 	bool missing(int i) const;
 	double similarity(int i, int j) const;
 	ConstantCovariate * pConstantCovariate() const;
@@ -54,6 +57,11 @@ protected:
 	BehaviorLongitudinalData * pBehaviorData() const;
 
 private:
+	//! If `1` value(), missing() and similarity() returns the simulated value
+	//! (if the covariate is a behavior) or the observed value at the end of the
+	//! period.
+	const int lSimulatedOffset;
+
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;
 	BehaviorLongitudinalData * lpBehaviorData;

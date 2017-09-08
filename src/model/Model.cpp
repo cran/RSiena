@@ -19,6 +19,8 @@
 #include "model/effects/AllEffects.h"
 #include "model/ml/Chain.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -43,8 +45,10 @@ Model::Model()
 	this->ldeletePermuteProbability = 0;
 	this->linsertRandomMissingProbability = 0;
 	this->ldeleteRandomMissingProbability = 0;
+    this->llocalML = false;
 	this->lsimpleRates = 0;
-	this->lmodelType = NORMAL;
+	this->lneedChangeContributions2 =false;
+	this->lnormalizeSettingsRates = false;
 }
 
 
@@ -66,8 +70,8 @@ Model::~Model()
 
 	while (!this->lsettingRateParameters.empty())
 	{
-		double * array = this->lsettingRateParameters.begin()->second.
-			begin()->second;
+		double * array =
+				this->lsettingRateParameters.begin()->second.begin()->second;
 		this->lsettingRateParameters.erase(
 			this->lsettingRateParameters.begin());
 		delete[] array;
@@ -192,6 +196,22 @@ void Model::parallelRun(bool flag)
 bool Model::parallelRun() const
 {
 	return this->lparallelRun;
+}
+
+/**
+ * Stores if change contribution are needed in the current simulation
+ */
+void Model::needChangeContributions(bool flag)
+{
+	this->lneedChangeContributions2 = flag;
+}
+
+/**
+ * Returns if change contribution are needed in the current simulation
+ */
+bool Model::needChangeContributions() const
+{
+	return this->lneedChangeContributions2;
 }
 
 /**
@@ -732,31 +752,6 @@ int Model::numberOfPeriods()
 	return this->lnumberOfPeriods;
 }
 
-/**
- * Sets the model type.
- */
-void Model::modelType(int type)
-{
-	this->lmodelType = ModelType(type);
-}
-
-/**
- * Returns the model type.
- */
-ModelType Model::modelType() const
-{
-	return this->lmodelType;
-}
-/**
- * Returns whether the model type is one of the symmetric type b models.
- */
-
-bool Model::modelTypeB() const
-{
-	return this->lmodelType == BFORCE ||
-		this->lmodelType == BAGREE || this->lmodelType == BJOINT;
-}
-
 // ----------------------------------------------------------------------------
 // Section: Probabilities
 //-----------------------------------------------------------------------------
@@ -933,6 +928,24 @@ double Model::missingBehaviorProbability(int periodFromStart) const
 {
 	return this->lmissingBehaviorProbability[periodFromStart];
 }
+    
+/**
+ * Stores whether the model is a local model (localML option)
+ */
+void Model::localML(bool flag)
+{
+    this->llocalML = flag;
+}
+    
+    
+/**
+ * Returns whether the model is a local model (localML option)
+ */
+bool Model::localML() const
+{
+    return this->llocalML;
+}
+    
 /**
  * Stores the simpleRates flag for the ML model.
  */
@@ -948,5 +961,15 @@ void Model::simpleRates(bool simpleRates)
 bool Model::simpleRates() const
 {
 	return this->lsimpleRates;
+}
+
+void Model::normalizeSettingRates(bool normalize)
+{
+	this->lnormalizeSettingsRates = normalize;
+}
+
+bool Model::normalizeSettingRates() const
+{
+	return this->lnormalizeSettingsRates;
 }
 }
