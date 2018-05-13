@@ -12,6 +12,8 @@ ans<- siena07(mymodel, data=mydata, effects=myeff,
      batch=TRUE, parallelTesting=TRUE, silent=TRUE)
 #,dll='../siena/src/RSiena.dll')
 ans
+(myeff <- includeEffects(myeff, transTrip, cycle4))
+(myeff <- includeEffects(myeff, cycle4, include=FALSE))
 ##test4
 mymodel$projname <- 'test4'
 mymodel$cconditional <- TRUE
@@ -92,12 +94,38 @@ mynet1 <- sienaDependent(array(c(s501[use,], s502[use,], s503[use,]),
                          nodeSet=c('Senders','receivers'))
 receivers <- sienaNodeSet(50,'receivers')
 senders <- sienaNodeSet(30,'Senders')
-mydata <- sienaDataCreate(mynet1, nodeSets=list(senders, receivers))
+myvar1 <- coCovar(s50a[1:30,2], nodeSet='Senders')
+mydata <- sienaDataCreate(mynet1, myvar1, nodeSets=list(senders, receivers))
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, inPop)
+myeff <- setEffect(myeff, altInDist2, interaction1="myvar1", parameter=1)
 ans <- siena07(sienaModelCreate(n3=50, nsub=2,
                seed=1, projname="test12"),
                data=mydata, effects=myeff, batch=TRUE, silent=TRUE)
 ans
 tt <- sienaTimeTest(ans)
-tt
+summary(tt)
+##test13
+print('test13')
+use<- 1:30
+mynet1 <- sienaDependent(array(c(s502[,use], s503[,use]),
+                         dim=c(50, length(use), 2)), type='bipartite',
+                         nodeSet=c('Senders','receivers'))
+receivers <- sienaNodeSet(30,'receivers')
+senders <- sienaNodeSet(50,'Senders')
+myvar1 <- coCovar(s50a[1:50,2], nodeSet='Senders')
+mydata <- sienaDataCreate(mynet1, myvar1, nodeSets=list(senders, receivers))
+myeff <- getEffects(mydata)
+myeff <- setEffect(myeff, altInDist2, interaction1="myvar1", parameter=1)
+myeff <- setEffect(myeff, egoX, interaction1="myvar1")
+(ans <- siena07(sienaModelCreate(n3=50, nsub=2,
+               seed=1, projname="test13"),
+               data=mydata, effects=myeff, batch=TRUE, silent=TRUE))
+##test14
+print('test14')
+net <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
+dataset <- sienaDataCreate(net)
+myeff <- getEffects(dataset)
+myeff <- includeEffects(myeff, inPop)
+algo <- sienaAlgorithmCreate(nsub=1, n3=20, maxlike=TRUE, seed=15, mult=1)
+(ans <- siena07(algo, data=dataset, effects=myeff, batch=TRUE))

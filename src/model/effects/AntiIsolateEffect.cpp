@@ -9,10 +9,11 @@
  * AntiIsolateEffect class.
  *****************************************************************************/
 
-
 #include "AntiIsolateEffect.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
+
+using namespace std;
 
 namespace siena
 {

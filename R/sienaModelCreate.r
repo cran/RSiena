@@ -10,20 +10,19 @@
 # *****************************************************************************/
 
 ##@sienaModelCreate DataCreate
-sienaModelCreate <-
-	function(fn,
-projname="Siena", MaxDegree=NULL,  Offset=NULL,
-useStdInits=FALSE,
-			n3=1000, nsub=4, n2start = NULL, dolby=TRUE,
-			maxlike=FALSE, diagonalize=0.2*!maxlike,
-			condvarno=0, condname='',
-			firstg=0.2, reduceg=0.5, cond=NA, findiff=FALSE,  seed=NULL,
-			pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
-			prirms=0.05, prdrms=0.05, maximumPermutationLength=40,
-			minimumPermutationLength=2, initialPermutationLength=20,
-modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
-			truncation=5, doubleAveraging=0, standardizeVar=(diagonalize<1),
-			lessMem=FALSE)
+sienaModelCreate <- function(fn,
+	projname="Siena", MaxDegree=NULL,  Offset=NULL,
+	useStdInits=FALSE,
+	n3=1000, nsub=4, n2start = NULL, dolby=TRUE,
+	maxlike=FALSE, diagonalize=0.2*!maxlike,
+	condvarno=0, condname='',
+	firstg=0.2, reduceg=0.5, cond=NA, findiff=FALSE,  seed=NULL,
+	pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
+	prirms=0.05, prdrms=0.05, maximumPermutationLength=40,
+	minimumPermutationLength=2, initialPermutationLength=20,
+	modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
+	truncation=5, doubleAveraging=0, standardizeVar=(diagonalize<1),
+	lessMem=FALSE)
 {
 	model <- NULL
 	model$projname <- projname
@@ -34,7 +33,7 @@ modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
 	model$reduceg <- reduceg
 	model$maxrat <- 1.0
 	model$normSetRates <- FALSE
-	model$maxlike <-  maxlike
+	model$maxlike <- maxlike
 	model$simOnly <- simOnly
 	model$localML <- localML
 	model$FRANname <- deparse(substitute(fn))
@@ -51,12 +50,12 @@ modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
 		if (cond)
 		{
 			stop("Conditional estimation is not possible with",
-				  "maximum likelihood estimation")
+				"maximum likelihood estimation")
 		}
 		if (findiff)
 		{
 			stop("Finite differences estimation of derivatives",
-				 "is not possible with maximum likelihood estimation")
+				"is not possible with maximum likelihood estimation")
 		}
 	}
 	else
@@ -101,7 +100,7 @@ modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
 	}
 	if (!is.null(behModelType))
 	{
-	if (any(!(behModelType %in% c(1,2))))
+		if (any(!(behModelType %in% c(1,2))))
 		{
 			warning('behModelType can only have values 1 or 2; other values changed to 1\n')
 			model$behModelType[!(behModelType %in% c(1,2))] <- 1
@@ -138,17 +137,17 @@ modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
 	model$sf2.byIteration <- !lessMem
 	model$standardizeWithTruncation <- standardizeVar
 	model$standardizeVar <- standardizeVar
-# The difference between these two is a hidden, non-documented option,
-# perhaps for being tried out
-# by later modification of the sienaAlgorithm object.
+	# The difference between these two is a hidden, non-documented option,
+	# perhaps for being tried out
+	# by later modification of the sienaAlgorithm object.
 	model$noAggregation <- FALSE
-# This also is a hidden, non-documented option, perhaps for being tried out.
-#  \item{noAggregation}{Logical:
-#   do not replace current parameter value after subphase 1
-#   by the mean over subphase 1, if some quasi-autocorrelation
-#   then is larger than .5. May be helpful if initial value was very far away.
-# The two options model$noAggregation and model$standardizeWithTruncation
-# are used only in phase2.r.
+	# This also is a hidden, non-documented option, perhaps for being tried out.
+	#  \item{noAggregation}{Logical:
+	#   do not replace current parameter value after subphase 1
+	#   by the mean over subphase 1, if some quasi-autocorrelation
+	#   then is larger than .5. May be helpful if initial value was very far away.
+	# The two options model$noAggregation and model$standardizeWithTruncation
+	# are used only in phase2.r.
 	class(model) <- "sienaAlgorithm"
 	model
 }
@@ -161,20 +160,20 @@ sienaAlgorithmCreate <- sienaModelCreate
 ##@ModelTypeStrings DataCreate
 ModelTypeStrings <- function(i){
 	ifelse(((i %in% 1:6) && (!is.null(i))),
-	switch(i,
-		"Standard actor-oriented model",
-		"Forcing model",
-		"Initiative model",
-		"Pairwise forcing model",
-		"Pairwise mutual model",
-		"Pairwise joint model"), "")
+		switch(i,
+			"Standard actor-oriented model",
+			"Forcing model",
+			"Initiative model",
+			"Pairwise forcing model",
+			"Pairwise mutual model",
+			"Pairwise joint model"), "")
 }
 
 ##@BehaviorModelTypeStrings DataCreate
 BehaviorModelTypeStrings <- function(i){
 	ifelse(((i %in% 1:2) && (!is.null(i))),
-	switch(i,
-		"Standard behavior actor-oriented model ('restrict')",
-		"Boundary-absorbing behavior model"),
+		switch(i,
+			"Standard behavior actor-oriented model ('restrict')",
+			"Boundary-absorbing behavior model"),
 		"")
 }

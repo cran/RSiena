@@ -40,22 +40,16 @@ SimilarityTransitiveTripletsEffect::SimilarityTransitiveTripletsEffect(
 double SimilarityTransitiveTripletsEffect::calculateContribution(int alter) const
 {
 	// If we are introducing a tie from the ego i to the alter j, then each
-	// two-path from i to j with v_i = v_j contributes the similarity i-j;
-   // in addition, each in-star i -> h <- j also contributes 
-   // the similarity i-h.
-   // This number is not stored in a table and is calculated from scratch.
+	// two-path from i to j with v_i = v_j contributes the similarity i-j; in
+	// addition, each in-star i -> h <- j also contributes the similarity i-h.
+	// This number is not stored in a table and is calculated from scratch.
 
-	double contribution1 = 0;
 	const Network * pNetwork = this->pNetwork();
+	double contribution1 = this->similarity(this->ego(), alter)
+		* this->pTwoPathTable()->get(alter);
 
-	{
-		contribution1 = this->similarity(this->ego(), alter) *
-								this->pTwoPathTable()->get(alter);
-	}
-
-
-	// The following probably can be done more efficiently 
-	// using CommonNeighborIterator.
+	// The following probably can be done more efficiently using
+	// CommonNeighborIterator.
 	// Iterate over ego's outgoing ties
 	for (IncidentTieIterator iter = pNetwork->outTies(this->ego());
 		iter.valid();
@@ -65,7 +59,7 @@ double SimilarityTransitiveTripletsEffect::calculateContribution(int alter) cons
 		int h = iter.actor();
 		if (pNetwork->tieValue(h, alter) >= 1)
 		{
-		 contribution1 = contribution1 + this->similarity(this->ego(), h) ;
+			contribution1 = contribution1 + this->similarity(this->ego(), h) ;
 		}
 	}
 
@@ -83,8 +77,8 @@ double SimilarityTransitiveTripletsEffect::tieStatistic(int alter)
 
 	if (!this->missing(this->ego()) && !this->missing(alter))
 	{
-		statistic = this->similarity(this->ego(), alter) *
-						 this->pTwoPathTable()->get(alter);
+		statistic = this->similarity(this->ego(), alter)
+			* this->pTwoPathTable()->get(alter);
 	}
 
 	return statistic;

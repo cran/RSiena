@@ -14,6 +14,8 @@
 #include "data/NetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -34,14 +36,13 @@ double OutdegreeActivityEffect::calculateContribution(int alter) const
 	double change = 0;
 
 	// Current out-degree
-	int d =	this->pNetwork()->outDegree(this->ego());
+	int d = this->pNetwork()->outDegree(this->ego());
 
 	if (this->outTieExists(alter))
 	{
 		// After a tie withdrawal, the new out-degree would be d-1, and
 		// the new effect statistic s_i'=(d-1)^2. The current statistic
 		// is s_i=d^2, so the change would be s_i-s_i' = 2d-1.
-
 		change = 2 * d - 1;
 	}
 	else
@@ -49,7 +50,6 @@ double OutdegreeActivityEffect::calculateContribution(int alter) const
 		// When introducing a new tie, the new out-degree would be d+1, and
 		// the new effect statistic s_i'=(d+1)^2. The current statistic
 		// is s_i=d^2, so the change would be s_i'-s_i = 2d+1.
-
 		change = 2 * d + 1;
 	}
 

@@ -16,7 +16,6 @@
 #include "utils/SqrtTable.h"
 #include "model/EffectInfo.h"
 
-
 namespace siena
 {
 

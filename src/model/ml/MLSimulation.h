@@ -92,6 +92,8 @@ public:
                              DependentVariable * pVariable,
                              NetworkVariable * pNetworkVariable,
                              int ego1, int alter1);
+							 
+	void gotoLastState(); 
     
 
 private:

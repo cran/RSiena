@@ -21,13 +21,12 @@ namespace siena
 class HomCovariateMixedTwoPathFunction: public CovariateMixedNetworkAlterFunction
 {
 public:
-	HomCovariateMixedTwoPathFunction(string firstNetworkName,
-		string secondNetworkName, string covariateName, bool excludeMissing);
+	HomCovariateMixedTwoPathFunction(std::string firstNetworkName,
+			std::string secondNetworkName, std::string covariateName,
+			bool excludeMissing);
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 	virtual double value(int alter);
 

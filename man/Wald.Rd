@@ -41,7 +41,8 @@ score.Test(ans, test=ans$test)
    parameters given in \eqn{\ldots} are 0. This is a special case of
    the preceding.
 
-   The tested effects for \code{score.Test} should have been specified with
+   The tested effects for \code{score.Test} should have been specified
+   in \code{\link{includeEffects}} or \code{\link{setEffect}} with
    \code{fix=TRUE, test=TRUE}, i.e., they should not have been estimated.
    The hypothesis tested by \code{score.Test} is that the tested parameters have
    the value indicated in the effects object used for obtaining \code{ans}.
@@ -66,7 +67,7 @@ score.Test(ans, test=ans$test)
 mynet <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
 mydata <- sienaDataCreate(mynet)
 myeff <- getEffects(mydata)
-myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=40)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=40, seed=123)
 # nsub=1 and n3=40 is used here for having a brief computation,
 # not for practice.
 myeff <- includeEffects(myeff, transTrip, transTies)
@@ -81,6 +82,13 @@ Multipar.RSiena(ans, 3, 4)
 # The following two are equivalent:
 score.Test(ans, c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE))
 score.Test(ans,6)
+# Getting all 1-df score tests separately:
+# (More identifying information for the effects may be added as necessary)
+for (i in which(ans$test)){
+   sct <- score.Test(ans,i)
+   cat(ans$requestedEffects$effectName[i], '\n',
+   '    chisquared =', round(sct$chisquare,1),
+   '; p =', round(sct$pvalue,3), '\n')}
 }
 % Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.

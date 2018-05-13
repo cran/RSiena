@@ -106,7 +106,8 @@ unspecified, i.e., \code{ans=NULL}.
 Note that \code{sienaRI} works only with Method of Moments
 (i.e., for \code{sienaAlgorithm} objects with \code{maxlike = FALSE})
 and that it does not yet work for endowment or creation effects
-(i.e., included effects have to be of type \code{eval}).
+(i.e., included effects have to be of type \code{eval}),
+and also not for models with interaction effects.
 It does not allow two-mode (bipartite) networks as dependent variables;
 but these can be represented as one-mode networks using structural zeros.
 If the network is non-directed, the relative importances and entropy-based
@@ -140,8 +141,8 @@ corresponding to the observation moments.
           for each potential actor decision at observation moments.
           This is equation (3) in Indlekofer and Brandes (2013).}
     \item{- \code{expectedRI}}{a list that contains the expected
-          relative importances of effects aggregated over all actors in each
-          network observations. These are the averages of the actor related
+          relative importances of effects aggregated over all actors for each
+          network observation. These are the averages of the actor related
           values in \code{RIActors}.
           This is equation (4) in Indlekofer and Brandes (2013).}
     \item{- \code{IActors}}{a list that contains the expected
@@ -198,7 +199,6 @@ RI
 \dontrun{
 plot(RI, addPieChart=TRUE)
 plot(RI, actors=1:20, addPieChart=TRUE, radius=1.08)
-
 }
 
 myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=50)

@@ -26,11 +26,11 @@ namespace siena
  * be multiplied by the in-degrees of alters
  */
 SimilarityWEffect::SimilarityWEffect(
-	const EffectInfo * pEffectInfo,
-	bool average,
-	bool alterPopularity,
-	bool egoPopularity) :
-		DyadicCovariateAndNetworkBehaviorEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo,
+		bool average,
+		bool alterPopularity,
+		bool egoPopularity) :
+	DyadicCovariateAndNetworkBehaviorEffect(pEffectInfo)
 {
 	this->laverage = average;
 	this->lalterPopularity = alterPopularity;
@@ -45,7 +45,7 @@ SimilarityWEffect::SimilarityWEffect(
  * the given actor would change his behavior by the given amount.
  */
 double SimilarityWEffect::calculateChangeContribution(int actor,
-	int difference)
+		int difference)
 {
 	double contribution = 0;
 	const Network * pNetwork = this->pNetwork();

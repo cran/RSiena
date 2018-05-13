@@ -24,9 +24,9 @@ namespace siena
  * @param[in] pEffectInfo the effect descriptor
  * @param[in] squared indicates if the covariate values must be squared
  */
-SameCovariateActivityEffect::SameCovariateActivityEffect(const EffectInfo * pEffectInfo,
-	bool same) :
-		CovariateDependentNetworkEffect(pEffectInfo)
+SameCovariateActivityEffect::SameCovariateActivityEffect(
+		const EffectInfo * pEffectInfo, bool same) :
+	CovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->lsame = same;
 }

@@ -30,7 +30,7 @@ namespace siena {
  */
 AltersCovariateTotSimEffect::AltersCovariateTotSimEffect(
 		const EffectInfo * pEffectInfo) :
-		CovariateAndNetworkBehaviorEffect(pEffectInfo) {
+	CovariateAndNetworkBehaviorEffect(pEffectInfo) {
 }
 
 /**
@@ -38,12 +38,13 @@ AltersCovariateTotSimEffect::AltersCovariateTotSimEffect(
  * the given actor would change his behavior by the given amount.
  */
 double AltersCovariateTotSimEffect::calculateChangeContribution(int actor,
-		int difference) {
+		int difference)
+{
 	double contribution = 0;
 	const Network * pNetwork = this->pNetwork();
 
 	if (pNetwork->outDegree(actor) > 0) // otherwise, nothing to calculate...
-			{
+	{
 
 		int oldValue = this->value(actor); // ego's behavior value before moving on behavior scale
 		int newValue = oldValue + difference; // ego's behavior value after moving on behavior scale
@@ -65,7 +66,6 @@ double AltersCovariateTotSimEffect::calculateChangeContribution(int actor,
 	}
 
 	return contribution;
-
 }
 
 /**
@@ -73,13 +73,15 @@ double AltersCovariateTotSimEffect::calculateChangeContribution(int actor,
  * given values of the behavior variable.
  */
 double AltersCovariateTotSimEffect::egoStatistic(int ego,
-		double * currentValues) {
+		double * currentValues)
+{
 	const Network * pNetwork = this->pNetwork();
-
 	double statistic = 0;
 
-	for (IncidentTieIterator iter = pNetwork->outTies(ego); iter.valid();
-			iter.next()) {
+	for (IncidentTieIterator iter = pNetwork->outTies(ego);
+			iter.valid();
+			iter.next())
+	{
 		int j = iter.actor();
 
 		if (!this->missing(this->period(), j)
@@ -101,24 +103,25 @@ double AltersCovariateTotSimEffect::egoStatistic(int ego,
  * behavior variable and the current values.
  */
 double AltersCovariateTotSimEffect::egoEndowmentStatistic(int ego,
-		const int * difference, double * currentValues) {
+		const int * difference, double * currentValues)
+{
 	double statistic = 0;
 	const Network * pNetwork = this->pNetwork();
 
 	if (difference[ego] > 0 && !this->missingDummy(ego)
 			&& (pNetwork->outDegree(ego) > 0)) // otherwise, nothing to calculate...
-			{
+	{
 
 		int oldValue = this->value(ego); // ego's behavior value before moving on behavior scale
 		int newValue = oldValue + difference[ego]; // ego's behavior value after moving on behavior scale
 		double totalChange = 0;                   // will keep track of changes
 
 		for (IncidentTieIterator iter = pNetwork->outTies(ego); // loops over outgoing ties of ego
-		iter.valid(); iter.next()) {
+				iter.valid(); iter.next()) {
 			int j = iter.actor();                // identifies alter
 			int alterValue = this->value(j); // identifies behavior value of alter
 			int change = std::abs(oldValue - alterValue)
-					- std::abs(newValue - alterValue);
+				- std::abs(newValue - alterValue);
 			// calculates impact of ego's movement on absolute difference to alter
 
 			totalChange += change * this->covariateValue(j); // weighting change statistic acc. to covariate value of alter

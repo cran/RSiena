@@ -15,7 +15,7 @@ print01Report(data, modelname = "Siena", getDocumentation=FALSE)
 \item{modelname}{
   Character string used to name the output file "modelname.out"
 }
-  \item{getDocumentation}{Flag to allow documentation of internal
+\item{getDocumentation}{Flag to allow documentation of internal
   functions, not for use by users.}
 }
 \details{

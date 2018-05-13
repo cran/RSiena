@@ -21,6 +21,8 @@
 #include "model/EpochSimulation.h"
 #include "model/EffectInfo.h"
 
+using namespace std;
+
 namespace siena
 {
 

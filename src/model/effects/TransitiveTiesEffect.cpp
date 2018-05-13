@@ -38,8 +38,7 @@ double TransitiveTiesEffect::calculateContribution(int alter) const
 	// from i to h now. Hence <(i,h),(j,h)> is one of the critical in-stars
 	// between i and j.
 
-	double change =
-		this->pCriticalInStarTable()->get(alter);
+	double change = this->pCriticalInStarTable()->get(alter);
 
 	// Test if the tie (i,j) is transitive itself (the efficiency could be
 	// improved a bit, if we tested only for the existence of a two-path).

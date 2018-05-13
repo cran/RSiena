@@ -1,229 +1,229 @@
 maxlikefn<- function(z, x, INIT=FALSE, TERM=FALSE, data, effects=NULL,
-                     nstart=1000,
-                     pinsdel=0.6, pperm=0.3, prelins=0.1, multfactor=2.0,
-                     promul=0.1, promul0=0.5, pdiaginsdel=0.1,
-                     fromFiniteDiff=FALSE, noSamples=1, sampInterval=50, int=1)
+	nstart=1000,
+	pinsdel=0.6, pperm=0.3, prelins=0.1, multfactor=2.0,
+	promul=0.1, promul0=0.5, pdiaginsdel=0.1,
+	fromFiniteDiff=FALSE, noSamples=1, sampInterval=50, int=1)
 {
-    mlInit <- function(z, x, data, effects)
-    {
-        f <- NULL
-        if (!inherits(data, "siena"))
-        {
-            stop("not valid siena data object")
-        }
-        if (is.null(effects))
-        {
-            effects <- getEffects(data)
-        }
+	mlInit <- function(z, x, data, effects)
+	{
+		f <- NULL
+		if (!inherits(data, "siena"))
+		{
+			stop("not valid siena data object")
+		}
+		if (is.null(effects))
+		{
+			effects <- getEffects(data)
+		}
 		if(!inherits(effects, "sienaEffects"))
-        {
+		{
 			stop("effects is not a legitimate Siena effects object")
-        }
-        effects <- effects[effects$include, ]
-        z$theta <- effects$initialValue
-        z$fixed <- effects$fix
-        z$test <- effects$test
-        z$pp <- length(z$test)
-        z$posj <- rep(FALSE, z$pp)
-        z$targets <- rep(0, z$pp)
-        ##  effectsNames<- getEffectNames(effects)
-        z$posj[grep("basic", effects$effectName)] <- TRUE
-        z$posj[grep("constant", effects$effectName)] <- TRUE
-        z$BasicRateFunction <- z$posj
-        observations <- data$observations
-        mats <- vector("list", observations)
-        f$mynets <- vector("list", observations)
-        types <- sapply(data$depvars, function(x) attr(x, "type"))
-        netsubs <- which(types=="oneMode")
-        netsub <- min(netsubs) ### only one for now
-        actsubs <- which(types=='behavior')
-        for (i in 1:observations)
-        {
-            mats[[i]] <- data$depvars[[netsub]][, , i]
-            f$mynets[[i]] <- mats[[i]]
-            if (i==1)
-            {
-                f$mynets[[i]][is.na(mats[[i]])] <- 0
-            }
-            else ##carry missing forward!
-            {
-                f$mynets[[i]][is.na(mats[[i]])] <-
-                    f$mynets[[i - 1]][is.na(mats[[i]])]
-            }
-            f$mynets[[i]][mats[[i]]==10] <- 0
-            f$mynets[[i]][mats[[i]]==11] <- 1
-        }
-        f$mystructs <- vector('list',observations)
-        for (i in 1:observations)
-        {
-            f$mystructs[[i]] <- mats[[i]]
-            f$mystructs[[i]][, ] <- 0
-            f$mystructs[[i]][mats[[i]]==11] <- 1
-            f$mystructs[[i]][mats[[i]]==10] <- 1
-        }
-        f$mats <- mats
-        for (i in 1:observations)
-        {
-            f$mats[[i]][mats[[i]]==11] <- 1
-            f$mats[[i]][mats[[i]]==10] <- 0
-        }
-        if (length(actsubs) > 0)
-        {
-            acts <- matrix(data$depvars[[actsubs[1]]],
-                          ncol=observations)
-            f$acts <- acts
-            f$myacts <- acts
-            f$myacts[is.na(acts)] <- 0
-            f$meanact <- round(mean(acts, na.rm=TRUE))
-        }
-        f$observations <- observations
-        ## browser()
+		}
+		effects <- effects[effects$include, ]
+		z$theta <- effects$initialValue
+		z$fixed <- effects$fix
+		z$test <- effects$test
+		z$pp <- length(z$test)
+		z$posj <- rep(FALSE, z$pp)
+		z$targets <- rep(0, z$pp)
+		##  effectsNames<- getEffectNames(effects)
+		z$posj[grep("basic", effects$effectName)] <- TRUE
+		z$posj[grep("constant", effects$effectName)] <- TRUE
+		z$BasicRateFunction <- z$posj
+		observations <- data$observations
+		mats <- vector("list", observations)
+		f$mynets <- vector("list", observations)
+		types <- sapply(data$depvars, function(x) attr(x, "type"))
+		netsubs <- which(types=="oneMode")
+		netsub <- min(netsubs) ### only one for now
+		actsubs <- which(types=='behavior')
+		for (i in 1:observations)
+		{
+			mats[[i]] <- data$depvars[[netsub]][, , i]
+			f$mynets[[i]] <- mats[[i]]
+			if (i==1)
+			{
+				f$mynets[[i]][is.na(mats[[i]])] <- 0
+			}
+			else ##carry missing forward!
+			{
+				f$mynets[[i]][is.na(mats[[i]])] <-
+					f$mynets[[i - 1]][is.na(mats[[i]])]
+			}
+			f$mynets[[i]][mats[[i]]==10] <- 0
+			f$mynets[[i]][mats[[i]]==11] <- 1
+		}
+		f$mystructs <- vector('list',observations)
+		for (i in 1:observations)
+		{
+			f$mystructs[[i]] <- mats[[i]]
+			f$mystructs[[i]][, ] <- 0
+			f$mystructs[[i]][mats[[i]]==11] <- 1
+			f$mystructs[[i]][mats[[i]]==10] <- 1
+		}
+		f$mats <- mats
+		for (i in 1:observations)
+		{
+			f$mats[[i]][mats[[i]]==11] <- 1
+			f$mats[[i]][mats[[i]]==10] <- 0
+		}
+		if (length(actsubs) > 0)
+		{
+			acts <- matrix(data$depvars[[actsubs[1]]],
+				ncol=observations)
+			f$acts <- acts
+			f$myacts <- acts
+			f$myacts[is.na(acts)] <- 0
+			f$meanact <- round(mean(acts, na.rm=TRUE))
+		}
+		f$observations <- observations
+		## browser()
 
-        if (any(z$targets!=0))
-        {
-            Report(c("Targets should be zero for maximum likelihood:',
-                     'they have been zeroed\n"))
-            z$targets <- rep(0, z$pp)
-        }
-        mat1 <- data$depvars[[netsub]][, , 1]
-        mat2 <- data$depvars[[netsub]][, , 2]
-        ## f$mat1<- mat1
-        ## f$mat2<- mat2
-        startmat <- mat1
-        startmat[is.na(startmat)] <- 0
-        endmat <- mat2
-        endmat[is.na(endmat)] <- startmat[is.na(endmat)]
-        diffmat <- startmat != endmat
-        if (is.null(x$multfactor))
-            f$niter <- multfactor * sum(diffmat)
-        else
-            f$niter <- x$multfactor * sum(diffmat)
-### create initial chain
-        chain <- matrix(0, nrow=sum(diffmat), ncol=4)
-        chain[,1] <- row(diffmat)[diffmat]
-        chain[,2] <- col(diffmat)[diffmat]
-        chain <- chain[sample(1:nrow(chain)),]
-        chain[, 4] <- 1:nrow(chain)
-       ##chain<- chain ##(here you can put a known chain in (eg from
-        ##delphi!)
-        cat(nrow(chain), '\n')
-### initialise
-        pinsdel <- pinsdel/(1 - pperm)
-        pdiaginsdel <- pdiaginsdel/(1 - pperm)
-        iter <- 0
-        ##burnin
-###construct a max like object to be passed to FRAN
-        f$startmat <- startmat
-        f$endmat <- endmat
-        f$chain <- chain
-        f$accepts <-  rep(0,7)
-        f$rejects <- rep(0,7)
-        f$probs <- c(pinsdel, 0, pdiaginsdel)#
-        f$madechain <- FALSE
-        f$numm <- 20
-        for (i in 1:nstart)
-        {
-            iter <- iter+1
-            ##   cat(iter,'\n')
-            f <- mhstep(z$theta, f, promul, prelins)
-        }
-        f$madechain <- TRUE
-        pinsdel <- pinsdel * (1-pperm)
-        pdiaginsdel <- pdiaginsdel * ( 1-pperm)
-        f$probs <- c(pinsdel, pperm, pdiaginsdel)
-        f$mats <- f$mystructs <- f$mynets <- NULL
-        FRANstore(f)
-        z
-    }
+		if (any(z$targets!=0))
+		{
+			Report(c("Targets should be zero for maximum likelihood:',
+					'they have been zeroed\n"))
+					z$targets <- rep(0, z$pp)
+		}
+		mat1 <- data$depvars[[netsub]][, , 1]
+		mat2 <- data$depvars[[netsub]][, , 2]
+		## f$mat1<- mat1
+		## f$mat2<- mat2
+		startmat <- mat1
+		startmat[is.na(startmat)] <- 0
+		endmat <- mat2
+		endmat[is.na(endmat)] <- startmat[is.na(endmat)]
+		diffmat <- startmat != endmat
+		if (is.null(x$multfactor))
+			f$niter <- multfactor * sum(diffmat)
+		else
+			f$niter <- x$multfactor * sum(diffmat)
+		### create initial chain
+		chain <- matrix(0, nrow=sum(diffmat), ncol=4)
+		chain[,1] <- row(diffmat)[diffmat]
+		chain[,2] <- col(diffmat)[diffmat]
+		chain <- chain[sample(1:nrow(chain)),]
+		chain[, 4] <- 1:nrow(chain)
+		##chain<- chain ##(here you can put a known chain in (eg from
+		##delphi!)
+		cat(nrow(chain), '\n')
+		### initialise
+		pinsdel <- pinsdel/(1 - pperm)
+		pdiaginsdel <- pdiaginsdel/(1 - pperm)
+		iter <- 0
+		##burnin
+		###construct a max like object to be passed to FRAN
+		f$startmat <- startmat
+		f$endmat <- endmat
+		f$chain <- chain
+		f$accepts <-  rep(0,7)
+		f$rejects <- rep(0,7)
+		f$probs <- c(pinsdel, 0, pdiaginsdel)#
+		f$madechain <- FALSE
+		f$numm <- 20
+		for (i in 1:nstart)
+		{
+			iter <- iter+1
+			##   cat(iter,'\n')
+			f <- mhstep(z$theta, f, promul, prelins)
+		}
+		f$madechain <- TRUE
+		pinsdel <- pinsdel * (1-pperm)
+		pdiaginsdel <- pdiaginsdel * ( 1-pperm)
+		f$probs <- c(pinsdel, pperm, pdiaginsdel)
+		f$mats <- f$mystructs <- f$mynets <- NULL
+		FRANstore(f)
+		z
+	}
 
-    ##start of function
-    scores <- NULL
-    dff <- NULL
-    theta <- z$theta
-    ##   f<- z$f
-    if (INIT)
-    {
-        z <- mlInit(z, x, data, effects)
-       ## f <<-f
-        return(z)
-    }
-    else if (TERM)
-    {
-        f <-  FRANstore()
-        z$f <- f
-        return(z)
-    }
-    else
-    {
-        f <- FRANstore()
-        niter <- f$niter
-      ##  nactors <- nrow(f$startmat)
-        promul <- promul0
-      #  int <- x$int
-        if (z$Phase==2)
-        {
-            f$accepts <-  rep(0, 6)
-            f$rejects <- rep(0, 6)
-            varmat <- FALSE
-           ## browser()
-            if (z$nit == 1)## beginning of a subphase
-            {
-                i <- 1
-                while (i <= 10 * niter)
-                {
-                    f <- mhIntStep(theta, f, promul, prelins, int)
-                    i <- i + f$n
-                }
-            }
-            Z <- vector("list", noSamples)
-            i <- 1
-            while (i <= niter)
-            {
-                f <- mhIntStep(theta, f, promul, prelins, int)
-                i <- i + f$n
-            }
-            Z[[1]] <- f$chain
-            if (noSamples > 1)
-            {
-                for (sample in 2:noSamples)
-                {
-                    i <- 1
-                    while (i < sampInterval)
-                    {
-                        f <- mhIntStep(theta, f, promul, prelins, int)
-                        i <- i + f$n
-                    }
-                    Z[[sample]] <- f$chain
-                }
-            }
-            ans <- calcgrad(theta, Z, f$startmat, varmat)
-          # browser()
-            f$Z <-  Z
-            f$chain <- f$Z[[noSamples]]
-        }
-        else
-        {
-            varmat <- TRUE
-            i <- 1
-            while (i <= niter)
-            {
-                f <- mhIntStep(theta, f, promul, prelins, int)
+	##start of function
+	scores <- NULL
+	dff <- NULL
+	theta <- z$theta
+	##   f<- z$f
+	if (INIT)
+	{
+		z <- mlInit(z, x, data, effects)
+		## f <<-f
+		return(z)
+	}
+	else if (TERM)
+	{
+		f <-  FRANstore()
+		z$f <- f
+		return(z)
+	}
+	else
+	{
+		f <- FRANstore()
+		niter <- f$niter
+		##  nactors <- nrow(f$startmat)
+		promul <- promul0
+		#  int <- x$int
+		if (z$Phase==2)
+		{
+			f$accepts <-  rep(0, 6)
+			f$rejects <- rep(0, 6)
+			varmat <- FALSE
+			## browser()
+			if (z$nit == 1)## beginning of a subphase
+			{
+				i <- 1
+				while (i <= 10 * niter)
+				{
+					f <- mhIntStep(theta, f, promul, prelins, int)
+					i <- i + f$n
+				}
+			}
+			Z <- vector("list", noSamples)
+			i <- 1
+			while (i <= niter)
+			{
+				f <- mhIntStep(theta, f, promul, prelins, int)
+				i <- i + f$n
+			}
+			Z[[1]] <- f$chain
+			if (noSamples > 1)
+			{
+				for (sample in 2:noSamples)
+				{
+					i <- 1
+					while (i < sampInterval)
+					{
+						f <- mhIntStep(theta, f, promul, prelins, int)
+						i <- i + f$n
+					}
+					Z[[sample]] <- f$chain
+				}
+			}
+			ans <- calcgrad(theta, Z, f$startmat, varmat)
+			# browser()
+			f$Z <-  Z
+			f$chain <- f$Z[[noSamples]]
+		}
+		else
+		{
+			varmat <- TRUE
+			i <- 1
+			while (i <= niter)
+			{
+				f <- mhIntStep(theta, f, promul, prelins, int)
 
-                i <- i + f$n
-            }
-            ans <- calcgrad(theta, f$chain, f$startmat, varmat)
-        }
+				i <- i + f$n
+			}
+			ans <- calcgrad(theta, f$chain, f$startmat, varmat)
+		}
 
-        ## browser()
-        scores <- ans$sc
-        dff <- ans$dff
-        ##cat(object.size(f),  object.size(f$chain), object.size(f$startmat), '\n')
-        FRANstore(f)
-      #  cat(scores,'\n')
-        ##browser()
-        list(fra=matrix(scores, nrow=1), ntim0 = NULL, feasible = TRUE, OK = TRUE, dff=dff, accepts=f$accepts, rejects= f$rejects)
+		## browser()
+		scores <- ans$sc
+		dff <- ans$dff
+		##cat(object.size(f),  object.size(f$chain), object.size(f$startmat), '\n')
+		FRANstore(f)
+		#  cat(scores,'\n')
+		##browser()
+		list(fra=matrix(scores, nrow=1), ntim0 = NULL, feasible = TRUE, OK = TRUE, dff=dff, accepts=f$accepts, rejects= f$rejects)
 
-    }
+	}
 }
 mhIntStep <- function(theta, f, promul, prelins, int)
 {

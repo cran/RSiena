@@ -22,6 +22,8 @@
 #include "model/tables/Cache.h"
 #include "data/Data.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -103,24 +105,17 @@ double CovariateNetworkAlterFunction::covmean() const
 /**
  * Returns the covariate value for the given actor.
  */
-double CovariateNetworkAlterFunction::value(int i) const
+double CovariateNetworkAlterFunction::value(int alter) const
 {
-	double value = 0;
-
 	if (this->lpConstantCovariate)
 	{
-		value = this->lpConstantCovariate->value(i);
+		return this->lpConstantCovariate->value(alter);
 	}
-	else if (this->lpChangingCovariate)
+	if (this->lpChangingCovariate)
 	{
-		value = this->lpChangingCovariate->value(i, this->lperiod);
+		return this->lpChangingCovariate->value(alter, this->lperiod);
 	}
-	else
-	{
-		value = this->lvalues[i] - this->lpBehaviorData->overallMean();
-	}
-
-	return value;
+	return this->lvalues[alter] - this->lpBehaviorData->overallMean();
 }
 
 /**
@@ -183,8 +178,7 @@ double CovariateNetworkAlterFunction::similarity(int i, int j) const
  */
 ConstantCovariate * CovariateNetworkAlterFunction::pConstantCovariate() const
 {
-		return this->lpConstantCovariate;
-
+	return this->lpConstantCovariate;
 }
 
 /**
@@ -192,8 +186,7 @@ ConstantCovariate * CovariateNetworkAlterFunction::pConstantCovariate() const
  */
 ChangingCovariate * CovariateNetworkAlterFunction::pChangingCovariate() const
 {
-		return this->lpChangingCovariate;
-
+	return this->lpChangingCovariate;
 }
 
 /**
@@ -201,7 +194,7 @@ ChangingCovariate * CovariateNetworkAlterFunction::pChangingCovariate() const
  */
 BehaviorLongitudinalData * CovariateNetworkAlterFunction::pBehaviorData() const
 {
-		return this->lpBehaviorData;
-
+	return this->lpBehaviorData;
 }
+
 }

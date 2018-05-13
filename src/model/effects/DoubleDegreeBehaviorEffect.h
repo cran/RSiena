@@ -35,6 +35,8 @@ private:
 	// indicating the direction of the second tie
 	bool lfirstDirection;
 	int lsecondDirection;
+	// Must the degree be subtracted?
+	bool lsubtract;
 };
 
 }

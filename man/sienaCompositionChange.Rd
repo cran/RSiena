@@ -100,12 +100,12 @@ sienaCompositionChangeFromFile(filename, nodeSet = "Actors",
   #or
   clist <- list(c("1", "3"), c("1.4", "2.5"))
 
-  compChange <- sienaCompositionChange(clist)  
-  
+  compChange <- sienaCompositionChange(clist)
+
   s50net <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
   s50list <- rep(list(c(1,3)), 50)
   # This is a trivial composition change: all actors are present in all waves.
-  compChange <- sienaCompositionChange(s50list) 
+  compChange <- sienaCompositionChange(s50list)
   s50data <- sienaDataCreate(s50net, compChange)
   s50data
 

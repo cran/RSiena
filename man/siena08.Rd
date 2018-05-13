@@ -10,9 +10,11 @@ Estimates a meta analysis based on a collection of Siena fits.
 siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 }
 \arguments{
-  \item{\dots}{names of Siena fit objects, returned from \code{\link{siena07}}.
+  \item{\dots}{names of \code{\link{sienaFit}} objects, returned from
+    \code{\link{siena07}}.
     They will be renamed if entered in format \code{newname=oldname}.
-    It is also allowed to give for \dots a list of Siena fit objects.
+    It is also allowed to give for \dots a list of \code{\link{sienaFit}}
+    objects.
 }
 \item{projname}{
   Base name of report file if required
@@ -29,12 +31,12 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
 }
 \details{
   A meta analysis is performed as described
-  in the Siena manual, section `Meta-analysis of Siena results". This
+  in the Siena manual, section "Meta-analysis of Siena results". This
   consists of three parts: an iterated weighted least squares
   modification of the method described in the reference below;
   maximum likelihood estimates and confidence intervals based on
   profile likelihoods under normality assumptions;
-  and Fisher combinations of left-sided and right-sided p-values.
+  and Fisher combinations of left-sided and right-sided \eqn{p}-values.
   These are produced for all effects separately.
 
   Note that the corresponding effects must have the same effect name in each
@@ -51,6 +53,11 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
     excluded from the calculations}
   \item{scores}{Object of class \code{by} indicating, for each effect in
     the models, whether score test  information was present.}
+  \item{requestedEffects}{The \code{requestedEffects} component of the first
+    \code{sienaFit} object in ....}
+  \item{theta}{The vector of ML estimates \code{mu.ml} (see below).}
+  \item{se}{The vector of standard errors of the ML estimates \code{mu.ml.se}
+    (see below).}
 
   Then for each effect, there is a list with at least the following.
 
@@ -85,9 +92,9 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
   \item{cjplusp}{p-value for \code{cjplus}}
   \item{cjminusp}{p-value for \code{cjminus}}
   \item{scoreplus}{Test statistic for combination of right one-sided
-  p-values from score tests}
+  \eqn{p}-values from score tests}
   \item{scoreminus}{Test statistic for combination of left one-sided
-  p-values from score tests}
+  \eqn{p}-values from score tests}
   \item{scoreplusp}{p-value for \code{scoreplus}}
   \item{scoreminusp}{p-value for \code{scoreminus}}
   \item{ns}{Number of fits on which the score test analysis is based}
@@ -118,7 +125,7 @@ Group4 <- sienaDependent(array(c(N3404, HN3404), dim=c(33, 33, 2)))
 dataset.1 <- sienaDataCreate(Friends = Group1)
 dataset.3 <- sienaDataCreate(Friends = Group3)
 dataset.4 <- sienaDataCreate(Friends = Group4)
-OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups")
+OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups", seed=1234)
 effects.1 <- getEffects(dataset.1)
 effects.3 <- getEffects(dataset.3)
 effects.4 <- getEffects(dataset.4)
@@ -144,6 +151,7 @@ Fishers <- t(sapply(1:sum(which.est),
 Fishers <- as.data.frame(Fishers, row.names=names(meta)[which.est])
 names(Fishers) <- c('Fplus', 'Fminus', 'pplus', 'pminus', 'df')
 Fishers
+round(Fishers,4)
 }
 }
 \keyword{models}

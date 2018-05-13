@@ -17,9 +17,9 @@ namespace siena
 /**
  * Creates a state of variables as of the given observation of the given
  * Data object. The values may be copied or referenced directly as indicated
- * by the parameter <code>copyValues</code>.
+ * by the parameter <code>ownedValues</code>.
  */
-State::State(const Data * pData, int observation, bool copyValues)
+State::State(const Data * pData, int observation, bool ownedValues)
 {
 	const vector<LongitudinalData *> & rVariables =
 		pData->rDependentVariableData();
@@ -35,7 +35,7 @@ State::State(const Data * pData, int observation, bool copyValues)
 		{
 			const Network * pNetwork = pNetworkData->pNetwork(observation);
 
-			if (copyValues)
+			if (ownedValues)
 			{
 				pNetwork = pNetwork->clone();
 			}
@@ -46,7 +46,7 @@ State::State(const Data * pData, int observation, bool copyValues)
 		{
 			const int * values = pBehaviorData->values(observation);
 
-			if (copyValues)
+			if (ownedValues)
 			{
 				int * copies = new int[pBehaviorData->n()];
 
@@ -66,7 +66,7 @@ State::State(const Data * pData, int observation, bool copyValues)
 		}
 	}
 
-	this->lownedValues = copyValues;
+	this->lownedValues = ownedValues;
 }
 
 
@@ -108,7 +108,7 @@ State::State(EpochSimulation * pSimulation)
  */
 State::State()
 {
-	this->lownedValues = false;
+	this->lownedValues = false; // depends on the passed pointers
 }
 
 
@@ -130,16 +130,13 @@ State::~State()
  */
 const Network * State::pNetwork(string name) const
 {
-	const Network * pNetwork = 0;
 	map<string, const Network *>::const_iterator iter =
 		this->lnetworks.find(name);
-
 	if (iter != this->lnetworks.end())
 	{
-		pNetwork = iter->second;
+		return iter->second;
 	}
-
-	return pNetwork;
+	return 0;
 }
 
 
@@ -181,7 +178,7 @@ void State::behaviorValues(string name, const int * values)
 
 
 /**
- * Deletes the values stored in this state.
+ * Deletes the values stored in this state (only called if lownedValues).
  */
 void State::deleteValues()
 {

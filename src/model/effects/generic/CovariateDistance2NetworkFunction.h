@@ -20,7 +20,8 @@ namespace siena
 class CovariateDistance2NetworkFunction: public CovariateNetworkAlterFunction
 {
 public:
-	CovariateDistance2NetworkFunction(string networkName, string covariateName);
+	CovariateDistance2NetworkFunction(std::string networkName, std::string covariateName,
+						bool excludeMissing, bool outgoing);
 	virtual ~CovariateDistance2NetworkFunction();
 	virtual void initialize(const Data * pData,
 		State * pState,
@@ -36,11 +37,13 @@ protected:
 	bool missingInDummy(int i) const;
 	double averageInAlterValue(int i) const;
 	double totalInAlterValue(int i) const;
-	double similarityAvAlt(int i, int j) const;
-	double varOutAvSimilarity(int i, int j) const;
-	double varInAvSimilarity(int i, int j) const;
+	double similarityAvAlt(int i, int j);
+	double varOutAvSimilarity(int i, int j);
+	double varInAvSimilarity(int i, int j);
 
 private:
+	bool lexcludeMissing;
+	bool loutgoing;
 	double * laverageAlterValues;
 	double * ltotalAlterValues;
 	bool * laverageAlterMissing;

@@ -12,6 +12,8 @@
 #include "EgoInDegreeFunction.h"
 #include "network/Network.h"
 
+using namespace std;
+
 namespace siena
 {
 

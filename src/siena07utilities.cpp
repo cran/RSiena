@@ -106,14 +106,14 @@ int totalPeriods(vector<Data *> & pGroupData)
  */
 void Rterminate()
 {
-    try
-    {
+	try
+	{
 		throw;
-    }
-    catch(exception& e)
-    {
+	}
+	catch(exception& e)
+	{
 		error(e.what());
-    }
+	}
 }
 
 
@@ -173,14 +173,14 @@ void printOutData(Data *pData)
 					myfile << pNetworkData->
 						pStructuralTieNetwork(period)->tieCount() << endl;
 					for (TieIterator
-							 iter=pNetworkData->
-							 pStructuralTieNetwork(period)->ties();
-						 iter.valid();
-						 iter.next())
+							iter=pNetworkData->
+							pStructuralTieNetwork(period)->ties();
+							iter.valid();
+							iter.next())
 					{
 						myfile << iter.ego() << " "
-							   << iter.alter() << " "
-						 << iter.value() << endl;
+							<< iter.alter() << " "
+							<< iter.value() << endl;
 					}
 					// other attributes uponly downonly
 					myfile << pNetworkData->upOnly(period) <<  " " <<
@@ -917,10 +917,10 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 							EffectInfo * pEffectInfo = (EffectInfo *)R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS, pointerCol), i));
 							SET_STRING_ELT(EFFECTNAMES, i-rates, mkChar(pEffectInfo->effectName().c_str()));
 							SET_STRING_ELT(EFFECTTYPES, i-rates, mkChar(effectType));
-							vector<double> values = contributions->at(pEffectInfo);
+							vector<double> values = (*contributions)[pEffectInfo];
 							for(int a = 0; a < choices; a++)
 							{
-								rcontr[i-rates + a*length] = values.at(a);
+								rcontr[i - rates + a * length] = values.at(a);
 							}
 						}
 						else
@@ -952,14 +952,6 @@ SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 	{
 		nEffects += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 	}
-	SEXP EFFECTNAMES;
-	SEXP effectNames;
-	SEXP EFFECTTYPES;
-	SEXP effectTypes;
-	SEXP NETWORKNAMES;
-	SEXP networkNames;
-	SEXP NETWORKTYPES;
-	SEXP networkTypes;
 	// get the column names from the names attribute
 	SEXP cols;
 	PROTECT(cols = install("names"));
@@ -1015,14 +1007,15 @@ SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 	}
 	int objEffects = nEffects-rateEffects;
 
-	PROTECT(EFFECTNAMES = allocVector(STRSXP,objEffects));
-	PROTECT(effectNames = install("effectNames"));
-	PROTECT(EFFECTTYPES = allocVector(STRSXP,objEffects));
-	PROTECT(effectTypes = install("effectTypes"));
-	PROTECT(NETWORKNAMES = allocVector(STRSXP,objEffects));
-	PROTECT(networkNames = install("networkNames"));
-	PROTECT(NETWORKTYPES = allocVector(STRSXP,objEffects));
-	PROTECT(networkTypes = install("networkTypes"));
+	SEXP EFFECTNAMES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP effectNames = PROTECT(install("effectNames"));
+	SEXP EFFECTTYPES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP effectTypes = PROTECT(install("effectTypes"));
+	SEXP NETWORKNAMES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP networkNames = PROTECT(install("networkNames"));
+	SEXP NETWORKTYPES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP networkTypes = PROTECT(install("networkTypes"));
+
 	for(int eff = 0; eff < objEffects; eff++)
 	{
 		SET_STRING_ELT(EFFECTNAMES, eff, mkChar(effNames.at(eff).c_str()));

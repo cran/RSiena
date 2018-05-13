@@ -28,7 +28,7 @@ class ConfigurationTable;
 class OutJaccardFunction: public NetworkAlterFunction
 {
 public:
-	OutJaccardFunction(string networkName);
+	OutJaccardFunction(std::string networkName);
 
 	virtual void initialize(const Data * pData,
 		State * pState,

@@ -13,9 +13,11 @@
 #include "AverageAlterEffect.h"
 #include "network/Network.h"
 #include "network/IncidentTieIterator.h"
-
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
+
+using namespace std;
+
 namespace siena
 {
 

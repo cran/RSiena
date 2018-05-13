@@ -16,6 +16,7 @@
 #include "network/CommonNeighborIterator.h"
 //#include "network/IncidentTieIterator.h"
 
+
 using namespace std;
 
 namespace siena

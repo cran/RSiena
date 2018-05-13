@@ -34,10 +34,9 @@ TransitiveReciprocatedTripletsEffect::TransitiveReciprocatedTripletsEffect(
 double TransitiveReciprocatedTripletsEffect::calculateContribution(int alter) const
 {
 	// If we are introducing a tie from the ego i to the alter j, then each
-	// two-path from i to j with an existing tie from j to i 
-   // contributes one unit;
-   // in addition, each configuration i <-> h <- j also contributes one unit;
-   // the number of such configurations is stored in pRBTable.
+	// two-path from i to j with an existing tie from j to i contributes one
+	// unit; in addition, each configuration i <-> h <- j also contributes one
+	// unit; the number of such configurations is stored in pRBTable.
 
 	double contribution1 = 0;
 

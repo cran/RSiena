@@ -25,7 +25,7 @@ namespace siena
  * @param[in] out1 and out2 indicate directionality of W ties
  */
 WWXClosureEffect::WWXClosureEffect(const EffectInfo * pEffectInfo,
-       bool out1, bool out2) :
+		bool out1, bool out2) :
 	DyadicCovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->lsums = 0;

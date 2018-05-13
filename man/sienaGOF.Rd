@@ -31,8 +31,8 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
         period=1, showAll=FALSE)
 }
 \arguments{
-  \item{sienaFitObject}{Results from a call to \code{\link{siena07}}
-       with \code{returnDeps = TRUE}.}
+  \item{sienaFitObject}{Results of class \code{\link{sienaFit}}, produced by a
+    call to \code{\link{siena07}} with \code{returnDeps = TRUE}.}
   \item{auxiliaryFunction}{Function to be used to calculate
     the auxiliary statistics;
     this can be a user-defined function, e.g. depending on the \code{sna}
@@ -58,8 +58,8 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
   \item{twoTailed}{Whether to use two tails for calculating \eqn{p}-values on the
         Monte Carlo test. Recommended for advanced users only,
         as it is probably only applicable in rare cases.}
-  \item{cluster}{Optionally, a \code{snow} cluster to execute the auxiliary
-  function calculations on.}
+  \item{cluster}{Optionally, a \code{parallel} or \code{snow} cluster to execute
+        the auxiliary function calculations on.}
   \item{robust}{ Whether to use robust estimation of the covariance matrix.}
   \item{groupName}{ Name of group; relevant for multi-group data sets.}
   \item{varName}{ Name of dependent variable.}
@@ -78,21 +78,34 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
   \item{showAll}{If FALSE, drops statistics with variance 0, like in the plot.}
 }
 \details{
- This function is used to assess the goodness of fit of a stochastic actor
- oriented model for an arbitrarily defined multidimensional auxiliary statistic.
- It operates basically by comparing the observed values, at the ends of
- the periods, with the simulated values for the ends of the periods.
+ This function is used to assess the goodness of fit of an estimated stochastic
+ actor-oriented model for an arbitrarily defined multidimensional auxiliary
+ statistic. It operates basically by comparing the observed values, at the ends
+ of the periods, with the simulated values for the ends of the periods.
  The differences are assessed by combining the components of the auxiliary
  statistic using the Mahalanobis distance.
 
+ The function does not work properly for data sets that include a
+ \code{\link{sienaCompositionChange}} object. If you wish to test the
+ fit for such a data set, you need (for the purpose of fit assessment only)
+ to replace the data set by a data set where absent actors are represented
+ by structural zeros, and estimate the same model for this data set with the
+ corresponding effects object, and use \code{sienaGOF} for this
+ \code{\link{sienaFit}} object.
+
  To achieve comparability between simulated and observed dependent variables,
  variables that are missing in the data at the start or end of a period
- are replaced by 0 (for tie variables) or NA (for behavior variables).
- Tie variables that are structurally determined at the beginning of a period
- are used to replace observed values at the end of the period;
- tie variables that are structurally determined at the end, but not
- the beginning, of a period are used to replace
- simulated values at the end of the period.
+ are replaced by 0 (for tie variables) or NA (for behavior variables).\cr
+ If there are any differences between structural values at the beginning and
+ at the end of a period, these are dealt with as follows.
+ For tie variables that have a structural value at the start of the period,
+ this value is used to replace the observed value at the end of the period
+ (for the goodness of fit assessment only).
+ For tie variables that have a structural value at the end of the period but a
+ free value value at the start of the period, the reference value for the
+ simulated values is lacking; therefore, the simulated values at the end of
+ the period then are replaced by the structural value at the end of the period
+ (again, for the goodness of fit assessment only).
 
  The auxiliary statistics documented in \code{\link{sienaGOF-auxiliary}}
  are calculated for the simulated dependent
@@ -195,7 +208,7 @@ We recommend the following heuristic approach to model checking:
   for general information on RSiena.
 \item Lospinoso, J.A. and Snijders, T.A.B., \dQuote{Goodness of fit for
   Stochastic Actor Oriented Models.} Presentation given at Sunbelt XXXI,
-  St. Pete's Beach, Fl. 2011.
+  St. Petes Beach, Fl. 2011.
 \item Lospinoso, J.A. (2012).
   \dQuote{Statistical Models for Social Network Dynamics.}
   Ph.D. Thesis. University of Oxford: U.K.
@@ -205,72 +218,76 @@ We recommend the following heuristic approach to model checking:
 \seealso{\code{\link{siena07}}, \code{\link{sienaGOF-auxiliary}},
          \code{\link{sienaTimeTest}} }
 \examples{
-   mynet <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
-   mybeh <- sienaDependent(s50a[,1:2], type="behavior")
-   mydata <- sienaDataCreate(mynet, mybeh)
-   myeff <- getEffects(mydata)
-   myeff <- includeEffects(myeff, transTrip)
-   myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
-   myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
-   myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50)
-                   # Shorter phases 2 and 3, just for example.
-   ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
-   gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
-                    varName="mynet")
-   summary(gofi)
-   plot(gofi)
+mynet <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mybeh <- sienaDependent(s50a[,1:2], type="behavior")
+mydata <- sienaDataCreate(mynet, mybeh)
+myeff <- getEffects(mydata)
+myeff <- includeEffects(myeff, transTrip)
+myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
+myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50)
+# Shorter phases 2 and 3, just for example.
+ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
+gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
+  varName="mynet")
+summary(gofi)
+plot(gofi)
 
 \dontrun{
 # Illustration just for showing a case with two dependent networks;
 # running time backwards is not meaningful!
-   mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
-   mynet2 <- sienaDependent(array(c(s503, s501), dim=c(50, 50, 2)))
-   mybeh <- sienaDependent(s50a[,1:2], type="behavior")
-   mydata <- sienaDataCreate(mynet1, mynet2, mybeh)
-   myeff <- getEffects(mydata)
-   myeff <- includeEffects(myeff, transTrip)
-   myeff <- includeEffects(myeff, recip, name="mynet2")
-   myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
-   myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
-   ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
-   gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
-                    varName="mynet1")
-   summary(gofi)
-   plot(gofi)
+mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
+mynet2 <- sienaDependent(array(c(s503, s501), dim=c(50, 50, 2)))
+mybeh <- sienaDependent(s50a[,1:2], type="behavior")
+mydata <- sienaDataCreate(mynet1, mynet2, mybeh)
+myeff <- getEffects(mydata)
+myeff <- includeEffects(myeff, transTrip)
+myeff <- includeEffects(myeff, recip, name="mynet2")
+myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
+myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50)
+# Shorter phases 2 and 3, just for example.
+ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
+gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
+  varName="mynet1")
+summary(gofi)
+plot(gofi)
+}
 
-   (gofi.nc <- sienaGOF(ans, IndegreeDistribution, cumulative=FALSE,
-                        varName="mynet1"))
-   # cumulative is an example of "...".
-   plot(gofi.nc)
-   descriptives.sienaGOF(gofi.nc)
+\dontrun{
+(gofi.nc <- sienaGOF(ans, IndegreeDistribution, cumulative=FALSE,
+    varName="mynet1"))
+# cumulative is an example of "...".
+plot(gofi.nc)
+descriptives.sienaGOF(gofi.nc)
 
-   (gofi2 <- sienaGOF(ans, IndegreeDistribution, varName="mynet2"))
-   plot(gofi2)
+(gofi2 <- sienaGOF(ans, IndegreeDistribution, varName="mynet2"))
+plot(gofi2)
 
-   (gofb <- sienaGOF(ans, BehaviorDistribution, varName = "mybeh"))
-   plot(gofb)
+(gofb <- sienaGOF(ans, BehaviorDistribution, varName = "mybeh"))
+plot(gofb)
 
-   (gofo <- sienaGOF(ans, OutdegreeDistribution, varName="mynet1",
-                        levls=0:6, cumulative=FALSE))
-   # levls is another example of "...".
-   plot(gofo)
+(gofo <- sienaGOF(ans, OutdegreeDistribution, varName="mynet1",
+    levls=0:6, cumulative=FALSE))
+# levls is another example of "...".
+plot(gofo)
 }
 
 ## A demonstration of using multiple processes
 \dontrun{
-   library(parallel)
-   (n.clus <- detectCores() - 1) # subtract 1 to keep time for other processes
-   myalgorithm.c <- sienaAlgorithmCreate(nsub=4, n3=1000, seed=12345)
-   (ans.c <- siena07(myalgorithm.c, data=mydata, effects=myeff, batch=TRUE,
-                        returnDeps=TRUE, useCluster=TRUE, nbrNodes=n.clus))
-   gofi.1 <- sienaGOF(ans.c, IndegreeDistribution, verbose=TRUE,
-                    varName="mynet1")
-   cl <- makeCluster(n.clus)
-   gofi.cl <- sienaGOF(ans.c, IndegreeDistribution, varName="mynet1",
-                    cluster=cl)
-   # compare simulation times
-   attr(gofi.1,"simTime")
-   attr(gofi.cl,"simTime")
+library(parallel)
+(n.clus <- detectCores() - 1) # subtract 1 to keep time for other processes
+myalgorithm.c <- sienaAlgorithmCreate(nsub=4, n3=1000, seed=12345)
+(ans.c <- siena07(myalgorithm.c, data=mydata, effects=myeff, batch=TRUE,
+    returnDeps=TRUE, useCluster=TRUE, nbrNodes=n.clus))
+gofi.1 <- sienaGOF(ans.c, IndegreeDistribution, verbose=TRUE,
+  varName="mynet1")
+cl <- makeCluster(n.clus)
+gofi.cl <- sienaGOF(ans.c, IndegreeDistribution, varName="mynet1",
+  cluster=cl)
+# compare simulation times
+attr(gofi.1,"simTime")
+attr(gofi.cl,"simTime")
 }
 
 }

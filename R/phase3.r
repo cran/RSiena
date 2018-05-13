@@ -301,22 +301,22 @@ phase3.2 <- function(z, x, ...)
 			fromBayes <- 'fromBayes' %in% names(x)
 			if (!fromBayes)
 			{
-			cat('*** Warning: Covariance matrix not positive definite *** \n')
-			cat('*** Standard errors not reliable ***\n')
-			cat('The following is approximately a linear combination \n')
-			cat('for which the data carries no information:\n',
-			     thetext,'\n')
-			cat('It is advisable to drop one or more of these effects.\n')
-			if (any(z$fixed || any(z$newfixed)))
-			{
-				Report(c('(This may be unimportant, and related to the fact\n',
-					'that some parameters are fixed.)\n'), outf)
-			}
-			else
-			{
-				Report('Do not use any reported standard errors.\n', outf)
-				errorMessage.cov <- '*** Warning: Noninvertible estimated covariance matrix ***'
-			}
+				cat('*** Warning: Covariance matrix not positive definite *** \n')
+				cat('*** Standard errors not reliable ***\n')
+				cat('The following is approximately a linear combination \n')
+				cat('for which the data carries no information:\n',
+					thetext,'\n')
+				cat('It is advisable to drop one or more of these effects.\n')
+				if (any(z$fixed || any(z$newfixed)))
+				{
+					Report(c('(This may be unimportant, and related to the fact\n',
+							'that some parameters are fixed.)\n'), outf)
+				}
+				else
+				{
+					Report('Do not use any reported standard errors.\n', outf)
+					errorMessage.cov <- '*** Warning: Noninvertible estimated covariance matrix ***'
+				}
 			}
 			cov.est <- NA * z$msfc
 		}
@@ -338,150 +338,150 @@ phase3.2 <- function(z, x, ...)
 ##@CalculateDerivative3 siena07 Calculates derivative at end of phase 3
 CalculateDerivative3<- function(z,x)
 {
-    z$mnfra <- colMeans(z$sf)
+	z$mnfra <- colMeans(z$sf)
 	estMeans <- z$mnfra + z$targets
 	z$regrCoef <- rep(0, z$pp)
 	z$regrCor <- rep(0, z$pp)
-    if (z$FinDiff.method || x$maxlike)
-    {
+	if (z$FinDiff.method || x$maxlike)
+	{
 		dfra <- t(as.matrix(Reduce("+", z$sdf) / length(z$sdf)))
-    }
+	}
 	else
-    {
-        dfra <- derivativeFromScoresAndDeviations(z$ssc, z$sf2,
-								z$dfras, z$sscs, z$sf2s, z$sf2.byIteration, z$Phase3nits)
-        if (any(diag(dfra) < 0))
-        {
-            sub <- which(diag(dfra) < 0)
-            dfra[sub,] <- 0
-            dfra[,sub] <- 0
-            dfra[sub, sub] <- 1
-            Report(c("Warning: diagonal element(s)", sub,
-                     " of derivative matrix < 0\n"), cf)
-        }
+	{
+		dfra <- derivativeFromScoresAndDeviations(z$ssc, z$sf2,
+			z$dfras, z$sscs, z$sf2s, z$sf2.byIteration, z$Phase3nits)
+		if (any(diag(dfra) < 0))
+		{
+			sub <- which(diag(dfra) < 0)
+			dfra[sub,] <- 0
+			dfra[,sub] <- 0
+			dfra[sub, sub] <- 1
+			Report(c("Warning: diagonal element(s)", sub,
+					" of derivative matrix < 0\n"), cf)
+		}
 		if (x$dolby)
 		{
 			if (z$sf2.byIteration)
 			{
-		scores <- apply(z$ssc, c(1,3), sum)  # z$nit by z$pp matrix
+				scores <- apply(z$ssc, c(1,3), sum)  # z$nit by z$pp matrix
 			}
 			else
 			{
 				scores <- z$scores
 			}
-		for (i in 1:z$pp)
-		{
-			oldwarn <- getOption("warn")
-			options(warn = -1)
-			if ((var(scores[,i]) > 0)&&(var(z$sf[,i]) > 0))
+			for (i in 1:z$pp)
 			{
-				z$regrCoef[i] <- cov(z$sf[,i], scores[,i])/var(scores[,i])
-				z$regrCor[i] <- cor(z$sf[,i], scores[,i])
+				oldwarn <- getOption("warn")
+				options(warn = -1)
+				if ((var(scores[,i]) > 0)&&(var(z$sf[,i]) > 0))
+				{
+					z$regrCoef[i] <- cov(z$sf[,i], scores[,i])/var(scores[,i])
+					z$regrCor[i] <- cor(z$sf[,i], scores[,i])
+				}
+				if (is.na(z$regrCor[i])){z$regrCor[i] <- 0}
+				if (is.na(z$regrCoef[i])){z$regrCoef[i] <- 0}
+				options(warn = oldwarn)
 			}
-			if (is.na(z$regrCor[i])){z$regrCor[i] <- 0}
-			if (is.na(z$regrCoef[i])){z$regrCoef[i] <- 0}
-			options(warn = oldwarn)
-		}
 			estMeans <- estMeans - (z$regrCoef * colMeans(scores))
 		}
 		Report('Correlations between scores and statistics:\n', cf)
 		PrtOutMat(format(as.matrix(t(z$regrCor)), digits = 2, nsmall = 2), cf)
-    }
+	}
 	z$estMeans <- estMeans
-    z$diver <- rep(FALSE, z$pp)
-    if (z$AllUserFixed & any(abs(diag(dfra)) < 1e-6))
+	z$diver <- rep(FALSE, z$pp)
+	if (z$AllUserFixed & any(abs(diag(dfra)) < 1e-6))
 	{
-        z$diver[abs(diag(dfra)) < 1e-6] <- TRUE
+		z$diver[abs(diag(dfra)) < 1e-6] <- TRUE
 	}
 	z$msf <- cov(z$sf)
-    z$dfra1 <- z$dfra
-    z$dfra <- dfra
-    z
+	z$dfra1 <- z$dfra
+	z$dfra <- dfra
+	z
 }
 
 ##@PotentialNR siena07 Calculates change if NR step done now
 PotentialNR <-function(z,x,MakeStep=FALSE)
 {
-    z$dfrac <- z$dfra
-    z$msfc <- z$msf
-    if (!z$AllUserFixed)
-    {
-        z$dfrac[z$fixed, ] <- 0
-        z$dfrac[, z$fixed] <- 0
-        diag(z$dfrac)[z$fixed]<- 1
-        z$msfc[z$fixed, ] <- 0
-        z$msfc[, z$fixed] <- 0
-        diag(z$msfc)[z$fixed] <- 1
-    }
-    if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
-    {
-        Report('Error message from inversion of dfra: \n', cf)
-        diag(z$dfrac) <- diag(z$dfrac)+0.1*z$scale
-        Report('Intervention 3.4: ridge added after phase 3.\n', cf)
-        if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
-        {
-            Report(c('Warning. After phase 3, derivative matrix non-invertible',
-                     'even with a ridge.\n'), cf)
+	z$dfrac <- z$dfra
+	z$msfc <- z$msf
+	if (!z$AllUserFixed)
+	{
+		z$dfrac[z$fixed, ] <- 0
+		z$dfrac[, z$fixed] <- 0
+		diag(z$dfrac)[z$fixed]<- 1
+		z$msfc[z$fixed, ] <- 0
+		z$msfc[, z$fixed] <- 0
+		diag(z$msfc)[z$fixed] <- 1
+	}
+	if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
+	{
+		Report('Error message from inversion of dfra: \n', cf)
+		diag(z$dfrac) <- diag(z$dfrac)+0.1*z$scale
+		Report('Intervention 3.4: ridge added after phase 3.\n', cf)
+		if (inherits(try(dinv <- solve(z$dfrac), silent=TRUE), "try-error"))
+		{
+			Report(c('Warning. After phase 3, derivative matrix non-invertible',
+					'even with a ridge.\n'), cf)
 			z$errorMessage.cov <- '*** Warning: Noninvertible derivative matrix ***'
-            fchange <- 0
-            z$dinv <- z$dfrac
+			fchange <- 0
+			z$dinv <- z$dfrac
 			z$dinv[,] <- NA # 999
-        }
-        else
-        {
-            fchange <- dinv %*% colMeans(z$sf)
-            z$dinv <- dinv
-        }
-    }
-    else
-    {
-        fchange <- dinv%*%colMeans(z$sf)
-        z$dinv <- dinv
-    }
+		}
+		else
+		{
+			fchange <- dinv %*% colMeans(z$sf)
+			z$dinv <- dinv
+		}
+	}
+	else
+	{
+		fchange <- dinv%*%colMeans(z$sf)
+		z$dinv <- dinv
+	}
 	z$fchange <- fchange
-    Report('dfrac :\n', cf)
-    PrtOutMat(z$dfrac, cf)
-    Report('inverse of dfra :\n', cf)
-    PrtOutMat(z$dinv, cf)
+	Report('dfrac :\n', cf)
+	PrtOutMat(z$dfrac, cf)
+	Report('inverse of dfra :\n', cf)
+	PrtOutMat(z$dinv, cf)
 	try(if (x$errorMessage.cov > '') {Report(z$errorMessage.cov, cf)}, silent=TRUE)
-			# "Try" for downward compatilibity
-    Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
-             'would add the following numbers to the parameters, yielding ',
-             'the following results:\n'), sep='', cf)
-    Report('         change     new value \n', cf)
-    Report(c(paste('  ', format(1:z$pp, width=2), '. ',
-                   format(round(-fchange, digits=6), width=12, nsmall=6),
-                   format(round(z$theta - fchange, 6), width=12, nsmall=6),
-                   sep='', collapse='\n'), '\n'), cf)
-    if (MakeStep) ##currently not used
-    {
-        Report(c('\nAt the end of phase ', z$phase,
-				 ', parameter values are \n'), outf)
-        Report(paste(1:z$pp,'. ',format(z$theta,width=18,digits=6)),outf)
+	# "Try" for downward compatilibity
+	Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
+			'would add the following numbers to the parameters, yielding ',
+			'the following results:\n'), sep='', cf)
+	Report('         change     new value \n', cf)
+	Report(c(paste('  ', format(1:z$pp, width=2), '. ',
+				format(round(-fchange, digits=6), width=12, nsmall=6),
+				format(round(z$theta - fchange, 6), width=12, nsmall=6),
+				sep='', collapse='\n'), '\n'), cf)
+	if (MakeStep) ##currently not used
+	{
+		Report(c('\nAt the end of phase ', z$phase,
+				', parameter values are \n'), outf)
+		Report(paste(1:z$pp,'. ',format(z$theta,width=18,digits=6)),outf)
 		try(Report(z$errorMessage.cov, outf), silent=TRUE)
-        Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
-				 'would add the ',
-                 'following numbers to the parameters:\n'), outf)
-        Report(paste(1:z$pp, '. ', format(-round(fchange, 6), width=12)), outf)
-        Report('\n\n', outf)
-        if (z$SomeFixed)
+		Report(c('A full Quasi-Newton-Raphson step after phase 3\n',
+				'would add the ',
+				'following numbers to the parameters:\n'), outf)
+		Report(paste(1:z$pp, '. ', format(-round(fchange, 6), width=12)), outf)
+		Report('\n\n', outf)
+		if (z$SomeFixed)
 		{
 			fchange[z$fixed] <- 0
 		}
-        ##check positivity
-        if (z$anyposj)
-        {
-            neg <- z$posj & fchange >= z$theta
-            fchange[neg] <- 0.5 * z$theta[neg]
-            Report(c('Intervention 3.4.3: positivity restriction after phase 3',
-                     'coordinate(s)', neg, '.\n'), cf)
-        }
-    }
-    z
+		##check positivity
+		if (z$anyposj)
+		{
+			neg <- z$posj & fchange >= z$theta
+			fchange[neg] <- 0.5 * z$theta[neg]
+			Report(c('Intervention 3.4.3: positivity restriction after phase 3',
+					'coordinate(s)', neg, '.\n'), cf)
+		}
+	}
+	z
 }
 
 doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
-								  nits11=0, writefreq)
+	nits11=0, writefreq)
 {
 	int <- z$int
 	nWaves <- z$observations - 1
@@ -556,8 +556,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			}
 			if (nit <= 5 || nit == 10 || (int==1 && nit %% z$writefreq == 0 ) ||
 				(int > 1 && (z$writefreq + 1) < z$n3%/%int &&
-				 nit %in% nits[seq(z$writefreq + 1, x$n3 %/% int,
-								   z$writefreq)]))
+					nit %in% nits[seq(z$writefreq + 1, x$n3 %/% int,
+						z$writefreq)]))
 			{
 				if (!is.batch())
 				{
@@ -570,10 +570,10 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				##     Report(c('Phase ', z$Phase,' Iteration ',nit,'\n'))
 				## }
 				if (nit %% z$writefreq == 0 || (int > 1 &&
-						   nit %% z$writefreq == 1))
+						nit %% z$writefreq == 1))
 				{
 					increment <- ifelse(nit <= 5, int,
-										ifelse(nit <= 10, 5, z$writefreq * int))
+						ifelse(nit <= 10, 5, z$writefreq * int))
 					val<- getProgressBar(z$pb)
 					if (z$FinDiff.method)
 						val <- val + increment * (z$pp + 1)
@@ -583,8 +583,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 					z$pb <- setProgressBar(z$pb, val)
 					if (is.batch())
 						Report(c("Phase ", z$Phase, " Iteration ", nit,
-								 " Progress ",
-								 round(val / z$pb$pbmax * 100), "%\n"), sep='')
+								" Progress ",
+								round(val / z$pb$pbmax * 100), "%\n"), sep='')
 				}
 			}
 		}
@@ -620,12 +620,12 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			fra <- fra - z$targets
 			if (z$FinDiff.method)
 			{
-			fra2 <- zz$fra
+				fra2 <- zz$fra
 			}
 			z$sf[z$nit, ] <- fra
 			if (z$sf2.byIteration)
 			{
-			z$sf2[z$nit, , ] <- zz$fra
+				z$sf2[z$nit, , ] <- zz$fra
 			}
 			else
 			{
@@ -644,7 +644,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				z$sf[z$nit + (i - 1), ] <- fra
 				if (z$sf2.byIteration)
 				{
-				z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
+					z$sf2[z$nit + (i - 1), , ] <- zz[[i]]$fra
 				}
 				else
 				{
@@ -654,8 +654,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			}
 			if (z$FinDiff.method)
 			{
-			fra2 <- t(sapply(zz, function(x)x$fra))
-			dim(fra2) <- c(int, nrow(zz[[1]]$fra), z$pp)
+				fra2 <- t(sapply(zz, function(x)x$fra))
+				dim(fra2) <- c(int, nrow(zz[[1]]$fra), z$pp)
 			}
 			fra <- t(sapply(zz, function(x) colSums(x$fra)))
 		}
@@ -687,13 +687,13 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				{
 					if (z$sf2.byIteration)
 					{
-					z$ssc[z$nit , ,] <- zz$sc
-				}
+						z$ssc[z$nit , ,] <- zz$sc
+					}
 					else
 					{
 						z$sscs <- z$sscs + zz$sc
 						z$scores[z$nit,] <- colSums(zz$sc)
-# z$dfras + rowSums(sapply(1:nWaves, function(j){outer(zz$sc[j,], zz$fra[j, ])}))
+						# z$dfras + rowSums(sapply(1:nWaves, function(j){outer(zz$sc[j,], zz$fra[j, ])}))
 						for (j in 1:nWaves)
 						{
 							z$dfras <- z$dfras + outer(zz$sc[j,], zz$fra[j, ])
@@ -703,14 +703,14 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			}
 			else
 			{
-                for (i in 1:int)
-                {
-                    if (!is.null(zz[[i]][['sc']]))
+				for (i in 1:int)
+				{
+					if (!is.null(zz[[i]][['sc']]))
 					{
 						if (z$sf2.byIteration)
 						{
-                        z$ssc[z$nit + (i - 1), , ] <- zz[[i]]$sc
-					}
+							z$ssc[z$nit + (i - 1), , ] <- zz[[i]]$sc
+						}
 						else
 						{
 							z$sscs <- z$sscs + zz[[i]]$sc
@@ -721,8 +721,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 							}
 						}
 					}
-                }
-            }
+				}
+			}
 		}
 		if ((!x$maxlike) && z$cconditional && z$Phase == 3)
 		{
@@ -766,7 +766,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				if (is.batch())
 				{
 					Report(c('Phase ', z$Phase, ' Iteration ', z$nit,
-							 ' Progress: ', round(progress), '%\n'), sep='')
+							' Progress: ', round(progress), '%\n'), sep='')
 				}
 				else
 				{
@@ -784,8 +784,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 				if (nit < 10)
 				{
 					Report(c("  ", nit, " ",
-							 format(z$sf[nit,], width=1, digits=4, nsmall=4),
-							 "\n"), cf)
+							format(z$sf[nit,], width=1, digits=4, nsmall=4),
+							"\n"), cf)
 				}
 				if (nit >= 10)
 				{
@@ -795,7 +795,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 					if( UserInterruptFlag())
 					{
 						Report(c("The user asked for an early stop of the ",
-								 "algorithm during phase 3.\n"), outf)
+								"algorithm during phase 3.\n"), outf)
 						z$Phase3Interrupt <- TRUE
 						if (nit < 500)
 						{
@@ -806,36 +806,36 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 							else
 							{
 								Report(c("This implies that the estimates",
-										 "are as usual,\nbut the "), outf)
+										"are as usual,\nbut the "), outf)
 							}
 							Report(c("diagnostic checks, covariance",
-									 "matrices and t-values \nare less ",
-									 "reliable, because they ",
-									 'are now based on only', nit,
-									 'phase-3 iterations.\n\n'), outf)
+									"matrices and t-values \nare less ",
+									"reliable, because they ",
+									'are now based on only', nit,
+									'phase-3 iterations.\n\n'), outf)
 						}
 						z$sf <- z$sf[1:nit, , drop=FALSE]
 
 
 						if (z$sf2.byIteration)
 						{
-						z$sf2 <- z$sf2[1:nit, , , drop=FALSE]
+							z$sf2 <- z$sf2[1:nit, , , drop=FALSE]
 						}
 						if (!z$maxlike && !z$FinDiff.method)
 						{
 							if (z$sf2.byIteration)
-						{
-							z$ssc <- z$ssc[1:nit, , , drop=FALSE]
-						}
-						else
-						{
+							{
+								z$ssc <- z$ssc[1:nit, , , drop=FALSE]
+							}
+							else
+							{
 								z$scores <- z$scores[1:nit, , drop=FALSE]
 							}
 						}
 						else
 						{
-							z$sdf <-z$sdf[1:nit]
-							z$sdf2 <-z$sdf2[1:nit]
+							z$sdf <- z$sdf[1:nit]
+							z$sdf2 <- z$sdf2[1:nit]
 						}
 						z$sims <-z$sims[1:nit]
 						z$Phase3nits <- nit

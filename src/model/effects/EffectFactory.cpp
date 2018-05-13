@@ -67,6 +67,8 @@
 #include "model/tables/EgocentricConfigurationTable.h"
 #include "model/tables/NetworkCache.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -258,7 +260,7 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	}
 	else if (effectName == "outTrunc2")
 	{
-		pEffect = new TruncatedOutdegreeEffect(pEffectInfo);
+		pEffect = new TruncatedOutdegreeEffect2(pEffectInfo);
 	}
 	else if (effectName == "outInv")
 	{
@@ -364,6 +366,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "egoRThresholdX")
 	{
 		pEffect = new CovariateEgoEffect(pEffectInfo, false, true);
+	}
+	else if (effectName == "degAbsDiffX")
+	{
+		pEffect = new CovariateEgoDiffEffect(pEffectInfo, true, true);
+	}
+	else if (effectName == "degPosDiffX")
+	{
+		pEffect = new CovariateEgoDiffEffect(pEffectInfo, true, false);
+	}
+	else if (effectName == "degNegDiffX")
+	{
+		pEffect = new CovariateEgoDiffEffect(pEffectInfo, false, true);
 	}
 	else if (effectName == "diffX")
 	{
@@ -578,6 +592,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 				mytable, pEffectInfo->internalEffectParameter());
  		pEffect = new GenericNetworkEffect(pEffectInfo,
 			pFunction);
+	}
+	else if (effectName == "gwdspFF")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pTwoPathTable;
+		pEffect = new GwdspEffect(pEffectInfo, mytable, true);
+	}
+	else if (effectName == "gwdspFB")
+	{
+		EgocentricConfigurationTable * (NetworkCache::*mytable)() const =
+			&NetworkCache::pInStarTable;
+		pEffect = new GwdspEffect(pEffectInfo, mytable, false);
 	}
 	else if (effectName == "inStructEq")
 	{
@@ -1537,6 +1563,18 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new AltersInDist2CovariateAverageEffect(pEffectInfo,false,true);
 	}
+	else if (effectName == "degAbsContrX")
+	{
+		pEffect = new CovariateContrastEffect(pEffectInfo, true, true);
+	}
+	else if (effectName == "degPosContrX")
+	{
+		pEffect = new CovariateContrastEffect(pEffectInfo, true, false);
+	}
+	else if (effectName == "degNegContrX")
+	{
+		pEffect = new CovariateContrastEffect(pEffectInfo, false, true);
+	}
 	else if (effectName == "avWAlt")
 	{
 		pEffect = new DyadicCovariateAvAltEffect(pEffectInfo,true, false);
@@ -1608,10 +1646,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		string covariateName = pEffectInfo->interactionName1();
 		AlterFunction * pChangeFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, false, false);
+				covariateName, false, true);
 		AlterFunction * pStatisticFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, true, false);
+				covariateName, true, true);
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			pChangeFunction, pStatisticFunction);
 	}
@@ -1621,10 +1659,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		string covariateName = pEffectInfo->interactionName1();
 		AlterFunction * pChangeFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, false, true);
+				covariateName, false, false);
 		AlterFunction * pStatisticFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, true, true);
+				covariateName, true, false);
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			pChangeFunction, pStatisticFunction);
 	}
@@ -1727,10 +1765,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		string covariateName = pEffectInfo->interactionName2();
 		AlterFunction * pChangeFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, false, false);
+				covariateName, false, true);
 		AlterFunction * pStatisticFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, true, false);
+				covariateName, true, true);
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			pChangeFunction, pStatisticFunction);
 	}
@@ -1740,10 +1778,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 		string covariateName = pEffectInfo->interactionName2();
 		AlterFunction * pChangeFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, false, true);
+				covariateName, false, false);
 		AlterFunction * pStatisticFunction =
 			new CovariateDistance2EgoAltSimNetworkFunction(networkName,
-				covariateName, true, true);
+				covariateName, true, false);
 		pEffect = new GenericNetworkEffect(pEffectInfo,
 			pChangeFunction, pStatisticFunction);
 	}

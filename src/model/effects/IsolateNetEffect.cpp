@@ -15,6 +15,8 @@
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -24,7 +26,6 @@ namespace siena
 IsolateNetEffect::IsolateNetEffect(
 	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
 {
-
 }
 
 
@@ -51,16 +52,15 @@ double IsolateNetEffect::calculateContribution(int alter) const
 
 
 /**
- * The contribution of ego to the statistic. 
+ * The contribution of ego to the statistic.
  * It is assumed that preprocessEgo(ego) has been called before.
  */
-double IsolateNetEffect::egoStatistic(int ego, 
-					const Network * pNetwork)
-{	
+double IsolateNetEffect::egoStatistic(int ego, const Network * pNetwork)
+{
 	double statistic = 0;
 	
-	if ((this->pNetwork()->inDegree(this->ego()) == 0)&&
-		(this->pNetwork()->outDegree(this->ego()) == 0))
+	if ((this->pNetwork()->inDegree(this->ego()) == 0)
+			&& (this->pNetwork()->outDegree(this->ego()) == 0))
 	{
 		statistic = 1;
 	}

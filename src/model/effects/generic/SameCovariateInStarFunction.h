@@ -24,11 +24,9 @@ public:
 		std::string covariateName, bool excludeMissing);
 		
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
-		virtual double value(int alter);
+	virtual double value(int alter);
 
 private:
 	bool lexcludeMissing;

@@ -72,7 +72,6 @@ void DenseTriadsBehaviorEffect::initialize(const Data * pData,
 	}
 }
 
-
 /**
  * Calculates the change in the statistic corresponding to this effect if
  * the given actor would change his behavior by the given amount.
@@ -82,7 +81,6 @@ double DenseTriadsBehaviorEffect::calculateChangeContribution(int actor,
 {
 	return difference * this->denseTriadCount(actor);
 }
-
 
 /**
  * Returns the statistic corresponding to the given ego with respect to the

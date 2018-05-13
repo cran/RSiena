@@ -90,13 +90,23 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
  In the case of using multiple processors, there are two options for telling
  \code{siena07} to use them. By specifying the options \code{useCluster}, \code{nbrNodes},
  \code{clusterString} and \code{initC}, \code{siena07} will create a
- \link[parallel:makeCluster]{cluster object} that will be used by the
- \link[parallel]{parallel} package. After finishing the estimation procedure,
+ \code{cluster object} that will be used by the
+ \code{parallel} package. After finishing the estimation procedure,
  \code{siena07} will automatically stop the cluster. Alternatively, instead of
  having the function to create a cluster, the user may provide its own by
  specifying the option \code{cl}, similar to what the boot function does in
  the \CRANpkg{boot} package. By using the option \code{cl} the user may be
  able to create more complex clusters (see examples below).
+
+ Parameters can be tested against zero by dividing the estimate by its
+ standard error and using an approximate standard normal null distribution.
+ Further, functions \code{\link{Wald.RSiena}} and
+ \code{\link{Multipar.RSiena}} are available for multi-parameter testing.\cr
+ Parameters specified in \code{\link{includeEffects}} or
+ \code{\link{setEffect}} with \code{fix=TRUE, test=TRUE} will not be estimated;
+ score tests of their hypothesized values are reported in the output file
+ specified in the control (algorithm) object.
+ These tests can be obtained also using \code{\link{score.Test}} .
 }
 \value{
   Returns an object of class \code{\link{sienaFit}}, some parts of which are:
@@ -105,6 +115,9 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
     "UserInterrupt". "UserInterrupt" indicates that the user asked for early
   termination before phase 3. }
   \item{f}{Various characteristics of the data and model definition.}
+  \item{requestedEffects}{The included effects in the effects object.}
+  \item{effects}{The included effects in the effects object to which are added
+    the main effects of the requested interaction effects, if any.}
   \item{theta}{Estimated value of theta.}
   \item{covtheta}{Estimated covariance matrix of theta; this is not available
     if the sienaAlgorithm object \code{x} was produced with \code{simOnly=TRUE}.}
@@ -161,11 +174,14 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
    \item Information about the implementation of the algorithm is in
      \url{http://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf}.
    \item Further see \url{http://www.stats.ox.ac.uk/~snijders/siena/} .
-           }
+    }
 }
 \author{Ruth Ripley, Tom Snijders}
 
-\seealso{\code{\link{sienaAlgorithmCreate}}\cr
+\seealso{\code{\link{sienaAlgorithmCreate}},
+  \code{\link{Wald.RSiena}}, \code{\link{Multipar.RSiena}},
+  \code{\link{score.Test}}.
+
   There are print, summary and xtable methods for \code{\link{sienaFit}}
   objects: \code{\link{xtable}}, \code{\link{print.sienaFit}}.}
 \examples{
@@ -184,21 +200,25 @@ ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 
 # or if a previous "on track" result ans was obtained --------------------------
 \dontrun{
-ans1 <- siena07(myalgorithm, data=mydata, effects=myeff, prevAns=ans)
+ans1 <- siena07(myalgorithm, data=mydata, effects=myeff, prevAns=ans, batch=TRUE)
          }
 
 # Running in multiple processors -----------------------------------------------
-\donttest{
+\dontrun{
 # Not tested because dependent on presence of processors
-# Using 8 processors
+# Find out how many processors there are
+library(parallel)
+(n.clus <- detectCores() - 1)
+# number of cores; 1 is subtracted to keep time for other processes
 ans2 <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE,
-                useCluster=TRUE, nbrNodes=8, initC=TRUE)
+                useCluster=TRUE, nbrNodes=n.clus, initC=TRUE)
 
+# Suppose 8 processors are going to be used.
 # Loading the parallel package and creating a cluster
 # with 8 processors (this should be equivalent)
 
 library(parallel)
-cl <- makeCluster(8)
+cl <- makeCluster(n.clus)
 
 ans3 <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, cl = cl)
 
@@ -214,6 +234,50 @@ cl <- makePSOCKcluster(
 
 ans4 <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, cl = cl)
 stopCluster(cl)
+}
+# Accessing simulated networks for ML ------------------------------------------
+# The following is an example for accessing the simulated networks for ML,
+# which makes sense only if there are some missing tie variables;
+# observed tie variables are identically simulated at the moment of observation,
+# missing tie variable are imputed in a model-based way.
+mat1 <- matrix(c(0,0,1,1,
+                 1,0,0,0,
+                 0,0,0,1,
+                 0,1,0,0),4,4, byrow=TRUE)
+mat2 <- matrix(c(0,1,1,1,
+                 1,0,0,0,
+                 0,0,0,1,
+                 0,0,1,0),4,4, byrow=TRUE)
+mat3 <- matrix(c(0,1,0,1,
+                 1,0,0,0,
+                 0,0,0,0,
+                 NA,1,1,0),4,4, byrow=TRUE)
+mats <- array(c(mat1,mat2,mat3), dim=c(4,4,3))
+net <- sienaDependent(mats, allowOnly=FALSE)
+sdat <- sienaDataCreate(net)
+alg <- sienaAlgorithmCreate(maxlike=TRUE, nsub=3, n3=100, seed=1234)
+effs <- getEffects(sdat)
+\dontrun{
+(ans <- siena07(alg, data=sdat, effects=effs, returnDeps=TRUE, batch=TRUE))
+# See manual Section 9.1 for information about the following functions
+edges.to.adj <- function(x,n){
+# create empty adjacency matrix
+    adj <- matrix(0, n, n)
+# put edge values in desired places
+    adj[x[, 1:2]] <- x[, 3]
+    adj
+}
+the.edge <- function(x,n,h,k){
+    edges.to.adj(x,n)[h,k]
+}
+# Now show the results
+n <- 4
+ego <- rep.int(1:n,n)
+alter <- rep(1:n, each=n)
+ones <- sapply(1:n^2, function(i)
+    {mean(sapply(ans$sims, function(x){the.edge(x[[1]][[2]],n,ego[i],alter[i])}))})
+cbind(ego,alter,ones)
+matrix(ones,n,n)
     }
 }
 \keyword{models}

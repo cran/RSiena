@@ -12,6 +12,8 @@
 #include "CovariateDistance2SimilarityNetworkFunction.h"
 #include "network/Network.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -28,7 +30,7 @@ namespace siena
 CovariateDistance2SimilarityNetworkFunction::
 CovariateDistance2SimilarityNetworkFunction(string networkName, string
 	covariateName, bool excludeMissing) :
-	CovariateDistance2NetworkFunction(networkName, covariateName)
+	CovariateDistance2NetworkFunction(networkName, covariateName, excludeMissing, true)
 {
 	this->lexcludeMissing = excludeMissing;
 }

@@ -17,6 +17,8 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
 
+using namespace std;
+
 namespace siena
 {
 

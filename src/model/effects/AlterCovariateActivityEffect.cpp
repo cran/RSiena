@@ -22,9 +22,9 @@ namespace siena
  * @param[in] pEffectInfo the effect descriptor
  * @param[in] squared indicates if the covariate values must be squared
  */
-AlterCovariateActivityEffect::AlterCovariateActivityEffect
-	(const EffectInfo * pEffectInfo):
-		CovariateDependentNetworkEffect(pEffectInfo)
+AlterCovariateActivityEffect::AlterCovariateActivityEffect(
+		const EffectInfo * pEffectInfo) :
+	CovariateDependentNetworkEffect(pEffectInfo)
 {
 }
 
@@ -38,8 +38,8 @@ double AlterCovariateActivityEffect::calculateContribution(int alter) const
 	double contribution = 0;
 	const Network * pNetwork = this->pNetwork();
 	for (IncidentTieIterator iter = pNetwork->outTies(this->ego());
-		iter.valid();
-		iter.next())
+			iter.valid();
+			iter.next())
 	{
 		contribution += this->value(iter.actor());
 	}
@@ -69,7 +69,7 @@ double AlterCovariateActivityEffect::tieStatistic(int alter)
 				iter.valid();
 				iter.next())
 		{
-		// Get the receiver of the outgoing tie.
+			// Get the receiver of the outgoing tie.
 			int h = iter.actor();
 			if (!this->missing(h))
 			{

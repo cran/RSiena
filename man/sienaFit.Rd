@@ -12,7 +12,7 @@
 \usage{
 \method{print}{sienaFit}(x, tstat=TRUE, ...)
 
-\method{summary}{sienaFit}(object,  ...)
+\method{summary}{sienaFit}(object, ...)
 
 \method{print}{summary.sienaFit}(x, matrices=TRUE, ...)
 

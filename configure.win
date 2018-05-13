@@ -71,6 +71,7 @@ PKG_SOURCES="$(cat src/sources.list)"
 # Take care that variables do not contain '\' backslashes or '#' hashes!
 sed "
 s#@PKG_SOURCES@#$PKG_SOURCES#;
+s#@OPENMP_CFLAGS@##;
 s#@PKG_LIBS@#$PKG_LIBS#;
 s#@PKG_CPPFLAGS@#$PKG_CPPFLAGS#" \
 src/Makevars.in >src/Makevars.win

@@ -48,7 +48,7 @@ double invertor(int x)
  */
 double logarithmer(int x)
 {
-	return log(x + 1);
+	return log((double) (x + 1));
 }
 
 

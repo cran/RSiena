@@ -78,17 +78,17 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
             stop("Not enough observations to use the nodes")
         }
 		if (!length(cl)) {
-		    unlink("cluster.out")
-  		  if (clusterType == "FORK")
-  		  {
-  		    cl <- makeCluster(nbrNodes, type = clusterType,
-  		                      outfile = "cluster.out")
-  		  }
-  		  else
-  		  {
-  		    cl <- makeCluster(clusterString, type = clusterType,
-  		                      outfile = "cluster.out")
-  		  }
+			unlink("cluster.out")
+			if (clusterType == "FORK")
+			{
+				cl <- makeCluster(nbrNodes, type = clusterType,
+					outfile = "cluster.out")
+			}
+			else
+			{
+				cl <- makeCluster(clusterString, type = clusterType,
+					outfile = "cluster.out")
+			}
 		}
         clusterCall(cl, library, pkgname, character.only = TRUE)
 		##parLapply(cl, c('f1','f2'), sink)
@@ -338,7 +338,14 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
             z$termination <- 'Error'
         }
         if (!z$OK || !z$Phase3Interrupt)
+		{
+			if (useCluster)
+			{
+				stopCluster(cl)
+			}
+			useCluster <- FALSE
             return(z)
+		}
     }
     ## #####################################################
     ## do final call of FRAN

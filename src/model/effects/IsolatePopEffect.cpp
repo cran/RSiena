@@ -41,8 +41,8 @@ double IsolatePopEffect::calculateContribution(int alter) const
 			int degree = this->pNetwork()->inDegree(alter);
 			if ((degree == 0) || ((degree == 1)&&(this->outTieExists(alter))))
 			{
-			// In the second case the single tie to this alter is going to be 
-			// withdrawn, so an isolate is created
+				// In the second case the single tie to this alter is going to be 
+				// withdrawn, so an isolate is created
 				change = 1;
 			}
 		}
@@ -65,17 +65,17 @@ double IsolatePopEffect::calculateContribution(int alter) const
  * to the statistic. It is assumed that preprocessEgo(ego) has been
  * called before.
  */
-double IsolatePopEffect::tieStatistic(int alter) 
-{	
-	double statistic = 0;	
+double IsolatePopEffect::tieStatistic(int alter)
+{
+	double statistic = 0;
 	
 	if (this->loutgoing)
 	{
-			if ((this->pNetwork()->outDegree(alter) == 0)&&
-			(this->pNetwork()->inDegree(alter) == 1))
+		if ((this->pNetwork()->outDegree(alter) == 0)
+				&& (this->pNetwork()->inDegree(alter) == 1))
 		{
 			statistic = 1;
-		}	
+		}
 	}
 	else // see above
 	{

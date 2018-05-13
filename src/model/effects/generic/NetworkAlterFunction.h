@@ -30,9 +30,7 @@ public:
 	virtual ~NetworkAlterFunction();
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 protected:
 	bool inTieExists(int alter) const;

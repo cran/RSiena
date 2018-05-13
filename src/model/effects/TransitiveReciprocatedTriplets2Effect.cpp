@@ -33,9 +33,9 @@ TransitiveReciprocatedTriplets2Effect::TransitiveReciprocatedTriplets2Effect(
  */
 double TransitiveReciprocatedTriplets2Effect::calculateContribution(int alter) const
 {
-	// If we are introducing a tie from the ego i to the alter j, then
-   // each configuration i -> h <-> j contributes one unit;
-   // the number of such configurations is stored in pFRTable.
+	// If we are introducing a tie from the ego i to the alter j, then each
+	// configuration i -> h <-> j contributes one unit; the number of such
+	// configurations is stored in pFRTable.
 	return this->pFRTable()->get(alter);
 }
 

@@ -47,14 +47,10 @@ WXXClosureEffect::~WXXClosureEffect()
  * @param[in] pCache the cache object to be used to speed up calculations
  */
 void WXXClosureEffect::initialize(const Data * pData,
-	State * pState,
-	int period,
-	Cache * pCache)
+	State * pState, int period, Cache * pCache)
 {
 	DyadicCovariateDependentNetworkEffect::initialize(pData,
-		pState,
-		period,
-		pCache);
+		pState, period, pCache);
 
 	delete[] this->lsums;
 	this->lsums = new double[this->pNetwork()->n()];
@@ -78,31 +74,28 @@ void WXXClosureEffect::preprocessEgo(int ego)
  * sum_h w_{ih} x_{hj}.
  */
 void WXXClosureEffect::calculateSums(int i,
-	const Network * pNetwork,
-	double * sums) const
+	const Network * pNetwork, double * sums) const
 {
 	int n = pNetwork->n();
 
 	// Initialize
-
 	for (int j = 0; j < n; j++)
 	{
 		sums[j] = 0;
 	}
 
 	// Iterate over all h with non-zero non-missing w_{ih}
-
 	for (DyadicCovariateValueIterator iterH = this->rowValues(i);
-		iterH.valid();
-		iterH.next())
+			iterH.valid();
+			iterH.next())
 	{
 		int h = iterH.actor();
 
 		// Iterate over all j with a tie from h
 
 		for (IncidentTieIterator iterJ = pNetwork->outTies(h);
-			iterJ.valid();
-			iterJ.next())
+				iterJ.valid();
+				iterJ.next())
 		{
 			int j = iterJ.actor();
 

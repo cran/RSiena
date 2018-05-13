@@ -25,7 +25,7 @@ namespace siena
 class InDegreeFunction: public NetworkAlterFunction, IntAlterFunction
 {
 public:
-	InDegreeFunction(string networkName);
+	InDegreeFunction(std::string networkName);
 
 	virtual double value(int alter);
 	virtual int intValue(int alter);

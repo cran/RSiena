@@ -212,17 +212,17 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 									nstruct0 <- sum(depvar[, , k] %in% c(10))
 									nstruct1 <- sum(depvar[, , k] %in% c(11))
 								}
-								Report(c('	', nstruct0, ' structural zero'),
-									   sep='', outf)
+								Report(c('  ', nstruct0, ' structural zero'),
+									sep='', outf)
 								Report(ifelse(nstruct0 > 1,
-											  "s were found (code 10).\n",
-											  " was found (code 10).\n"), outf)
-								Report(c('	', nstruct1, ' structural one'),
-									   sep='', outf)
+										"s were found (code 10).\n",
+										" was found (code 10).\n"), outf)
+								Report(c('  ', nstruct1, ' structural one'),
+									sep='', outf)
 								Report(ifelse(nstruct1 > 1,
-											  "s were found (code 11).\n",
-											  " was found (code 11).\n"),
-									   outf)
+										"s were found (code 11).\n",
+										" was found (code 11).\n"),
+									outf)
 								##
 								if (attr(depvar, 'sparse'))
 								{
@@ -883,7 +883,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 	Report(openfiles=TRUE, type="w", projname=modelname)
 	Report("							************************\n", outf)
 	Report(c("									 ", modelname, ".out\n"),
-		   sep='', outf)
+		sep='', outf)
 	Report("							************************\n\n", outf)
 	Report(c("Filename is ", modelname, ".out.\n\n"), sep="", outf)
 	Report(c("This file contains primary output for SIENA project <<",
@@ -891,7 +891,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 	Report(c("Date and time:", format(Sys.time(), "%d/%m/%Y %X"), "\n\n"), outf)
 	packageValues <- packageDescription(pkgname, fields=c("Version", "Date"))
 	rforgeRevision <-  packageDescription(pkgname,
-										  fields="Repository/R-Forge/Revision")
+		fields="Repository/R-Forge/Revision")
 	if (is.na(rforgeRevision))
 	{
 		revision <- ""
@@ -900,9 +900,9 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 	{
 		revision <- paste(" R-forge revision: ", rforgeRevision, " ", sep="")
 	}
-	Report(c("RSiena version ", packageValues[[1]], " (",
-		format(as.Date(packageValues[[2]]), "%d %m %Y"), ")",
-			 revision, "\n\n"), sep="", outf)
+	Report(c(paste(pkgname, "version "), packageValues[[1]],
+			" (", format(as.Date(packageValues[[2]]), "%d %m %Y"), ")",
+			revision, "\n\n"), sep="", outf)
 
 	if (!inherits(data, 'sienaGroup'))
 	{

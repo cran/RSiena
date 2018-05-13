@@ -38,16 +38,16 @@ public:
 	virtual ~CovariateNetworkAlterFunction();
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 protected:
-	double covmean() const; 
+
 	// this is the overall observed mean;
 	// except for centered actor covariates (not dependent behavior variables),
 	// for which it is 0.
-	double value(int i) const;
+	double covmean() const;
+
+	double value(int alter) const;
 	bool missing(int i) const;
 	double similarity(int i, int j) const;
 	ConstantCovariate * pConstantCovariate() const;

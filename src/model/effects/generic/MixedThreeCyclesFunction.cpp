@@ -22,6 +22,8 @@
 #include "data/NetworkLongitudinalData.h"
 #include "data/Data.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -54,20 +56,19 @@ void MixedThreeCyclesFunction::initialize(const Data * pData,
 	MixedNetworkAlterFunction::initialize(pData, pState, period, pCache);
 	this->lpFirstInStarTable = this->pFirstNetworkCache()->pInStarTable();
 	NetworkLongitudinalData * pNetworkData =
-			pData->pNetworkData(this->lvariableName);
+		pData->pNetworkData(this->lvariableName);
 	if (!pNetworkData)
 	{
-		throw logic_error(
-			"Network data for " + this->lvariableName + " expected.");
+		throw logic_error("Network data for " + this->lvariableName + " expected.");
 	}
 	if (lcenter)
 	{
 		this->lavInTwoStar =
-			(pNetworkData->averageSquaredInDegree() - pNetworkData->averageInDegree())/
-						(pNetworkData->m() - 1);
+			(pNetworkData->averageSquaredInDegree() - pNetworkData->averageInDegree())
+			/ (pNetworkData->m() - 1);
 		if (this->lroot)
 		{
-		this->lavInTwoStar = sqrt(this->lavInTwoStar);
+			this->lavInTwoStar = sqrt(this->lavInTwoStar);
 		}
 	}
 	else

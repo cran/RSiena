@@ -18,6 +18,8 @@
 #include "data/Data.h"
 #include "utils/SqrtTable.h"
 
+using namespace std;
+
 namespace siena
 {
 

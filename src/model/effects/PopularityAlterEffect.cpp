@@ -20,8 +20,8 @@ namespace siena
  * Constructor.
  */
 PopularityAlterEffect::PopularityAlterEffect(
-	const EffectInfo * pEffectInfo) :
-		NetworkDependentBehaviorEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo) :
+	NetworkDependentBehaviorEffect(pEffectInfo)
 {
 }
 

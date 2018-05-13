@@ -28,7 +28,7 @@ namespace siena
  * considered
  */
 SameCovariateEffect::SameCovariateEffect(const EffectInfo * pEffectInfo,
-	bool reciprocal) :
+		bool reciprocal) :
 	CovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->lreciprocal = reciprocal;

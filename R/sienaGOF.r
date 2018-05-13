@@ -35,7 +35,7 @@ sienaGOF <- function(
 	{
 		if (!sienaFitObject$sf2.byIterations)
     	{
-        	stop("sienaGOF needs sf2 by iterations")
+        	stop("sienaGOF needs sf2 by iterations (use lessMem=FALSE)")
     	}
 	}
 	iterations <- length(sienaFitObject$sims)
@@ -92,7 +92,7 @@ sienaGOF <- function(
 	attr(obsStats,"auxiliaryStatisticName") <-
 			deparse(substitute(auxiliaryFunction))
 	attr(obsStats,"joint") <- join
-	
+
 	##	Calculate the simulated auxiliary statistics
 	if (verbose)
 	{
@@ -105,17 +105,17 @@ sienaGOF <- function(
 			cat("Calculating auxiliary statistics for periods", period, ".\n")
 		}
 	}
-	if (!is.null(cluster)) 
+	if (!is.null(cluster))
 	{
 		ttcSimulation <- system.time(simStatsByPeriod <- 
 			lapply(period, function (j) {
-					simStatsByPeriod <- parSapply(cluster, 1:iterations,
-						function (i){auxiliaryFunction(i, sienaFitObject$f,
-										sienaFitObject$sims, j, groupName, varName, ...)})
-			simStatsByPeriod <- matrix(simStatsByPeriod, ncol=iterations)
-			dimnames(simStatsByPeriod)[[2]] <-	1:iterations
-			t(simStatsByPeriod)
-			}))
+				simStatsByPeriod <- parSapply(cluster, 1:iterations,
+					function (i){auxiliaryFunction(i, sienaFitObject$f,
+						sienaFitObject$sims, j, groupName, varName, ...)})
+				simStatsByPeriod <- matrix(simStatsByPeriod, ncol=iterations)
+				dimnames(simStatsByPeriod)[[2]] <-	1:iterations
+				t(simStatsByPeriod)
+				}))
 	}
 	else
 	{
@@ -131,13 +131,15 @@ sienaGOF <- function(
 							if (verbose && (i %% 100 == 0) )
 								{
 								cat("  > Completed ", i,
-										" calculations\n")
+										" calculations\r")
 								flush.console()
 								}
 								auxiliaryFunction(i,
 										sienaFitObject$f,
 										sienaFitObject$sims, j, groupName, varName, ...)
 						})
+					cat("  > Completed ", iterations, " calculations\n")
+					flush.console()
 					simStatsByPeriod <-
 							matrix(simStatsByPeriod, ncol=iterations)
 					dimnames(simStatsByPeriod)[[2]] <-	1:iterations
@@ -145,7 +147,7 @@ sienaGOF <- function(
 					})
 	  )
 	}
-	
+
 	## Aggregate by period if necessary to produce simStats
 	if (join)
 	{
@@ -281,7 +283,7 @@ sienaGOF <- function(
 					effectsObject$effectName[sienaFitObject$test]
 		}
 		names(JoinedOneStepMHD_old) <-
-					effectsObject$effectName[sienaFitObject$test]
+			effectsObject$effectName[sienaFitObject$test]
 		names(JoinedOneStepMHD) <-
 				effectsObject$effectName[sienaFitObject$test]
 
@@ -701,7 +703,6 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 			panel = panelFunction, xlab=xlabel, ylab=ylabel, ylim=c(ymin,ymax),
 			scales=list(x=list(labels=key), y=list(draw=FALSE)),
 			main=main)
-
 }
 
 ##@descriptives.sienaGOF siena07 Gives numerical values in the plot.
@@ -721,7 +722,6 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 	sims <- x$Simulations
 	obs <- x$Observations
 	itns <- nrow(sims)
-
 	screen <- sapply(1:ncol(obs),function(i){
 						(sum(is.nan(rbind(sims,obs)[,i])) == 0) })
 	if (!showAll)
@@ -1089,3 +1089,178 @@ BehaviorDistribution <- function (i, obsData, sims, period, groupName, varName,
 	names(bdi) <- as.character(levls)
 	bdi
 }
+
+##@mixedTriadCensus sienaGOF Calculates mixed triad census
+# Contributed by Christoph Stadtfeld.
+# For more details see
+# Hollway, J., Lomi, A., Pallotti, F., & Stadtfeld, C. (2017)
+# Multilevel social spaces: The network dynamics of organizational fields
+# Network Science, 5(2), 187-212. doi:10.1017/nws.2017.8
+#
+# https://www.cambridge.org/core/journals/network-science/article/multilevel-social-spaces-the-network-dynamics-of-organizational-fields/602BB810A44497EBDE2A111A6C2771A3
+#
+# The function is called with two varName parameters, e.g.
+# gof <- sienaGOF(res, mixedTriadCensus, varName = c("oneModeNet", "twoModeNet"))
+#
+mixedTriadCensus <- function (i, obsData, sims, period, groupName, varName) {
+  if (length(varName) != 2) stop("mixedTriadCensus expects two varName parameters")
+  varName1 <- varName[1]
+  varName2 <- varName[2]
+
+  # get matrices
+  m1 <- as.matrix(sparseMatrixExtraction(i, obsData, sims, period, groupName,
+											varName = varName1))
+  m2 <- as.matrix(sparseMatrixExtraction(i, obsData, sims, period, groupName,
+											varName = varName2))
+
+  # check if the first network is one-mode, the second (potentially) bipartite
+  if ((dim(m1)[1] != dim(m1)[2]) | (dim(m1)[1] != dim(m2)[1])) {
+  stop("Error: The first element in varName must be one-mode, the second two-mode")
+  }
+
+  # complement of a binary matrix
+  cp <- function(m) (-m + 1)
+
+  # all ties of two-paths in the one mode network
+  onemode.reciprocal <- m1 * t(m1)
+  onemode.forward <- m1 * cp(t(m1))
+  onemode.backward <- cp(m1) * t(m1)
+  onemode.null <- cp(m1) * cp(t(m1))
+  diag(onemode.forward) <- 0
+  diag(onemode.backward) <- 0
+  diag(onemode.null) <- 0
+
+  # one mode projections to the first mode
+  bipartite.twopath <- m2 %*% t(m2)
+  bipartite.null <- cp(m2) %*% cp(t(m2))
+  bipartite.onestep1 <- m2 %*% cp(t(m2))
+  bipartite.onestep2 <- cp(m2) %*% t(m2)
+  diag(bipartite.twopath) <- 0
+  diag(bipartite.null) <- 0
+  diag(bipartite.onestep1) <- 0
+  diag(bipartite.onestep2) <- 0
+
+  # The coding is explained in the above referenced paper, pages 191-192
+  # The first digit refers to the number of two-mode ties,
+  # the second to the number of one-mode ties in triadic configurations
+  # with two first-mode nodes, and one second-mode node.
+  res <- c("22" =  sum(onemode.reciprocal * bipartite.twopath) / 2,
+           "21" = (sum(onemode.forward * bipartite.twopath) +
+						sum(onemode.backward * bipartite.twopath)) / 2,
+           "20" =  sum(onemode.null * bipartite.twopath) / 2,
+           "12" = (sum(onemode.reciprocal * bipartite.onestep1) +
+						sum(onemode.reciprocal * bipartite.onestep2)) / 2,
+           "11D" = (sum(onemode.forward * bipartite.onestep1) +
+						sum(onemode.backward * bipartite.onestep2)) / 2,
+           "11U" = (sum(onemode.forward * bipartite.onestep2) +
+						sum(onemode.backward * bipartite.onestep1)) / 2,
+           "10" = (sum(onemode.null * bipartite.onestep2) +
+						sum(onemode.null * bipartite.onestep1)) / 2,
+           "02" =  sum(onemode.reciprocal * bipartite.null) / 2,
+           "01" = (sum(onemode.forward * bipartite.null) +
+						sum(onemode.backward * bipartite.null)) / 2,
+           "00" = sum(onemode.null * bipartite.null) / 2
+  )
+
+  # An ad-hoc check. Error should never be thrown.
+  dim1 <- dim(m2)[1]
+  dim2 <- dim(m2)[2]
+  nTriads <- dim2 * dim1 * (dim1 - 1) / 2
+  if (sum(res) != nTriads){
+  stop(paste("Error in calculation. More than", nTriads,
+						"triads counted (", sum(res), ")"))
+  }
+  res
+}
+
+##@TriadCensus sienaGOF Calculates mixed triad census
+# Contributed by Christoph Stadtfeld.
+# 
+# Implementation of the Batagelj-Mrvar (Social Networks, 2001) algorithm
+# based on the summary in the thesis of Sindhuja
+#
+TriadCensus <- function (i, obsData, sims, period, groupName, varName, levls = 1:16) {  
+  # get matrix and prepare data
+  mat <- as.matrix(sparseMatrixExtraction(i, obsData, sims, period, groupName, varName = varName))
+  N <- nrow(mat)
+  # matrix with reciprocal ties 
+  matReciprocal <- mat + t(mat)
+  # matrix with direction information for triad
+  matDirected <- mat - t(mat)
+  matDirected[matDirected == -1] <- 2
+  matDirected[matReciprocal == 2] <- 3
+  matDirected <- matDirected + 1
+  # reciproal matrix with ties from higher to lower IDs
+  matHigher <- matReciprocal
+  matHigher[lower.tri(matHigher)] <- 0
+  # neighbors lookup
+  neighbors<- apply(matReciprocal, 1, function(x) which(x > 0))
+  # neighbors with lower ids
+  neighborsHigher <- apply(matHigher, 1, function(x) which(x > 0))
+  
+  # lookup table for 64 triad types
+  # i->j, j->k, i->k
+  # 1: empty, 2: forward, 3: backward, 4: reciprocal
+  # order as in vector tc
+  lookup <- array(NA, dim = rep(4,3))
+  lookup[1,1,1] <- 1
+  lookup[2,1,1] <- lookup[1,2,1] <- lookup[1,1,2] <- lookup[3,1,1] <- lookup[1,3,1] <- lookup[1,1,3] <- 2
+  lookup[4,1,1] <- lookup[1,4,1] <- lookup[1,1,4] <- 3
+  lookup[2,1,2] <- lookup[3,2,1] <- lookup[1,3,3] <- 4
+  lookup[2,3,1] <- lookup[3,1,3] <- lookup[1,2,2] <- 5
+  lookup[2,2,1] <- lookup[3,3,1] <- lookup[2,1,3] <- lookup[3,1,2] <- lookup[1,2,3] <- lookup[1,3,2] <- 6
+  lookup[4,3,1] <- lookup[4,1,3] <- lookup[2,4,1] <- lookup[1,4,2] <- lookup[3,1,4] <- lookup[1,2,4] <- 7
+  lookup[4,2,1] <- lookup[4,1,2] <- lookup[3,4,1] <- lookup[1,4,3] <- lookup[2,1,4] <- lookup[1,3,4] <- 8
+  lookup[2,2,2] <- lookup[2,3,3] <- lookup[2,3,2] <- lookup[3,3,3] <- lookup[3,2,2] <- lookup[3,2,3] <- 9
+  lookup[2,2,3] <- lookup[3,3,2] <- 10  # 3-cycle
+  lookup[4,4,1] <- lookup[4,1,4] <- lookup[1,4,4] <- 11
+  lookup[2,4,2] <- lookup[3,2,4] <- lookup[4,3,3] <- 12
+  lookup[2,3,4] <- lookup[3,4,3] <- lookup[4,2,2] <- 13
+  lookup[2,2,4] <- lookup[3,3,4] <- lookup[2,4,3] <- lookup[3,4,2] <- lookup[4,2,3] <- lookup[4,3,2]<- 14
+  lookup[2,4,4] <- lookup[4,2,4] <- lookup[4,4,2] <- lookup[3,4,4] <- lookup[4,3,4] <- lookup[4,4,3] <- 15
+  lookup[4,4,4] <- 16
+  
+  # initialize triad census
+  tc <- c("003"  = 0,
+          "012"  = 0,
+          "102"  = 0,
+          "021D" = 0,
+          "021U" = 0,
+          "021C" = 0,
+          "111D" = 0,
+          "111U" = 0,
+          "030T" = 0,
+          "030C" = 0,
+          "201"  = 0,
+          "120D" = 0,
+          "120U" = 0,
+          "120C" = 0,
+          "210"  = 0,
+          "300"  = 0)
+  
+  # iterate through all non-empty dyads (from lower to higher ID)
+  for(i in 1:N){
+    for(j in neighborsHigher[[i]]){
+      # set of nodes that are linked to i and j
+      third <- setdiff( union(neighbors[[i]], neighbors[[j]]),
+                    c(i, j) )
+      # store triads with just one tie
+      triadType <- ifelse(matReciprocal[i,j] == 2, 3, 2)
+      tc[triadType] <- tc[triadType] + N - length(third) - 2
+      for (k in third){
+        # only store triads once
+        if(j < k || ( i < k && k < j && !(k %in% neighbors[[i]]) ) ){
+          t1 <- matDirected[i,j]
+          t2 <- matDirected[j,k]
+          t3 <- matDirected[i,k]
+          triadType <- lookup[t1, t2, t3]
+          tc[triadType] <- tc[triadType] + 1
+        }
+      }
+    }
+  }
+  # assign residual to empty triad count
+  tc[1] <- 1/6 * N*(N-1)*(N-2) - sum(tc[2:16])
+  tc[levls]
+}
+

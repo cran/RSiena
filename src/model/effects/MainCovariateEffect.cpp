@@ -65,7 +65,6 @@ double MainCovariateEffect::egoEndowmentStatistic(int ego,
 
 	if (difference[ego] > 0)
 	{
-		//statistic = currentValues[ego] * this->covariateValue(ego);
 		statistic = - difference[ego] * this->covariateValue(ego);
 	}
 

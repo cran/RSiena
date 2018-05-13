@@ -11,6 +11,8 @@
 
 #include "MissingCovariatePredicate.h"
 
+using namespace std;
+
 namespace siena
 {
 

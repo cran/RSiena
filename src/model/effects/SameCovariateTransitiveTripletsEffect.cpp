@@ -8,7 +8,6 @@
  * Description: This file contains the implementation of the class
  * SameCovariateTransitiveTripletsEffect.
  *****************************************************************************/
-#include <cmath>
 
 #include "SameCovariateTransitiveTripletsEffect.h"
 #include "utils/Utils.h"
@@ -20,6 +19,10 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
 
+#include <cstdlib>
+
+using namespace std;
+
 namespace siena
 {
 
@@ -28,7 +31,7 @@ namespace siena
  */
 
 SameCovariateTransitiveTripletsEffect::SameCovariateTransitiveTripletsEffect(
-									const EffectInfo * pEffectInfo, bool same):
+		const EffectInfo * pEffectInfo, bool same):
 	CovariateDependentNetworkEffect(pEffectInfo)
 {
 	this->lsame = same;
@@ -38,11 +41,11 @@ bool SameCovariateTransitiveTripletsEffect::inequalityCondition(int a) const
 {
 	if (lsame)
 	{
-		return (fabs(a) < EPSILON);
+		return (abs(a) < EPSILON);
 	}
 	else
 	{
-		return (fabs(a) >= EPSILON);
+		return (abs(a) >= EPSILON);
 	}
 }
 
@@ -50,13 +53,13 @@ bool SameCovariateTransitiveTripletsEffect::inequalityCondition(int a) const
  * Calculates the contribution of a tie flip to the given actor.
  */
 double SameCovariateTransitiveTripletsEffect::calculateContribution(
-                                              int alter) const
+		int alter) const
 {
 	// If we are introducing a tie from the ego i to the alter j, then each
 	// two-path from i to j with v_i = v_j contributes one unit;
-   // in addition, each in-star i -> h <- j with v_i = v_h
-   // also contributes one unit.
-   // This number is not stored in a table and is calculated from scratch.
+	// in addition, each in-star i -> h <- j with v_i = v_h
+	// also contributes one unit.
+	// This number is not stored in a table and is calculated from scratch.
 
 	int contribution1 = 0;
 	const Network * pNetwork = this->pNetwork();
@@ -70,15 +73,15 @@ double SameCovariateTransitiveTripletsEffect::calculateContribution(
 	// using CommonNeighborIterator.
 	// Iterate over ego's outgoing ties
 	for (IncidentTieIterator iter = pNetwork->outTies(this->ego());
-		iter.valid();
-		iter.next())
+			iter.valid();
+			iter.next())
 	{
 		// Get the receiver of the outgoing tie.
 		int h = iter.actor();
-		if (this->inequalityCondition(this->value(h) - this->value(this->ego())) &&
-            pNetwork->tieValue(alter, h) >= 1)
+		if (this->inequalityCondition(this->value(h) - this->value(this->ego()))
+				&& pNetwork->tieValue(alter, h) >= 1)
 		{
-		 contribution1++ ;
+			contribution1++ ;
 		}
 	}
 	return contribution1;
@@ -95,8 +98,8 @@ double SameCovariateTransitiveTripletsEffect::tieStatistic(int alter)
 
 	double statistic = 0;
 
-	if (!this->missing(this->ego()) && !this->missing(alter) &&
-		this->inequalityCondition(this->value(alter) - this->value(this->ego())))
+	if (!this->missing(this->ego()) && !this->missing(alter)
+			&& this->inequalityCondition(this->value(alter) - this->value(this->ego())))
 	{
 		statistic = this->pTwoPathTable()->get(alter);
 	}

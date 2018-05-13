@@ -40,9 +40,7 @@ public:
 	virtual ~NetworkDependentBehaviorEffect();
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+			State * pState, int period, Cache * pCache);
 	virtual void initialize(const Data *pData,
 			State *pState, State *pSimulatedState, int period, Cache *pCache);
 

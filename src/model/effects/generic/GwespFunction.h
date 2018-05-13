@@ -13,7 +13,7 @@
 #define GWESPFUNCTION_H_
 
 #include "NetworkAlterFunction.h"
-#include "vector"
+#include <vector>
 
 namespace siena
 {
@@ -33,20 +33,21 @@ class NetworkCache;
 class GwespFunction: public NetworkAlterFunction
 {
 public:
-	GwespFunction(string networkName,
+	GwespFunction(std::string networkName,
 		EgocentricConfigurationTable * (NetworkCache::*pTable)() const,
 		double parameter) ;
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 	virtual double value(int alter);
+
 private:
 	EgocentricConfigurationTable * (NetworkCache::*lpTable)() const;
 	double lparameter;
-	vector<double> lcumulativeWeight;
+	std::vector<double> lcumulativeWeight;
 	double lweight;
+	double lexpmweight;
+	double lexpfactor;
 	EgocentricConfigurationTable *lpInitialisedTable;
 
 };

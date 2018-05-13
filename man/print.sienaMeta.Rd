@@ -21,15 +21,15 @@
 \arguments{
   \item{object}{An object of class \code{sienaMeta}}
   \item{x}{An object of class \code{sienaMeta}, or
-	\code{summary.sienaMeta} as appropriate}
+    \code{summary.sienaMeta} as appropriate}
   \item{file}{Boolean: if TRUE, sends output to file named
-	\code{x$projname.out}. If FALSE, output is to the terminal.}
-	\item{extra}{Boolean: if TRUE, prints more information}
+    \code{x$projname.out}. If FALSE, output is to the terminal.}
+  \item{extra}{Boolean: if TRUE, prints more information}
   \item{layout}{the vector giving number of rows and columns
-       in the arrangement of the several panels in a
-       rectangular array, possibly spanning multiple pages}
+    in the arrangement of the several panels in a
+    rectangular array, possibly spanning multiple pages}
   \item{\dots}{For extra arguments (none used at present)
-}
+  }
 }
 \value{
  The function \code{print.sienaMeta} prints details of the merged

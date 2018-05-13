@@ -1,46 +1,46 @@
-##@getTargets Miscellaneous Written for Krista. Use as RSiena:::getTargets
+##@getTargets Miscellaneous Written for Krista. Use as RSiena/RSienaTest:::getTargets
 getTargets <- function(data, effects)
 {
-    f <- unpackData(data)
-    effects <- effects[effects$include,]
-    ##
-    pData <- .Call(C_setupData, PACKAGE=pkgname,
-                   list(as.integer(f$observations)),
-                   list(f$nodeSets))
-    ## register a finalizer
-    ans <- reg.finalizer(pData, clearData, onexit = FALSE)
-    ans<- .Call(C_OneMode, PACKAGE=pkgname,
-                pData, list(f$nets))
-    ans<- .Call(C_Behavior, PACKAGE=pkgname, pData,
-               list(f$behavs))
-    ans<-.Call(C_ConstantCovariates, PACKAGE=pkgname,
-               pData, list(f$cCovars))
-    ans<-.Call(C_ChangingCovariates,PACKAGE=pkgname,
-               pData,list(f$vCovars))
-    ans<-.Call(C_DyadicCovariates,PACKAGE=pkgname,
-               pData,list(f$dycCovars))
-    ans<-.Call(C_ChangingDyadicCovariates,PACKAGE=pkgname,
-               pData, list(f$dyvCovars))
-    storage.mode(effects$parm) <- 'integer'
-    storage.mode(effects$group) <- 'integer'
-    storage.mode(effects$period) <- 'integer'
-    effects$effectPtr <- NA
-    myeffects <- split(effects, effects$name)
-    ans<- .Call(C_effects, PACKAGE=pkgname,
-                pData, myeffects)
-    pModel <- ans[[1]][[1]]
-        for (i in 1:length(ans[[2]])) ## ans[[2]] is a list of lists of
-            ## pointers to effects. Each list corresponds to one
-            ## dependent variable
-        {
-            effectPtr <- ans[[2]][[i]]
-            myeffects[[i]]$effectPtr <- effectPtr
-        }
-    ans <- .Call(C_getTargets, PACKAGE=pkgname,
-                 pData, pModel, myeffects,
-				NULL, returnActorStatistics=FALSE, 
-				returnStaticChangeContributions=FALSE)
-    ans
+	f <- unpackData(data)
+	effects <- effects[effects$include,]
+	##
+	pData <- .Call(C_setupData, PACKAGE=pkgname,
+		list(as.integer(f$observations)),
+		list(f$nodeSets))
+	## register a finalizer
+	ans <- reg.finalizer(pData, clearData, onexit = FALSE)
+	ans<- .Call(C_OneMode, PACKAGE=pkgname,
+		pData, list(f$nets))
+	ans<- .Call(C_Behavior, PACKAGE=pkgname, pData,
+		list(f$behavs))
+	ans<-.Call(C_ConstantCovariates, PACKAGE=pkgname,
+		pData, list(f$cCovars))
+	ans<-.Call(C_ChangingCovariates,PACKAGE=pkgname,
+		pData,list(f$vCovars))
+	ans<-.Call(C_DyadicCovariates,PACKAGE=pkgname,
+		pData,list(f$dycCovars))
+	ans<-.Call(C_ChangingDyadicCovariates,PACKAGE=pkgname,
+		pData, list(f$dyvCovars))
+	storage.mode(effects$parm) <- 'integer'
+	storage.mode(effects$group) <- 'integer'
+	storage.mode(effects$period) <- 'integer'
+	effects$effectPtr <- NA
+	myeffects <- split(effects, effects$name)
+	ans<- .Call(C_effects, PACKAGE=pkgname,
+		pData, myeffects)
+	pModel <- ans[[1]][[1]]
+	for (i in 1:length(ans[[2]])) ## ans[[2]] is a list of lists of
+		## pointers to effects. Each list corresponds to one
+		## dependent variable
+	{
+		effectPtr <- ans[[2]][[i]]
+		myeffects[[i]]$effectPtr <- effectPtr
+	}
+	ans <- .Call(C_getTargets, PACKAGE=pkgname,
+		pData, pModel, myeffects,
+		NULL, returnActorStatistics=FALSE,
+		returnStaticChangeContributions=FALSE)
+	ans
 }
 
 ##@actorTargets Calculates the actor statistics at a wave (which cannot be

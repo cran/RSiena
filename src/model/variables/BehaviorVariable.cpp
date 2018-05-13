@@ -311,6 +311,10 @@ void BehaviorVariable::makeChange(int actor)
 			this->lupPossible,
 			this->ldownPossible);
 	}
+	if (this->pSimulation()->pModel()->needDerivatives())
+	{
+		this->accumulateDerivatives(); // ABC
+	}		
 
 	if (this->pSimulation()->pModel()->needChain())
 	{
@@ -521,14 +525,13 @@ double BehaviorVariable::totalEvaluationContribution(int actor,
 
 	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
 	{
-		BehaviorEffect * pEffect =
-			(BehaviorEffect *) pFunction->rEffects()[i];
+		BehaviorEffect * pEffect = (BehaviorEffect *) pFunction->rEffects()[i];
 		double thisContribution =
 			pEffect->calculateChangeContribution(actor, difference);
 		if (this->pSimulation()->pModel()->needChangeContributions())
 		{
-			(* this->lpChangeContribution).at(pEffect->pEffectInfo()).at(difference + 1) =
-										thisContribution;
+			(* this->lpChangeContribution)[pEffect->pEffectInfo()]
+				.at(difference + 1) = thisContribution;
 		}
 		this->levaluationEffectContribution[difference + 1][i] =
 			thisContribution;
@@ -545,14 +548,13 @@ double BehaviorVariable::totalEndowmentContribution(int actor,
 
 	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
 	{
-		BehaviorEffect * pEffect =
-			(BehaviorEffect *) pFunction->rEffects()[i];
+		BehaviorEffect * pEffect = (BehaviorEffect *) pFunction->rEffects()[i];
 		double thisContribution =
 			pEffect->calculateChangeContribution(actor, difference);
 		if (this->pSimulation()->pModel()->needChangeContributions())
 		{
-			(* this->lpChangeContribution).at(pEffect->pEffectInfo()).at(difference + 1) =
-							thisContribution;
+			(* this->lpChangeContribution)[pEffect->pEffectInfo()]
+				.at(difference + 1) = thisContribution;
 		}
 		this->lendowmentEffectContribution[difference + 1][i] =
 			thisContribution;
@@ -575,17 +577,15 @@ double BehaviorVariable::totalCreationContribution(int actor,
 
 	for (unsigned i = 0; i < pFunction->rEffects().size(); i++)
 	{
-		BehaviorEffect * pEffect =
-			(BehaviorEffect *) pFunction->rEffects()[i];
+		BehaviorEffect * pEffect = (BehaviorEffect *) pFunction->rEffects()[i];
 		double thisContribution =
 			pEffect->calculateChangeContribution(actor, difference);
 		if (this->pSimulation()->pModel()->needChangeContributions())
 		{
-			(* this->lpChangeContribution).at(pEffect->pEffectInfo()).at(difference + 1) =
-									thisContribution;
+			(* this->lpChangeContribution)[pEffect->pEffectInfo()]
+				.at(difference + 1) = thisContribution;
 		}
-		this->lcreationEffectContribution[difference + 1][i] =
-			thisContribution;
+		this->lcreationEffectContribution[difference + 1][i] = thisContribution;
 		contribution += pEffect->parameter() * thisContribution;
 	}
 

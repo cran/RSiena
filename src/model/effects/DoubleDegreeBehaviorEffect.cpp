@@ -15,8 +15,7 @@
 #include "network/Network.h"
 #include "network/OneModeNetwork.h"
 #include "network/IncidentTieIterator.h"
-
-
+#include "model/EffectInfo.h"
 
 using namespace std;
 
@@ -38,6 +37,7 @@ DoubleDegreeBehaviorEffect::DoubleDegreeBehaviorEffect(
 	}
 	this->lfirstDirection = firstDirection;
 	this->lsecondDirection = secondDirection;
+	this->lsubtract = (pEffectInfo->internalEffectParameter() >= 2);
 
 //	if (secondDirection == 2)
 //	{
@@ -101,6 +101,17 @@ DoubleDegreeBehaviorEffect::DoubleDegreeBehaviorEffect(
 			{
 				statistic++;
 			}
+		}
+	}
+	if (this->lsubtract)
+	{		
+		if (this->lfirstDirection) // "F"
+		{
+			statistic -= pFirstNetwork->outDegree(actor);
+		}
+		else // "B"
+		{
+			statistic -= pFirstNetwork->inDegree(actor);
 		}
 	}
 	return statistic;

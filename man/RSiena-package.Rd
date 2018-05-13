@@ -41,58 +41,57 @@ Package \code{"RSiena"} is the official release.
   Snijders, van de Bunt, and Steglich (2010).
   Next to the help pages, more detailed help is available in the manual (see below)
   and a lot of information is at the website (also see below).
-\tabular{ll}{
-Package: \tab RSiena\cr
-Type: \tab Package\cr
-Version: \tab 1.2-3\cr
-Date: \tab 2017-09-08\cr
-Depends: \tab R (>= 3.0.0)\cr
-Imports: \tab Matrix\cr
-Suggests: \tab tcltk, network, codetools, lattice, MASS, parallel,
-		  xtable, tools, utils\cr
-SystemRequirements: \tab GNU make, tcl/tk 8.5, Tktable\cr
-License: \tab GPL-2 \cr
-LazyData: \tab yes\cr
-NeedsCompilation: \tab yes\cr
-BuildResaveData: \tab no\cr
-}
+  \tabular{ll}{
+    Package: \tab RSiena\cr
+    Type: \tab Package\cr
+    Version: \tab 1.2-12\cr
+    Date: \tab 2018-05-12\cr
+    Depends: \tab R (>= 3.0.0)\cr
+    Imports: \tab Matrix\cr
+    Suggests: \tab tcltk, network, codetools, lattice, MASS, parallel,
+    xtable, tools, utils\cr
+    SystemRequirements: \tab GNU make, tcl/tk 8.5, Tktable\cr
+    License: \tab GPL-2 \cr
+    LazyData: \tab yes\cr
+    NeedsCompilation: \tab yes\cr
+    BuildResaveData: \tab no\cr
+  }
 }
 \author{
   Ruth Ripley, Krists Boitmanis, Tom Snijders, Felix Schoenenberger.
   Contributions by Josh Lospinoso, Charlotte Greenan, Christian Steglich,
   Johan Koskinen, Mark Ortmann, Nynke Niezink, Natalie Indlekofer,
-  and Robert Hellpap.
+  Christoph Stadtfeld, and Robert Hellpap.
 
   Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 }
 \references{
   \itemize{
-   \item Schweinberger, Michael, and Snijders,
-    Tom A.B. (2007). Markov models for digraph panel data:
-    Monte Carlo-based derivative estimation.
-    \emph{Computational Statistics and Data Analysis} 51, 4465-4483.
-
+    \item Schweinberger, Michael, and Snijders,
+      Tom A.B. (2007). Markov models for digraph panel data:
+      Monte Carlo-based derivative estimation.
+      \emph{Computational Statistics and Data Analysis} 51, 4465-4483.
     \item Snijders, Tom A.B. (2001).
-    The statistical evaluation of social network dynamics.
-    \emph{Sociological Methodology}, 31, 361-395.
-   \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
-   Dynamics. \emph{Annual Review of Statistics and Its Application}, 4, 343-363.
-   \item  Snijders, Tom A.B., van de Bunt, Gerhard G., and
-    Steglich, Christian E.G. (2010).
-	Introduction to actor-based models for network dynamics.
-	\emph{Social Networks}, 32, 44-60.
-   \item Snijders, Tom A.B., Steglich, Christian E.G., and Schweinberger,
-    Michael (2007). Modeling the co-evolution of networks and behavior.
-    Pp. 41-71 in \emph{Longitudinal models in the behavioral
-    and related sciences},
-    edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
-   \item Steglich, Christian E.G., Snijders, Tom A.B., and
-    Pearson, Michael A. (2010). Dynamic networks and behavior:
-    Separating selection from influence. \emph{Sociological Methodology},
-	40, 329-393.
-   \item The manual: \url{http://www.stats.ox.ac.uk/~snijders/siena/RSiena_Manual.pdf}
-   \item The website: \url{http://www.stats.ox.ac.uk/~snijders/siena/}.
-           }
+      The statistical evaluation of social network dynamics.
+      \emph{Sociological Methodology}, 31, 361-395.
+    \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
+      Dynamics. \emph{Annual Review of Statistics and Its Application}, 4, 343-363.
+    \item  Snijders, Tom A.B., van de Bunt, Gerhard G., and
+      Steglich, Christian E.G. (2010).
+      Introduction to actor-based models for network dynamics.
+      \emph{Social Networks}, 32, 44-60.
+    \item Snijders, Tom A.B., Steglich, Christian E.G., and Schweinberger,
+      Michael (2007). Modeling the co-evolution of networks and behavior.
+      Pp. 41-71 in \emph{Longitudinal models in the behavioral
+        and related sciences},
+      edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
+    \item Steglich, Christian E.G., Snijders, Tom A.B., and
+      Pearson, Michael A. (2010). Dynamic networks and behavior:
+      Separating selection from influence. \emph{Sociological Methodology},
+      40, 329-393.
+    \item The manual: \url{http://www.stats.ox.ac.uk/~snijders/siena/RSiena_Manual.pdf}
+    \item The website: \url{http://www.stats.ox.ac.uk/~snijders/siena/}.
+  }
 }
 \seealso{\code{\link{siena07}}}
 

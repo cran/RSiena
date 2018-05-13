@@ -33,13 +33,13 @@ double ThresholdShapeEffect::calculateChangeContribution(int actor,
 	int difference)
 {
 	double statistic = 0;
-	if (((this->centeredValue(actor) + difference) >= this->lpar) &
-			(this->centeredValue(actor) < this->lpar))
+	if (((this->centeredValue(actor) + difference) >= this->lpar)
+			&& (this->centeredValue(actor) < this->lpar))
 	{
 		statistic = 1;
 	}
-	else if (((this->centeredValue(actor) + difference) < this->lpar) &
-			(this->centeredValue(actor) >= this->lpar))
+	else if (((this->centeredValue(actor) + difference) < this->lpar)
+			&& (this->centeredValue(actor) >= this->lpar))
 	{
 		statistic = -1;
 	}
@@ -68,10 +68,10 @@ double ThresholdShapeEffect::egoStatistic(int ego, double * currentValues)
  * behavior variable and the current values.
  */
 double ThresholdShapeEffect::egoEndowmentStatistic(int ego,
-	const int * difference,	double * currentValues)
+	const int * difference, double * currentValues)
 {
 	double statistic = 0;
-	if ((currentValues[ego] >= this-> lpar) & (difference[ego] > 0))
+	if ((currentValues[ego] >= this-> lpar) && (difference[ego] > 0))
 	{
 		statistic = 1;
 	}

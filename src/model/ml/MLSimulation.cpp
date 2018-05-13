@@ -3015,5 +3015,12 @@ bool MLSimulation::neighbourhoodChange(MiniStep * pMiniStep1,
 	return addToInterval;
 }
 
+/**
+ * Returns the simulated data at the end of the period.
+ */
+void MLSimulation::gotoLastState()
+{
+	this->setStateBefore(this->pChain()->pLast());
+}
 
 }

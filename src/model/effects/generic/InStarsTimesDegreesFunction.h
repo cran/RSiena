@@ -33,17 +33,17 @@ class SqrtTable;
 class InStarsTimesDegreesFunction : public MixedNetworkAlterFunction
 {
 public:
-	InStarsTimesDegreesFunction(string firstNetworkName, string secondNetworkName,
-									double parameter);
+	InStarsTimesDegreesFunction(std::string firstNetworkName,
+			std::string secondNetworkName, double parameter);
+
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
+
 	virtual double value(int alter);
 
 private:
 	bool lroot; // should the square root be taken?
-	string lvariableName; // name of second network
+	std::string lvariableName; // name of second network
 	// Lookup table for fast square root calculations:
 	SqrtTable * lsqrtTable;
 };

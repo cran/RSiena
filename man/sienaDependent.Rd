@@ -20,11 +20,11 @@ nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
 \arguments{
   \item{netarray}{matrix (type="behavior" only)
     or (for the other types) array of values or list of sparse matrices
-	of type "dgTMatrix".}
+    of type "dgTMatrix".}
   \item{type}{type of dependent variable, default "oneMode".}
   \item{nodeSet}{character string naming the appropriate node set.
-	For a bipartite network, a vector containing 2 character strings:
-	"rows" first, then "columns".}
+    For a bipartite network, a vector containing 2 character strings:
+    "rows" first, then "columns".}
   \item{sparse}{logical: TRUE indicates the data is in sparse matrix
     format, FALSE otherwise.}
   \item{allowOnly}{logical: If TRUE, it will be detected when between any
@@ -32,33 +32,34 @@ nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
     and if this is the case, this will also be a constraint for the
     simulations between these two waves.
     This is done by means of the internal parameters \code{uponly} and
-	\code{downonly}.
+    \code{downonly}.
     If FALSE, the parameters \code{uponly} and \code{downonly} always are
     set to FALSE, and changes in dependent variables will not be constrained
     to be non-decreasing or non-increasing.
-	This also will imply that some effects are excluded because they are
-	superfluous in such constrained situations.
-	This will be reported in the output of \code{\link{print01Report}}.
+    This also will imply that some effects are excluded because they are
+    superfluous in such constrained situations.
+    This will be reported in the output of \code{\link{print01Report}}.
 
-    For normal operation, TRUE is the appropriate option.
-	For data sets that will be part of a multi-group object
-	created by \code{\link{sienaGroupCreate}}, FALSE is preferable.}
+    For normal operation when this is the case for all periods, usually
+    TRUE is the appropriate option. When it is only the case for some of the
+    periods, and for data sets that will be part of a multi-group object
+    created by \code{\link{sienaGroupCreate}}, FALSE usually is preferable.}
 }
 \details{
   Adds attributes so that the array or list of matrices can be used in a
   Siena model fit.
 }
 \value{
-An object of class "sienaDependent". An array or (networks only) a list of sparse
-matrices with attributes:
+  An object of class "sienaDependent". An array or (networks only) a list of sparse
+  matrices with attributes:
   \item{netdims}{Dimensions of the network or behavior
-	variable: senders, receivers (1 for behavior), periods}
+    variable: senders, receivers (1 for behavior), periods}
   \item{type}{oneMode, bipartite or behavior}
   \item{sparse}{Boolean: whether the network is given as a list of sparse matrices or not}
   \item{nodeSet}{Character string with name(s) of node set(s)}
   \item{allowOnly}{The value of the \code{allowOnly} parameter}
 }
-\references{See \url{http://www.stats.ox.ac.uk/siena/}}
+\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/} .}
 \author{Ruth Ripley and Tom A.B. Snijders}
 \seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaNodeSet}},
    \code{\link{sienaDataConstraint}}}

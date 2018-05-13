@@ -19,6 +19,8 @@
 #include "model/EffectInfo.h"
 #include "model/EpochSimulation.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -66,20 +68,13 @@ void DyadicCovariateDependentNetworkEffect::initialize(const Data * pData,
  */
 double DyadicCovariateDependentNetworkEffect::value(int i, int j) const
 {
-	double value = 0;
-
 	if (this->lpConstantCovariate)
 	{
-		value = this->lpConstantCovariate->value(i, j) -
+		return this->lpConstantCovariate->value(i, j) -
 			this->lpConstantCovariate->mean();
 	}
-	else
-	{
-		value = this->lpChangingCovariate->value(i, j, this->period()) -
-			this->lpChangingCovariate->mean();
-	}
-
-	return value;
+	return this->lpChangingCovariate->value(i, j, this->period()) -
+		this->lpChangingCovariate->mean();
 }
 
 

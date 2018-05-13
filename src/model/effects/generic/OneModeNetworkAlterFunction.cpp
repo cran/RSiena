@@ -13,6 +13,8 @@
 #include "OneModeNetworkAlterFunction.h"
 #include "network/OneModeNetwork.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -24,7 +26,6 @@ OneModeNetworkAlterFunction::OneModeNetworkAlterFunction(string networkName) :
 	NetworkAlterFunction(networkName)
 {
 }
-
 
 /**
  * Initializes this function.

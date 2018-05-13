@@ -189,11 +189,12 @@ includeInteraction <- function(myeff, ...,
 
 	## if want to include, check that we have a spare row
 	if ((include) && (sum(intn) == 0))
-	{# The interaction must be created
-		ints <- myeff[myeff$name == name & myeff$shortName  %in%
-					  c("unspInt", "behUnspInt") &
-					  (is.na(myeff$effect1) | myeff$effect1 == 0)&
-					  myeff$type == type, ]
+	{
+		# The interaction must be created
+		ints <- myeff[myeff$name == name & myeff$shortName %in%
+			c("unspInt", "behUnspInt") &
+			(is.na(myeff$effect1) | myeff$effect1 == 0)&
+			myeff$type == type, ]
 		if (nrow(ints) == 0)
 		{
 			baseEffect<- myeff[myeff$name == name, ][1, ]
@@ -216,7 +217,7 @@ includeInteraction <- function(myeff, ...,
 			c(effect1, effect2, effect3)
 		myeff[intn, "fix"] <- fix
 		myeff[intn, "test"] <- test
-		myeff[intn, "parm"] <- parameter
+		if (!is.null(parameter)) {myeff[intn, "parm"] <- parameter}
 		myeff[intn, "randomEffects"] <- random
 	}
 	else
@@ -227,8 +228,8 @@ includeInteraction <- function(myeff, ...,
 		}
 		else
 		{
-		myeff[intn, "include"] <- FALSE
-	}
+			myeff[intn, "include"] <- FALSE
+		}
 	}
 	if (verbose)
 	{
@@ -238,7 +239,7 @@ includeInteraction <- function(myeff, ...,
 }
 
 ##@setEffect DataCreate
-setEffect <- function(myeff, shortName, parameter=0,
+setEffect <- function(myeff, shortName, parameter=NULL,
 					fix=FALSE, test=FALSE, random=FALSE,
 					initialValue=0,
 					timeDummy=",",
@@ -287,16 +288,16 @@ setEffect <- function(myeff, shortName, parameter=0,
 	{
 		stop("Effect not unique")
 	}
-	myeff[use, "parm"] <- parameter
+	if (!is.null(parameter)) {myeff[use, "parm"] <- parameter}
 	myeff[use, "include"] <- include
 	myeff[use, "fix"] <- fix
 	myeff[use, "test"] <- test
 	myeff[use, "initialValue"] <- initialValue
 	myeff[use, "timeDummy"] <- timeDummy
 	myeff[use, "randomEffects"] <- random
-#    print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
-#                       "interaction2", "include", "parm", "fix", "test",
-#                       "initialValue", "timeDummy", "period", "group")])
+	# print.data.frame(myeff[use, c("name", "shortName", "type", "interaction1",
+	# 		"interaction2", "include", "parm", "fix", "test",
+	# 		"initialValue", "timeDummy", "period", "group")])
 	print.sienaEffects(myeff[use,])
 	myeff
 }

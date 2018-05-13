@@ -23,12 +23,10 @@ namespace siena
 class OneModeNetworkAlterFunction: public NetworkAlterFunction
 {
 public:
-	OneModeNetworkAlterFunction(string networkName);
+	OneModeNetworkAlterFunction(std::string networkName);
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 };
 
 }

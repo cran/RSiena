@@ -27,9 +27,7 @@ public:
 	virtual ~WXXClosureEffect();
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 	virtual void preprocessEgo(int ego);
 	virtual double calculateContribution(int alter) const;
@@ -42,7 +40,6 @@ private:
 
 	// For a fixed i, this variable stores the value of sum_h w_{ih} x_{hj} for
 	// each j.
-
 	double * lsums;
 };
 

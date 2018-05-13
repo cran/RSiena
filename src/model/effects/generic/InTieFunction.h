@@ -24,7 +24,7 @@ namespace siena
 class InTieFunction: public OneModeNetworkAlterFunction
 {
 public:
-	InTieFunction(string networkName);
+	InTieFunction(std::string networkName);
 
 	virtual double value(int alter);
 };

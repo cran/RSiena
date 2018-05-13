@@ -14,7 +14,6 @@
 #include "model/State.h"
 #include "model/tables/Cache.h"
 
-using namespace std;
 namespace siena
 {
 
@@ -23,11 +22,9 @@ AlterFunction::AlterFunction()
 	this->lego = -1;
 }
 
-
 AlterFunction::~AlterFunction()
 {
 }
-
 
 /**
  * Initializes this function.
@@ -37,12 +34,9 @@ AlterFunction::~AlterFunction()
  * @param[in] pCache the cache object to be used to speed up calculations
  */
 void AlterFunction::initialize(const Data * pData,
-	State * pState,
-	int period,
-	Cache * pCache)
+		State * pState, int period, Cache * pCache)
 {
 }
-
 
 /**
  * Does the necessary preprocessing work for calculating the alter

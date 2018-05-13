@@ -16,6 +16,7 @@
 #include "network/OneModeNetwork.h"
 #include "network/CommonNeighborIterator.h"
 
+
 using namespace std;
 
 namespace siena

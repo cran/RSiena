@@ -133,6 +133,10 @@ coCovar <- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 	{
         stop("val must be numeric or a factor")
 	}
+    if (!is.character(nodeSet))
+	{
+        stop ("nodeset should be a character string")
+	}
 	if (!is.null(imputationValues))
     {
 		if (!(is.numeric(imputationValues) || is.factor(imputationValues)))
@@ -166,6 +170,10 @@ varCovar<- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
     if (!(is.numeric(val) || is.factor(val)))
 	{
         stop("val must be numeric or a factor")
+	}
+    if (!is.character(nodeSet))
+	{
+        stop ("nodeset should be a character string")
 	}
     if (!is.null(imputationValues))
     {
@@ -423,6 +431,10 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
             stop("incorrect type")
 		}
     }
+    if (!is.character(nodeSet))
+	{
+        stop ("nodeset should be a character string")
+	}
     if (type == "bipartite")
     {
         if (!is.vector(nodeSet) || length(nodeSet) != 2)
@@ -498,7 +510,6 @@ validateSienaDependent <- function(net)
 }
 
 ##@sienaDataConstraint DataCreate
-## TS 15-07-14: I think this function is not used anywhere and can be dropped.
 sienaDataConstraint <- function(x, net1, net2, type=c("higher",
                                                 "disjoint", "atLeastOne"),
                                  value=FALSE)

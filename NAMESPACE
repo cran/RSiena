@@ -1,18 +1,19 @@
 useDynLib(RSiena, .registration = TRUE, .fixes="C_")
 
-export(coCovar, coDyadCovar, getEffects, model.create, print01Report,
-       siena07, sienaCompositionChange, updateTheta,
-       updateSpecification, sienaCompositionChangeFromFile, sienaDataCreate,
-       sienaGroupCreate, sienaModelCreate, sienaAlgorithmCreate, sienaNet,
-       sienaDependent, sienaNodeSet, xtable.sienaFit,
-       varCovar, varDyadCovar, setEffect, includeEffects, includeInteraction,
-       effectsDocumentation, sienaDataConstraint, print.xtable.sienaFit,
-       siena08, iwlsm, sienaTimeTest, includeTimeDummy,
-       sienaGOF, descriptives.sienaGOF, sienaRI,
-	    sparseMatrixExtraction, networkExtraction, behaviorExtraction,
-       OutdegreeDistribution, IndegreeDistribution, BehaviorDistribution,
-       siena.table, xtable, score.Test,
-       Wald.RSiena, Multipar.RSiena)
+export(
+	coCovar, coDyadCovar, getEffects, model.create, print01Report, siena07,
+	sienaCompositionChange, updateTheta, updateSpecification,
+	sienaCompositionChangeFromFile, sienaDataCreate, sienaGroupCreate,
+	sienaModelCreate, sienaAlgorithmCreate, sienaNet, sienaDependent,
+	sienaNodeSet, xtable.sienaFit, varCovar, varDyadCovar, setEffect,
+	includeEffects, includeInteraction, effectsDocumentation,
+	sienaDataConstraint, print.xtable.sienaFit, siena08, iwlsm, sienaTimeTest,
+	includeTimeDummy, sienaGOF, descriptives.sienaGOF, sienaRI,
+	sparseMatrixExtraction, networkExtraction, behaviorExtraction,
+	OutdegreeDistribution, IndegreeDistribution, BehaviorDistribution,
+	TriadCensus, mixedTriadCensus,
+	siena.table, xtable, score.Test, Wald.RSiena, Multipar.RSiena
+)
 
 import(Matrix, tcltk, lattice, parallel, MASS)
 importFrom("grDevices", "rgb", "xy.coords")

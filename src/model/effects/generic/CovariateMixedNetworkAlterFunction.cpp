@@ -24,6 +24,8 @@
 #include "data/Data.h"
 #include "MixedNetworkAlterFunction.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -70,37 +72,28 @@ void CovariateMixedNetworkAlterFunction::initialize(const Data * pData,
 	this->lvalues = pState->behaviorValues(this->lcovariateName);
 	this->lperiod = period;
 
-	if (!this->lpConstantCovariate &&
-		!this->lpChangingCovariate &&
-		!(this->lpBehaviorData && this->lvalues))
+	if (!this->lpConstantCovariate && !this->lpChangingCovariate
+			&& !(this->lpBehaviorData && this->lvalues))
 	{
 		throw logic_error("Covariate or dependent behavior variable '" +
-			this->lcovariateName +
-			"' expected.");
-	}		
+				this->lcovariateName + "' expected.");
+	}
 }
 
 /**
  * Returns the covariate value for the given actor.
  */
-double CovariateMixedNetworkAlterFunction::value(int i) const
+double CovariateMixedNetworkAlterFunction::value(int alter) const
 {
-	double value = 0;
-
 	if (this->lpConstantCovariate)
 	{
-		value = this->lpConstantCovariate->value(i);
+		return this->lpConstantCovariate->value(alter);
 	}
-	else if (this->lpChangingCovariate)
+	if (this->lpChangingCovariate)
 	{
-		value = this->lpChangingCovariate->value(i, this->lperiod);
+		return this->lpChangingCovariate->value(alter, this->lperiod);
 	}
-	else
-	{
-		value = this->lvalues[i] - this->lpBehaviorData->overallMean();
-	}
-
-	return value;
+	return this->lvalues[alter] - this->lpBehaviorData->overallMean();
 }
 
 /**

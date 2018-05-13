@@ -15,39 +15,40 @@ includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
 \arguments{
   \item{myeff}{a Siena effects object as created by \code{\link{getEffects}}}
   \item{\dots}{2 or 3 short names to identify the effects
-               which should be interacted.}
+    which should be interacted.}
   \item{include}{Boolean. default TRUE, but can be switched to FALSE to
-	turn off an interaction.
-}
+    turn off an interaction.
+  }
   \item{name}{Name of dependent variable (network or behavior)
     for which interactions are being defined.
-	Defaults to the first in the effects object.
-}
-\item{type}{
-  Type of effects to be interacted.
-}
-\item{interaction1}{
-  Vector of Siena objects where needed to completely identify the
-  effect e.g. covariate name or behavior variable name.
-  Trailing blanks may be omitted.
-}
+    Defaults to the first in the effects object.
+  }
+  \item{type}{
+    Type of effects to be interacted.
+  }
+  \item{interaction1}{
+    Vector of Siena objects where needed to completely identify the
+    effect e.g. covariate name or behavior variable name.
+    Trailing blanks may be omitted.
+  }
   \item{interaction2}{
-  Vector of siena objects where needed to completely identify the
-  effect e.g. covariate name or behavior variable name.
-  Trailing blanks may be omitted.
-}
-\item{fix}{
-  Boolean. Are the effects to be fixed at the value stored in
-  \code{myeff$initialValue} or not.}
-\item{test}{
-  Boolean. Are the effects to be tested or not (requires \code{fix}).}
-\item{parameter}{
-  The parameter of this interaction effect. Integer value required. Default 0.}
-\item{random}{For specifying that the interaction effect will vary randomly;
-  not relevant for \code{RSiena} at this moment.
-  Boolean required. Default FALSE.}
-\item{character}{Boolean: are the effect names character strings or not.}
-\item{verbose}{Boolean: should the print of altered effects be produced.}
+    Vector of siena objects where needed to completely identify the
+    effect e.g. covariate name or behavior variable name.
+    Trailing blanks may be omitted.
+  }
+  \item{fix}{
+    Boolean. Are the effects to be fixed at the value stored in
+    \code{myeff$initialValue} or not.}
+  \item{test}{
+    Boolean. Are the effects to be tested or not (requires \code{fix}).}
+  \item{parameter}{
+    Value of internal effect parameter of this interaction effect. Default 0.
+	If NULL, no change is made.}
+  \item{random}{For specifying that the interaction effect will vary randomly;
+    not relevant for \code{RSiena} at this moment.
+    Boolean required. Default FALSE.}
+  \item{character}{Boolean: are the effect names character strings or not.}
+  \item{verbose}{Boolean: should the print of altered effects be produced.}
 }
 \details{The details provided should uniquely identify up to three
   effects. If so, an interaction effect will be created and included or
@@ -86,7 +87,8 @@ includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
   is obtained by executing \code{\link{effectsDocumentation}(myeff)}.
 
   To set attributes of interaction effects in the effects object,
-  function \code{\link{setEffect}} can also be used with its parameters
+  function \code{\link{setEffect}} can also be used with short name 
+  \code{unspInt} or \code{behUnspInt}, and further using parameters
   \code{effect1} and \code{effect2}, and possibly \code{effect3}.
   }
 \value{

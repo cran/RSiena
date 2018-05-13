@@ -16,6 +16,8 @@
 #include "network/IncidentTieIterator.h"
 #include "utils/Utils.h"
 
+using namespace std;
+
 namespace siena
 {
 

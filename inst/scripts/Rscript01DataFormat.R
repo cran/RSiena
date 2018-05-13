@@ -69,7 +69,7 @@
 
 # The library command loads the packages needed during the session.
 
-        library(RSiena)
+	library(RSiena)
 
 # Some additional packages are used by RSiena,
 # the so-called required packages; these will be loaded automatically.
@@ -121,7 +121,7 @@
 
 # Where is the manual?
 
-#       RShowDoc("RSiena_Manual", package="RSiena")
+	# RShowDoc("RSiena_Manual", package = "RSiena")
 
 # (Note, however, that it is possible that the Siena website
 # at http://www.stats.ox.ac.uk/~snijders/siena/ contains a more recent version.)

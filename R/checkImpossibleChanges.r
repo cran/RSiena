@@ -47,7 +47,7 @@ checkImpossibleChanges <- function(x)
 					), 0), 0)
 	}
 	max(sapply(xd,impossibleChangeOne)) + 2*max(sapply(xd,impossibleChangeZero)) +
-			10*max(sapply(xd,impossibleChangeNA)) 
+			10*max(sapply(xd,impossibleChangeNA))
 }
 
 

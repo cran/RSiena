@@ -18,7 +18,7 @@ class EpochSimulation;
 class State
 {
 public:
-	State(const Data * pData, int observation, bool copyValues = false);
+	State(const Data * pData, int observation, bool ownedValues = false);
 	State(EpochSimulation * pSimulation);
 	State();
 	virtual ~State();

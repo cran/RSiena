@@ -61,7 +61,7 @@ StructuralRateEffect::~StructuralRateEffect()
 /**
  * Returns the contribution of this effect for the given actor.
  */
-double StructuralRateEffect::value(int i)
+double StructuralRateEffect::value(int i) const
 {
 	Network * pNetwork = this->lpVariable->pNetwork();
 

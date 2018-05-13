@@ -29,12 +29,10 @@ class ConfigurationTable;
 class InJaccardFunction: public NetworkAlterFunction
 {
 public:
-	InJaccardFunction(string networkName);
+	InJaccardFunction(std::string networkName);
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 	virtual double value(int alter);
 

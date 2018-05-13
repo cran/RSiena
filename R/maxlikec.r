@@ -15,6 +15,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 					 returnDataFrame=FALSE,
 					 returnLoglik=FALSE, onlyLoglik=FALSE)
 {
+# note: parameter x is not used. Just for consistency with other possibilities for FRAN.
     ## retrieve stored information
     f <- FRANstore()
     callGrid <- z$callGrid
@@ -31,7 +32,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
         ans <- .Call(C_mlPeriod, PACKAGE=pkgname, z$Deriv, f$pData,
                      f$pModel, f$myeffects, theta,
 					 1, 1, z$nrunMH, z$addChainToStore,
-                     z$returnDataFrame,
+                     z$returnDataFrame, z$returnDeps,
                      z$returnChains, returnLoglik, onlyLoglik)
 		if (!onlyLoglik)
 		{
@@ -42,6 +43,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 				ans[[8]] <- list(ans[[8]])
 				ans[[9]] <- list(ans[[9]])
 				ans[[10]] <- list(ans[[10]])
+				ans[[11]] <- list(ans[[11]])
 			}
 		}
 		else
@@ -49,7 +51,14 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 			ans[[2]] <- list(ans[[2]])
 			ans[[3]] <- list(ans[[3]])
 			ans[[4]] <- list(ans[[4]])
-
+		}
+		if (z$returnDeps)
+		{
+			sims <- ans[[12]]
+		}
+		else
+		{
+			sims <- 'there are no simulated dependent variables'
 		}
 	}
     else
@@ -61,7 +70,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
             anss <- apply(cbind(callGrid, 1:nrow(callGrid)),
 						  1, doMLModel, z$Deriv, z$thetaMat,
                           z$nrunMH, z$addChainToStore,
-                          z$returnDataFrame,
+                          z$returnDataFrame, z$returnDeps,
                           z$returnChains, byGroup, z$theta, returnLoglik,
 						  onlyLoglik)
         }
@@ -71,7 +80,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
             anss <- parRapply(z$cl[use], cbind(callGrid, 1:nrow(callGrid)),
 							  doMLModel, z$Deriv, z$thetaMat,
                               z$nrunMH, z$addChainToStore,
-                              z$returnDataFrame, z$returnChains, byGroup,
+                              z$returnDataFrame,  z$returnDeps, z$returnChains, byGroup,
 							  z$theta, returnLoglik, onlyLoglik)
         }
         ## reorganize the anss so it looks like the normal one
@@ -100,6 +109,15 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 				ans[[10]] <- Reduce("+",  ans[[10]]) ## aborts
 			}
 			ans[[11]] <- sapply(anss, "[[", 11)
+			if (z$returnDeps)
+			{
+				fff <- lapply(anss, function(x) x[[12]][[1]])
+				sims <- split(fff, callGrid[, 1 ]) ## split by group
+			}
+			else
+			{
+				sims <- 'no simulated dependent variables'
+			}
 		}
 		else ##onlyLoglik is always byGroup (sienaBayes)
 		{
@@ -128,7 +146,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 		fra <- -t(ans[[1]]) ##note sign change
 
 		list(fra = fra, ntim0 = NULL, feasible = TRUE, OK = TRUE,
-			 sims=NULL, dff = dff, dff2=dff2,
+			 sims=sims, dff=dff, dff2=dff2,
 			 chain = ans[[6]], accepts=ans[[8]],
 			 rejects= ans[[9]], aborts=ans[[10]], loglik=ans[[11]])
 	}
@@ -141,7 +159,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 
 ##@doMLModel Maximum likelihood
 doMLModel <- function(x, Deriv, thetaMat, nrunMH, addChainToStore,
-                      returnDataFrame, returnChains,
+                      returnDataFrame, returnDeps, returnChains,
 					  byGroup, theta, returnLoglik, onlyLoglik)
 {
     f <- FRANstore()
@@ -156,7 +174,7 @@ doMLModel <- function(x, Deriv, thetaMat, nrunMH, addChainToStore,
     .Call(C_mlPeriod, PACKAGE=pkgname, Deriv, f$pData,
           f$pModel, f$myeffects, theta,
           as.integer(x[1]), as.integer(x[2]), nrunMH[x[3]], addChainToStore,
-		  returnDataFrame, returnChains,
+		  returnDataFrame, returnDeps, returnChains,
 		  returnLoglik, onlyLoglik)
 }
 

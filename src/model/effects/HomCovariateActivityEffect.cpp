@@ -16,6 +16,8 @@
 #include "model/variables/NetworkVariable.h"
 #include "network/IncidentTieIterator.h"
 
+using namespace std;
+
 namespace siena
 {
 

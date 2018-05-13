@@ -12,6 +12,11 @@
 #ifndef SIENA07SETUP_H_
 #define SIENA07SETUP_H_
 
+#include <Rinternals.h>
+
+extern "C"
+{
+
 /**
  *  Creates an array of pointers to Data objects, one for each group
  *  and returns the address of the array to R. Also creates the actor sets
@@ -34,7 +39,6 @@ SEXP Bipartite(SEXP RpData, SEXP BIPARTITELIST);
 /**
  *  Creates all the groups of behavior networks in the data
  */
-
 SEXP Behavior(SEXP RpData, SEXP BEHLIST);
 
 /**
@@ -77,7 +81,7 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST);
 /**
  *  creates the requested interaction effects
  */
-SEXP interactionEffects(SEXP RpData, SEXP RpModel, SEXP EFFECTSLIST);
+SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST);
 
 /**
  *  removes the objects created for the data.
@@ -95,29 +99,31 @@ SEXP deleteModel(SEXP RpModel);
 SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 	SEXP UNIVERSALOFFSET,
 	SEXP CONDVAR, SEXP CONDTARGETS, SEXP PROFILEDATA, SEXP PARALLELRUN,
-	SEXP MODELTYPE, SEXP SIMPLERATES);
+	SEXP MODELTYPE, SEXP BEHMODELTYPE, SEXP SIMPLERATES, SEXP NORMSETRATES);
 
 /**
  *  Gets target values relative to the input data
  */
 SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
-	SEXP PARALLELRUN, SEXP RETURNACTORSTATISTICS, 
-	SEXP RETURNSTATICCHANGECONTRIBUTIONS);
+		SEXP PARALLELRUN, SEXP RETURNACTORSTATISTICS,
+		SEXP RETURNSTATICCHANGECONTRIBUTIONS);
 
-/** Sets up a minimal chain and does pre burnin and burnin.
- * Processes a complete set of data objects, crewating a chain for each
- * period and storing them on the model object.
+/**
+ * Sets up a minimal chain and does pre burnin and burnin.  Processes a
+ * complete set of data objects, crewating a chain for each period and storing
+ * them on the model object.
  */
 SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
-	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
-	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP LOCALML);
+		SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
+		SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP LOCALML);
 
 /**
  *
  */
-SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR,
-	SEXP PROBS, SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM,
-	SEXP MAXIMUMPERM, SEXP INITIALPERM, SEXP CHAINS, SEXP MISSINGCHAINS,
-	SEXP LOCALML);
+SEXP mlInitializeSubProcesses(SEXP DATAPTR, SEXP MODELPTR, SEXP PROBS,
+		SEXP PRMIN, SEXP PRMIB, SEXP MINIMUMPERM, SEXP MAXIMUMPERM,
+		SEXP INITIALPERM, SEXP CHAINS, SEXP LOCALML);
+
+}
 
 #endif /*SIENA07SETUP_H_*/

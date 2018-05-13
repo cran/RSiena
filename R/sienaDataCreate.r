@@ -55,8 +55,8 @@ addAttributes.coCovar <- function(x, name, ...)
 		attr(x, "imputationValues") <- attr(x, "imputationValues") - varmean
 	}
 	x
-
 }
+
 ##@addAttributes.varCovar DataCreate
 addAttributes.varCovar <- function(x, name, ...)
 {
@@ -332,6 +332,13 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 	if (is.null(nodeSets))
 	{
 		nodeSets <- list(sienaNodeSet(attr(depvars[[1]], "netdims")[1]))
+	}
+	else
+	{
+		if (!(inherits(nodeSets, "sienaNodeSet") || inherits(nodeSets[[1]], "sienaNodeSet")))
+		{
+			stop("nodeSets should be a sienaNodeSet object or a list of such objects")
+		}		
 	}
 	nodeSetNames <- sapply(nodeSets,function(x) attr(x,"nodeSetName"))
 	names(nodeSets) <- nodeSetNames
@@ -616,11 +623,11 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 				myvector2 <- myarray[, , j + 1]
 				mydiff <- myvector1 - myvector2
 				attr(depvars[[i]], "distance")[j] <- sum(abs(mydiff),
-														 na.rm=TRUE)
+					na.rm=TRUE)
 				attr(depvars[[i]], "vals")[[j]] <- table(myvector1,
-														 useNA="always")
+					useNA="always")
 				attr(depvars[[i]], "vals")[[j+1]] <- table(myvector2,
-														   useNA="always")
+					useNA="always")
 
 				attr(depvars[[i]], "nval")[j] <-  sum(!is.na(myvector1))
 				attr(depvars[[i]], "nval")[j + 1] <-  sum(!is.na(myvector2))
@@ -631,18 +638,18 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 				attr(depvars[[i]], 'nonMissingEither')[j] <-
 					sum(!(is.na(myvector2) | is.na(myvector1)))
 				if (attr(depvars[[i]], 'allowOnly'))
-					{
+				{
 					if (all(mydiff >= 0, na.rm=TRUE))
-						{
+					{
 						attr(depvars[[i]], 'downonly')[j] <- TRUE
-							someOnly <- TRUE
-						}
-					if (all(mydiff <= 0, na.rm=TRUE))
-						{
-						attr(depvars[[i]], 'uponly')[j] <- TRUE
-							someOnly <- TRUE
-						}
+						someOnly <- TRUE
 					}
+					if (all(mydiff <= 0, na.rm=TRUE))
+					{
+						attr(depvars[[i]], 'uponly')[j] <- TRUE
+						someOnly <- TRUE
+					}
+				}
 			}
 			rr <- range(depvars[[i]], na.rm=TRUE)
 			if (rr[2] == rr[1] && !any(is.na(depvars[[i]])))
@@ -1085,6 +1092,45 @@ checkConstraints <- function(z)
 	attr(z, "higher") <- higher
 	attr(z, "disjoint") <- disjoint
 	attr(z, "atLeastOne") <- atLeastOne
+
+	## report on constraints; adapted from print01Report
+	if (any(higher))
+	{
+		higherSplit <- strsplit(names(higher)[higher], ",")
+		report <- sapply(higherSplit, function(x)
+		   {
+			   paste(c("Network ", x[1], " is higher than network ", x[2],
+						".\n"), sep="")
+		  })
+		cat(report)
+		cat("This will be respected in the simulations.\n")
+cat("If this is not desired, change attribute 'higher'.\n")
+	}
+	if (any(disjoint))
+	{
+		disjointSplit <- strsplit(names(disjoint)[disjoint],',')
+		report <- sapply(disjointSplit, function(x)
+		   {
+			   paste(c("Network ", x[1], " is disjoint from network ",
+						x[2], ".\n"), sep="")
+		  })
+		cat(report)
+		cat("This will be respected in the simulations.\n")
+cat("If this is not desired, change attribute 'disjoint'.\n")
+	}
+	if (any(atLeastOne))
+	{
+		atLeastOneSplit <- strsplit(names(atLeastOne)[atLeastOne],',')
+		report <- sapply(atLeastOneSplit, function(x)
+		   {
+			   paste(c("A link in at least one of networks ",
+						x[1], " and", x[2],
+					   " always exists.\n"), sep="")
+		  })
+		cat(report)
+		cat("This will be respected in the simulations.\n")
+cat("If this is not desired, change attribute 'atLeastOne'.\n")
+	}
 	z
 }
 

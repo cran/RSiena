@@ -13,6 +13,8 @@
 #include "model/tables/NetworkCache.h"
 #include "model/tables/ConfigurationTable.h"
 
+using namespace std;
+
 namespace siena
 {
 

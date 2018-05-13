@@ -1,7 +1,5 @@
 #include "AlterPredicate.h"
 
-
-
 namespace siena
 {
 
@@ -23,9 +21,7 @@ AlterPredicate::AlterPredicate()
  * @param[in] pCache the cache object to be used to speed up calculations
  */
 void AlterPredicate::initialize(const Data * pData,
-	State * pState,
-	int period,
-	Cache * pCache)
+	State * pState, int period, Cache * pCache)
 {
 	this->lperiod = period;
 }

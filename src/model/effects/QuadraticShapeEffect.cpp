@@ -29,7 +29,7 @@ QuadraticShapeEffect::QuadraticShapeEffect(const EffectInfo * pEffectInfo) :
  * the given actor would change his behavior by the given amount.
  */
 double QuadraticShapeEffect::calculateChangeContribution(int actor,
-	int difference)
+		int difference)
 {
 	return (2 * this->centeredValue(actor) + difference) * difference;
 }

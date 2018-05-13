@@ -67,17 +67,17 @@ public:
 	virtual double calculateContribution(int alter) const = 0;
 
 	virtual double evaluationStatistic();
-	virtual pair <double, double * > evaluationStatistic(bool needActorStatistics);
+	virtual std::pair<double, double * > evaluationStatistic(bool needActorStatistics);
 	virtual double endowmentStatistic(Network * pLostTieNetwork);
-	virtual pair <double, double * > endowmentStatistic(Network * pLostTieNetwork, bool needActorStatistics);
+	virtual std::pair<double, double * > endowmentStatistic(Network * pLostTieNetwork, bool needActorStatistics);
 	virtual double creationStatistic(Network * pGainedTieNetwork);
-	virtual pair <double, double * > creationStatistic(Network * pGainedTieNetwork, bool needActorStatistics);
+	virtual std::pair<double, double * > creationStatistic(Network * pGainedTieNetwork, bool needActorStatistics);
 
 	virtual bool egoEffect() const;
 
 protected:
 	virtual double statistic(const Network * pSummationTieNetwork);
-	virtual pair <double, double * > statistic(const Network * pSummationTieNetwork, bool needActorStatistics);
+	virtual std::pair<double, double * > statistic(const Network * pSummationTieNetwork, bool needActorStatistics);
 	virtual void initializeStatisticCalculation();
 	virtual void onNextEgo(int ego);
 	virtual double egoStatistic(int ego,

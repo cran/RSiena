@@ -15,6 +15,8 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/tables/ConfigurationTable.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -22,8 +24,8 @@ namespace siena
  * Constructor.
  */
 TransitiveTripletsEffect::TransitiveTripletsEffect(
-	const EffectInfo * pEffectInfo, bool twoPath, bool twoInStar) : 
-						NetworkEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo, bool twoPath, bool twoInStar) : 
+	NetworkEffect(pEffectInfo)
 {
 	this->ltwoPath = twoPath;
 	this->ltwoInStar = twoInStar;

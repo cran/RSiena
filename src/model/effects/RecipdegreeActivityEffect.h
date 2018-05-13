@@ -17,6 +17,12 @@
 namespace siena
 {
 
+// ----------------------------------------------------------------------------
+// Section: Forward declarations
+// ----------------------------------------------------------------------------
+
+class SqrtTable;
+
 /**
  * This class defines the reciprocal degree activity effect defined by
  * s_i(x)= sum_j x_{ij} x^{(r)}_i, where 
@@ -31,6 +37,13 @@ public:
 
 protected:
 	virtual double tieStatistic(int alter);
+
+private:
+	// Indicates if the square root of reciprocated degrees must be used
+	bool lroot;
+
+	// Lookup table for fast square root calculations
+	SqrtTable * lsqrtTable;
 };
 
 }

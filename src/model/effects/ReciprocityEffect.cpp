@@ -35,7 +35,6 @@ double ReciprocityEffect::calculateContribution(int alter) const
 
 	// This tie flip has an effect only if there is a tie from the alter
 	// to the ego.
-
 	if (this->inTieExists(alter))
 	{
 		change = 1;

@@ -8,19 +8,24 @@
 # * Description: This module contains the code for package attachment and
 # * detachment.
 # *****************************************************************************/
+
 #dllpath <- ''
 ##@imagepath Objects/Path Path for image of Siena
-imagepath <- ''
+imagepath <- ""
+
 ##csvpath <- ''
 ## or .onAttach?
 ##@pkgpath Objects/Path Path for installation of siena.exe
-pkgpath <- ''
+pkgpath <- ""
+
 ##@pkgname Objects/Package name of package (RSiena or RSienaTest)
 pkgname <- ""
+
 ##@pkgversion Objects/Package version of package
 pkgvers <- ""
+
 ##@.onLoad Miscellaneous Start-up processing
-.onLoad <- function(libname,pkgname){
+.onLoad <- function(libname, pkgname) {
 #   dllpath <<- if (nzchar(.Platform$r_arch))
 ##       file.path(libname, pkgname, "libs", .Platform$r_arch,
 #                 paste('RSiena', .Platform$dynlib.ext, sep=''))
@@ -28,10 +33,10 @@ pkgvers <- ""
 #       file.path(libname,pkgname, "libs",
  #                paste('RSiena', .Platform$dynlib.ext, sep=''))
 #  #  data('sysdata',package='RSiena')
-   imagepath <<- file.path(libname, pkgname, paste('ilcampo.gif'))
-   pkgpath<<- file.path(libname, pkgname)
-   pkgname <<- pkgname
-   pkgvers <<- utils::packageDescription(pkgname, fields=c("Version", "Date"))
+  imagepath <<- file.path(libname, pkgname, paste("ilcampo.gif"))
+  pkgpath <<- file.path(libname, pkgname)
+  pkgname <<- pkgname
+  pkgvers <<- utils::packageDescription(pkgname, fields = c("Version", "Date"))
 #cat(pkgname,pkgpath,'\n')
  ##  csvpath<<- file.path(libname,pkgname)
  #   library.dynam("RSiena",package=pkgname)
@@ -40,7 +45,7 @@ pkgvers <- ""
 
 ##@.onUnload Miscellaneous Unload processing
 .onUnload <- function(libpath) {
-    library.dynam.unload(pkgname, libpath)
+  library.dynam.unload(pkgname, libpath)
 }
 
 #.Last.lib <- function(libpath)

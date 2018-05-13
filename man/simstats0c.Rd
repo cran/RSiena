@@ -102,13 +102,13 @@ terminateFRAN(z, x)
   \item{accepts}{Number of accepted MH steps by dependent variable
     (permute steps are counted under first dependent variable)}
   \item{rejects}{Number of rejected MH steps by dependent variable
- 	(permute steps are counted under first dependent variable)}
+    (permute steps are counted under first dependent variable)}
   \item{aborts}{Number of aborted MH steps counted under first dependent
     variable.}
-    \item{loglik}{Loglikelihood of the simulations. Only if
+  \item{loglik}{Loglikelihood of the simulations. Only if
     \code{returnLoglik} is TRUE. If \code{onlyLoglik} is TRUE, only
     \code{loglik}, \code{accepts},\code{rejects} and \code{aborts} are
-	returned.}
+    returned.}
   \code{initializeFRAN} and \code{terminateFRAN} return the control
     object \code{z}.
 }

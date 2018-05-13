@@ -18,6 +18,7 @@
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
 
+
 using namespace std;
 
 namespace siena

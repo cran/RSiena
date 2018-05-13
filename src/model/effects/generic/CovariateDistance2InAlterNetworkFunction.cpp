@@ -31,7 +31,7 @@ namespace siena
 CovariateDistance2InAlterNetworkFunction::
 CovariateDistance2InAlterNetworkFunction(string networkName, string
 	covariateName, bool excludeMissing, bool total) :
-	CovariateDistance2NetworkFunction(networkName, covariateName)
+	CovariateDistance2NetworkFunction(networkName, covariateName, excludeMissing, false)
 {
 	this->lexcludeMissing = excludeMissing;
 	this->ltotal = total;

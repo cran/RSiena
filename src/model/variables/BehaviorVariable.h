@@ -93,26 +93,22 @@ private:
 	// A two-dimensional array of change contributions to effects, where
 	// rows correspond to differences and columns correspond to effects in the
 	// evaluation function.
-
 	double ** levaluationEffectContribution;
 
 	// A two-dimensional array of change contributions to effects, where
 	// rows correspond to differences and columns correspond to effects in the
 	// endowment function.
-
 	double ** lendowmentEffectContribution;
 
 	// A two-dimensional array of change contributions to effects, where
 	// rows correspond to differences and columns correspond to effects in the
 	// tie creation function.
-
 	double ** lcreationEffectContribution;
 
 	// Selection probability per each difference:
 	// lprobabilities[0] - probability for a downward change
 	// lprobabilities[1] - probability of no change
 	// lprobabilities[2] - probability of an upward change
-
 	double * lprobabilities;
 
 	// Indicates if upward change is possible in the current situation

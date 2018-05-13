@@ -13,9 +13,9 @@
 #include "OutdegreeEffect.h"
 #include "network/Network.h"
 #include "network/IncidentTieIterator.h"
-
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
+
 namespace siena
 {
 
@@ -23,8 +23,8 @@ namespace siena
  * Constructor.
  */
 OutdegreeEffect::OutdegreeEffect(
-	const EffectInfo * pEffectInfo) :
-		NetworkDependentBehaviorEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo) :
+	NetworkDependentBehaviorEffect(pEffectInfo)
 {
 }
 
@@ -34,7 +34,7 @@ OutdegreeEffect::OutdegreeEffect(
  * the given actor would change his behavior by the given amount.
  */
 double OutdegreeEffect::calculateChangeContribution(int actor,
-	int difference)
+		int difference)
 {
 	// The formula for the effect:
 	// s_i(x) = v_i * outdegree of i.

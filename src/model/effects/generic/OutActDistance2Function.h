@@ -30,13 +30,13 @@ class SqrtTable;
 class OutActDistance2Function: public MixedNetworkAlterFunction
 {
 public:
-	OutActDistance2Function(string firstNetworkName, string secondNetworkName,
-							double parameter, bool firstIn, bool secondIn);
+	OutActDistance2Function(std::string firstNetworkName,
+			std::string secondNetworkName, double parameter, bool firstIn,
+			bool secondIn);
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
+
 	virtual double value(int alter);
 
 private:
@@ -44,7 +44,7 @@ private:
 	bool lfirstin; // first tie in- or outgoing?
 	bool lsecondin; // second tie in- or outgoing?
 	double lavdegree; // average degree, all observations, secondNetworkName
-	string lvariableName; // local secondNetworkName
+	std::string lvariableName; // local secondNetworkName
 	// Lookup table for fast square root calculations:
 	SqrtTable * lsqrtTable;
 };

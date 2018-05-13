@@ -23,7 +23,6 @@ namespace siena
 InIsolateDegreeEffect::InIsolateDegreeEffect(
 	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
 {
-
 }
 
 

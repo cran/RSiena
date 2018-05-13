@@ -16,6 +16,8 @@
 #include "model/EffectInfo.h"
 #include "model/variables/NetworkVariable.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -25,7 +27,8 @@ namespace siena
 TruncatedOutdegreeEffect::TruncatedOutdegreeEffect(
 	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
 {
-	this->lc = pEffectInfo->internalEffectParameter();
+	this->lc = int(pEffectInfo->internalEffectParameter() + 0.01);
+	// C++ always rounds downward
 
 	if (this->lc < 1)
 	{

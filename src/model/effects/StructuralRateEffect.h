@@ -55,11 +55,10 @@ class StructuralRateEffect
 {
 public:
 	StructuralRateEffect(const NetworkVariable * pVariable,
-		StructuralRateEffectType type,
-		double parameter);
+		StructuralRateEffectType type, double parameter);
 	virtual ~StructuralRateEffect();
 
-	double value(int i);
+	double value(int i) const;
 	void parameter(double parameterValue);
 	double parameter() const;
 

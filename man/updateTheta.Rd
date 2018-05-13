@@ -17,8 +17,8 @@ updateSpecification(effects.to, effects.from, name.to=NULL, name.from=NULL)
 }
 \arguments{
   \item{effects}{Object of class \code{\link{sienaEffects}}.}
-\item{prevAns}{Object of class \code{\link{sienaFit}}
-       as returned by \code{\link{siena07}}.}
+  \item{prevAns}{Object of class \code{\link{sienaFit}}
+    as returned by \code{\link{siena07}}.}
   \item{varName}{Character string or vector of character strings;
        is this is not \code{NULL}, the update will only applied to this
        dependent variable / these dependent variables.}

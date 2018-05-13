@@ -13,6 +13,8 @@
 #include "CovariateNetworkAlterFunction.h"
 #include "network/Network.h"
 
+using namespace std;
+
 namespace siena
 {
 
@@ -29,7 +31,7 @@ namespace siena
 CovariateDistance2AlterNetworkFunction::
 CovariateDistance2AlterNetworkFunction(string networkName, string
 	covariateName, double parameter,  bool excludeMissing, bool total) :
-	CovariateDistance2NetworkFunction(networkName, covariateName)
+	CovariateDistance2NetworkFunction(networkName, covariateName, excludeMissing, true)
 {
 	this->lparameter = parameter;
 	this->lexcludeMissing = excludeMissing;

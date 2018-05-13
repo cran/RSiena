@@ -37,8 +37,8 @@ class BehaviorLongitudinalData;
 class CovariateMixedNetworkAlterFunction: public MixedNetworkAlterFunction
 {
 public:
-	CovariateMixedNetworkAlterFunction(string firstNetworkName,
-		string secondNetworkName, string covariateName);
+	CovariateMixedNetworkAlterFunction(std::string firstNetworkName,
+		std::string secondNetworkName, std::string covariateName);
 	virtual ~CovariateMixedNetworkAlterFunction();
 
 	virtual void initialize(const Data * pData,
@@ -53,14 +53,16 @@ protected:
 	BehaviorLongitudinalData * pBehaviorData() const;
 
 private:
-	string lcovariateName;
+	std::string lcovariateName;
 	int lperiod;
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;
 	BehaviorLongitudinalData * lpBehaviorData;
+	/* -Wunused-private-field
 	const Network * lpFirstNetwork;
 	const Network * lpSecondNetwork;
 	TwoNetworkCache * lpTwoNetworkCache;
+	*/
 
 	// The current value of a behavior variable per each actor.
 	// This array is 0 for covariate-based effects.

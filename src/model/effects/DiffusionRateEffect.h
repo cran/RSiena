@@ -55,9 +55,9 @@ public:
 
 	virtual ~DiffusionRateEffect();
 	double proximityValue(Network * pNetwork, int i, int egoNumer,
-		int egoDenom);
-	double value(int i, int period);
-	void parameter(double parameterValue);
+			int egoDenom) const;
+	double value(int i, int period) const;
+	void parameter(double parameterValue) const;
 	double parameter() const;
 
 private:

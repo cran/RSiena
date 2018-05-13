@@ -14,6 +14,9 @@
 #include "model/tables/NetworkCache.h"
 #include "model/tables/EgocentricConfigurationTable.h"
 #include <math.h>
+#include <stdexcept>
+
+using namespace std;
 
 namespace siena
 {
@@ -28,7 +31,13 @@ GwespFunction::GwespFunction(string networkName,
 {
 	this->lparameter = parameter;
 	this->lweight = -0.01 * this->lparameter;
+	this->lexpmweight = exp(-this->lweight);
+	this->lexpfactor = (1 - exp(this->lweight));
 	this->lpTable = pTable;
+	if (this->lparameter < 0)
+	{
+		throw runtime_error("Gwdsp must have nonnegative internal effect parameter");
+	}
 }
 
 /**
@@ -54,8 +63,8 @@ void GwespFunction::initialize(const Data * pData,
 	this->lcumulativeWeight.resize(m); // default values 0
 	for (int i = 1; i < m; i++)
 	{
-		pow *= (1 - exp(this->lweight));
-		this->lcumulativeWeight[i] = exp(-(this->lweight)) * (1 - pow);
+		pow *= this->lexpfactor;
+		this->lcumulativeWeight[i] = this->lexpmweight * (1 - pow);
 	}
 }
 

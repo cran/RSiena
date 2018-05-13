@@ -11,8 +11,6 @@
  * but now an extension of CovariateAndNetworkBehaviorEffect.
  *****************************************************************************/
 
-#include <stdexcept>
-
 #include "AltersDist2CovariateAverageEffect.h"
 #include "data/Data.h"
 #include "network/Network.h"

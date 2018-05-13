@@ -22,7 +22,8 @@ namespace siena
  * Constructor.
  */
 TransitiveTriadsEffect::TransitiveTriadsEffect(
-	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo) :
+	NetworkEffect(pEffectInfo)
 {
 }
 

@@ -28,7 +28,7 @@ class ConfigurationTable;
 class BetweennessFunction: public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
-	BetweennessFunction(string networkName);
+	BetweennessFunction(std::string networkName);
 
 	virtual void initialize(const Data * pData,
 		State * pState,

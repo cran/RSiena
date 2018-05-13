@@ -23,8 +23,8 @@ namespace siena
  * Constructor.
  */
 OutdegreePopularityEffect::OutdegreePopularityEffect(
-	const EffectInfo * pEffectInfo,
-	bool root) : NetworkEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo, bool root) :
+	NetworkEffect(pEffectInfo)
 {
 	this->lroot = root;
 	this->lsqrtTable = SqrtTable::instance();

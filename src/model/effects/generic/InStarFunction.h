@@ -29,12 +29,10 @@ class ConfigurationTable;
 class InStarFunction: public NetworkAlterFunction, IntAlterFunction
 {
 public:
-	InStarFunction(string networkName);
+	InStarFunction(std::string networkName);
 
 	virtual void initialize(const Data * pData,
-		State * pState,
-		int period,
-		Cache * pCache);
+		State * pState, int period, Cache * pCache);
 
 	virtual double value(int alter);
 	virtual int intValue(int alter);

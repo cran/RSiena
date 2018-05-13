@@ -42,9 +42,9 @@ private:
 	void calculateSums(int i, const Network * pNetwork, double * sums) const;
 
 	// For a fixed i, this variable stores the value for each j of
-	// out1 = out2 = TRUE:  sum_h w_{ih} w_{hj} 
-	// out1 = out2 = FALSE: sum_h w_{hi} w_{jh} 
-	// out1 = FALSE, out2 = TRUE: sum_h w_{hi} w_{hj} 
+	// out1 = out2 = TRUE:  sum_h w_{ih} w_{hj}
+	// out1 = out2 = FALSE: sum_h w_{hi} w_{jh}
+	// out1 = FALSE, out2 = TRUE: sum_h w_{hi} w_{hj}
 
 	double * lsums;
 	bool lout1, lout2;

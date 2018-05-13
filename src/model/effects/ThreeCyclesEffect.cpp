@@ -35,7 +35,6 @@ double ThreeCyclesEffect::calculateContribution(int alter) const
 	// The absolute value of the contribution is going to be the number
 	// of two-paths from the alter to the ego -- a number, which is stored
 	// in the table of reverse two paths.
-
 	return this->pReverseTwoPathTable()->get(alter);
 }
 

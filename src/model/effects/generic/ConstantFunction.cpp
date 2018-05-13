@@ -14,6 +14,8 @@
 #include "data/NetworkLongitudinalData.h"
 #include "data/Data.h"
 
+using namespace std;
+
 namespace siena
 {
 

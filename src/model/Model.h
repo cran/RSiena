@@ -62,7 +62,7 @@ public:
 	double settingRateParameter(NetworkLongitudinalData * pNetworkData,
 		std::string setting,
 		int period) const;
-	const int numberOfSettings(NetworkLongitudinalData * pNetworkData) const;
+	int numberOfSettings(NetworkLongitudinalData * pNetworkData) const;
 
 	// Other effects
 
