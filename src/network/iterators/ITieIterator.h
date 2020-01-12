@@ -49,6 +49,18 @@ public:
 	 */
 	virtual bool valid() const = 0;
 
+
+	/**
+	 * Sets the iterator to the beginning
+	 */
+	virtual void reset() = 0;
+
+	/**
+	 * Returns the size of the iterator
+	 */
+	virtual int size() const = 0 ;
+
+
 	/**
 	 * Creates an identical copy of the iterator.
 	 */

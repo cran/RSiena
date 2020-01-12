@@ -18,8 +18,11 @@ public:
 	bool valid() const;
 	int actor() const;
 	void next();
+	virtual void reset();
 	CommonNeighborIterator* clone() const;
-
+	int size() const {
+		return -1;
+	}
 private:
 	void skipMismatches();
 

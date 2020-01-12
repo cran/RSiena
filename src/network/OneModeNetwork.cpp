@@ -16,6 +16,7 @@
 #include "OneModeNetwork.h"
 #include "network/IncidentTieIterator.h"
 #include "network/CommonNeighborIterator.h"
+#include "network/INetworkChangeListener.h"
 
 namespace siena {
 
@@ -65,7 +66,7 @@ OneModeNetwork::OneModeNetwork(const OneModeNetwork & rNetwork) :
 OneModeNetwork & OneModeNetwork::operator=(const OneModeNetwork & rNetwork) {
 	if (this != &rNetwork) {
 		// Let the base class do its part
-		(Network &) *this = rNetwork;
+		Network::operator=(rNetwork);
 
 		// Now copy our own fields
 		this->lloopsPermitted = rNetwork.lloopsPermitted;
@@ -80,6 +81,11 @@ OneModeNetwork & OneModeNetwork::operator=(const OneModeNetwork & rNetwork) {
 		for (int i = 0; i < rNetwork.n(); i++) {
 			this->lpReciprocalDegree[i] = rNetwork.lpReciprocalDegree[i];
 		}
+	}
+	for (std::list<INetworkChangeListener*>::const_iterator iter =
+			lNetworkChangeListener.begin();
+			iter != lNetworkChangeListener.end(); ++iter) {
+		(*iter)->onInitializationEvent(*this);
 	}
 
 	return *this;

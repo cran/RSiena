@@ -21,7 +21,9 @@ coCovar(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 \details{
   When part of a Siena data object,
   the covariate is associated with the node set 
-  \code{nodeSet} of the Siena data object.\cr
+  \code{nodeSet} of the Siena data object.
+  In practice, the node set needs to be specified only in the case of
+  the use of the covariate with a two-mode network.\cr
   If there are any \code{NA} values in \code{val}, and
   \code{imputationValues} is given, then the corresponding elements
   of \code{imputationValues} are used for imputation.
@@ -36,10 +38,14 @@ coCovar(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
 \seealso{\code{\link{sienaDataCreate}}, \code{\link{varCovar}},
-\code{\link{coDyadCovar}}, \code{\link{varDyadCovar}}}
+\code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},
+\code{\link{sienaNodeSet}}}
 \examples{
 
 myconstCovar <- coCovar(s50a[,1])
-
+senders <- sienaNodeSet(50, nodeSetName="senders")
+receivers <- sienaNodeSet(30, nodeSetName="receivers")
+senders.attribute <- coCovar(rep(1:10, each=5), nodeSet="senders")
+receivers.attribute <- coCovar(rep(1:5, each=6), nodeSet="receivers")
 }
 \keyword{classes}

@@ -42,6 +42,11 @@ SEXP Bipartite(SEXP RpData, SEXP BIPARTITELIST);
 SEXP Behavior(SEXP RpData, SEXP BEHLIST);
 
 /**
+ *  Creates all the groups of continuous dependent variables in the data
+ */
+SEXP Continuous(SEXP RpData, SEXP CONTLIST);
+
+/**
  *  Creates all the groups of constant covariates in the data
  */
 SEXP ConstantCovariates(SEXP RpData, SEXP COCOVARLIST);

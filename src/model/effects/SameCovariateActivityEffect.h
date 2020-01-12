@@ -23,7 +23,8 @@ namespace siena
 class SameCovariateActivityEffect : public CovariateDependentNetworkEffect
 {
 public:
-	SameCovariateActivityEffect(const EffectInfo * pEffectInfo, bool same);
+	SameCovariateActivityEffect(const EffectInfo * pEffectInfo,
+									bool same, bool recip);
 
 	virtual double calculateContribution(int alter) const;
 
@@ -32,6 +33,9 @@ protected:
 
 private:
 	bool lsame;
+	bool lrecip;
+	bool lcondition1(int theAlter, double theOwnValue) const;
+	bool lcondition2(int theAlter, double theOwnValue) const;
 };
 
 }

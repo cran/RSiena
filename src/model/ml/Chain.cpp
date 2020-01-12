@@ -1331,49 +1331,10 @@ Chain * Chain::copyChain() const
 // 	}
 	return pChain;
 	}
-void Chain::dumpChain() const
-{
-	Rprintf(" period %d %x\n",this->lperiod, this->lpInitialState);
-	for (unsigned i = 0; i < this->lminiSteps.size(); i++)
-	{
-		PrintValue(getMiniStepDF(*this->lminiSteps[i]));
-	}
-	for (unsigned i = 0; i < this->ldiagonalMiniSteps.size(); i++)
- 	{
- 		PrintValue(getMiniStepDF(*(this->ldiagonalMiniSteps[i])));
- 	}
-	for (unsigned i = 0; i < this->lccpMiniSteps.size(); i++)
-	{
-		PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
-	}
-	for (unsigned i = 0; i < this->lmissingNetworkMiniSteps.size(); i++)
-	{
-		PrintValue(getMiniStepDF(*this->lmissingNetworkMiniSteps[i]));
-	}
-	for (unsigned i = 0; i < this->lmissingBehaviorMiniSteps.size(); i++)
-	{
-		PrintValue(getMiniStepDF(*this->lmissingBehaviorMiniSteps[i]));
-	}
-//	Rprintf("%d\n", this->lfirstMiniStepPerOption.size());
-		map<const Option, MiniStep *>::const_iterator iter;
-		for (iter = this->lfirstMiniStepPerOption.begin(); iter !=
-			 this->lfirstMiniStepPerOption.end();
-		 iter++)
-	{
-		//Option myOption = iter->first;
-		if (iter->second)
-		{
-			PrintValue(getMiniStepDF(*iter->second));
-		}
-		//MiniStep * myMiniStep = iter->second;
-		//Rprintf("%d \n",myMiniStep->ego());
-		//PrintValue(getMiniStepDF(*iter->second));
-	}
 
-	for(unsigned i = 0; i < this->linitialStateDifferences.size(); i++)
- 	{
- 		PrintValue(getMiniStepDF(*(this->linitialStateDifferences[i])));
-}
-}
+//void Chain::dumpChain() const
+// see RSienaTest
+
 
 }
+

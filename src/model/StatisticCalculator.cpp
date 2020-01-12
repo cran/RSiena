@@ -23,6 +23,7 @@
 #include "network/Network.h"
 #include "data/NetworkLongitudinalData.h"
 #include "data/BehaviorLongitudinalData.h"
+#include "data/ContinuousLongitudinalData.h"
 #include "network/OneModeNetwork.h"
 #include "network/TieIterator.h"
 #include "data/ConstantCovariate.h"
@@ -36,11 +37,14 @@
 #include "model/effects/EffectFactory.h"
 #include "model/effects/NetworkEffect.h"
 #include "model/effects/BehaviorEffect.h"
+#include "model/effects/ContinuousEffect.h"
 #include "model/EpochSimulation.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
 #include "model/tables/Cache.h"
 #include "network/IncidentTieIterator.h"
+#include "network/layers/DistanceTwoLayer.h"
+#include "network/iterators/UnionTieIterator.h"
 
 using namespace std;
 
@@ -151,6 +155,7 @@ static void for_each_map_value(map<K, T>& m, void (*fn)(T&))
 StatisticCalculator::~StatisticCalculator()
 {
 	clear_map_value_array_pointers(this->ldistances);
+	clear_map_value_array_pointers(this->lcontinuousDistances);
 
 	for_each_map_value(this->lsettingDistances, &clear_map_value_array_pointers);
 	this->lsettingDistances.clear();
@@ -240,6 +245,47 @@ int StatisticCalculator::distance(LongitudinalData * pData, int period)
 	return iter->second[period];
 }
 
+
+/**
+ * Returns the simulated distance for the given continuous behavior variable
+ * and period.
+ */
+double StatisticCalculator::distance(ContinuousLongitudinalData * pData, int period)
+	const
+{
+	map<ContinuousLongitudinalData *, double *>::const_iterator iter =
+		this->lcontinuousDistances.find(pData);
+
+	if (iter == this->lcontinuousDistances.end())
+	{
+		throw invalid_argument(
+			"Unknown effect: The given scale parameter is not part of the model.");
+	}
+
+	return iter->second[period];
+}
+
+
+/**
+ * Returns the total simulated distance of all continuous behavior variables
+ * for the given period.
+ */
+double StatisticCalculator::totalDistance(int period) const
+{
+	double total = 0;
+	
+	for (map<ContinuousLongitudinalData *, double *>::const_iterator iter = 
+			this->lcontinuousDistances.begin();
+		 iter != this->lcontinuousDistances.end();
+		 iter++)
+	{
+		total += iter->second[period];
+	}
+	
+	return total;
+}
+
+
 /**
  * Returns the simulated setting distance for the given network and period.
  */
@@ -258,42 +304,19 @@ int StatisticCalculator::settingDistance(LongitudinalData * pData,
 	}
 	else
 	{
-		throw invalid_argument(
-			"Unknown effect: The given setting rate is not part of the model.");
+		throw invalid_argument("Unknown setting: " + setting);
 	}
 
 	return value;
 }
 
-/**
- * Calculates the statistics for all effects of the given model. Note that
- * this->lperiod relates to the current period when simulating, but the
- * previous when calculating targets.
- */
-void StatisticCalculator::calculateStatistics()
+void StatisticCalculator::calculateStatisticsInitNetwork(NetworkLongitudinalData * pNetworkData) 
 {
-	const vector<LongitudinalData *> & rVariables =
-		this->lpData->rDependentVariableData();
+	const Network * pPredictor = pNetworkData->pNetworkLessMissing(this->lperiod);
+	this->lpPredictorState->pNetwork(pNetworkData->name(), pPredictor);
 
-	// set up the predictor and currentLessMissingsEtc states of these variables
-
-	for (unsigned i = 0; i < rVariables.size(); i++)
-	{
-		NetworkLongitudinalData * pNetworkData =
-			dynamic_cast<NetworkLongitudinalData *>(rVariables[i]);
-		BehaviorLongitudinalData * pBehaviorData =
-			dynamic_cast<BehaviorLongitudinalData *>(rVariables[i]);
-		string name = rVariables[i]->name();
-
-		if (pNetworkData)
-		{
-			const Network * pPredictor =
-				pNetworkData->pNetworkLessMissing(this->lperiod);
-			this->lpPredictorState->pNetwork(name, pPredictor);
-
-			// Duplicate the current network and remove those ties that are
-			// missing at either end of the period.
-
+	// Duplicate the current network and remove those ties that are missing at
+	// either end of the period.
 			Network * pNetwork = this->lpState->pNetwork(pNetworkData->name())->clone();
 
 			subtractNetwork(pNetwork, pNetworkData->pMissingTieNetwork(this->lperiod));
@@ -314,22 +337,62 @@ void StatisticCalculator::calculateStatistics()
 				pNetworkData->pStructuralTieNetwork(this->lperiod));
 
 			// NOTE: pass delete responsibility to state
-			this->lpStateLessMissingsEtc->pNetwork(name, pNetwork);
+	this->lpStateLessMissingsEtc->pNetwork(pNetworkData->name(), pNetwork);
 			// delete pNetwork;
+}
 
+/**
+ * Calculates the statistics for all effects of the given model. Note that
+ * this->lperiod relates to the current period when simulating, but the
+ * previous when calculating targets.
+ */
+void StatisticCalculator::calculateStatistics()
+{
+	const vector<LongitudinalData *> & rVariables = this->lpData->rDependentVariableData();
+
+	// set up the predictor and currentLessMissingsEtc states of these variables
+	for (unsigned i = 0; i < rVariables.size(); i++)
+	{
+		NetworkLongitudinalData * pNetworkData = dynamic_cast<NetworkLongitudinalData *>(rVariables[i]);
+		BehaviorLongitudinalData * pBehaviorData = dynamic_cast<BehaviorLongitudinalData *>(rVariables[i]);
+		ContinuousLongitudinalData * pContinuousData = dynamic_cast<ContinuousLongitudinalData *>(rVariables[i]);
+
+		if (pNetworkData)
+		{
+			calculateStatisticsInitNetwork(pNetworkData);
 		}
 		else if (pBehaviorData)
 		{
-			// create a copy of the start of the period and zero any values
-			// missing at (either end?) start of period
-
-			const int * values =
-				pBehaviorData->valuesLessMissingStarts(this->lperiod);
-			this->lpPredictorState->behaviorValues(name, values);
+			// create a copy of the start of the period and zero any values missing
+			// at (either end?) start of period
+			const int * values = pBehaviorData->valuesLessMissingStarts(this->lperiod);
+			this->lpPredictorState->behaviorValues(pBehaviorData->name(), values);
+		}
+		else if (pContinuousData)
+		{
+			const double * values = pContinuousData->valuesLessMissingStarts(this->lperiod);
+			this->lpPredictorState->continuousValues(pContinuousData->name(), values);
 		}
 		else
 		{
 			throw domain_error("Unexpected class of dependent variable");
+		}
+	}
+
+	const vector<LongitudinalData *> & rSimVariables = this->lpData->rSimVariableData();
+	for (unsigned i = 0; i < rSimVariables.size(); i++)
+	{
+		NetworkLongitudinalData * pNetworkData = dynamic_cast<NetworkLongitudinalData *>(rSimVariables[i]);
+
+		if (pNetworkData)
+		{
+			calculateStatisticsInitNetwork(pNetworkData);
+//			Network * pNetwork = this->lpState->pNetwork(pNetworkData->name())->clone();
+//			this->lpPredictorState->pNetwork(pNetworkData->name(), pNetwork);
+		}
+		else
+		{
+			throw domain_error("Unexpected class of simulated variable");
 		}
 	}
 
@@ -339,6 +402,8 @@ void StatisticCalculator::calculateStatistics()
 			dynamic_cast<NetworkLongitudinalData *>(rVariables[i]);
 		BehaviorLongitudinalData * pBehaviorData =
 			dynamic_cast<BehaviorLongitudinalData *>(rVariables[i]);
+		ContinuousLongitudinalData * pContinuousData =
+			dynamic_cast<ContinuousLongitudinalData *>(rVariables[i]);
 
 		if (pNetworkData)
 		{
@@ -351,6 +416,11 @@ void StatisticCalculator::calculateStatistics()
 		{
 			this->calculateBehaviorRateStatistics(pBehaviorData);
 			this->calculateBehaviorStatistics(pBehaviorData);
+		}
+		else if (pContinuousData)
+		{
+			this->calculateContinuousRateStatistics(pContinuousData);
+			this->calculateContinuousStatistics(pContinuousData);
 		}
 		else
 		{
@@ -834,6 +904,62 @@ void StatisticCalculator::calculateBehaviorStatistics(
 
 
 /**
+ * Calculates the statistics for effects of the given continuous behavior 
+ * variable.
+ */
+void StatisticCalculator::calculateContinuousStatistics(
+	ContinuousLongitudinalData * pContinuousData)
+{
+	// create a copy of the current state and zero any values missing
+	// at either end of period
+
+	const double * currentState =
+		this->lpState->continuousValues(pContinuousData->name());
+
+	double * currentValues  = new double[pContinuousData->n()];
+
+	for (int i = 0; i < pContinuousData->n(); i++)
+	{
+		currentValues[i] = currentState[i]; // - pContinuousData->overallMean();
+
+		if (pContinuousData->missing(this->lperiod, i) ||
+			pContinuousData->missing(this->lperiod + 1, i))
+		{
+			currentValues[i] = 0;
+		}
+	}
+
+	// Loop through the effects, calculate the statistics, and store them.
+	const vector<EffectInfo *> & rEffects =
+		this->lpModel->rEvaluationEffects(pContinuousData->name());
+
+ 	EffectFactory factory(this->lpData);
+ 	Cache cache;
+	
+	for (unsigned i = 0; i < rEffects.size(); i++)
+	{
+		EffectInfo * pInfo = rEffects[i];
+		ContinuousEffect * pEffect =
+			(ContinuousEffect *) factory.createEffect(pInfo);
+
+		// Initialize the effect to work with our data and state of variables.
+
+		pEffect->initialize(this->lpData,
+			this->lpPredictorState,
+			this->lperiod,
+			&cache);
+
+		this->lstatistics[pInfo] =
+			pEffect->evaluationStatistic(currentValues);
+
+		delete pEffect;
+	}
+
+	delete[] currentValues;
+}
+
+
+/**
  * Calculates the statistics for the rate effects of the given
  * network variable.
  */
@@ -920,6 +1046,7 @@ void StatisticCalculator::calculateNetworkRateStatistics(
 
 	this->ldistances[pNetworkData][this->lperiod] = pDifference->tieCount();
 
+	calcDifferences(pNetworkData, pDifference);
 
 	// Loop through the rate effects, calculate the statistics,
 	// and store them.
@@ -1320,6 +1447,68 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 }
 
 /**
+ * Calculates the statistics for the scale effects of the given
+ * continuous behavior variable.
+ */
+void StatisticCalculator::calculateContinuousRateStatistics(
+	ContinuousLongitudinalData * pContinuousData)
+{
+	// create a copy of the current state and zero any values missing
+	// at either end of period
+	const double * currentState = this->lpState->
+		continuousValues(pContinuousData->name());
+
+	double * currentValues  = new double[pContinuousData->n()];
+
+	for (int i = 0; i < pContinuousData->n(); i++)
+	{
+		currentValues[i] = currentState[i];
+
+		if (pContinuousData->missing(this->lperiod, i) ||
+			pContinuousData->missing(this->lperiod + 1, i))
+		{
+			currentValues[i] = 0;
+		}
+	}
+	// Construct a vector of squared differences between current and 
+	// start of period. Differences for missing values are set to 0.
+	const double * start = pContinuousData->values(this->lperiod);
+
+	double * difference  = new double[pContinuousData->n()];
+
+	for (int i = 0; i < pContinuousData->n(); i++)
+	{
+		difference[i] = currentState[i] - start[i];
+		difference[i] *= difference[i];
+		if (pContinuousData->missing(this->lperiod, i) ||
+			pContinuousData->missing(this->lperiod + 1, i))
+		{
+			difference[i] = 0;
+		}
+	}
+	
+	// basic rate distance (used for estimating the SDE scale parameters)
+	if (!this->lcontinuousDistances[pContinuousData])
+	{
+		double * array =
+			new double[pContinuousData->observationCount() - 1];
+
+		this->lcontinuousDistances[pContinuousData] = array;
+	}
+
+	double distance = 0;
+	for (int i = 0; i < pContinuousData->n(); i++)
+	{
+		distance += difference[i];
+	}
+	this->lcontinuousDistances[pContinuousData][this->lperiod] = distance;
+
+	delete[] difference;
+	delete[] currentValues;
+}
+
+
+/**
  * Calculates the value of the diffusion rate effect for the given actor.
  */
 double StatisticCalculator::calculateDiffusionRateEffect(
@@ -1425,6 +1614,188 @@ double StatisticCalculator::calculateDiffusionRateEffect(
 		totalAlterValue *= response;
 	}
 	return totalAlterValue;
+}
+
+void StatisticCalculator::calcDifferences(
+		NetworkLongitudinalData * const pNetworkData,
+		const Network* const pDifference)
+{
+	// names of the settings
+	const std::vector<SettingInfo> & rSettingNames =
+			pNetworkData->rSettingNames();
+	// if there is no setting we have already stored the difference
+	if (rSettingNames.empty())
+	{
+		return;
+	}
+
+	// create a map that stores for each edge in the difference network
+	// the settings index that can explain this edge (explain means
+	// the settings has the possibility to change this edge)
+	std::map<pair<int, int>, std::vector<int> >* map = new std::map<
+			pair<int, int>, std::vector<int> >();
+	// since setting i=0 has to be the universal setting and this setting
+	// can explain every edge we just store it in the map
+	// TODO: This is a dependency we want to get rid off (currently user has
+	// to ensure that the first setting is the universal setting ... otherwise
+	// this will cause missbehaviour)
+	for (TieIterator iter = pDifference->ties(); iter.valid(); iter.next())
+	{
+		// vector<int>(1) creates an entry with 0
+		map->insert(
+				make_pair(make_pair(iter.ego(), iter.alter()),
+						std::vector<int>(1)));
+	}
+	// for each other setting (primary and covariate settings) check
+	// which edges can be explained by the setting and add it to the
+	// proper entry in the map
+	for (unsigned i = 1; i < rSettingNames.size(); i++)
+	{
+		// primary
+		if (i == 1)
+		{
+			Network * settingNetwork = pNetworkData->pNetworkLessMissing(
+					this->lperiod)->clone();
+			ConstantDyadicCovariate * pConstantDyadicCovariate = 0;
+			ChangingDyadicCovariate * pChangingDyadicCovariate = 0;
+			if (!rSettingNames[i].getCovarName().empty())
+			{
+				pConstantDyadicCovariate =
+						this->lpData->pConstantDyadicCovariate(
+								rSettingNames[i].getCovarName());
+				pChangingDyadicCovariate =
+						this->lpData->pChangingDyadicCovariate(
+								rSettingNames[i].getCovarName());
+			}
+
+			// create a network representing primary settings
+			DistanceTwoLayer primSetting;
+			primSetting.onInitializationEvent(*settingNetwork);
+
+			for (int ego = 0; ego < settingNetwork->n(); ego++)
+			{
+				for (IncidentTieIterator iter = settingNetwork->outTies(ego);
+						iter.valid(); iter.next())
+				{
+					settingNetwork->setTieValue(iter.actor(), ego, 1);
+				}
+				for (IncidentTieIterator iter =
+						primSetting.getDistanceTwoNeighbors(ego); iter.valid();
+						iter.next())
+				{
+					settingNetwork->setTieValue(ego, iter.actor(), 1);
+				}
+			}
+			primSetting.onNetworkDisposeEvent(*settingNetwork);
+			// iterate of ties in the difference network
+			for (TieIterator iter = pDifference->ties(); iter.valid();
+					iter.next())
+			{
+				{
+					// if the primary setting has this tie we know that it is
+					// not existent in the simulated network and therefore we
+					// can explain this edge via the primary setting
+					if (settingNetwork->tieValue(iter.ego(), iter.alter())
+							|| (pConstantDyadicCovariate != 0
+									&& pConstantDyadicCovariate->value(
+											iter.ego(), iter.alter()))
+							|| (pChangingDyadicCovariate != 0
+									&& pChangingDyadicCovariate->value(
+											iter.ego(), iter.alter(),
+											this->lperiod)))
+					{
+						map->find(make_pair(iter.ego(), iter.alter()))->second.push_back(
+								i);
+					}
+				}
+			}
+			delete settingNetwork;
+		}
+		// for each covariate-defined setting, calculate
+		// setting*difference network and sum.
+		if (i > 1)
+		{
+			ConstantDyadicCovariate * pConstantDyadicCovariate =
+					this->lpData->pConstantDyadicCovariate(
+							rSettingNames[i].getCovarName());
+			ChangingDyadicCovariate * pChangingDyadicCovariate =
+					this->lpData->pChangingDyadicCovariate(
+							rSettingNames[i].getCovarName());
+
+			// iterate over the ties of the difference network
+			for (TieIterator iter = pDifference->ties(); iter.valid();
+					iter.next())
+			{
+				// if our dyadic covariate has an entry for this edge
+				// we know it is not part of the simulated network and
+				// we can explain it here
+				if (pConstantDyadicCovariate)
+				{
+					if (pConstantDyadicCovariate->value(iter.ego(),
+							iter.alter()))
+					{
+						map->find(make_pair(iter.ego(), iter.alter()))->second.push_back(
+								i);
+					}
+				} else if (pChangingDyadicCovariate)
+				{
+					if (pChangingDyadicCovariate->value(iter.ego(),
+							iter.alter(), this->lperiod))
+					{
+						map->find(make_pair(iter.ego(), iter.alter()))->second.push_back(
+								i);
+					}
+				} else
+				{
+					throw logic_error(
+							"No dyadic covariate named '"
+									+ rSettingNames[i].getId() + "'.");
+				}
+			}
+		}
+	}
+	// init distances with 0s
+	double* distances = new double[rSettingNames.size()]();
+	// init stores
+	for (unsigned i = 0; i < rSettingNames.size(); i++)
+	{
+		if (!this->lsettingDistances[pNetworkData][rSettingNames[i].getId()])
+		{
+			int * array = new int[pNetworkData->observationCount() - 1];
+			this->lsettingDistances[pNetworkData][rSettingNames[i].getId()] =
+					array;
+		}
+	}
+	// iterate over each entry in the map and add the distances up
+	for (std::map<pair<int, int>, vector<int> >::const_iterator iter =
+			map->begin(); iter != map->end(); ++iter)
+	{
+		// vector storing the settings that are able to explain the current tie flip
+		const vector<int>& vec = iter->second;
+		// the number of settings that can explain this tie flip
+		double size = 1;
+		if (this->lpModel->normalizeSettingRates())
+		{
+			size = static_cast<double>(vec.size());
+		}
+		// iterate over the settings and increase the distances
+		for (std::vector<int>::const_iterator settingsIter = vec.begin();
+				settingsIter != vec.end(); ++settingsIter)
+		{
+			// increase distance by 1 divided by the number of settings that
+			// are able to explain this tie flip
+			distances[*settingsIter] += 1 / size;
+		}
+	}
+	// delete the map
+	delete map;
+	// store distances
+	for (unsigned i = 0; i < rSettingNames.size(); i++)
+	{
+		this->lsettingDistances[pNetworkData][rSettingNames[i].getId()][this->lperiod] =
+				(int) distances[i];
+	}
+	delete[] distances;
 }
 
 }

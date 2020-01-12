@@ -39,13 +39,13 @@ Package \code{"RSiena"} is the official release.
 
   A general introduction to the method is available in the tutorial paper
   Snijders, van de Bunt, and Steglich (2010).
-  Next to the help pages, more detailed help is available in the manual (see below)
-  and a lot of information is at the website (also see below).
+  Next to the help pages, more detailed help is available in the manual
+  (see below) and a lot of information is at the website (also see below).
   \tabular{ll}{
     Package: \tab RSiena\cr
     Type: \tab Package\cr
-    Version: \tab 1.2-12\cr
-    Date: \tab 2018-05-12\cr
+    Version: \tab 1.2-23\cr
+    Date: \tab 2020-01-12\cr
     Depends: \tab R (>= 3.0.0)\cr
     Imports: \tab Matrix\cr
     Suggests: \tab tcltk, network, codetools, lattice, MASS, parallel,
@@ -58,37 +58,39 @@ Package \code{"RSiena"} is the official release.
   }
 }
 \author{
-  Ruth Ripley, Krists Boitmanis, Tom Snijders, Felix Schoenenberger.
+  Ruth Ripley, Krists Boitmanis, Tom Snijders, Felix Schoenenberger,
+  Nynke Niezink.
   Contributions by Josh Lospinoso, Charlotte Greenan, Christian Steglich,
-  Johan Koskinen, Mark Ortmann, Nynke Niezink, Natalie Indlekofer,
-  Christoph Stadtfeld, and Robert Hellpap.
+  Johan Koskinen, Mark Ortmann, Natalie Indlekofer,
+  Christoph Stadtfeld, Per Block, Marion Hoffman, and Robert Hellpap.
 
   Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 }
 \references{
   \itemize{
-    \item Schweinberger, Michael, and Snijders,
-      Tom A.B. (2007). Markov models for digraph panel data:
+    \item Schweinberger, Michael, and Snijders, Tom A.B. (2007).
+      Markov models for digraph panel data:
       Monte Carlo-based derivative estimation.
-      \emph{Computational Statistics and Data Analysis} 51, 4465-4483.
+      \emph{Computational Statistics and Data Analysis} \bold{51}, 4465--4483.
     \item Snijders, Tom A.B. (2001).
       The statistical evaluation of social network dynamics.
-      \emph{Sociological Methodology}, 31, 361-395.
+      \emph{Sociological Methodology} \bold{31}, 361-395.
     \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
-      Dynamics. \emph{Annual Review of Statistics and Its Application}, 4, 343-363.
+      Dynamics. 
+      \emph{Annual Review of Statistics and Its Application} \bold{4}, 343--363.
     \item  Snijders, Tom A.B., van de Bunt, Gerhard G., and
       Steglich, Christian E.G. (2010).
       Introduction to actor-based models for network dynamics.
-      \emph{Social Networks}, 32, 44-60.
+      \emph{Social Networks} \bold{32}, 44--60.
     \item Snijders, Tom A.B., Steglich, Christian E.G., and Schweinberger,
       Michael (2007). Modeling the co-evolution of networks and behavior.
-      Pp. 41-71 in \emph{Longitudinal models in the behavioral
+      Pp. 41--71 in \emph{Longitudinal models in the behavioral
         and related sciences},
       edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
     \item Steglich, Christian E.G., Snijders, Tom A.B., and
       Pearson, Michael A. (2010). Dynamic networks and behavior:
-      Separating selection from influence. \emph{Sociological Methodology},
-      40, 329-393.
+      Separating selection from influence. \emph{Sociological Methodology}
+      \bold{40}, 329--393.
     \item The manual: \url{http://www.stats.ox.ac.uk/~snijders/siena/RSiena_Manual.pdf}
     \item The website: \url{http://www.stats.ox.ac.uk/~snijders/siena/}.
   }
@@ -101,7 +103,7 @@ mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff
-myalgorithm <- sienaAlgorithmCreate(nsub=3, n3=200)
+myalgorithm <- sienaAlgorithmCreate(nsub=3, n3=200, projname=NULL)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 summary(ans)
 }

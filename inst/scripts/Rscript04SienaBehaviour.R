@@ -2,7 +2,7 @@
 ###
 ### ---- Rscript04SienaBehaviour.R: a script for the introduction to RSiena ----
 ###
-###							version April 16, 2013
+###                         version February 4, 2019
 ################################################################################
 #
 # The introductory script is divided into the following script files:
@@ -31,6 +31,17 @@
 		drink <- as.matrix(read.table("s50-alcohol.dat")) # behaviour
 		smoke <- as.matrix(read.table("s50-smoke.dat")) # covariate
 
+# If you wish to make it easier, you can use this data set as included
+# in the package - but the above is included to show you
+# how to use data from files.
+# To use the internal data set:
+
+        friend.data.w1 <- s501
+        friend.data.w2 <- s502
+        friend.data.w3 <- s503
+        drink <- s50a
+        smoke <- s50s
+
 # At this point it is a good idea to use the sna package to plot the networks
 # and the behavioural variable. Descriptive measures of the similarity of
 # "friends" with respect to behaviour (like Moran's I) are given by the function
@@ -56,12 +67,11 @@
 # Run reports to check that data is properly formated and
 # to get some basic descriptives
 
-		print01Report( myCoEvolutionData,
-					   modelname = 's50_3_CoEvinit' )
+        print01Report( myCoEvolutionData, modelname = 's50_3_CoEvinit' )
 
 # Define the effects to include in the coevolution model
 # Start with some structural effects (use the shortnames that you find in
-# effectsDocumentation(myeff) )
+# effectsDocumentation(myCoEvolutionEff) )
 
 		myCoEvolutionEff <- includeEffects( myCoEvolutionEff, transTrip, cycle3)
 
@@ -91,41 +101,74 @@
 
 		myCoEvolutionEff
 
-# Define the algorithm settings:
+#
+# Now we have to define the algorithm settings.
+# The defaults are adequate. You only have to specify the filename
+# that will receive the results in text format.
 
 		myCoEvAlgorithm <- sienaAlgorithmCreate( projname = 's50CoEv_3' )
 
-# Estimate model
+# Finally, estimate the model; the whole command is put in parentheses
+# to have the results printed directly to the screen.
 
-		ans <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
-						effects = myCoEvolutionEff )
+        (ans <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+                        effects = myCoEvolutionEff ))
 
 # THE RESULTS
-
-# To look at the results, type
-
-		ans
-
-# or, somewhat more extensive,
-
-		summary(ans)
 
 # Note that the "convergence t-ratio" is the t-ratio for convergence checking,
 # not the t statistic for testing the significance of this effect.
 # (See Section 6.1.2 of the manual.)
 # For good convergence, the t-ratios for convergence
-# all should be less than .1 in absolute value.
+# all should be less than .1 in absolute value,
+# and the overall maximum convergence ratio should be less than 0.25.
+# If this is not yet the case, you should try again, starting from the
+# last estimate as the "previous answer":
+
+        (ans1 <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+                        effects = myCoEvolutionEff, prevAns = ans ))
+
+# which can be repeated if necessary.
 
 # For this small data set, the model for behavior dynamics is over-specified,
 # leading to some very large standard errors.
-# Running a model modified by
+# For this data set it is better to drop the degree effects on behaviour,
+# because the data does not contain enough information to estimate them.
 
-		myCoEvolutionEff <- includeEffects( myCoEvolutionEff,
+        myCoEvolutionEff2 <- includeEffects( myCoEvolutionEff,
 								name = "drinkingbeh", indeg, outdeg,
 								interaction1 = "friendship", include = FALSE)
 
-#		(ans <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
-#						effects = myCoEvolutionEff ))
+       (ans2 <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+                       effects = myCoEvolutionEff2 ))
 
-# without degree effects on behaviour gives better results.
+###############################################################################
+##                              Some other effects                           ##
+###############################################################################
+#
+# The set of available effects for this data set can be obtained by requesting
+        effectsDocumentation(  myCoEvolutionEff )
+# See the manual, Chapter 12, for the meaning of these effects.
+# To study the direct effect of the actor covariate smoking on the dependent
+# variable drinking, use the effFrom effect:
+
+        myCoEvolutionEff3 <- includeEffects( myCoEvolutionEff2,
+                                name = "drinkingbeh", effFrom,
+                                interaction1 = "smoke1")
+
+# Since we already have a good result for a simpler model,
+# it is helpful to start estimating from these estimates
+# as starting values:
+
+       (ans3 <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+                       effects = myCoEvolutionEff3, prevAns = ans2 ))
+# In my case, convergence was not good enough:
+       (ans3 <- siena07( myCoEvAlgorithm, data = myCoEvolutionData,
+                       effects = myCoEvolutionEff3, prevAns = ans3 ))
+# You can get a nicer presentation of the results in a file
+# in your working directory in LaTeX by
+        siena.table(ans3)
+# and in html (can be imported into MS-Word) by
+        siena.table(ans3, type="html")
+
 

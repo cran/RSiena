@@ -32,6 +32,8 @@ CovariateAndNetworkBehaviorEffect::CovariateAndNetworkBehaviorEffect(
 {
 	// set up the extras if any
 	this->laverageAlterValues = 0;
+	this->lminimumAlterValues = 0;
+	this->lmaximumAlterValues = 0;
 	this->ltotalAlterValues = 0;
 	this->laverageInAlterValues = 0;
 	this->ltotalInAlterValues = 0;
@@ -45,6 +47,8 @@ CovariateAndNetworkBehaviorEffect::CovariateAndNetworkBehaviorEffect(
 CovariateAndNetworkBehaviorEffect::~CovariateAndNetworkBehaviorEffect()
 {
 	delete [] this->laverageAlterValues;
+	delete [] this->lminimumAlterValues;
+	delete [] this->lmaximumAlterValues;
 	delete [] this->ltotalAlterValues;
 	delete [] this->laverageInAlterValues;
 	delete [] this->ltotalInAlterValues;
@@ -79,6 +83,14 @@ void CovariateAndNetworkBehaviorEffect::initialize(const Data * pData,
 	{
 		delete [] this->laverageAlterValues;
 	}
+	if (this->lminimumAlterValues)
+	{
+		delete [] this->lminimumAlterValues;
+	}
+	if (this->lmaximumAlterValues)
+	{
+		delete [] this->lmaximumAlterValues;
+	}
 	if (this->ltotalAlterValues)
 	{
 		delete [] this->ltotalAlterValues;
@@ -100,6 +112,8 @@ void CovariateAndNetworkBehaviorEffect::initialize(const Data * pData,
 		delete[] this->laverageInAlterMissing;
 	}
 	this->laverageAlterValues = new double[this->lpNetwork->n()];
+	this->lminimumAlterValues = new double[this->lpNetwork->n()];
+	this->lmaximumAlterValues = new double[this->lpNetwork->n()];
 	this->ltotalAlterValues = new double[this->lpNetwork->n()];
 	this->laverageInAlterValues = new double[this->lpNetwork->m()];
 	this->ltotalInAlterValues = new double[this->lpNetwork->m()];
@@ -132,6 +146,22 @@ double CovariateAndNetworkBehaviorEffect::averageAlterValue(int i) const
 {
 	return this->laverageAlterValues[i];
 }
+
+/**
+ * Returns the minimum alter covariate value for the given actor.
+ */
+	double CovariateAndNetworkBehaviorEffect::minimumAlterValue(int i) const
+	{
+		return this->lminimumAlterValues[i];
+	}
+
+/**
+ * Returns the maximum alter covariate value for the given actor.
+ */
+	double CovariateAndNetworkBehaviorEffect::maximumAlterValue(int i) const
+	{
+		return this->lmaximumAlterValues[i];
+	}
 
 /**
  * Returns the total alter covariate value for the given actor.
@@ -171,8 +201,9 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 	for (int i = 0; i < pNetwork->n(); i++)
 	{
 		this->laverageAlterMissing[i] = false;
-		int numberNonMissing = 0;
 		this->ltotalAlterValues[i] = 0;
+
+		int counter = 1;
 		if (pNetwork->outDegree(i) > 0)
 		{
 			for (IncidentTieIterator iter = pNetwork->outTies(i);
@@ -180,11 +211,28 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 				 iter.next())
 			{
 				int j = iter.actor();
-				this->ltotalAlterValues[i] += this->covariateValue(j);
+
 				if (!this->missingCovariate(j, this->period()))
 				{
-					numberNonMissing++;
+					if (counter == 1)
+					{
+						this->lminimumAlterValues[i] = this->covariateValue(j);
+						this->lmaximumAlterValues[i] = this->covariateValue(j);
+						counter++;
+					}
+					else
+					{
+						if (this->lminimumAlterValues[i] > this->covariateValue(j))
+						{
+							this->lminimumAlterValues[i] = this->covariateValue(j);
+						}
+						if (this->lmaximumAlterValues[i] < this->covariateValue(j))
+						{
+							this->lmaximumAlterValues[i] = this->covariateValue(j);
 				}
+					}
+				}
+				this->ltotalAlterValues[i] += this->covariateValue(j);
 // 				Rprintf("%d %f %d %d %d %d\n",
 // 					j,
 // 					this->covariateValue(j),
@@ -192,16 +240,22 @@ void CovariateAndNetworkBehaviorEffect::preprocessEgo(int ego)
 // 					this->missingCovariate(j, this->period()),
 // 					numberNonMissing, i);
 			}
-			this->laverageAlterValues[i] =
-					(this->ltotalAlterValues[i] / pNetwork->outDegree(i));
-			if (numberNonMissing == 0)
+
+			if(counter == 1)
 			{
+				this->lminimumAlterValues[i] = this->covariateMean();
+				this->lmaximumAlterValues[i] = this->covariateMean();
 				this->laverageAlterMissing[i] = true;
 			}
+
+			this->laverageAlterValues[i] =
+					(this->ltotalAlterValues[i] / pNetwork->outDegree(i));
 		}
 		else
 		{
 			this->laverageAlterValues[i] = this->covariateMean();
+			this->lminimumAlterValues[i] = this->covariateMean();
+			this->lmaximumAlterValues[i] = this->covariateMean();
 			this->ltotalAlterValues[i] = 0;
 		}
 //		Rprintf("%d %f\n", i,this->laverageAlterValues[i]);

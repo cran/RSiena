@@ -26,7 +26,7 @@ sienaGOF(sienaFitObject, auxiliaryFunction,
         cluster=NULL, robust=FALSE, groupName="Data1",
         varName, \dots)
 \method{plot}{sienaGOF}(x, center=FALSE, scale=FALSE, violin=TRUE, key=NULL,
-        perc=.05, period=1, \dots)
+        perc=.05, period=1, fontsize=12, \dots)
 descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
         period=1, showAll=FALSE)
 }
@@ -71,10 +71,13 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
   \item{key}{ Keys in the plot for the levels of the auxiliary statistic
         (as given by parameter \code{levls} in the examples). }
   \item{perc}{ 1 minus confidence level for the confidence bands (two sided). }
-  \item{\dots}{Other arguments; e.g. (1), \code{levls} for \code{sienaGOF()} where
-      \code{levls} is a parameter for the auxiliary statistic as in
-      \code{\link{sienaGOF-auxiliary}}; e.g. (2), \code{main}, \code{xlab}
-      and/or \code{ylab} for \code{plot.sienaGOF()}.}
+  \item{fontsize}{ Font size for the observed values plotted.}
+  \item{\dots}{Other arguments; for \code{sienaGOF()}, e.g., \code{levls} as a
+       parameter for the auxiliary statistic in
+       \code{\link{sienaGOF-auxiliary}};\cr
+       for \code{plot.sienaGOF()}, e.g., the usual plotting parameters
+       \code{main}, \code{xlab}, \code{ylab}, \code{cex}, \code{cex.main},
+       \code{cex.lab}, and \code{cex.axis}.}
   \item{showAll}{If FALSE, drops statistics with variance 0, like in the plot.}
 }
 \details{
@@ -135,14 +138,17 @@ This is further illustrated in the help page\cr
 We recommend the following heuristic approach to model checking:
 \enumerate{
  \item Check convergence of the estimation.
+ \item Assess goodness of fit (primarily using \code{join=TRUE}) on
+  auxiliary statistics, and if necessary refine the model.
  \item Assess time heterogeneity by \code{\link{sienaTimeTest}}
    and if there is evidence for time heterogeneity
    either modify the base effects or include time dummy terms.
- \item Assess goodness of fit (primarily using \code{join=TRUE}) on
-  auxiliary statistics, and if necessary refine the model.
 }
+ No general rules can be given about whether time heterogeneity
+ (\code{\link{sienaTimeTest}}) or goodness of fit using \code{sienaGOF}
+ have precedence. This is an explorative issue.
 
- The \code{print} function will display some useful information
+ The \code{summary} function will display some useful information
  to help with model selection if some effects are set to FIX and
  TEST on the effects object. A rough estimator for the Mahalanobis
  distance that would be obtained at each proposed specification
@@ -158,6 +164,8 @@ We recommend the following heuristic approach to model checking:
  \item \code{\link{IndegreeDistribution}}
  \item \code{\link{OutdegreeDistribution}}
  \item \code{\link{BehaviorDistribution}}
+ \item \code{\link{TriadCensus}}
+ \item \code{\link{mixedTriadCensus}}
 }
 
 }
@@ -225,7 +233,7 @@ myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
 myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
-myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=25, projname=NULL)
 # Shorter phases 2 and 3, just for example.
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
 gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
@@ -233,7 +241,6 @@ gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
 summary(gofi)
 plot(gofi)
 
-\dontrun{
 # Illustration just for showing a case with two dependent networks;
 # running time backwards is not meaningful!
 mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
@@ -243,16 +250,11 @@ mydata <- sienaDataCreate(mynet1, mynet2, mybeh)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff <- includeEffects(myeff, recip, name="mynet2")
-myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
-myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
-myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50)
-# Shorter phases 2 and 3, just for example.
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
 gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
   varName="mynet1")
 summary(gofi)
 plot(gofi)
-}
 
 \dontrun{
 (gofi.nc <- sienaGOF(ans, IndegreeDistribution, cumulative=FALSE,
@@ -277,14 +279,12 @@ plot(gofo)
 \dontrun{
 library(parallel)
 (n.clus <- detectCores() - 1) # subtract 1 to keep time for other processes
-myalgorithm.c <- sienaAlgorithmCreate(nsub=4, n3=1000, seed=12345)
+myalgorithm.c <- sienaAlgorithmCreate(nsub=4, n3=1000, seed=1265)
 (ans.c <- siena07(myalgorithm.c, data=mydata, effects=myeff, batch=TRUE,
     returnDeps=TRUE, useCluster=TRUE, nbrNodes=n.clus))
-gofi.1 <- sienaGOF(ans.c, IndegreeDistribution, verbose=TRUE,
-  varName="mynet1")
+gofi.1 <- sienaGOF(ans.c, TriadCensus, verbose=TRUE, varName="mynet1")
 cl <- makeCluster(n.clus)
-gofi.cl <- sienaGOF(ans.c, IndegreeDistribution, varName="mynet1",
-  cluster=cl)
+gofi.cl <- sienaGOF(ans.c, TriadCensus, varName="mynet1", cluster=cl)
 # compare simulation times
 attr(gofi.1,"simTime")
 attr(gofi.cl,"simTime")

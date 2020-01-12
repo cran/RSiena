@@ -173,6 +173,11 @@ PrintReport <- function(z, x)
 		if (x$simOnly)
 		{
 			Heading(3, outf, "Simulated statistics")
+			if (z$thetaFromFile)
+			{
+				Report('Note: Parameters in Phase 3 were varying. \n', bof)
+				Report('Note: Parameters in Phase 3 were varying. \n', outf)
+			}
 			Report('Estimated means and standard deviations, standard errors of the mean \n', bof)
 			Report('Estimated means and standard deviations, standard errors of the mean \n', outf)
 			dmsf <- diag(z$msf)
@@ -181,7 +186,7 @@ PrintReport <- function(z, x)
 			mean.stats <- colMeans(z$sf) + z$targets
 #			cov.dev <- z$msf
 			sem <- sqrt(dmsf/dim(z$sf)[1])
-			if (x$dolby)
+			if ((x$dolby) & (!z$thetaFromFile))
 			{
 				scores <- apply(z$ssc, c(1,3), sum)  # z$nit by z$pp matrix
 				mean.scores <- colMeans(scores)
@@ -195,7 +200,7 @@ PrintReport <- function(z, x)
 				format(round(sem, 4) ,width=8, nsmall=4), sep='')
 			PrtOutMat(as.matrix(mymess1), outf)
 			PrtOutMat(as.matrix(mymess1), bof)
-			if (x$dolby)
+			if ((x$dolby) & (!z$thetaFromFile))
 			{
 				Report('Standard errors of the mean are less than s.d./sqrt(n) \n', outf)
 				Report('because of regression on scores (Dolby option). \n', outf)

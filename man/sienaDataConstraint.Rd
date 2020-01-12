@@ -12,7 +12,7 @@ sienaDataConstraint(x, net1, net2,
           type = c("higher", "disjoint", "atLeastOne"), value = FALSE)
 }
 \arguments{
-  \item{x}{Siena Data Object; maybe a group object?}
+  \item{x}{Siena data object; maybe a group object?}
   \item{net1}{name of first network}
   \item{net2}{name of second network}
   \item{type}{one of "higher", "disjoint", "atleastOne". Default is "higher".}
@@ -26,7 +26,7 @@ sienaDataConstraint(x, net1, net2,
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{\code{\link{sienaDataCreate}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaGroupCreate}}}
 
 \examples{
 nowFriends <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))

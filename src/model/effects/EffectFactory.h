@@ -12,6 +12,10 @@
 #ifndef EFFECTFACTORY_H_
 #define EFFECTFACTORY_H_
 
+#include <map>
+#include <string>
+#include <model/EffectInfo.h>
+
 namespace siena
 {
 

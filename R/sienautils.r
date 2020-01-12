@@ -344,8 +344,9 @@ varDyadCovar<- function(val, centered=TRUE,
     out
 }
 ##@sienaDependent Create
-sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
-                    nodeSet="Actors", sparse=is.list(netarray), allowOnly=TRUE)
+sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior",
+					"continuous"), nodeSet="Actors", sparse=is.list(netarray), 
+					allowOnly=TRUE, imputationValues=NULL)
 {
 	if (inherits(netarray,'data.frame'))
 	{
@@ -392,7 +393,7 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
 	{
         stop("netarray must have at least two observations")
 	}
-    if (netdims[2] == 1)
+    if (netdims[2] == 1) ## how we defined a behavior array earlier
     {
         if (missing(type))
 		{
@@ -401,7 +402,7 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
         else
         {
             type <- match.arg(type)
-            if (type != "behavior")
+            if (type != "behavior" && type != "continuous")
 			{
                 stop("incorrect type")
 
@@ -461,7 +462,7 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
             stop ("nodeset should be a character string")
 		}
     }
-    if (type != "behavior")
+    if (type != "behavior" && type != "continuous")
     {
         if (sparse)
         {
@@ -483,6 +484,27 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
 			}
         }
     }
+    
+  	if (!is.null(imputationValues))    
+    {
+        if (type != "behavior" && type != "continuous")
+        {
+            stop("imputationValues only implemented for dependent behavior variables")
+        }
+		if (!(is.numeric(imputationValues)))
+		{
+			stop("imputationValues must be numeric or a factor")
+		}
+		if (any(is.na(imputationValues)))
+		{
+			stop("imputationValues may not contain any NA values")
+		}
+		if (nrow(imputationValues) != netdims[1] || ncol(imputationValues) != netdims[3])
+		{
+			stop("imputationValues and data must have the same dimension")
+		}
+    }
+    
     obj <- netarray
     class(obj) <- ("sienaDependent")
     attr(obj, "type") <- type
@@ -490,6 +512,10 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior"),
     attr(obj, "nodeSet") <- nodeSet
     attr(obj, "netdims") <- netdims
 	attr(obj, "allowOnly") <- allowOnly
+    if (!is.null(imputationValues))    
+    {
+        attr(obj, "imputationValues") <- imputationValues
+    }
     obj
 }
 
@@ -530,7 +556,7 @@ sienaDataConstraint <- function(x, net1, net2, type=c("higher",
 
     if (value == attr(x, type)[pairname])
     {
-        cat("No change in constraint\n")
+        message("No change in constraint")
     }
     else
     {

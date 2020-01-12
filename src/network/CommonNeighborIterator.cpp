@@ -95,3 +95,8 @@ CommonNeighborIterator::CommonNeighborIterator(
 }
 
 }
+
+void siena::CommonNeighborIterator::reset() {
+	liter1.reset();
+	liter2.reset();
+}

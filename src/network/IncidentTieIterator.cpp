@@ -18,7 +18,8 @@ namespace siena {
  */
 IncidentTieIterator::IncidentTieIterator() :
 		ITieIterator(), //
-		lcurrent(), //
+		lstart(), //
+		lcurrent(lstart), //
 		lend(lcurrent) {
 }
 
@@ -30,12 +31,14 @@ IncidentTieIterator::IncidentTieIterator() :
 //
 IncidentTieIterator::IncidentTieIterator(const std::map<int, int> & ties) :
 		ITieIterator(), //
-		lcurrent(ties.begin()), //
+		lstart(ties.begin()), //
+		lcurrent(lstart), //
 		lend(ties.end()) {
 }
 
 IncidentTieIterator::IncidentTieIterator(const IncidentTieIterator& rhs) :
 		ITieIterator(rhs), //
+		lstart(rhs.lstart), //
 		lcurrent(rhs.lcurrent), //
 		lend(rhs.lend) {
 }
@@ -53,7 +56,8 @@ IncidentTieIterator* IncidentTieIterator::clone() const {
 IncidentTieIterator::IncidentTieIterator(const std::map<int, int> & ties,
 		int lowerBound) :
 		ITieIterator(), //
-		lcurrent(ties.lower_bound(lowerBound)), //
+		lstart(ties.lower_bound(lowerBound)), //
+		lcurrent(lstart), //
 		lend(ties.end()) {
 }
 

@@ -16,6 +16,7 @@
 
 #include "../IncidentTieIterator.h"
 #include "../iterators/UnionTieIterator.h"
+#include "../iterators/AdvUnionTieIterator.h"
 
 namespace siena {
 
@@ -25,19 +26,19 @@ typedef map<int, int> TieMap;
 
 /**
  * Constructor.
- * @param[in] rNetwork The network the layer is based on
  */
-DistanceTwoLayer::DistanceTwoLayer(const Network& rNetwork) :
+DistanceTwoLayer::DistanceTwoLayer() :
 		NetworkLayer(), //
-		lpAdjacencies(new map<int, int> [rNetwork.n()]) {
-	initialize(rNetwork);
+		lpAdjacencies(0) {
 }
 
 /**
  * Destructor.
  */
 DistanceTwoLayer::~DistanceTwoLayer() {
+	if (lpAdjacencies != 0) {
 	delete[] lpAdjacencies;
+}
 }
 
 /**
@@ -84,6 +85,7 @@ IncidentTieIterator DistanceTwoLayer::getDistanceTwoNeighbors(int ego) const {
  * @copydoc NetworkLayer::initialize()
  */
 void DistanceTwoLayer::initialize(const Network& rNetwork) {
+	lpAdjacencies = new map<int, int> [rNetwork.n()];
 	if (rNetwork.isOneMode()) {
 		initializeOneMode(rNetwork);
 	} else {
@@ -101,8 +103,10 @@ void DistanceTwoLayer::initializeOneMode(const Network& rNetwork) {
 		// avoid the time to copy
 		neighAtDistOne.reserve(rNetwork.outDegree(i) + rNetwork.inDegree(i));
 		// we could do this all with UnionIterators but it is much slower
-		for (UnionTieIterator iter(rNetwork.inTies(i), rNetwork.outTies(i));
-				iter.valid(); iter.next()) {
+		IncidentTieIterator inIter = rNetwork.inTies(i);
+		IncidentTieIterator outIter = rNetwork.outTies(i);
+		for (UnionTieIterator iter(inIter, outIter); iter.valid();
+				iter.next()) {
 			// take care of loops
 			if (iter.actor() != i) {
 				neighAtDistOne.push_back(iter.actor());
@@ -158,15 +162,20 @@ void DistanceTwoLayer::modify2PathCountOneMode(const Network& rNetwork, int ego,
 	if (ego == alter || rNetwork.hasEdge(alter, ego)) {
 		return;
 	}
-	UnionTieIterator egoIter(rNetwork.outTies(ego), rNetwork.inTies(ego));
-	UnionTieIterator alterIter(rNetwork.outTies(alter), rNetwork.inTies(alter));
-	for (UnionTieIterator iter(egoIter, alterIter, ego, alter); iter.valid();
+	IncidentTieIterator inIter = rNetwork.inTies(ego);
+	IncidentTieIterator outIter = rNetwork.outTies(ego);
+	UnionTieIterator egoIter(inIter, outIter);
+	inIter = rNetwork.inTies(alter);
+	outIter = rNetwork.outTies(alter);
+	UnionTieIterator alterIter(inIter, outIter);
+	AdvUnionTieIterator iter(ego, alter, egoIter, alterIter);
+	for (; iter.valid();
 			iter.next()) {
 		int curNeighbor = iter.actor();
 		// check whether the current neighbor is ego or alter itself
 		if (curNeighbor != ego && curNeighbor != alter) {
 			// if it is a common neighbor it creates a new 2-path with both
-			if (iter.isCommonNeighbor()) {
+			if (iter.isCommon()) {
 				modifyTieValue(curNeighbor, ego, val);
 				modifyTieValue(curNeighbor, alter, val);
 			} else {
@@ -210,6 +219,11 @@ void DistanceTwoLayer::modifyTieValue(int ego, int alter, int val) {
 	updateSingleTieValue(alter, ego, val);
 }
 
+void DistanceTwoLayer::onNetworkDisposeEvent(const Network& rNetwork) {
+	// clear everything
+	clear(rNetwork.n());
+}
+
 /**
  * Updates the value of tie <i>(ego,alter)</i> by <i>val</i>.
  * @param[in] ego The ego of the modified tie
@@ -232,6 +246,20 @@ void DistanceTwoLayer::updateSingleTieValue(int ego, int alter, int val) {
 		// insert the edge and use iter as hint (saves log)
 		egoMap.insert(iter, TieMap::value_type(alter, val));
 	}
+}
+
+int DistanceTwoLayer::size(int actor) {
+	return lpAdjacencies[actor].size();
+}
+
+void siena::DistanceTwoLayer::clear(int numOfActors) {
+	// TODO: probably not needed
+	for (int i = 0; i < numOfActors; i++) {
+		lpAdjacencies[i].clear();
+	}
+	// delete array
+	delete[] lpAdjacencies;
+	lpAdjacencies = 0;
 }
 
 } /* namespace siena */

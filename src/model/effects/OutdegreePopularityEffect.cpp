@@ -10,11 +10,14 @@
  *****************************************************************************/
 
 #include <cmath>
-
+#include "data/NetworkLongitudinalData.h"
 #include "OutdegreePopularityEffect.h"
 #include "utils/SqrtTable.h"
 #include "network/Network.h"
 #include "model/variables/NetworkVariable.h"
+#include "data/NetworkLongitudinalData.h"
+#include "model/EffectInfo.h"
+#include "data/Data.h"
 
 namespace siena
 {
@@ -23,11 +26,36 @@ namespace siena
  * Constructor.
  */
 OutdegreePopularityEffect::OutdegreePopularityEffect(
-		const EffectInfo * pEffectInfo, bool root) :
+		const EffectInfo * pEffectInfo, bool root, bool centered) :
 	NetworkEffect(pEffectInfo)
 {
 	this->lroot = root;
 	this->lsqrtTable = SqrtTable::instance();
+	this->lcentered = centered;
+	this->lcentering = 0.0;
+	this->lvariableName = pEffectInfo->variableName();
+// centering and root cannot occur simultaneously
+}
+
+/**
+ * Initializes this function.
+ * @param[in] pData the observed data
+ * @param[in] pState the current state of the dependent variables
+ * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
+ */
+void OutdegreePopularityEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
+{
+	NetworkEffect::initialize(pData, pState, period, pCache);
+	if (this->lcentered)
+	{
+		NetworkLongitudinalData * pNetworkData =
+				pData->pNetworkData(this->lvariableName);
+		this->lcentering = pNetworkData->averageOutDegree();
+	}
 }
 
 
@@ -37,7 +65,7 @@ OutdegreePopularityEffect::OutdegreePopularityEffect(
 double OutdegreePopularityEffect::calculateContribution(int alter) const
 {
 	int degree = this->pNetwork()->outDegree(alter);
-	double change = degree;
+	double change = degree - this->lcentering;
 
 	if (this->lroot)
 	{
@@ -66,7 +94,7 @@ double OutdegreePopularityEffect::tieStatistic(int alter)
 	else
 	{
 		// There was a bug here until version 1.1-219
-		statistic = degree;
+		statistic = degree - this->lcentering;
 	}
 
 	return statistic;

@@ -43,7 +43,9 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
   \item{fn}{Function to do one simulation in the Robbins-Monro
     algorithm. Not to be touched.}
   \item{projname}{Character string name of project; the output file will be
-    called projname.out. No embedded spaces!!!}
+    called projname.txt. No embedded spaces!!!\cr
+	If \code{projname=NULL}, output will be written to a file in the temporary
+	session directory, created as \code{\link{tempfile}(Siena)}.}
   \item{MaxDegree}{Named vector of maximum degree values for
     corresponding networks. Allows to restrict the model to networks
     with degrees not higher than this maximum.
@@ -51,7 +53,7 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
     in the same order as in the Siena data set.\cr
     Default as well as value 0 imply no restrictions.}
   \item{Offset}{Named vector of offset values for symmetric networks with
-    \code{modelType = 3} (M.1).
+    \code{modelType = 3} (M.1), and for universal setting in Settings model.
     Names should be the names of all dependent network variables,
     in the same order as in the Siena data set.
     Default \code{NULL} implies values 0.}
@@ -144,7 +146,11 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
   \item{mult}{Multiplication factor for maximum likelihood and Bayes. Number of
     steps per iteration is set to this multiple of the total distance
     between the observations at start and finish of the wave.
-    Decreasing \code{mult} below a certain value has no further effect.}
+    Decreasing \code{mult} below a certain value has no further effect.\cr
+    This can be either a number (which needs to be positive) or a vector
+    of numbers, of length equal to the number of basic rate parameters in the
+    model, i.e., the number of periods times the number of dependent
+    variables.}
   \item{simOnly}{Logical: If TRUE, then the calculation of the covariance
     matrix and standard errors of the estimates at the end of
     Phase 3 of the estimation algorithm in function siena07 is skipped.
@@ -173,7 +179,9 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
   Robbins-Monro algorithm. Those not
   available as arguments can be changed manually where desired.\cr
   Further information about the implementation of the algorithm is in \cr
-  http://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf.
+  http://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf.\cr
+  Some of the examples use \code{projname=NULL}; this is just for the sake of
+  checking the examples, not necessarily intended for normal use.
 }
 \value{Returns an object of class \code{sienaAlgorithm} containing
   values implied by the parameters.}
@@ -192,7 +200,7 @@ myAlgorithm <- sienaAlgorithmCreate(projname="NetworkDyn")
 StdAlgorithm <- sienaAlgorithmCreate(projname="NetworkDyn", useStdInits=TRUE)
 CondAlgorithm <- sienaAlgorithmCreate(projname="NetworkDyn", condvarno=1, cond=TRUE)
 Max10Algorithm <- sienaAlgorithmCreate(projname="NetworkDyn", MaxDegree=c(mynet=10),
-     behModelType=c(mynet=1))
+     modelType=c(mynet=1))
 Beh2Algorithm <- sienaAlgorithmCreate(projname="NetBehDyn", behModelType=c(mybeh=2))
 # where mynet is the name of the network object created by sienaDependent(),
 # and mybeh the name of the behavior object created by the same function.

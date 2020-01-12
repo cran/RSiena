@@ -71,7 +71,7 @@ mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff1 <- getEffects(mydata)
 myeff1 <- includeEffects(myeff1, transTrip)
-myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=100)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=100, projname=NULL)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff1, batch=TRUE)
 ans$theta
 (myeff <- updateTheta(myeff1, ans))

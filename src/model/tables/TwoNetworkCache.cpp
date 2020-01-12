@@ -112,11 +112,13 @@ void TwoNetworkCache::initialize(int ego)
 
 	if (ego >= 0 && ego < this->lpSecondNetwork->n())
 	{
+		this->lsecondOutDegree = 0;
 		for (IncidentTieIterator iter = this->lpSecondNetwork->outTies(ego);
 			iter.valid();
 			iter.next())
 		{
 			this->lsecondOutTieValues[iter.actor()] = iter.value();
+			this->lsecondOutDegree++;
 		}
 	}
 

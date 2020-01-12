@@ -12,7 +12,7 @@ setEffect(myeff, shortName, parameter = NULL, fix = FALSE,
 test = FALSE, random=FALSE, initialValue = 0, timeDummy = ",", include = TRUE,
 name = myeff$name[1], type = "eval", interaction1 = "",
 interaction2 = "", effect1=0, effect2=0, effect3=0,
-period=1, group=1, character=FALSE)
+period=1, group=1, character=FALSE, verbose = TRUE)
 }
 %- maybe also "usage" for other objects documented here.
 \arguments{
@@ -74,28 +74,41 @@ dummy. Alternatively, use \code{\link{includeTimeDummy}}.
 }
 \item{group}{
   Number of group if basic rate.
+  Only relevant for \code{\link{sienaGroup}} data sets.
   }
-\item{character}{Boolean: is the short name a character string or not.}
+\item{character}{Boolean: whether the short name is a character string.}
+\item{verbose}{Boolean: should the print of altered effects be produced.}
 }
-\details{
+\details{Recall from the help page for \code{\link{getEffects}}
+   that a Siena effects object (class \code{sienaEffects} or
+   \code{sienaGroupEffects}) is a \code{\link{data.frame}};
+   the rows in the data frame are the effects for this data set;
+   some of the columns/variables of the data frame
+   are used to identify the effect, other columns/variables define how this
+   effect is used in the estimation. \cr
 The arguments \code{shortName}, \code{name}, \code{type},
 \code{interaction1}, \code{interaction2}, \code{effect1}, \code{effect2},
-and \code{effect3} should identify the effects completely.
-The column elements of the output effects object for \code{parm},
-\code{fix}, \code{test}, \code{randomEffects},
-\code{initialValue}, and \code{timeDummy}
-will be set to the values requested.}
+   \code{effect3}, \code{period}, and \code{group} should identify one
+   effect completely. (Not all of them are needed;
+   see \code{\link{getEffects}}.)\cr
+   The call of \link{setEffect} will set, for this effect,
+   the column elements of the resulting effects object for \code{parameter},
+\code{fix}, \code{test}, \code{randomEffects}, \code{initialValue},
+    \code{timeDummy}, and \code{include} to the values requested.\cr	
+	The \code{shortName} must not be set between quotes,
+	unless you use \code{character=TRUE}.}
 \value{
   An object of class \code{\link{sienaEffects}} or
   \code{\link{sienaGroupEffects}}. This will be an updated version of the
   input effects object, with one row updated.
-  Details of the row altered will be printed.
+  Details of the row altered will be printed, unless \code{verbose=FALSE}.
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley }
 \seealso{
   \code{\link{getEffects}}, \code{\link{includeEffects}},
-  \code{\link{includeInteraction}}.
+  \code{\link{includeInteraction}},
+  \code{\link{print.sienaEffects}}.
 }
 
 \examples{

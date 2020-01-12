@@ -20,10 +20,10 @@
                 digits = NULL, display = NULL, ...)
 
 siena.table(x, type="tex", file=paste(deparse(substitute(x)), ".", type,sep=""),
-            vertLine=TRUE, tstatPrint=FALSE, sig=FALSE, d=3)
+            vertLine=TRUE, tstatPrint=FALSE, sig=FALSE, d=3, nfirst=NULL)
 }
 \arguments{
-  \item{object}{An object of class \code{sienaFit}, produced by
+  \item{object}{An object of class \code{\link{sienaFit}}, produced by
     \code{\link{siena07}}.}
   \item{x}{An object of class \code{sienaFit}, or
     \code{summary.sienaFit} as appropriate.}
@@ -53,6 +53,7 @@ siena.table(x, type="tex", file=paste(deparse(substitute(x)), ".", type,sep=""),
     See documentation for \code{\link[xtable]{xtable}}.}
   \item{display}{
     See documentation for \code{\link[xtable]{xtable}}}
+  \item{nfirst}{Only relevant for the \code{RSienaTest} package.}
   \item{\dots}{
     Add extra parameters for  \code{\link[xtable]{print.xtable}}
     here. e.g.
@@ -78,7 +79,7 @@ siena.table(x, type="tex", file=paste(deparse(substitute(x)), ".", type,sep=""),
   passes an extra arguments to the \code{print.xtable}.
 
   The function \code{siena.table} outputs a latex or html table of
-  the estimates and standards errors of a \code{sienaFit} object.
+  the estimates and standards errors of a \code{\link{sienaFit}} object.
   The table will be written to a file in the current directory and
   has a footnote reporting the maximum of the convergence t-ratios.
 
@@ -86,12 +87,12 @@ siena.table(x, type="tex", file=paste(deparse(substitute(x)), ".", type,sep=""),
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
 }
-\author{Ruth Ripley, Charlotte Greenan}
+\author{Ruth Ripley, Charlotte Greenan, Tom Snijders}
 
 \seealso{\code{\link[xtable]{xtable}}, \code{\link[xtable]{print.xtable}},
   \code{\link{siena07}}}
 \examples{
-myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100)
+myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100, projname=NULL)
 mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)

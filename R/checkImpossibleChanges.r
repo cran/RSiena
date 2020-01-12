@@ -6,7 +6,7 @@
 ## * File: checkImpossibleChanges.r
 ## *
 ## * Description: This file contains the function checkImpossibleChanges
-## * which checks for changes from structural values to
+## * which checks for impossible changes from structural values to
 ## * different observed values.
 ## * Used for maximum likelihood and Bayesian estimation.
 ## *

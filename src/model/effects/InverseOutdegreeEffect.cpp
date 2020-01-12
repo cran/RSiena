@@ -68,15 +68,4 @@ double InverseOutdegreeEffect::egoStatistic(int ego,
 	return 1.0 / (pNetwork->outDegree(ego) + this->lc);
 }
 
-
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function.
- */
-double InverseOutdegreeEffect::endowmentStatistic(Network * pLostTieNetwork)
-{
-	throw logic_error(
-		"InverseOutdegreeEffect: Endowment effect not supported.");
-}
-
 }

@@ -18,17 +18,19 @@ namespace siena
 {
 
 /**
- * This class defines the outdegree activity effect defined by
- * s_i(x) = min{x_{i+}, c}. The corresponding statistic is
+ * This class defines for right the truncated outdegree activity effect
+ * defined by s_i(x) = min{x_{i+}, c}. The corresponding statistic is
  * the sum of outdegrees truncated at c over all actors.
+ * For !right it defines the right-truncated outdegree activity effect
+ * defined by s_i(x) = max{x_{i+}, c}.
  */
 class TruncatedOutdegreeEffect : public NetworkEffect
 {
 public:
-	TruncatedOutdegreeEffect(const EffectInfo * pEffectInfo);
+	TruncatedOutdegreeEffect(const EffectInfo * pEffectInfo, 
+									bool right, bool outIso);
 
 	virtual double calculateContribution(int alter) const;
-	virtual double endowmentStatistic(Network * pLostTieNetwork);
 
 protected:
 	virtual double egoStatistic(int ego,
@@ -36,6 +38,8 @@ protected:
 
 private:
 	int lc;
+	bool lright;
+	bool lOutIso;
 };
 
 }

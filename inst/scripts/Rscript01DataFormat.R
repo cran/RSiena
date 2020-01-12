@@ -2,13 +2,13 @@
 ###
 ### ---- Rscript01DataFormat.R: a script for the introduction to RSiena -------------
 ###
-###                               version: April 14, 2013
+###                               version: May 14, 2018
 ###################################################################################
 #
 # Rscript01DataFormat.R is followed by
 # RScriptSNADescriptives.R, code for descriptive analysis of the data, and
-# Rscript02SienaVariableFormat.R, which formats data and specifies the model, and
-# Rscript03SienaRunModel.R, which runs the model and estimates parameters
+# Rscript02SienaVariableFormat.R, which formats data and specifies the model,
+# and Rscript03SienaRunModel.R, which runs the model and estimates parameters
 # Rscript04SienaBehaviour.R, which illustrates an example of analysing the
 # coevolution of networks and behaviour
 #
@@ -16,8 +16,9 @@
 # (without comments)
 #
 # This is an R script for getting started with RSiena, written by
-# Robin Gauthier, Tom Snijders, Ruth Ripley, Johan Koskinen, and
-# Paulina Preciado, with some examples borrowed from Christian Steglich.
+# Tom Snijders, with earlier contributions from Robin Gauthier,
+# Ruth Ripley, Johan Koskinen, Paulina Preciado, and Zsofia Boda,
+# with some examples borrowed from Christian Steglich.
 # Lines starting with # are not processed by R but treated as comments.
 # The script has a lot of explanation of R possibilities that will be
 # familiar for readers well acquainted with R, and can be skipped by them.
@@ -27,12 +28,12 @@
 #        http://www.statmethods.net/
 #        http://www.burns-stat.com/pages/Tutor/hints_R_begin.html
 #        http://data.princeton.edu/R/gettingStarted.html
-#        http://www.ats.ucla.edu/stat/R/sk/
+#        https://stats.idre.ucla.edu/r/
 #
 # You can go to any of these sites to learn the basics of R
 # or refresh your knowledge.
 # There is a lot of documentation available at
-#        http://cran.xl-mirror.nl/other-docs.html
+#        https://www.r-project.org/other-docs.html
 # including some short introductions, handy reference cards,
 # and introductions in many languages besides English.
 #
@@ -78,9 +79,9 @@
 
 	?install.packages
 
-# Or click on the tab "Packages", "Install package(s)", then select a CRAN mirror
-# (e.g. Bristol if you are in the UK) and finally select from the list
-# the package you wish to install.
+# Or click on the tab "Packages", "Install package(s)", then select a
+# CRAN mirror (e.g. Bristol if you are in the UK) and finally select
+# from the list the package you wish to install.
 
 # Where are you?
 
@@ -121,7 +122,7 @@
 
 # Where is the manual?
 
-	# RShowDoc("RSiena_Manual", package = "RSiena")
+         RShowDoc("RSiena_Manual", package="RSiena")
 
 # (Note, however, that it is possible that the Siena website
 # at http://www.stats.ox.ac.uk/~snijders/siena/ contains a more recent version.)
@@ -158,13 +159,22 @@
         drink <- as.matrix(read.table("s50-alcohol.dat"))
         smoke <- as.matrix(read.table("s50-smoke.dat"))
 
+# To make this script self-contained, you may instead run the following commands:
+        library(RSiena)
+        friend.data.w1 <- s501
+        friend.data.w2 <- s502
+        friend.data.w3 <- s503
+        drink <- s50a
+        smoke <- s50s
+
 # Explanation of data structures and formats below
 
 ################# - DIFFERENT DATA FORMATS - #######################################
 ###
 ### The assignments here involve reading in data to a "data frame"
 ### 		data <- read.table("data.dat")
-### reads your text file into a "data frame"; check the class of the object "data"
+### reads your text file into a "data frame";
+### check the class of the object "data"
 ###        >  class(data)
 ###        [1] "data.frame"
 ### If your data is not a ".dat" file, alternative import methods are
@@ -203,7 +213,8 @@
 	      data <- data.frame( height, weight )
 ### and look at the results
 		    data
-### The columns of a data frame may be extracted using a "$" sign and their names.
+### The columns of a data frame may be extracted
+### using a "$" sign and their names.
 ### For example:
 		names( data )
 		data$height
@@ -221,8 +232,8 @@
 ### ( dim() ) given by the number of rows and columns, e.g.
 		dim( friend.data.w1 )
 
-### If you wish to play around with a copy of the matrix, e.g. having the name "data",
-### you can make the copy by the command
+### If you wish to play around with a copy of the matrix,
+###e.g. having the name "data", you can make the copy by the command
 		data <- friend.data.w1
 ### The earlier object that we created with the name "data" now has been lost.
 ### Elements if matrices can be accessed by using square brackets.
@@ -236,8 +247,8 @@
 
 ### ---- Converting data frame to matrix -------------------------------------------
 ###
-### Most classes can be converted to other classes through "as.typeofclass ()", e.g.
-### if "data" would be an object with a matrix-like structure,
+### Most classes can be converted to other classes through "as.typeofclass ()",
+### e.g., if "data" would be an object with a matrix-like structure,
 ### then it could be converted to the class "matrix" by the command
 	      data <- as.matrix( data )
 
@@ -249,7 +260,7 @@
 ### From the Siena website you can download the data set arclistdata.dat:
 ###   http://www.stats.ox.ac.uk/~snijders/siena/arclistdata.dat
 ### Download this file and save it in your current directory.
-		ArcList <- read.table( "arclistdata.dat", header=FALSE ) # creates data frame
+    ArcList <- read.table( "arclistdata.dat", header=FALSE )
 ### Note the capitalization.
 ### Now ArcList is a data.frame
 ### (we saw this above in the help file for read.table).
@@ -263,6 +274,8 @@
 		names(ArcList) <- c( "sid", "recid", "bff", "wid" )
 ### The bff ("best friend") variable does not have much variability:
             table(ArcList$bff)
+### This tells us that non-ties are not included (they would have the value 0),
+### and that there are no tie values other than 1.
 ### It may be nice to order the rows by sender, then by receiver, then by wave.
 ### The tedious way to do this is
             ArcList <- ArcList[ order( ArcList$sid, ArcList$recid, ArcList$wid), ]
@@ -277,45 +290,54 @@
 ### The with(a, b) function tells R that b must be calculated,
 ### while the otherwise unknown names refer to data set a:
 		ArcList <- with( ArcList, ArcList[ order( sid, recid, wid), ] )
+### An arc list does not give information about the number of nodes,
+### because isolates are not recorded.
+### The set of non-isolates is
+    union(unique(ArcList$sid), unique(ArcList$recid))
+### and, given that we have the information that there are 50 nodes
+### labeled 1 to 50, the isolates are the following two nodes:
+    setdiff(1:50, union(unique(ArcList$sid), unique(ArcList$recid)))
 ### Now suppose we want to create a separate set of records for each wave.
 ### Select by wave:
 
 		SAff.1 <- with(ArcList, ArcList[ wid == 1, ] ) #extracts edges in wave 1
 		SAff.2 <- with(ArcList, ArcList[ wid == 2, ] ) #extracts edges in wave 2
 		SAff.3 <- with(ArcList, ArcList[ wid == 3, ] ) #extracts edges in wave 3
-		n <- 50 # this is the number of nodes which is not provided by the arclist
 
-### and has to be repeated separately for each of the waves
-### (you may loop over the waves if you like),
+### This can be arranged more efficiently as
+    SAff <- lapply(1:3, function(m){ with(ArcList, ArcList[ wid == m, ] ) } )
+### with the correspondence that SAff.1 is SAff[[1]], etc.
 
-### For transforming a matrix into an adjacency list
-
-## create indicator matrix of non-zero entries of a
+### For transforming an adjacency matrix, e.g., friend.data.w1, into an arclist,
+### create indicator matrix of the non-zero entries:
         ones <- !friend.data.w1 %in% 0
-## create empty edge list of desired length
+### create empty edge list of desired length
         edges <- matrix(0, sum(ones), 3)
-# fill the columns of the edge list
+### fill the columns of the edge list
         edges[, 1] <- row(friend.data.w1)[ones]
         edges[, 2] <- col(friend.data.w1)[ones]
         edges[, 3] <- friend.data.w1[ones]
-# if desired, order edge list by senders and then receivers
+### if desired, order edge list by senders and then receivers
         edges <- edges[order(edges[, 1], edges[, 2]), ]
 
-### For transforming an arclist into a matrix
-	## First remove the fourth coulmn indicating the wave, so that we are left
-	## with sender, receiver and value of the tie, and make it into matrix format
+### For transforming an arclist into a matrix,
+### first remove the fourth column indicating the wave, so that we are left
+### with sender, receiver and value of the tie,
+### and transform it into matrix format (at first it is a data.frame)
 		SAff.1.copy <- SAff.1[, 1:3]
 		SAff.1.copy <- as.matrix(SAff.1.copy)
-# create empty adjacency matrix
+### create empty adjacency matrix
         adj <- matrix(0, 50, 50)
-# put edge values in desired places
-        adj[edges[, 1:2]] <- edges[, 3]
-### Also see Section 4.1.1 of the Siena manual.
-
+### put edge values in desired places
+    adj[SAff.1.copy[,1:2]] <- SAff.1.copy[, 3]
+### Now adj is the adjacency matrix.
+### Also see Section 4.1 of the Siena manual
+### and the help page for sienaDependent.
 
 ###################################################################################
 ################ - READING IN PAJEK DATA - ########################################
 ###
+### Skip this section if handling Pajek data is of no concern to you.
 ### If you have data in Pajek format you can use the package "network" in order
 ### to convert it to a network object. This example is from ?read.paj
 ###   require( network )
@@ -413,7 +435,14 @@
         friend1.data.w2 <- friend.data.w2[ use, use ]
         drink1 <- drink[ use, ]
 
+# A useful option in R that allows you to save your workspace:
+save.image("WorkspaceRscript01.RData")
+# Later you can load this in a new session by
+# load("WorkspaceRscript01.RData")
 
+# If next time you would like to continue from here, you will not need to open
+# and run this script again, since you will be able to load this current state of
+# your workspace. But packages will have to be attached again.
 
 ################################################################################
 ###

@@ -2267,7 +2267,7 @@ R_HOME=`R RHOME`
 if test -z "${R_HOME}"; then
   as_fn_error $? "could not determine R_HOME" "$LINENO" 5
 fi
-RBIN="${R_HOME}/bin/R"
+RBIN="${R_HOME}/bin"
 CC=`"${RBIN}" CMD config CC`;
 CFLAGS=`"${RBIN}" CMD config CFLAGS`
 LIBS="${PKG_LIBS}"

@@ -84,6 +84,7 @@ Network::Network(const Network & rNetwork) {
  */
 Network & Network::operator=(const Network & rNetwork) {
 	if (this != &rNetwork) {
+		fireNetworkDisposeEvent();
 		// Empty the current network structure.
 
 		for (int i = 0; i < this->ln; i++) {
@@ -120,6 +121,13 @@ Network & Network::operator=(const Network & rNetwork) {
 		this->lmodificationCount++;
 	}
 
+	if (!isOneMode()) {
+		for (std::list<INetworkChangeListener*>::const_iterator iter =
+				lNetworkChangeListener.begin();
+				iter != lNetworkChangeListener.end(); ++iter) {
+			(*iter)->onInitializationEvent(*this);
+		}
+	}
 	return *this;
 }
 
@@ -156,6 +164,7 @@ void Network::deleteArrays() {
  * Destructs this network.
  */
 Network::~Network() {
+	fireNetworkDisposeEvent();
 	this->deleteArrays();
 }
 
@@ -555,6 +564,7 @@ void Network::addNetworkChangeListener(
 			listener);
 	if (tmp == lNetworkChangeListener.end()) {
 		lNetworkChangeListener.push_back(listener);
+		listener->onInitializationEvent(*this);
 	}
 }
 
@@ -569,6 +579,14 @@ void Network::removeNetworkChangeListener(
 	if (tmp != lNetworkChangeListener.end()) {
 		// no need for erase remove since add ensures that the element is unique
 		lNetworkChangeListener.erase(tmp);
+	}
+}
+
+void Network::fireNetworkDisposeEvent() {
+	for (std::list<INetworkChangeListener*>::const_iterator iter =
+			lNetworkChangeListener.begin();
+			iter != lNetworkChangeListener.end(); ++iter) {
+		(*iter)->onNetworkDisposeEvent(*this);
 	}
 }
 

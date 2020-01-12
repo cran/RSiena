@@ -2,7 +2,7 @@
 ###
 ### ---- RscriptSNADescriptives.R: a script for the introduction to RSiena -------
 ###
-###                               version: April 14, 2013
+###                               version: May 8, 2014
 ##################################################################################
 #
 # Rscript01DataFormat.R is followed by
@@ -29,6 +29,12 @@
 
         library( network )
         library( sna )
+
+# For this script, you will need the data read and modified in the script
+# Rscript01DataFormat.R. If you have already ran that script, you may
+# load the required workspace:
+load("WorkspaceRscript01.RData")
+
         net1 <- as.network( friend.data.w1 )
         net2 <- as.network( friend.data.w2 )
         net3 <- as.network( friend.data.w3 )

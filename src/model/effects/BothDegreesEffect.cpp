@@ -9,12 +9,15 @@
  * BothDegreesEffect class.
  *****************************************************************************/
 
+#include <stdexcept>
 #include "BothDegreesEffect.h"
 #include "utils/SqrtTable.h"
 #include "network/Network.h"
+#include "data/NetworkLongitudinalData.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/EffectInfo.h"
 #include "Effect.h"
+#include "data/Data.h"
 
 namespace siena
 {
@@ -23,10 +26,40 @@ namespace siena
  * Constructor.
  */
 BothDegreesEffect::BothDegreesEffect(
-	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
+	const EffectInfo * pEffectInfo, bool centered) : NetworkEffect(pEffectInfo)
 {
 	this->lroot = (pEffectInfo->internalEffectParameter() >= 2);
 	this->lsqrtTable = SqrtTable::instance();
+	this->lcentered = centered;
+	this->lcentering = 0.0;
+	this->lvariableName = pEffectInfo->variableName();
+	if ((this->lcentered) & (this->lroot))
+	{
+		throw std::logic_error(
+"centering and square root may not be combined for degree activity plus popularity effect.");
+	}
+// centering and root cannot occur simultaneously
+}
+
+/**
+ * Initializes this function.
+ * @param[in] pData the observed data
+ * @param[in] pState the current state of the dependent variables
+ * @param[in] period the period of interest
+ * @param[in] pCache the cache object to be used to speed up calculations
+ */
+void BothDegreesEffect::initialize(const Data * pData,
+	State * pState,
+	int period,
+	Cache * pCache)
+{
+	NetworkEffect::initialize(pData, pState, period, pCache);
+	if (this->lcentered)
+	{
+		NetworkLongitudinalData * pNetworkData =
+				pData->pNetworkData(this->lvariableName);
+		this->lcentering = 2*(pNetworkData->averageOutDegree());
+	}
 }
 
 /**
@@ -59,11 +92,11 @@ double BothDegreesEffect::calculateContribution(int alter) const
 	{
 		if (this->outTieExists(alter))
 		{
-			change2 = 2 * d - 1;
+			change2 = 2 * d - 1 - this->lcentering;
 		}
 		else
 		{
-			change2 = 2 * d + 1;
+			change2 = 2 * d + 1 - this->lcentering;
 			degree1++;
 		}
 	}
@@ -101,10 +134,37 @@ double BothDegreesEffect::tieStatistic(int alter)
 	}
 	else
 	{
-		statistic = degree1 + degree2;
+		statistic = degree1 + degree2 - this->lcentering;
 	}
 
 	return statistic;
 }
+
+/**
+ * Returns the statistic corresponding to this effect as part of
+ * the endowment function.
+ */
+double BothDegreesEffect::endowmentStatistic(Network * pLostTieNetwork)
+{
+	double statistic = 0;
+	const Network* pStart = this->pData()->pNetwork(this->period());
+	int n = pStart->n();
+	for (int i = 0; i < n; i++)
+	{
+		int indeg = pStart->inDegree(i);
+		double rindeg = 2*indeg;
+		if (this->lroot)
+		{
+			rindeg = this->lsqrtTable->sqrt(indeg);
+		}
+		else
+		{
+			rindeg -= this->lcentering;
+		}
+		statistic += rindeg * pLostTieNetwork->outDegree(i);
+	}
+	return statistic;
+}
+
 
 }

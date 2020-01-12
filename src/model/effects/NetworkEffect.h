@@ -84,6 +84,7 @@ protected:
 		const Network * pSummationTieNetwork);
 	virtual double tieStatistic(int alter);
 	virtual void cleanupStatisticCalculation();
+	inline int settingsStepType() const;
 
 	inline ConfigurationTable * pTwoPathTable() const;
 	inline ConfigurationTable * pReverseTwoPathTable() const;
@@ -107,6 +108,9 @@ private:
 
 	NetworkCache * lpNetworkCache;
 	int lego;
+
+	// Stores the values of the stepType (settings model)
+	int lstepTypeVal;
 
 	// The number of two-paths from the ego to each of the alters
 	ConfigurationTable * lpTwoPathTable;
@@ -172,6 +176,15 @@ const NetworkLongitudinalData * NetworkEffect::pData() const
 int NetworkEffect::ego() const
 {
 	return this->lego;
+}
+
+
+/**
+ * Returns the stepType of the current ministep.
+ */
+int NetworkEffect::settingsStepType() const
+{
+	return this->lstepTypeVal;
 }
 
 

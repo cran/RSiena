@@ -28,6 +28,7 @@ class EffectInfo;
 class LongitudinalData;
 class NetworkLongitudinalData;
 class BehaviorLongitudinalData;
+class ContinuousLongitudinalData;
 class Network;
 class EffectFactory;
 class ConstantCovariate;
@@ -68,10 +69,13 @@ public:
 	std::vector<double *> staticChangeContributions(EffectInfo * pEffect) const;
 	double * actorStatistics(EffectInfo * pEffect) const;
 	int distance(LongitudinalData * pData, int period) const;
+	double distance(ContinuousLongitudinalData * pData, int period) const;
+	double totalDistance(int period) const;
 	int settingDistance(LongitudinalData * pData, std::string setting,
 		int period) const;
 
 private:
+	void calculateStatisticsInitNetwork(NetworkLongitudinalData * pNetwork);
 	void calculateStatistics();
 	void calculateNetworkRateStatistics(
 		NetworkLongitudinalData * pNetworkData);
@@ -83,7 +87,8 @@ private:
 		NetworkLongitudinalData * pNetworkData);
 	void calculateBehaviorStatistics(BehaviorLongitudinalData * pBehaviorData);
 	void calculateBehaviorRateStatistics(BehaviorLongitudinalData * pBehaviorData);
-
+	void calculateContinuousStatistics(ContinuousLongitudinalData * pContinuousData);
+	void calculateContinuousRateStatistics(ContinuousLongitudinalData * pContinuousData);
 	// Functions to calculate value of diffusion rate effect
 	double calculateDiffusionRateEffect(BehaviorLongitudinalData *
 		pBehaviorData, const Network * pStructural, int i,
@@ -124,12 +129,19 @@ private:
 	// Array of simulated distances per variable
 	std::map<LongitudinalData *, int *> ldistances;
 
+	// Array of simulated distances per continuous variable
+	std::map<ContinuousLongitudinalData *, double *> lcontinuousDistances;
+	
 	// Array of simulated distances per setting per network variable
 	std::map<LongitudinalData *, std::map<std::string, int *> > lsettingDistances;
 
 	State * lpPredictorState;
 
 	State * lpStateLessMissingsEtc;
+
+	void calcDifferences(
+			NetworkLongitudinalData * const pNetworkData,
+			const Network* const pDifference);
 };
 
 }

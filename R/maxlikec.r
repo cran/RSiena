@@ -111,7 +111,7 @@ maxlikec <- function(z, x, data=NULL, effects=NULL,
 			ans[[11]] <- sapply(anss, "[[", 11)
 			if (z$returnDeps)
 			{
-				fff <- lapply(anss, function(x) x[[12]][[1]])
+				fff <- lapply(anss, function(x) x[[12]])
 				sims <- split(fff, callGrid[, 1 ]) ## split by group
 			}
 			else
@@ -185,12 +185,12 @@ reformatDerivs <- function(z, f, derivList)
     ## of the matrix. Need to be put into a symmetric matrix.
     ## Tricky part is getting the rates in the right place!
     ## Note that we do not yet deal with rate effects other than the basic
-    dff <- as(Matrix(0, z$pp, z$pp), "dsyMatrix")
+    dff <- as(matrix(0, z$pp, z$pp), "dsyMatrix")
     nPeriods <- length(derivList)
 	dff2 <- vector("list", nPeriods)
 	if (z$byWave)
 	{
-		tmp <- as(Matrix(0, z$pp, z$pp), "dsyMatrix")
+		tmp <- as(matrix(0, z$pp, z$pp), "dsyMatrix")
 		dff2[] <- tmp
 	}
     for (period in 1:nPeriods)

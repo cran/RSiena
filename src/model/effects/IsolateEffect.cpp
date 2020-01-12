@@ -23,10 +23,10 @@ namespace siena
 /**
  * Constructor.
  */
-IsolateEffect::IsolateEffect(
-	const EffectInfo * pEffectInfo) :
+IsolateEffect::IsolateEffect(const EffectInfo * pEffectInfo, bool in):
 		NetworkDependentBehaviorEffect(pEffectInfo)
 {
+	this->lin = in;
 }
 
 
@@ -39,9 +39,19 @@ double IsolateEffect::calculateChangeContribution(int actor,
 {
 	double value = 0;
 
+	if (lin)
+	{
 	if (this->pNetwork()->inDegree(actor) == 0)
 	{
 		value = difference;
+	}
+	}
+	else
+	{
+		if (this->pNetwork()->outDegree(actor) == 0)
+		{
+			value = difference;
+		}
 	}
 
 	return value;
@@ -56,9 +66,19 @@ double IsolateEffect::egoStatistic(int ego, double * currentValues)
 {
 	double statistic = 0;
 
+	if (lin)
+	{
 	if (this->pNetwork()->inDegree(ego) == 0)
 	{
 		statistic = currentValues[ego];
+		}
+	}
+	else
+	{
+		if (this->pNetwork()->outDegree(ego) == 0)
+		{
+			statistic = currentValues[ego];
+		}
 	}
 
 	return statistic;

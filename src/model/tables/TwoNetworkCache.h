@@ -49,6 +49,7 @@ public:
 	inline bool secondOutTieExists(int alter) const;
 	inline int firstOutTieValue(int alter) const;
 	inline int secondOutTieValue(int alter) const;
+	inline int secondOutDegree() const;
 
 	inline MixedEgocentricConfigurationTable * pTwoPathTable() const;
 	inline MixedEgocentricConfigurationTable * pInStarTable() const;
@@ -71,6 +72,7 @@ private:
 	// Stores the values of ties from ego in first network
 	// to each of the alters who are senders in the second network.
 	int * lsecondOutTieValues;
+	int lsecondOutDegree;
 
 	// The number of two-paths from the ego to each of the alters
 	MixedEgocentricConfigurationTable * lpTwoPathTable;
@@ -139,6 +141,14 @@ int TwoNetworkCache::firstOutTieValue(int alter) const
 int TwoNetworkCache::secondOutTieValue(int alter) const
 {
 	return this->lsecondOutTieValues[alter];
+}
+
+/**
+ * Returns the outdegree of the ego in the second network.
+ */
+int TwoNetworkCache::secondOutDegree() const
+{
+	return this->lsecondOutDegree;
 }
 
 /**

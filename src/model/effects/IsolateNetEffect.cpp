@@ -68,17 +68,4 @@ double IsolateNetEffect::egoStatistic(int ego, const Network * pNetwork)
 	return statistic;
 }
 
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function.
- */
-double IsolateNetEffect::endowmentStatistic(Network * pLostTieNetwork)
-{
-	throw logic_error(
-		"Endowment effect not supported for network-isolate effect.");
-}
-
-
-
-
 }

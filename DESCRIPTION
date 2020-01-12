@@ -1,10 +1,12 @@
+Encoding: UTF-8
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.2-12
-Date: 2018-05-12
-Author: Ruth Ripley, Krists Boitmanis, Tom A.B. Snijders, Felix Schoenenberger
-Depends: R (>= 2.15.0), utils
+Version: 1.2-23
+Date: 2020-01-12
+Author: Ruth Ripley, Krists Boitmanis, Tom A.B. Snijders, Felix Schoenenberger,
+   Nynke Niezink
+Depends: R (>= 2.15.0)
 Imports: Matrix, tcltk, lattice, parallel, MASS, methods
 Suggests: xtable, network, tools, codetools
 SystemRequirements: GNU make, tcl/tk 8.5, Tktable
@@ -12,11 +14,14 @@ Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 Description: The main purpose of this package is to perform simulation-based 
    estimation of stochastic actor-oriented models for longitudinal network 
    data collected as panel data. Dependent variables can be single or 
-   multivariate networks, which can be directed, non-directed, or two-mode. 
+   multivariate networks, which can be directed, non-directed, or two-mode;
+   and associated actor variables. 
    There are also functions for testing parameters and checking goodness of fit.
    An overview of these models is given in Tom A.B. Snijders (2017), Stochastic 
    Actor-Oriented Models for Network Dynamics, Annual Review of Statistics and 
    Its Application, 4, 343-363 <doi: 10.1146/annurev-statistics-060116-054035>.
+   An extensive manual, scripts, and much further information is at the Siena 
+   website <http://www.stats.ox.ac.uk/~snijders/siena>.
 License: GPL (>= 3)
 LazyLoad: yes
 LazyData: yes
@@ -24,6 +29,7 @@ Biarch: yes
 NeedsCompilation: yes
 BuildResaveData: no
 URL: http://www.stats.ox.ac.uk/~snijders/siena
-Packaged: 2018-05-12 10:52:55 UTC; Tom.Snijders
+RoxygenNote: 7.0.2
+Packaged: 2020-01-12 13:48:10 UTC; Tom.Snijders
 Repository: CRAN
-Date/Publication: 2018-05-13 14:58:05 UTC
+Date/Publication: 2020-01-12 21:50:11 UTC

@@ -53,6 +53,7 @@ class EffectInfo;
 class StructuralRateEffect;
 class DiffusionRateEffect;
 class MiniStep;
+class Setting;
 
 
 // ----------------------------------------------------------------------------
@@ -111,6 +112,7 @@ public:
 
 	void calculateRates();
 	double totalRate() const;
+	double nonSettingsRate() const;
 	double rate(int actor) const;
 	inline double basicRate() const;
 	void updateBasicRate(int period);
@@ -189,18 +191,20 @@ public:
 	int rejections(int stepType) const;
 	int aborts(int stepType) const;
 
+	int numberSettings() const;
+
 protected:
 	inline EpochSimulation * pSimulation() const;
 	void simulatedDistance(int distance);
 	void invalidateRates();
 	void successfulChange(bool success);
-	int numberSettings() const;
 	int stepType() const;
 	void getStepType();
 	double settingRate() const;
 	// A two-dimensional array of tie flip and behavior change contributions to effects.
 	std::map<const EffectInfo *, std::vector<double> > * lpChangeContribution;
 
+	Setting** lsettings;
 private:
 	void initializeFunction(Function * pFunction,
 		const std::vector<EffectInfo *> & rEffects) const;
@@ -225,6 +229,9 @@ private:
 	// The total rate of change summed over all actors
 	double ltotalRate;
 
+	// The rate of change factor excepting settingsrate
+	double lnonSettingsRate;
+
 	// The rate of change for each actor
 	double * lrate;
 
@@ -233,7 +240,7 @@ private:
 
 	// The setting rate parameters for the current period. Order matches the
 	// data object. Only for network variables.
-	double * lsettingRates;
+	// double * lsettingRates;
 
 	// The scaled setting rate parameters for the current period.
 	// Order matches the data object. Only for network variables.

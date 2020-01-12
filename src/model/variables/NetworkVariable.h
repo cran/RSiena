@@ -27,7 +27,7 @@ class Network;
 class NetworkLongitudinalData;
 class NetworkCache;
 class PermittedChangeFilter;
-
+class ITieIterator;
 
 // ----------------------------------------------------------------------------
 // Section: NetworkVariable class
@@ -78,6 +78,8 @@ public:
 	virtual bool missing(const MiniStep * pMiniStep) const;
 	virtual bool structural(const MiniStep * pMiniStep) const;
 
+	const Setting * setting(int i) const;
+
 private:
 	void preprocessEgo(int ego);
 	void preprocessEgo(const Function * pFunction, int ego);
@@ -90,8 +92,8 @@ private:
 	void checkAlterAgreement(int alter);
 	void addAlterAgreementScores(bool accept);
 	void accumulateSymmetricModelScores(int alter, bool accept);
-	void accumulateRateScores(double tau, const DependentVariable *
-		pSelectedVariable, int selectedActor);
+// NU	void accumulateRateScores(double tau, const DependentVariable *
+//		pSelectedVariable, int selectedActor);
 	void calculateSymmetricTieFlipContributions(int alter, int sub);
 	void calculateSymmetricTieFlipProbabilities(int alter, int sub, bool aagree);
 	bool calculateModelTypeBProbabilities();
@@ -175,7 +177,7 @@ private:
 
 	double lsymmetricProbability;
 
-	std::vector<int> * lsetting;
+	ITieIterator* lsettingFlips;
 
 	// whether this is a one mode network or not
 

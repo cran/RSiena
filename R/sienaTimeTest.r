@@ -36,7 +36,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	{
 		if (!sienaFit$sf2.byIterations)
 		{
-			stop("sienaTimeTest needs sf2 by iterations")
+			stop("sienaTimeTest needs sf2 by iterations (use lessMem=FALSE)")
 		}
 	}
 	waveNumbers <- attr(sienaFit$f, "periodNos")
@@ -191,6 +191,10 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	dimnames(G) <- list(nameslist$Iteration, nameslist$Wave, toTest$dummyNames)
 	## Make the covariance matrix for the new moments
 	sigma <- cov(apply(G, c(1, 3), sum))
+	if (length(sigma) == 1)
+	{
+		sigma <- matrix(sigma,1,1)
+	}
 	if (!(sienaFit$maxlike || sienaFit$FinDiff.method))
 	{
 		scores <- sienaFit$ssc[ , , estimatedInFit, drop=FALSE]
@@ -266,7 +270,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 		useRows[1:nBaseEffects] <- TRUE
 		toTest <- toTest[useRows,]
 		D <- D[useRows, useRows]
-		sigma <- sigma[useRows, useRows]
+		sigma <- sigma[useRows, useRows, drop=FALSE]
 		nDummies <- sum(toTest$toTest)
 		G <- G[,,useRows]
 		nRowsToTest <- dim(toTest)[1]
@@ -283,13 +287,14 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	extraExclusions <- rep(FALSE, nBaseEffects)
 	if (rankSigma < dim(sigma)[1])
 	{
-		cat("TimeTest constructed a null hypothesis with ")
-		cat(nRowsToTest - nDummies, "estimated parameters\n")
-		cat("and", nDummies,"dummy variables to be tested.\n")
-		cat("However, there are", dim(sigma)[1] - rankSigma)
-		cat(" linear dependencies between these.\n")
-		cat("This may be because some of the parameters are already\n")
-		cat("interactions with time dummies or other time variables.\n")
+		es <- ifelse((nRowsToTest - nDummies == 1), '', 's')
+		message("TimeTest constructed a null hypothesis with ",
+							nRowsToTest - nDummies, " estimated parameter", es)
+		message("and ", nDummies," dummy variables to be tested.")
+		message("However, there are ", dim(sigma)[1] - rankSigma,
+							" linear dependencies between these.\n")
+		message("This may be because some of the parameters are already")
+		message("interactions with time dummies or other time variables.")
 
 		subset0 <- rep(FALSE, dim(sigma)[1])
 		subset0[1:nBaseEffects] <- TRUE
@@ -318,25 +323,24 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 				}
 				useRows[1:nBaseEffects] <- TRUE
 			}
-			toTest <- toTest[useRows,]
-			D <- D[useRows, useRows]
-			sigma <- sigma[useRows, useRows]
+			toTest <- toTest[useRows,, drop=FALSE]
+			D <- D[useRows, useRows, drop=FALSE]
+			sigma <- sigma[useRows, useRows, drop=FALSE]
 			nDummies <- sum(toTest$toTest)
-			G <- G[,,useRows]
+			G <- G[,,useRows, drop=FALSE]
 			nRowsToTest <- dim(toTest)[1]
-			cat("Automatic discovery of dependencies yielded the exclusion of")
 			excludedNumber <- sum(extraExclusions)
+			es <- ifelse((excludedNumber == 1), '', 's')
+			message("Automatic discovery of dependencies yielded the exclusion of effect", es)
 			if (excludedNumber <= 1)
 			{
-				cat(" effect",":\n")
-				cat(paste(row(fitEffects)[baseInFit,][extraExclusions,][1],'.',
-						fitEffects$effectName[baseInFit][which(extraExclusions)],"\n "))
+				message(paste(row(fitEffects)[baseInFit,drop=FALSE][extraExclusions,drop=FALSE][1],'.',
+						fitEffects$effectName[baseInFit,drop=FALSE][which(extraExclusions)],"\n "))
 			}
 			else
 			{
-				cat(" effects:\n")
-				cat(paste(row(fitEffects)[baseInFit,][extraExclusions,][,1],'.',
-						fitEffects$effectName[baseInFit][which(extraExclusions)],"\n "))
+				message(paste(row(fitEffects)[baseInFit,drop=FALSE][extraExclusions,drop=FALSE][,1],'.',
+						fitEffects$effectName[baseInFit,drop=FALSE][which(extraExclusions)],"\n "))
 			}
 			rankSigma <- qr(sigma)$rank
 			if (rankSigma < dim(sigma)[1])
@@ -383,13 +387,12 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 		rownames(jointTestP) <- "Joint Significant Test"
 		colnames(jointTestP) <- "p-Val"
 	}
-	thetaOneStep <- c(sienaFit$theta[estimatedInFit], rep(0, nDummies)) +
+	thetaOneStep <- c(sienaFit$theta[estimatedInFit, drop=FALSE], rep(0, nDummies)) +
 		jointTest$oneStep
 	## Define the null hypothesis for the later tests (effect-wise and group-wise)
 	## as the null hypothesis tested in the overall test:
 	nullHyp <- 	!toTest$toTest
-	effectTest <-
-		as.vector(by(toTest, toTest$baseEffect, function (x)
+	effectTest <- as.vector(by(toTest, toTest$baseEffect, function (x)
 				{
 					doTests <- rep(FALSE, nEffects + nDummies)
 					if (any(x$toTest))
@@ -494,6 +497,8 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	# Therefore matrix A is created as the design matrix for this test.
 	remainingEffects <- unique(toTest$baseEffect[toTest$toTest])
 	nRemainingEffects <- length(remainingEffects)
+	if (nRemainingEffects >= 1)
+	{
 	A <- matrix(0, nRemainingEffects, nRowsToTest)
 	for (i in seq_along(remainingEffects))
 	{
@@ -509,6 +514,13 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	groupTestP[,3] <- round(1 - pchisq(groupTestP[,1], groupTestP[,2]), 3)
 	rownames(groupTestP) <- paste(groupsKind, 1:nGroups)
 	colnames(groupTestP) <- c("chi-sq.", "df", "p-value")
+	}
+	else
+	{
+		groupTest[1] <- NA
+		groupTestP <- NA
+		cat('Nothing remains...\n')
+	}
 	returnObj <- list(
 		sienaFitName=deparse(substitute(sienaFit)),
 		JointTest=jointTestP,
@@ -549,7 +561,7 @@ transformed.scoreTest <- function(dfra, msf, fra, A, nullHyp, maxlike)
 	# non-zero columns of A should not overlap with nullHyp
 {
 	test <- colSums(abs(A)) > 0
-	if (test && nullHyp)
+	if (any(test & nullHyp))
 	{
 		stop("Null hyp and test in transformed score test should not overlap")
 	}
@@ -573,7 +585,7 @@ partial.scoreTest <- function(dfra, msf, fra, test, nullHyp, maxlike)
 	# test gives vector of tested effects,
 	# nullHyp gives vector of estimated effects
 {
-	if (test && nullHyp)
+	if (any(test & nullHyp))
 	{
 		stop("Null hypothesis and test in partial score test should not overlap")
 	}
@@ -983,8 +995,8 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 				cdvind <- match(effect$interaction1, atts$cCovars)
 				vdvind <- match(effect$interaction1, atts$vCovars)
 				bdvind <- match(effect$interaction1, atts$netnames)
-				if (is.na(cdvind) && is.na(vdvind) &&
-					(is.na(bdvind))) #|| atts$types[bdvind] != "behavior"))
+				if (any((is.na(cdvind) & is.na(vdvind) &
+					(is.na(bdvind))))) #|| atts$types[bdvind] != "behavior"))
 				{
 					stop("Having trouble finding the covariate for your rate ",
 						"effect. Please contact the developers.")
@@ -1168,6 +1180,7 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 								interaction1= c(effect$interaction1,
 									dname),
 								interaction2=effect$interaction2,
+								parameter=effect$parameter,
 								name=depvar, verbose=FALSE)
 					} else {
 						newEffects <-
@@ -1178,6 +1191,7 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 								interaction1= c(effect$interaction1,
 									dname),
 								interaction2=effect$interaction2,
+								parameter=effect$parameter,
 								name=depvar, verbose=FALSE)
 					}
 					## find the row altered
@@ -1255,7 +1269,7 @@ includeTimeDummy <- function(myeff, ..., timeDummy="all", name=myeff$name[1],
 	}
 	else
 	{
-		cat("No effects could be found with this specification.\n")
+		warning("No effects could be found with this specification.")
 	}
 	myeff
 }

@@ -13,13 +13,13 @@ print01Report(data, modelname = "Siena", getDocumentation=FALSE)
   \item{data}{a Siena data object
 }
 \item{modelname}{
-  Character string used to name the output file "modelname.out"
+  Character string used to name the output file "modelname.txt"
 }
 \item{getDocumentation}{Flag to allow documentation of internal
   functions, not for use by users.}
 }
 \details{
-  First deletes any file of the name "modelname.out", then prints a new one.
+  First deletes any file of the name "modelname.txt", then prints a new one.
   }
 \value{
   No value returned.

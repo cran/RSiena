@@ -1,4 +1,243 @@
-2018-05-12 R-Forge Revision 336, packages version 1.2-12.
+2020-01-12 Package version 1.2-23 submitted to CRAN.
+   * Changes in RSiena and RSienaTest:
+     Option projname=NULL in sienaAlgorithmCreate.
+     This option is used for all examples where siena07 is called,
+     to restrict file writing for examples to the temporary directory. 
+
+2020-01-10 Package version 1.2-22.
+   * Changes in RSiena and RSienaTest:
+     Changed extension names of output files from .out to .txt. 
+
+2020-01-04 R-Forge Revision 345, package version 1.2-22.
+Changes in RSiena and RSienaTest:
+   * Tested effects reported in print of Multipar.RSiena and score.Test.
+   * Reordered effects object so that reciAct comes after instead of 
+     before inAct and inAct.c.   
+   * Operation of siena07 in Test 14 silenced (message Brian Ripley about 
+     apparently minor changes depending on the platform).
+
+2019-12-18 packages version 1.2-21.
+Changes in RSiena and RSienaTest:
+   * Tests ended with deleting file Siena.out by unlink instead of file.remove.
+
+2019-12-16 packages version 1.2-20.
+Changes in RSiena:
+   * dumpChain (Chain) and getChainProbabilities (siena07models) dropped; 
+     kept in RSienaTest.
+   * Configure line 2274 changed to RBIN="${R_HOME}/bin"
+Changes in RSiena and RSienaTest:
+   * Tests ended with deleting file Siena.out.
+
+2019-12-16 R-Forge Revision 344, package version 1.2-19.
+Changes in RSiena and RSienaTest:
+   * SienaTimeTest: some corrections with consequences probably only if
+     one effect is being tested; or is left after automatic exclusion
+     of tested effects.
+   * Setting-related effects corrected.
+   * Some further changes in Settings model.
+   * New effects avGroupEgoX, outIso.
+   * CovariateDependentNetworkEffect:  + lSimulatedOffset taken out of
+     definition missings for ChangingCovariate (seems wrong).
+   * Alphabetically ordered sources.list.
+Changes in RSienaTest:
+   * In sienaBayes: more precise check that 
+     prevAns has same specification as effects;
+     priorSigEta added to sienaBayesFit object.
+	  dimnames(ThinParameters)[[3]] defined as effect names;
+     ridge for prior variance of rate parameters if priorRatesFromData=1 or 2
+     decreased from 0.5 to 0.01.
+   * sienaBayes: zm and zsmall are removed at the end.
+   * plotPostMeansMDS also shows a title, and coordinates show the dimensions
+     of the MDS solution.
+   * The value returned by plotPostMeansMDS contains not only the 
+     plot coordinates, but also the similarities (correlations) 
+     between the groups.
+   * glueBayes: added z$varyingInEstimated, z$varyingNonRateInEstimated, 
+     z$ratesInVarying to the object produced. 
+     (Else extract.sienaBayes is not going to work properly.)
+   * glueBayes: if one of the sampling parameters is different,
+     give a warning instead of a stop.
+
+2019-10-16 R-Forge Revision 341, package version 1.2-18.
+In this R-forge revision, only RSienaTest was updated.
+Changes in RSiena and RSienaTest:
+   * Continuous dependent behavior variables implemented (Nynke Niezink).
+     This implies new effect types continuousFeedback, continuousIntercept,
+     continuousOneModeObjective, continuousRate, continuousWiener,
+     unspecifiedContinuousInteraction.
+   * imputationValues allowed in sienaDependent (Nynke Niezink)
+   * New effect outMore.
+   * component startingDate added to sienaFit object; this is reported in
+     siena.table(..., type='tex', ...).
+   * Speeded up calculation of IndegreeDistribution and OutdegreeDistribution
+     for sienaGOF if there are no missings or structurals.
+   * regrCoef and regrCor added to the sienaFit object also when !dolby.
+   * Some "warnings" changed back to "cat".
+   * EpochSimulation->totalRate renamed to grandTotalRate,
+     to avoid confusion with DependentVariable->totalRate.
+   * stop if useCluster and returnChains (in this case, no chains would 
+     be returned anyway).
+   * sienaDataCreate: more informative message in case of constraints.
+   * Further explanation in help page for setEffect, and small extensions of
+     help pages for getEffects, includeEffects, and includeInteraction.
+   * small clarification in help page for sienaDependent.
+   * small clarifications about node sets in help pages for coCovar,
+     varCovar, coDyadCovar, varDyadCovar, and sienaDataCreate.
+   * small addition to help page for sienaTimeTest.
+   * Object names are given in sienaFit.print if simOnly.
+   * Settings model: corrected scores for rate parameters;
+     stepType in NetworkCache; new class settingNetworkEffects;
+     effect group nonSymmetricSymmetricObjective split in this and
+     nonSymmetricSymmetricSObjective (also operating for primary setting effects);
+     new effects settingSizeAct, settingSizeActSqrt, settingSizeActLog,
+     settingOppAct, settingOppActSqrt, settingOppActLog,
+     settingLogCreationAct, settingOppActD, settingOppActSqrtD,
+     settingOppActLogD, settingLogCreationActD.
+     These new effects are not yet operational (target statistics not calculated).
+   * inPopIntn and outActIntn dropped from effect group 
+     nonSymmetricSymmetricObjective.
+Changes in RSienaTest:
+   * Corrected error in names of array returned by extract.posteriorMeans.
+   * New parameter excludeRates in extract.posteriorMeans, plotPostMeansMDS.
+   * Use parameter pmonly also in plotPostMeansMDS.
+
+2019-05-20 R-Forge Revision 340, packages version 1.2-17.
+Changes in RSiena and RSienaTest:
+   * New effects outAct.c, inAct.c, outPop.c., inPop.c, degPlus.c.
+   * Effects antiInIso and antiInIso2 implemented for non-directed networks.
+   * Effects outTrunc, outTrunc2, outSqInv, isolateNet, and degPlus got
+     endowment effects.
+   * For inPopIntn, outPopIntn, inActIntn, and outActIntn, added "centered"
+     to the statistic name.
+   * In plot.sienaGOF new parameter fontsize; ... will also accept parameters
+     cex, cex.main, cex.lab, cex.axis.
+   * estMeans.sem added to object produced by siena07, if x$simOnly.
+   * Components regrCoef, regrCor, estMeans, and estMeans.sem mentioned in
+     help page for siena07.
+   * Hidden options in siena07 with x$targets (initializeFRAN.r).
+   * Extra identifying information for "total probability non-positive" error
+     (NetworkVariable.cpp).
+   * On various places replaced "cat" by "message" or "warning".
+   * Replaced && by any(.. & ..) 
+     to comply with R 3.6.0 new standard (sienaTimeTest).
+Changes in RSienaTest:
+   * sienaBayes: do not allow prevAns and prevBayes objects simultaneously;
+     omit partial averaging at the end of warming phase;
+     "prevAns" now is allowed to have a different specification of 
+     random effects than "effects";
+     warming up lowest level reduced to 3 iterations of MCMCCycle,
+     but applied also if newProposalFromPrev.
+
+2019-02-26 R-Forge Revision 339, packages version 1.2-16.
+Changes in RSiena and RSienaTest:
+   * New effects maxXAlt, minXAlt (thanks to Per Block, Marion Hoffman,
+     Isabel Raabe, and Timon Elmer), outIsolate.
+   * Effect name of isolate effect (not shortName) changed to in-isolate.
+   * New parameter thetaValues in siena07, allowing simulations in Phase 3
+     with varying parameters according to matrix input.
+     Corresponding changes in print.sienaFit.
+   * sienaRI: earlier check for bipartite dependent variables; if so, stop.
+   * Argument "verbose" added to includeEffects and setEffect.
+     (It existed already for includeInteraction.)
+   * Wald.RSiena, Multipar.RSiena and score.Test also produce one-sided
+     test statistic if df=1.
+   * objects produced by Wald.RSiena, Multipar.RSiena and score.Test
+     have class "sienaTest".
+   * print method added for objects of class sienaTest.
+   * Changed/added some keywords and concepts in .Rd files.
+Changes in RSienaTest:
+   * Allow arbitrary number of interactions in sienaBayes (via getEffects).
+   * simpleBayesTest and multipleBayesTest corrected; they were wrong
+     for models with user-defined interactions.
+   * glueBayes extended (to allow good use for models with fixed parameters)
+     and check for prior rates relaxed (to allow priorRatesFromData=2
+     leading to different prior rates.)
+   * New default (prevBayes$nwarm >= 1) for newProposalFromPrev in sienaBayes.
+   * siena.table for sienaBayes results extended with between-groups s.d.
+   * Argument "verbose" added to extract.posteriorMeans.
+   * sienaBayes: check that prevAns is a sienaFit object; 
+     totally skip initial multigroup estimation if prevAns is given with 
+     prevAns$n3 >= 500 and (!usePrevOnly).
+
+
+2019-01-02 R-Forge Revision 338, packages version 1.2-15.
+Changes in RSiena and RSienaTest:
+   * New effects sameXReciAct and diffXReciAct.
+   * Increased length of MLSimulation::preburnin.
+   * Changes in sienaFitThetaTable, averageTheta.last, sdTheta.last in 
+     sienaprint.r to enable change in extract.posteriorMeans (see below).
+   * siena.table adapted for sienaBayes results.
+Changes in RSienaTest:
+   * New functions shortBayesResults and plotPostMeansMDS.
+   * extract.posteriorMeans works also for an object saved as PartialBayesResult
+     (which has NA results for as yet unfinished runs) 
+     (this was achieved by changes in sienaprint.r, see above).
+   * Examples added to help page for print.sienaBayesFit (in dontrun...).
+
+2018-12-05 R-Forge Revision 337, packages version 1.2-14.
+Changes in RSiena and RSienaTest:
+   * Check for length of parameter mult for ML estimation (initializeFRAN), 
+     extend explanation of mult in help page for sienaAlgorithmCreate.
+Changes in RSienaTest:
+   * extract.sienaBayes corrected.
+   * sienaBayes: subphases for initial global parameter estimation decreased 
+     to 2;
+     prior variances for fixed parameters introduced;
+     after initialization by MoM estimation of multi-group data set,
+     a precision weighted mean (called "Kelley") of this estimate and the 
+     prior mean is used for initial parameter values;
+     prewarming phase introduced before improveMH;
+     in case prevBayes is used, also parameter nImproveMH in the function 
+     call of sienaBayes supersedes this parameter in the prevBayes object;
+     checks for dimensions of prior mean and covariance matrix
+     put earlier in the initialization phase.
+
+2018-10-29 R-Forge Revision 336, packages version 1.2-13.
+Changes in RSiena and RSienaTest:
+   * Correct error in print01Report that occurred for changing dyadic covariates
+     given as lists of sparse matrices.
+   * Correct error in sienaGroupCreate for non-centered actor covariates.
+   * Drop dependence on utils (the packages did not depend on it).
+   * Also get simulated dependent behavior variables for
+     siena07(,,, returnDeps=TRUE, ...) for ML estimation.
+   * siena.table corrected for data sets with several dependent variables.
+   * For siena08: new parameters which and useBound in plot.sienaMeta;
+     new parameter reportEstimates in siena08, allowing to reduce
+     the output produced.
+   * updateSpecification: also update randomEffects column.
+   * Change help page for sienaDependent.
+   * Some changes in sienaprint.r depending on sienaBayes, to keep the two
+     packages the same when possible.
+Changes in RSienaTest:
+   * sienaBayes: new parameters proposalFromPrev, which allows
+     taking proposal distributions from prevBayes object;
+     incidentalBasicRates resuscitated;
+     allow fixed rate parameters, with priorRatesFromData=-1;
+     changed initial values of scale factors for proposal distributions;
+     new parameters target and usePrevOnly;
+     in case prevBayes is used, parameters nrunMHBatches, nSampVarying, 
+     nSampConst, and nSampRates in the function call of sienaBayes supersede 
+     those in the prevBayes object;
+     correct bug for three-effect interactions (projectEffects)
+     copy parameters modelType, behModelType, MaxDegree, Offset, initML,
+     from parameter algo to the algorithms created within sienaBayes;
+     more extensive checking of smallest eigenvalue of covariance matrix
+     (function correctMatrix);
+     For priorRatesFromData = 1 or 2, the resulting matrix for priorKappa != 1 
+     was incorrect; this was corrected.
+     reported timing changed to elapsed system time;
+     some reordering of parameters.
+     This also required some corresponding changes in sienaprint.r.
+   * DESCRIPTION: Added 'Encoding: UTF-8' because sienaGOF.r complained about
+     non-ASCII.
+   * Data.cpp: Add a new 'SimNetworkData' type: This is for variables that
+     behave like dependent variable for effects but are not changed by the
+     simulation.  Currently used for the primary setting network.
+   * PrimaryLayer: A network layer holding the full primary setting as network.
+
+2018-05-13 CRAN for RSiena, version 1.2-12.
+
+2018-05-07 R-Forge Revision 336, packages version 1.2-12.
 Changes in RSiena and RSienaTest:
     * Change default parameter of reciAct to 1 (implies changes only in 
        output, not computationally).
@@ -25,15 +264,15 @@ Changes in RSiena and RSienaTest:
      general options; changed minus to &ndash; ;
      added column for asterisks to have better alignment for estimates.
    * Stop cluster also if (!z$OK || !z$Phase3Interrupt) (robmon.r).
-   * Extension of help page for siena07 by mentioning functions for testing.
+   * Extension of help page for siena07 by mentioning functions for accessing
+     simulated networks for ML.
 Changes in RSienaTest:
    * extract.sienaBayes: error corrected that occurred if called with 
      extracted="all" but there are no varying, or no non-varying parameters.
 
 2018-03-24 R-Forge Revision 334, packages version 1.2-10.
 Changes in RSiena and RSienaTest:
-   * Example in help file siena07 for accessing generated networks for ML.
-
+   * Example in help page siena07 for accessing generated networks for ML.
 
 2018-03-21 R-Forge Revision 332, packages version 1.2-9.
 Changes in RSiena and RSienaTest:
@@ -56,7 +295,8 @@ Changes in RSiena and RSienaTest:
      returnDeps: new function gotoLastState() in MLSimulation, adaptation of
      mlPeriod() in siena07models.cpp, and some other small changes.
    * Added endowment and creation effects for maxAlt and minAlt.
-   * Error messages for non-character nodeSets in sienaDependent, coCovar, varCovar.
+   * Error messages for non-character nodeSets in sienaDependent, coCovar, 
+     varCovar.
    * Improved way of handling missings for distance-2 network effects.
    * Added components requestedEffects, theta, and se to siena08
      (theta and se are the ML estimates).
@@ -99,7 +339,7 @@ Changes in RSienaTest:
    * multipleBayesTest corrected (there was an error for testing 2 or more
      linear combinations simultaneously) and adapted for cases with fixed
      parameters;
-     adapted help file text.
+     adapted help page text.
    * All remaining parts of rsiena01gui removed.
    * As a compensation of this, sienaDataCreateFromSession exported,
      with a more informative help page.
@@ -288,8 +528,8 @@ Changes in RSiena and RSienaTest:
    * outOutAss dropped for symmetric networks; only outInAss remains.
    * egoX effect has interactionType='ego' also for symmetric networks.
    * The exclusion in effects.r of effects if the variance of a covariate is 0,
-     or a covariate has only two values, is dropped (these effects have no meaning,
-     but their exclusion was a potential nuisance for meta-analyses).
+     or a covariate has only two values, is dropped (these effects have no 
+     meaning, but their exclusion was a potential nuisance for meta-analyses).
    * Description of gwespFB and gwespBF corrected (allEffects.csv and manual).
    * includeInteraction has an additional parameter random.
    * siena08 now also accepts a list for ...
@@ -334,7 +574,7 @@ Changes in RSienaTest:
         if priorRatesFromData=2, change to different robust covariance matrix
           estimator when this is necessary (i.e., for small number of groups);
         in print.summary, also report nImproveMH;
-        a few lines added to help file.
+        a few lines added to help page.
    * test14 dropped from parallel.R (using clusters undesirable for basic testing)
      and replaced by a test using maxlike.
 
@@ -1145,9 +1385,9 @@ Changes in RSiena as well as RSienaTest:
    * In print method for sienaAlgorithm, report of conditional corrected
      in case !x$cconditional (sienaprint.r)
    * If there is a composition change object, MoM estimation is forced
-     to be non-conditional (initializeFRAN.r). This is reported in the help file
+     to be non-conditional (initializeFRAN.r). This is reported in the help page
      (sienaCompositionChange.Rd).
-   * Small changes in help files sienaAlgorithm.Rd, plot.sienaTimeTest.Rd,
+   * Small changes in help pages sienaAlgorithm.Rd, plot.sienaTimeTest.Rd,
 
 
 2013-05-10 R-forge revision 230
@@ -1760,7 +2000,7 @@ For RSiena and RSienaTest:
     returning of chains every iteration. Bug fixes for ML.
     * R/algorithms.r: added to RSienaTest (from examples directory).
     * man/profileLikelihoods.Rd, man/algorithms.Rd: (RSien aTest only)
-    help files for functions in algorithms.r.
+    help pages for functions in algorithms.r.
 
 2011-11-27 R-forge revision 185.
 
@@ -2943,7 +3183,7 @@ For RSiena and RSienaTest:
     to terminate the epoch.
     * tests/parallel.R, parallel.Rout.save: change in line number of effect
     * man/plot.sienaTimeTest.Rd, man/sienaTimeTest.Rd,
-    man/includeTimeDummy.Rd: split the help file into three.
+    man/includeTimeDummy.Rd: split the help page into three.
 
 2010-06-04 R-forge revision 92 (RSienaTest only)
 

@@ -50,6 +50,8 @@ protected:
 	bool missingDummy(int i) const;
 	bool missingInDummy(int i) const;
 	double averageAlterValue(int i) const;
+	double minimumAlterValue(int i) const;
+	double maximumAlterValue(int i) const;
 	double totalAlterValue(int i) const;
 	double averageInAlterValue(int i) const;
 	double totalInAlterValue(int i) const;
@@ -59,6 +61,8 @@ private:
 	// The network this effect is interacting with
 	const Network * lpNetwork;
 	double * laverageAlterValues;
+	double * lminimumAlterValues;
+	double * lmaximumAlterValues;
 	double * ltotalAlterValues;
 	double * laverageInAlterValues;
 	double * ltotalInAlterValues;

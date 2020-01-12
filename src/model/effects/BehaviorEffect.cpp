@@ -88,6 +88,15 @@ int BehaviorEffect::value(int actor) const
 
 
 /**
+ * Returns the overall mean of all observed values.
+ */
+double BehaviorEffect::overallCenterMean() const
+{
+	return this->lpBehaviorData->overallMean();
+}
+
+
+/**
  * Returns the behavior value of the given actor centered around the
  * overall mean of all observed values.
  */

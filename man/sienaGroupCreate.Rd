@@ -24,11 +24,33 @@ It can be used as data input to \code{\link{siena07}} for the
 multigroup option.
 Also used internally for convenience with a single Siena data object.
 
-For later use in \code{\link{siena07}} or \code{sienaBayes},
+Each covariate should either be centered in all groups, or non-centered
+in all groups.
+For centered actor covariates, the original values are used, and the overall
+mean of all non-missing observations is subtracted. Note that this implies
+that group-dependent variables that are constant for all actors in each
+group, can be used as centered actor covariates.
+
+For combining two-wave with more-wave groups in one group object,
+covariates that are changing covariates for the more-wave groups have to
+be specified as changing covariates also for the two-wave groups.
+This can be done by specifying them with values for the two waves;
+for actor covariates this will be by using an \eqn{n \times 2}{n x 2} matrix,
+for dyadic covariates an \eqn{n \times n \times 2}{n x n x 2} array
+(or \eqn{n \times m \times 2}{nxmx2} for the two-mode case).
+The values for the second wave should be identical to those for the
+first wave (they will be used only for centering operations).
+
+For later use in \code{\link{siena07}},
 it will often (but not always...) be helpful when creating the
 Siena data objects in \code{objlist}
 to use \code{allowOnly=FALSE} in the call of
-\code{\link{sienaDependent}}; see the help page for this function.}
+\code{\link{sienaDependent}}; see the help page for this function.
+
+If there are multiple dependent networks, it may be necessary to run
+\code{\link{sienaDataConstraint}} before \code{sienaGroupCreate}
+to ensure that these constraints are equal for all groups.
+}
 
 \value{
 An object of class "sienaGroup"; this is a list
@@ -109,8 +131,8 @@ containing the input objects, with attributes:
 }
 \references{See the Section on Multi-group Siena analysis in the manual
    available from \url{http://www.stats.ox.ac.uk/~snijders/siena/ }.}
-\author{ Ruth Ripley }
-\seealso{\code{\link{sienaDataCreate}} }
+\author{ Ruth Ripley, Modification by Tom Snijders }
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaDataConstraint}} }
 \examples{
 Group1 <- sienaDependent(array(c(N3401, HN3401), dim=c(45, 45, 2)))
 Group3 <- sienaDependent(array(c(N3403, HN3403), dim=c(37, 37, 2)))

@@ -167,7 +167,7 @@ corresponding to the observation moments.
           \code{print} method for \code{sienaRI} objects.}
     \item{- \code{sigma}}{a list of effects by ego matrices of the values of the within-ego
           standard deviations of the change statistics. Their averages (over egos)
-		  are printed if \code{printSigma=TRUE}.}
+          are printed if \code{printSigma=TRUE}.}
     \item{- \code{changeStatistics}}{a list of arrays (effects by alters by egos)
           containing for each observation moment,
           the values of the change statistics for toggling the tie from actor
@@ -187,7 +187,7 @@ corresponding to the observation moments.
 }
 \author{Natalie Indlekofer, some additions by Tom Snijders}
 \examples{
-myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=50)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50, projname=NULL)
 mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
@@ -201,7 +201,7 @@ plot(RI, addPieChart=TRUE)
 plot(RI, actors=1:20, addPieChart=TRUE, radius=1.08)
 }
 
-myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=50)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50, projname=NULL)
 mynet2 <- sienaDependent(array(c(s502, s503), dim=c(50, 50, 2)))
 mybeh <- sienaDependent(s50a[,2:3], type="behavior")
 mydata2 <- sienaDataCreate(mynet2, mybeh)

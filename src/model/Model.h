@@ -45,13 +45,15 @@ public:
 	Model();
 	virtual ~Model();
 
-	// Basic rate effects
+	// Basic rate and scale effects
 
 	void basicRateParameter(LongitudinalData * pDependentVariableData,
 		int period,
 		double value);
 	double basicRateParameter(LongitudinalData * pDependentVariableData,
 		int period) const;
+	void basicScaleParameter(int period, double value);
+	double basicScaleParameter(int period) const;		
 
 	// Setting rate effects
 
@@ -199,6 +201,10 @@ private:
 
 	std::map<const NetworkLongitudinalData *, std::map<std::string, double *> >
 		lsettingRateParameters;
+
+	// An array of doubles storing the scale parameters for all periods
+	// (part of the SDE model for continuous variables)
+	double * lbasicScaleParameters;
 
 	// A vector of effects other than the basic rate effects.
 	std::vector<EffectInfo *> leffects;

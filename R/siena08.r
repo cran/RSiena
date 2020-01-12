@@ -184,7 +184,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 # to components requestedEffects, theta and se
 	requestedEffects <- ex[[1]]$requestedEffects
 	if (dim(requestedEffects)[1] != length(unique(mydf$effects))){
-		cat('\nWarning: length requestedEffects incorrect.\n')
+		warning('\nWarning: length requestedEffects incorrect.\n')
 		print(requestedEffects)
 		print(mydf$effects)
 	}
@@ -213,7 +213,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 ## methods
 
 ##@print.sienaMeta Methods
-print.sienaMeta <- function(x, file=FALSE, ...)
+print.sienaMeta <- function(x, file=FALSE, reportEstimates=FALSE, ...)
 {
     exitfn <- function()
     {
@@ -257,6 +257,8 @@ print.sienaMeta <- function(x, file=FALSE, ...)
        Report(c("\n", dashes, "\nParameter ", i, ": ",
                 as.character(x$effects[1]), "\n", dashes, "\n"),
               sep="", outf)
+	   if (reportEstimates)
+	   {
        tmp <- paste("Data set ", 1:nrow(x), ", ", format(x$projname),
                     " :  Estimate ",
                     format(round(x$theta, 4), width=12),
@@ -264,6 +266,7 @@ print.sienaMeta <- function(x, file=FALSE, ...)
                     format(round(x$se, 4), nsmall=4,
                            width=12), ")", x$excl, "\n", sep="")
        Report(c(tmp, "\n"), sep="", outf)
+	   }
        Report(c(" ", y$n1, " datasets used.\n\n"), sep="", outf)
        if (y$n1 > 0)
        {
@@ -403,11 +406,19 @@ reportp <- function(p, ndec)
 }
 
 ##@plot.sienaMeta Methods
-plot.sienaMeta <- function(x, ..., layout = c(2,2))
+plot.sienaMeta <- function(x, ..., which = 1:length(x$theta), useBound=TRUE, layout = c(2,2))
 {
     ## library(lattice)
-    tmp <- xyplot(theta ~ se|effects,
-                  data=x$thetadf[is.na(x$thetadf$scoretests),],
+	if (useBound)
+	{
+		usedLines <- is.na(x$thetadf$scoretests) & (x$thetadf$se < x$bound)
+	}
+	else
+	{
+		usedLines <- is.na(x$thetadf$scoretests)
+	}
+    tmp <- xyplot(theta ~ se|effects[which],
+                  data=x$thetadf[usedLines,],
                   ylab="estimates",
                   xlab="standard errors", layout=layout,
                   panel=function(x, y)
@@ -487,9 +498,9 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
 				0
 			}
 		Report(c(rep(" ", nBlanks), rep("*", astlen), "\n"), sep="", outf)
-		Report(c(rep(" ", nBlanks2), projname, ".out\n"), sep="", outf)
+		Report(c(rep(" ", nBlanks2), projname, ".txt\n"), sep="", outf)
 		Report(c(rep(" ", nBlanks), rep("*", astlen), "\n"), sep="", outf)
-		Report(c("Filename is ", projname, ".out.\n\n"), sep="", outf)
+		Report(c("Filename is ", projname, ".txt.\n\n"), sep="", outf)
 		Report(c("This file contains primary output for SIENA project <<",
 				projname, ">>.\n\n"), sep="", outf)
 		Report(c("Date and time:", format(Sys.time(),

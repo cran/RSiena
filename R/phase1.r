@@ -554,5 +554,9 @@ createSiena07stores <- function(z, nIterations, f)
 		z$ntim <- matrix(NA, nrow=nIterations, ncol=f$observations - 1)
 	}
 	z$sims <- vector("list", nIterations)
+	if (z$thetaFromFile)
+	{
+		z$thetaUsed <- matrix(NA, nrow = nIterations , ncol = z$pp)
+	}
 	z
 }

@@ -12,7 +12,10 @@
 #ifndef INDEGREEPOPULARITYEFFECT_H_
 #define INDEGREEPOPULARITYEFFECT_H_
 
+#include <string>
 #include "NetworkEffect.h"
+
+using namespace std;
 
 namespace siena
 {
@@ -41,8 +44,11 @@ class IndegreePopularityEffect : public NetworkEffect
 friend class BothDegreesEffect;
 
 public:
-	IndegreePopularityEffect(const EffectInfo * pEffectInfo, bool root);
+	IndegreePopularityEffect(const EffectInfo * pEffectInfo,		
+								bool root, bool centered);
 
+	virtual void initialize(const Data * pData, State * pState,	int period,
+			Cache * pCache);
 	virtual double calculateContribution(int alter) const;
 
 protected:
@@ -54,6 +60,9 @@ private:
 
 	// Lookup table for fast square root calculations
 	SqrtTable * lsqrtTable;
+	bool lcentered;
+	double lcentering;
+	string lvariableName;
 };
 
 }

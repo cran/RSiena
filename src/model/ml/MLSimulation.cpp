@@ -178,7 +178,7 @@ void MLSimulation::updateProbabilities(Chain * pChain,
 		this->calculateRates();
 		double rate = pVariable->rate(pMiniStep->ego());
 		double probability = pVariable->probability(pMiniStep);
-		double reciprocalTotalRate = 1 / this->totalRate();
+		double reciprocalTotalRate = 1 / this->grandTotalRate();
 
 		if (!pVariable->structural(pMiniStep))
 		{
@@ -219,7 +219,7 @@ void MLSimulation::updateProbabilities(Chain * pChain,
 	delete [] counts;
 	// finally (sometimes) we need the next reciprocal rate.
 	this->calculateRates();
-	pChain->finalReciprocalRate(1 / this->totalRate());
+	pChain->finalReciprocalRate(1 / this->grandTotalRate());
 
 }
 
@@ -232,7 +232,7 @@ void MLSimulation::preburnin()
 {
 	int rejectCount = 0;
 	bool accept;
-	while (rejectCount < 5)
+	while (rejectCount < 50)
 	{
 		accept = this->insertDiagonalMiniStep();
 		if (!accept)
@@ -241,7 +241,7 @@ void MLSimulation::preburnin()
 		}
 	}
 	rejectCount = 0;
-	while (rejectCount < 5)
+	while (rejectCount < 50)
 	{
 		accept = this->insertPermute(1);
 		if (!accept)
@@ -537,7 +537,7 @@ bool MLSimulation::insertDiagonalMiniStep()
 		}
 	}
 
-	double rr = 1 / this->totalRate();
+	double rr = 1 / this->grandTotalRate();
 	pNewMiniStep->reciprocalRate(rr);
 	pNewMiniStep->logOptionSetProbability(log(pVariable->rate(i) * rr));
 
@@ -716,7 +716,7 @@ bool MLSimulation::permute(int c0)
 			}
 
 			this->calculateRates();
-			double rr = 1 / this->totalRate();
+			double rr = 1 / this->grandTotalRate();
 			double lospr =
 				log(pVariable->rate(pMiniStep->ego()) * rr);
 			double lcpr = log(pVariable->probability(pMiniStep));
@@ -816,7 +816,7 @@ bool MLSimulation::insertPermute(int c0)
 
     DependentVariable * pVariable =
 	    this->lvariables[pMiniStepA->variableId()];
-    //	double pr2 = 1 - pVariable->rate(pMiniStepA->ego()) / this->totalRate();
+    //	double pr2 = 1 - pVariable->rate(pMiniStepA->ego()) / this->grandTotalRate();
     double pr2 = 1;
 
     pVariable = this->chooseVariable();
@@ -857,7 +857,7 @@ bool MLSimulation::insertPermute(int c0)
 		return false;
     }
 
-    double rr0 = 1 / this->totalRate();
+    double rr0 = 1 / this->grandTotalRate();
     double lospr0 = log(pVariable->rate(i) * rr0);
     double lcpr0 = pLeftMiniStep->logChoiceProbability();
 
@@ -1036,7 +1036,7 @@ bool MLSimulation::insertPermute(int c0)
 				}
 
 				this->calculateRates();
-				double rr = 1 / this->totalRate();
+				double rr = 1 / this->grandTotalRate();
 				double lospr =
 					log(pVariable->rate(pMiniStep->ego()) * rr);
 				double lcpr = log(pVariable->probability(pMiniStep));
@@ -1085,7 +1085,7 @@ bool MLSimulation::insertPermute(int c0)
 		pRightMiniStep = pLeftMiniStep->createReverseMiniStep();
 
 		this->calculateRates();
-		double rr = 1 / this->totalRate();
+		double rr = 1 / this->grandTotalRate();
 		double lospr =
 		    log(pVariableInsert->rate(pRightMiniStep->ego()) * rr);
 
@@ -1470,7 +1470,7 @@ bool MLSimulation::deletePermute(int c0)
 
     this->calculateRates();
     double pr2 = 1 - pVariable->rate(pMiniStepA->pNext()->ego()) /
-	    this->totalRate();
+	    this->grandTotalRate();
     pr2 = 1;
 
     // Variables for localML option.
@@ -1551,7 +1551,7 @@ bool MLSimulation::deletePermute(int c0)
 				}
 
 				this->calculateRates();
-				double rr = 1 / this->totalRate();
+				double rr = 1 / this->grandTotalRate();
 				double lospr =
 					log(pVariable->rate(pMiniStep->ego()) * rr);
 				double lcpr = log(pVariable->probability(pMiniStep));
@@ -2023,7 +2023,7 @@ bool MLSimulation::insertMissing()
 		pVariable = this->lvariables[pMiniStep->variableId()];
 
 		this->calculateRates();
-		double rr = 1 / this->totalRate();
+		double rr = 1 / this->grandTotalRate();
 		double lospr =
 			log(pVariable->rate(pMiniStep->ego()) * rr);
 		double lcpr = log(pVariable->probability(pMiniStep));
@@ -2052,7 +2052,7 @@ bool MLSimulation::insertMissing()
 
 	pVariable = this->lvariables[pNewMiniStep->variableId()];
 	this->calculateRates();
-	double rr0 = 1 / this->totalRate();
+	double rr0 = 1 / this->grandTotalRate();
 	double lospr0 =
 		log(pVariable->rate(pNewMiniStep->ego()) * rr0);
 	double lcpr0 = log(pVariable->probability(pNewMiniStep));
@@ -2305,7 +2305,7 @@ bool MLSimulation::deleteMissing()
 //	pr2=1;
 //	pr3=1;
 	this->calculateRates();
-	double rr0 = 1 / this->totalRate();
+	double rr0 = 1 / this->grandTotalRate();
 //	double lospr0 =
 //		log(pVariable->rate(pOption->ego()) * rr0);
 //	double lcpr0 = log(pVariable->probability(pMiniStepA));
@@ -2338,7 +2338,7 @@ bool MLSimulation::deleteMissing()
 		pVariable = this->lvariables[pMiniStep->variableId()];
 
 		this->calculateRates();
-		double rr = 1 / this->totalRate();
+		double rr = 1 / this->grandTotalRate();
 		double lospr =
 			log(pVariable->rate(pMiniStep->ego()) * rr);
 		double lcpr = log(pVariable->probability(pMiniStep));

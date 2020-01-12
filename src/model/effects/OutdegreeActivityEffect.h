@@ -12,7 +12,10 @@
 #ifndef OUTDEGREEACTIVITYEFFECT_H_
 #define OUTDEGREEACTIVITYEFFECT_H_
 
+#include <string>
 #include "NetworkEffect.h"
+
+using namespace std;
 
 namespace siena
 {
@@ -37,13 +40,21 @@ class OutdegreeActivityEffect : public NetworkEffect
 friend class BothDegreesEffect;
 
 public:
-	OutdegreeActivityEffect(const EffectInfo * pEffectInfo);
+	OutdegreeActivityEffect(const EffectInfo * pEffectInfo, bool centered);
 
+	virtual void initialize(const Data * pData, State * pState,	int period,
+			Cache * pCache);
 	virtual double calculateContribution(int alter) const;
 
 protected:
 	virtual double tieStatistic(int alter);
 	virtual double endowmentStatistic(Network * pLostTieNetwork);
+
+private:
+	bool lcentered;
+	double lcentering;
+	string lvariableName;
+
 };
 
 }

@@ -382,7 +382,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 	initialBehaviors <- function()
 	{
 		Report("\n", outf)
-		Heading(2, outf,"Dependent actor variables:")
+     		Heading(2, outf,"Dependent discrete actor variables:")
 		if (nBehav == 1)
 		{
 			Report(c(netnames[types == "behavior"], "\n\n"), outf)
@@ -418,7 +418,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 				atts <- attributes(depvar)
 				for (i in 1: atts$netdims[3])
 				{
-					mytab <- table(depvar[, 1, i])
+					mytab <- table(round(depvar[, 1, i]))
 					vals[as.numeric(names(mytab)) + 1 - minval,
 						periodFromStart + i] <- mytab
 					# vals[factor(names(mytab)), periodFromStart + i] <- mytab
@@ -467,7 +467,8 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 				atts <- attributes(depvar)
 				for (i in 1:(atts$netdims[3] - 1))
 				{
-					mytab <- table(depvar[, 1, i + 1] - depvar[, 1, i])
+					mytab <- table(round(depvar[, 1, i + 1]) - 
+						round(depvar[, 1, i]))
 					numvals <- as.numeric(names(mytab))
 					ups <- mytab[numvals > 0]
 					downs <- mytab[numvals < 0]
@@ -501,6 +502,58 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 
 		Report("\n", outf)
 	}
+	
+	##@initialContinuous internal printInitialDescription
+	initialContinuous <- function()
+	{
+		Report("\n", outf)
+		Heading(2, outf,"Dependent continuous actor variables:")
+		Report("\n", outf)
+		Heading(3, outf, "Changes")
+		for (net in which(types=="continuous"))
+		{
+			Report(c("Dependent actor variable: ",
+				netnames[net], "\n"), sep="", outf)
+			Report(c(" periods    actors:  down   up   constant  missing  ;",
+				" average:   down    up  total\n"), sep="", outf)
+			periodFromStart <- 0
+			for (group in 1:nData)
+			{
+				j <- match(netnames[net], names(data[[group]]$depvars))
+				if (is.na(j))
+					stop("network names not consistent")
+				depvar <- data[[group]]$depvars[[j]]
+				atts <- attributes(depvar)
+				for (i in 1:(atts$netdims[3] - 1))
+				{
+					mytab <- table(depvar[, 1, i + 1] - depvar[, 1, i])
+					numvals <- as.numeric(names(mytab))
+					ups <- mytab[numvals > 0]
+					downs <- mytab[numvals < 0]
+					constants <- mytab[numvals == 0]
+					averageup <- sum(ups * numvals[numvals > 0]) / length(ups)
+					averagedown <- sum(downs * numvals[numvals < 0]) /
+																  length(downs)
+					averagechange <- sum(numvals) / length(numvals != 0) 
+					Report(c(format(i + periodFromStart, width=3),
+						"  =>", format(i + 1 + periodFromStart, width=3),
+						format(sum(downs), width=14),
+						format(sum(ups), width=6),
+						format(sum(constants), width=8),
+						format(sum(is.na(depvar[, 1, i + 1]) |
+						is.na(depvar[, 1, i])), width=10),
+						format(round(averagedown,2), width=21),
+						format(round(averageup,2), width=6),
+						format(round(averagechange,2), width=6), "\n"),
+						sep="", outf)
+					}
+					Report("\n", outf)
+					periodFromStart <- periodFromStart + atts$netdims[3]
+				}
+			}
+
+		Report("\n", outf)
+	}
 	##### start of printInitialDescription function
 	if (getDocumentation)
 	{
@@ -523,6 +576,7 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 	nobs <- gpatts$observations + length(data)
 	nOneMode <- sum(types == "oneMode")
 	nBehav <- sum(types == "behavior")
+	nContinuous <- sum(types == "continuous")
 	nBipartite <- sum(types == "bipartite")
 	if (nOneMode  + nBipartite > 0)
 	{
@@ -531,6 +585,10 @@ printInitialDescription <- function(data, effects, modelName="Siena",
 	if (nBehav > 0)
 	{
 		initialBehaviors()
+	}
+	if (nContinuous > 0)
+	{
+		initialContinuous()
 	}
 	Report(c("Initialisation of project <<", modelName,
 			">> executed succesfully.\n"), sep="", outf)

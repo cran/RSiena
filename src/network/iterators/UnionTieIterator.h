@@ -12,7 +12,7 @@
 #ifndef UNIONTIEITERATOR_H_
 #define UNIONTIEITERATOR_H_
 
-#include "CombinedTieIterator.h"
+#include "GeneralTieIterator.h"
 
 namespace siena {
 
@@ -20,46 +20,25 @@ namespace siena {
 // Section: UnionTieIterator class
 // ----------------------------------------------------------------------------
 
-class UnionTieIterator: public CombinedTieIterator {
+class UnionTieIterator: public GeneralTieIterator {
 public:
 
-	UnionTieIterator(const ITieIterator& iter1, const ITieIterator& iter2);
+	UnionTieIterator(ITieIterator& iter1, ITieIterator& iter2) :
+			GeneralTieIterator(iter1, iter2, Set_Operation::UNION) {
+	}
 
-	UnionTieIterator(const ITieIterator& iter1, const ITieIterator& iter2,
-			int idIter1, int idIter2);
+	virtual ~UnionTieIterator() {
+	}
 
-	virtual ~UnionTieIterator();
-
-	virtual void next();
-
-	int actor() const;
-
-	bool valid() const;
-
-	virtual UnionTieIterator * clone() const;
-
-	int getInactiveIterID();
-
-	int getActiveIterID();
-
-	bool isCommonNeighbor() const;
+	UnionTieIterator * clone() const {
+		return new UnionTieIterator(*this);
+	}
 
 protected:
+	UnionTieIterator(const UnionTieIterator& rhs) :
+			GeneralTieIterator(rhs) {
+	}
 
-	UnionTieIterator(const UnionTieIterator& rhs);
-
-private:
-
-	// The ID of the first iterator.
-	int lIdIter1;
-
-	// The ID of the second iterator.
-	int lIdIter2;
-
-	void init(int idIter1, int idIter2);
-
-	// Disable assignment operator.
-	UnionTieIterator& operator=(const UnionTieIterator&);
 };
 
 } /* namespace siena */

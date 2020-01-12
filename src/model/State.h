@@ -29,11 +29,15 @@ public:
 	const int * behaviorValues(std::string name) const;
 	void behaviorValues(std::string name, const int * values);
 
+	const double * continuousValues(std::string name) const;
+	void continuousValues(std::string name, const double * values);
+
 	void deleteValues();
 
 private:
 	std::map<std::string, const Network *> lnetworks;
 	std::map<std::string, const int *> lbehaviors;
+	std::map<std::string, const double *> lcontinuous;
 	bool lownedValues;
 };
 

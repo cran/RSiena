@@ -19,6 +19,8 @@
 #include <vector>
 #include <cstring>
 #include <R_ext/Random.h>
+#include <R_ext/Print.h>
+#include <R_ext/Error.h>
 #include <Rinternals.h>
 #include "siena07internals.h"
 #include "siena07utilities.h"
@@ -159,6 +161,28 @@ SEXP Behavior(SEXP RpData, SEXP BEHLIST)
 	for (int group = 0; group < nGroups; group++)
 	{
 		setupBehaviorGroup(VECTOR_ELT(BEHLIST, group),
+			(*pGroupData)[group]);
+	}
+	return R_NilValue;
+}
+
+/**
+ *  Creates all the groups of continuous dependent variables in the data
+ */
+SEXP Continuous(SEXP RpData, SEXP CONTLIST)
+{
+	vector<Data *> * pGroupData = (vector<Data *> *)
+		R_ExternalPtrAddr(RpData);
+	int nGroups = pGroupData->size();
+/* continuous dependent variables are passed in a list of lists of two 
+   matrices, one of values, one of missing values (boolean) */
+	if (nGroups != length(CONTLIST) )
+	{
+		error ("wrong number of groups");
+	}
+	for (int group = 0; group < nGroups; group++)
+	{
+		setupContinuousGroup(VECTOR_ELT(CONTLIST, group),
 			(*pGroupData)[group]);
 	}
 	return R_NilValue;
@@ -336,6 +360,20 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 
 	Model * pModel = new Model();
 
+	// for the SDE part of the model, in particular the scale parameters,
+	// it is important that numberOfPeriods in the model is set very early 
+	// on (waiting till setupModelOptions is too late); however this is 
+	// still only implemented for a single group
+	if(pGroupData->size() > 1)
+	{
+		//error("SDE not implemented yet for multiple groups (note nr. of obs!)");
+		pModel->numberOfPeriods(totalPeriods(*pGroupData));
+	}
+	else // single group
+	{
+		pModel->numberOfPeriods((*(*pGroupData)[0]).observationCount() - 1);
+	}
+	
 	/* find the number of columns of the data frame (all will be the same
 	   as they are split in R just before the call) */
 	//	int n = length(VECTOR_ELT(EFFECTSLIST, 0));
@@ -372,7 +410,9 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 	SEXP pointers;
 	PROTECT(pointers = allocVector(VECSXP, length(EFFECTSLIST)));
 
-	/* loop over the different dependent variables */
+	/* loop over the different dependent variables 
+	 * in case there are continuous variables in the model, the 
+	 * length of the effectlist is nrVar + 1 (extra var "sde") */
 	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
 		const char * networkName =  CHAR(STRING_ELT(
@@ -870,8 +910,6 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 			vector<double> score(nEffects); /* not used */
 			vector<double> deriv(nEffects*nEffects); /* ABC not used */
 
-//			getStatistics(EFFECTSLIST, &Calculator, period,
-//					group, pData, (EpochSimulation *) 0, &statistic, &score, &deriv); // ABC
 			getStatistics(EFFECTSLIST, &Calculator, period,
 					group, pData, (EpochSimulation *) 0, &statistic, &score); 
 			//getStatistics(EFFECTSLIST, &Calculator, period,

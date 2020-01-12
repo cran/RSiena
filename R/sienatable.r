@@ -6,19 +6,45 @@
 ##  * File: sienatable.r
 ##  *
 ##  * Description: This file contains the code to save a latex or html table of
-##  * estimates for a sienaFit object
+##  * estimates for a sienaFit or sienaBayesFit object
 ##  * Written by Charlotte Greenan; small modifications by Tom Snijders.
 ##  *
 ##  ***************************************************************************/
 
 ##@siena.table siena07 Saves latex or html table of estimates
-## for a sienaFit object
+## for a sienaFit or sienaBayesFit object
 siena.table <- function(x, type='tex',
 	file=paste(deparse(substitute(x)),'.',type,sep=""),
 	vertLine=TRUE, tstatPrint=FALSE,
-	sig=FALSE, d=3)
+	sig=FALSE, d=3, nfirst=NULL)
 {
+	objectName <- deparse(substitute(x))
+	fromBayes <- FALSE
+	xkind.string <- "sienaFit"
 	tstat <- tstatPrint
+	if (!inherits(x, "sienaFit"))
+	{
+		if (inherits(x, "sienaBayesFit"))
+		{
+			fromBayes <- TRUE
+			sig <- FALSE
+			tstat <- TRUE # for sienaBayesFit, the place for t-stats is used for between-groups sd.
+			if (is.null(nfirst))
+			{
+				nfirst <- x$nwarm + 1
+				message
+("Note: the print function for sienaBayesFit objects can also use a parameter nfirst,")
+				message("    indicating the first run from which convergence is assumed.")
+				message("    The default value used now is nfirst =",
+					x$nwarm + 1, ".")
+			}
+			xkind.string <- "sienaBayesFit"
+		}
+		else
+		{
+			stop('x must be a sienaFit or sienaBayesFit object')
+		}
+	}
 	effects <- x$requestedEffects
 	p <- x$pp
 	condrates <- 0
@@ -29,6 +55,17 @@ siena.table <- function(x, type='tex',
 		condrates <- length(x$rate)
 	}
 
+	if (fromBayes)
+	{
+		xx <- shortBayesResults(x, nfirst=nfirst)
+		theta <- xx$postMeanGlobal
+		ses <- xx$postSdGlobal
+		sd.between <- xx$postSdBetween
+		se.string <- '(psd)'
+		sdb.string <- 'psd-between'
+	}
+	else
+	{
 	theta <- x$theta
 	theta[diag(x$covtheta) < 0.0 | x$fixed] <- NA
 	ses <- sqrt(diag(x$covtheta))
@@ -45,6 +82,8 @@ siena.table <- function(x, type='tex',
 	if (maxlincomb.t < maxlincomb.t1)
 	{
 		maxlincomb.t <- maxlincomb.t + 10^{-dd} #needs to be rounded up
+	}
+		se.string <- '(s.e.)'
 	}
 	if (length(x$condvarno) == 0)
 	{
@@ -66,7 +105,7 @@ siena.table <- function(x, type='tex',
 
 	max.ses.width <- max.width(ses)
 	max.theta.width <- max.width(theta)
-	max.tstat.width <- max.width(theta/ses)
+	max.tstat.width <- ifelse(fromBayes, max.width(sd.between), max.width(theta/ses))
 
 	## signif converts t values into daggers and asterisks
 
@@ -148,7 +187,14 @@ siena.table <- function(x, type='tex',
 		}
 		else
 		{
+			if (fromBayes)
+			{
+				tcsplit <- c("","")
+			}
+			else
+			{
 			tcsplit <- c("N","A.")
+		}
 		}
 
 		if (int.width>0)
@@ -214,7 +260,7 @@ siena.table <- function(x, type='tex',
 	{
 		if (type == "html")
 		{
-			if (tstat == TRUE)
+			if (tstat)
 			{
 				amp5 <- rep("</TD><TD align=\"right\">",pp)
 				amp6 <- rep(".",pp)
@@ -291,9 +337,16 @@ siena.table <- function(x, type='tex',
 
 	if (type == "html")
 	{
-		if (tstat == TRUE)
+		if (tstat)
+		{
+			if (fromBayes)
+			{
+				start.tstat <- "<TD>betw. sd.</TD>"
+			}
+			else
 		{
 			start.tstat <- "<TD>t stat.</TD>"
+		}
 		}
 		else
 		{
@@ -302,11 +355,23 @@ siena.table <- function(x, type='tex',
 
 		startTable <- tableSection(c("<TABLE border=1  rules=none frame = hsides>",
 				paste("<TR><TD>Effect</TD><TD>&nbsp;&nbsp;&nbsp;par.</TD><TD></TD>
-					<TD>&nbsp;&nbsp;&nbsp;(s.e.)</TD>",start.tstat,"</TR>")))
+					<TD>&nbsp;&nbsp;&nbsp;",se.string,"</TD>",start.tstat,"</TR>")))
 					midTable <- tableSection(c("",""))
 					indentTable <- tableSection("")
-		ruleTable <- tableSection("</TABLE>")
-		footnoteStart <- "<TABLE border=1  rules=none frame = below>"
+		ruleTable <- tableSection("<TR> <TD colspan='9'><HR/></TD> </TR>")
+
+		footnoteStart <- c("</TABLE>","<TABLE border=1  rules=none frame = below>")
+		if (fromBayes)
+		{
+			footnote <- c(paste("<TR> <TD colspan=9 align=left> par=posterior mean;
+							psd = posterior standard deviation;
+							</TD> </TR> "),
+						paste("<TR> <TD colspan=9 align=left>
+							betw. sd = posterior between-groups stand. deviation.
+							</TD> </TR> <TR> </TR>"), "</TABLE>")
+		}
+		else
+		{
 					footnote <- c(paste(" <TR> <TD colspan=9 align=left>
 							all convergence t ratios < ",
 							max.t,".</TD> </TR> <TR> </TR>",
@@ -314,6 +379,7 @@ siena.table <- function(x, type='tex',
 							Overall maximum convergence ratio ",
 							maxlincomb.t,".</TD> </TR> <TR> </TR>",							
 							sep="",collapse=""),"</TABLE>")
+		}
 		if (sig)
 					{
 			footnote <- c(footnoteStart, "<TR> <TD colspan=4 align=left> &#134 p < 0.1;
@@ -327,16 +393,6 @@ siena.table <- function(x, type='tex',
 	}
 	else
 	{
-		if (tstat == TRUE)
-		{
-			start.tstat <- "r@{.}l"
-			start.tstat2 <- "&\\multicolumn{2}{c}{$t$ stat.}"
-		}
-		else
-		{
-			start.tstat <- ""
-			start.tstat2 <- ""
-		}
 		if (vertLine)
 		{
 			linesep="|"
@@ -345,8 +401,34 @@ siena.table <- function(x, type='tex',
 		{
 			linesep=""
 		}
-		startTable <- tableSection(c(paste("% Table based on sienaFit object",
+		if (tstat)
+		{
+			start.tstat <- "r@{.}l"
+			if (fromBayes)
+			{
+				start.tstat2 <- paste("&\\multicolumn{2}{c", linesep, "}{betw. sd}")
+		}
+		else
+		{
+				start.tstat2 <- paste("&\\multicolumn{2}{c", linesep, "}{$t$ stat.}")
+		}
+		}
+		else
+		{
+			start.tstat <- ""
+			start.tstat2 <- ""
+		}
+		if (is.null(x$startingDate))
+		{
+			startdate <- NULL
+		}
+		else		
+		{
+			startdate <- paste("%Estimation date",x$startingDate)
+		}
+		startTable <- tableSection(c(paste("% Table based on", xkind.string, "object",
 					deparse(substitute(x)), ',', date()),
+					startdate,
 				paste("\\begin{tabular}{l",
 					linesep,
 					"r@{.}l r@{.}l",start.tstat,
@@ -354,14 +436,24 @@ siena.table <- function(x, type='tex',
 				"\\hline",
 				"\\rule{0pt}{2ex}\\relax",
 				paste("Effect &\\multicolumn{2}{c}{par.}&\\multicolumn{2}{c",
-					linesep,
-					"}{(s.e.)}",
+					"}{",se.string,"}",
 					start.tstat2,"\\\\[0.5ex]"),
 				"\\hline"))
 		midTable <- tableSection(c("\\hline",
 				"\\rule{0pt}{2ex}\\relax"))
 		indentTable <- tableSection("\\rule{0pt}{2ex}\\relax")
 		ruleTable <- tableSection("\\hline")
+		if (fromBayes)
+		{
+			footnote <- c(paste("\\multicolumn{7}{l}\n   ",
+				"{\\footnotesize{par = posterior mean; psd = posterior standard deviation;}}\\\\\n",
+				"\\multicolumn{7}{l}\n   ",
+				"{\\footnotesize{betw. sd = posterior between-groups stand. deviation.}}\\\\\n",
+				sep="",collapse=""),
+			"\\end{tabular}")
+		}
+		else
+		{
 		footnote <- c(paste("\\multicolumn{5}{l}\n   ",
 				"{\\footnotesize{convergence $t$ ratios all $<$ ", max.t,
 				".}}\\\\\n",
@@ -377,6 +469,7 @@ siena.table <- function(x, type='tex',
 				$^\\ast$ $p$ $<$ 0.05; $^{\\ast\\ast}$ $p$ $<$ 0.01;
 				$^{\\ast\\ast\\ast}$ $p$ $<$ 0.001;}}\\\\" ,footnote)
 		}
+	}
 	}
 
 	endTable <- tableSection(footnote)
@@ -440,7 +533,26 @@ siena.table <- function(x, type='tex',
 
 		remove <- unique(c(basicRates,fixed.2))
 
-		if (tstat == TRUE)
+		if (tstat)
+		{
+			if (fromBayes)
+			{
+				remove <- is.na(sd.between)
+				mainTable$tstat1[-mid][-remove] <-
+					sapply(sd.between[rows],mystr,max.tstat.width)[1,][-remove]
+				mainTable$tstat2[-mid][-remove] <-
+					sapply(sd.between[rows],mystr)[2,][-remove]
+
+				if (any(remove))
+				{
+					if (type=='tex')
+					{
+						mainTable$tstat1[-mid][remove] <- "\\omit"
+						mainTable$tstat2[-mid][remove] <- "-"
+					}
+				}
+			}
+			else
 		{
 			mainTable$tstat1[-mid][-remove] <-
 				sapply(theta[rows]/ses[rows],mystr,max.tstat.width)[1,][-remove]
@@ -457,7 +569,9 @@ siena.table <- function(x, type='tex',
 			}
 		}
 
-		if (sig == TRUE)
+		}
+
+		if (sig)
 		{
 			mainTable$signif[-mid][-remove] <- sapply(theta[rows]/ses[rows],signif)[-remove]
 		}
@@ -473,7 +587,7 @@ siena.table <- function(x, type='tex',
 			rateTable$se1 <- sapply(x$vrate,mystr,max.vrate.width)[1,]
 			rateTable$se2 <- sapply(x$vrate,mystr)[2,]
 
-			if (tstat==TRUE)
+			if (tstat)
 			{
 				if (type=='tex')
 				{

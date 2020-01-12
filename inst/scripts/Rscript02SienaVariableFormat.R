@@ -2,7 +2,7 @@
 ###
 ### - Rscript02SienaVariableFormat.R: a script for the introduction to RSiena -
 ###
-###                               version May 23, 2016
+###                               version June 19, 2015
 ###############################################################################
 #
 # The introductory script is divided into the following script files:
@@ -12,15 +12,28 @@
 # Rscript03SienaRunModel.R, which runs the model and estimates parameters
 # Rscript04SienaBehaviour.R, which illustrates an example of analysing the
 # coevolution of networks and behaviour
-# Written with contributions by Robin Gauthier, Tom Snijders, Ruth Ripley,
-# Johan Koskinen, and Paulina Preciado.
+# Written by Tom Snijders, with earlier contributions from Robin Gauthier,
+# Ruth Ripley, Johan Koskinen, and Paulina Preciado.
 #
 # This script, Rscript02SienaVariableFormat.R, sets up the variables for analysis.
 # The manipulations in this script requires that you have gone through the
 # first part, "CALLING THE DATA AND PRELIMINARY MANIPULATIONS",
 # of the script "Rscript01DataFormat.R" beforehand.
 
-#### FORMATING DATA ACCORDING TO THEIR ROLES AS VARIABLES IN A SIENA MODEL #####
+#### FORMATTING DATA ACCORDING TO THEIR ROLES AS VARIABLES IN A SIENA MODEL ####
+
+# For this script, you will need the data read and modified in the script
+# Rscript01DataFormat.R. If you have already ran that script, you may
+# load the required workspace:
+	load("WorkspaceRscript01.RData")
+# If not, to make this script self-contained, you may run the following commands:
+
+	library(RSiena)
+	friend.data.w1 <- s501
+	friend.data.w2 <- s502
+	friend.data.w3 <- s503
+	drink <- s50a
+	smoke <- s50s
 
 # A number of objects need to be created in R, as preparations to letting
 # siena07 execute the estimation. This will be indicated by
@@ -61,12 +74,9 @@
 
         attributes( friendship )$type
 
-# The entire contents of the object are listed by typing
+# A very concise description of the friendship data is obtained by typing
 
-#       friendship
-
-# but this gives a lot of output which you may not want,
-# hence the # sign in front.
+        friendship
 
 # The function sienaDependent can also be used to create a behavior variable object
 # with the extra argument type = "behavior".
@@ -256,37 +266,24 @@
 # Here the TRUE values correspond to the default model specification which,
 # however, is not meant as a serious model, being too limited.
 # There are 3 main ways to operate on myeff.
-# 1. Changing myeff in spreadsheet form by the function fix();
-# 2. Using RSiena functions "includeEffects", "setEffects", etc;
+# 1. Using RSiena functions "includeEffects", "setEffects", etc;
+# 2. Changing myeff in spreadsheet form by the function fix();
 # 3. Changing myeff directly by operating on its elements.
 # Which one to use is a matter of personal preference.
-# The second way is most in line with the design philosophy of R,
+# The first way is most in line with the design philosophy of R,
 # and allows you to save scripts that also can be used when
 # there will be new versions of RSiena.
-# Therefore, we suggest that you skip the explanations of options 1 and 3, and
-# proceed directly to option 2, ' Adding/removing effects using includeEffects'.
+# Therefore, we suggest that for starting you only study
+# option 1, ' Adding/removing effects using includeEffects'.
+# The other two options are treated only for special
+# and more difficult occasions.
 
 # For identifying your effects you need the "shortName"s,
 # which can be read in the manual (section "Mathematical definition of effects"),
 # or obtained from the "effectsDocumentation()" function mentioned above.
 
-# ---- 1. Adding/removing effects using fix() ----------------------------------
-# fix calls a data editor internal to R, so we can manually edit the effects.
 
-#        fix( myeff )
-
-# How to use fix() is presented merely for getting to know what myeff is.
-# In practical analysis it is more convenient
-# to use routine "includeEffects" instead, as explained below.
-# fix() may not be usable if you do not have tcl/tk available!
-# Note that the top of the dataframe shows the names of the columns:
-# name, effectName, etc.
-# You can edit the "include" column by changing the TRUE and FALSE values
-# as required; when the editor is closed, the new values are stored.
-# When you make an error, however, the effects object may be corrupted.
-
-
-# ---- 2. Adding/removing effects using includeEffects -------------------------
+# ---- 1. Adding/removing effects using includeEffects -------------------------
 # The best way of specifying the model is by the includeEffects function.
 # This function uses short names instead of full names.
 # The short names are given by the effectsDocumentation() function
@@ -399,18 +396,34 @@
 # The 'parameter' keyword refers to the effect parameter, described in
 # Section 12 of the manual.
 
+# ---- 2. Adding/removing effects using fix() ----------------------------------
+# fix calls a data editor internal to R, so we can manually edit the effects.
+
+#        fix( myeff )
+
+# How to use fix() is presented merely for getting to know what myeff is.
+# In practical analysis it is more convenient
+# to use routine "includeEffects" instead, as explained above.
+# fix() may not be usable if you do not have tcl/tk available!
+# Note that the top of the dataframe shows the names of the columns:
+# name, effectName, etc.
+# You can edit the "include" column by changing the TRUE and FALSE values
+# as required; when the editor is closed, the new values are stored.
+# When you make an error, however, the effects object may be corrupted.
+# Therefore, this way of adding and removing effects is more risky.
+
 # ---- 3. Adding/removing effects by direct manipulation of myeff --------------
 # Alternatively we can edit the dataframe directly by using R functions.
-# You are advised to skip this part ("3.") at first reading,
+# You are advised to skip this part ("3.") at first and second reading,
 # and read it only if you wish to get more understanding
-# of the interal structure of the effects object.
+# of the internal structure of the effects object.
 # The commands below are used to set "include" to TRUE or FALSE,
 # as an alternative to using the data editor.
 # The "include" column with values TRUE or FALSE will always be
 # located at the 9th column,
 # but transitive triplets will not always be at the 13th row as this depends
 # on the number of periods and variables; further, the list of available effects
-# may change in future versions.
+# changes over different versions of RSiena.
 # Some examples are the following
 # (preceded by # because not proposed to be applied).
 
@@ -434,8 +447,8 @@
 # Several variants are given, so that you can use what suits you best.
 # We give a small and meaningful model.
 
-# To understand the R commands, recall that myeff is a matrix,
-# i.e., a two-dimensional array,
+# To understand the R commands, recall that myeff is a data.frame,
+# i.e., a two-dimensional array with named columns,
 # and myeff[i,j] refers to row/effect i and its characteristic j.
 # A file with the effect shortNames, for easy access to their exact wordings,
 # is obtained by effectsDocumentation() (see above).
@@ -465,6 +478,8 @@
 # by requesting the list of effects now included in the model:
 
 #        myeff
+
+save.image("WorkspaceRscript02.RData")
 
 ################################################################################
 ###

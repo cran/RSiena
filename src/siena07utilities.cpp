@@ -32,7 +32,9 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
-#include <Rinternals.h>
+
+#include "siena07utilities.h"
+
 #include "siena07internals.h"
 #include "data/Data.h"
 #include "network/OneModeNetwork.h"
@@ -326,9 +328,8 @@ void printOutData(Data *pData)
  */
 SEXP getBehaviorValues(const BehaviorVariable & behavior)
 {
-    SEXP ans;
     int n = behavior.n();
-    PROTECT(ans = allocVector(INTSXP, n));
+	SEXP ans = PROTECT(allocVector(INTSXP, n));
     int *ians = INTEGER(ans);
 	const int *pValues = behavior.values();
     for (int i = 0; i < n; i++)
@@ -339,14 +340,13 @@ SEXP getBehaviorValues(const BehaviorVariable & behavior)
     return ans  ;
 }
 
-/** Create an R matrix from a network variable for a single period
- *
+/**
+ * Create an R matrix from a network variable for a single period
  */
 SEXP getAdjacency(const Network& net)
 {
-    SEXP ans;
     int n=net.n();
-    PROTECT( ans=allocMatrix(INTSXP,n,n));
+	SEXP ans = PROTECT(allocMatrix(INTSXP, n, n));
     int *ians = INTEGER(ans);
     /* initialise the memory: possibly only neccesary in case of error! */
     for (int i = 0; i<n*n;i++)
@@ -360,21 +360,20 @@ SEXP getAdjacency(const Network& net)
     return ans;
 }
 
-/** Create an R 3 column matrix from a network variable for a single period
- *
+/**
+ * Create an R 3 column matrix from a network variable for a single period
  */
 SEXP getEdgeList(const Network& net)
 {
-    SEXP ans;
 	int nties = net.tieCount();
-    PROTECT(ans = allocMatrix(INTSXP, nties, 3));
+	SEXP ans = PROTECT(allocMatrix(INTSXP, nties, 3));
     int *ians = INTEGER(ans);
     /* initialise the memory: possibly only neccesary in case of error! */
-    for (int i = 0; i < nties * 3; i++)
+	for (int i = 0; i < nties * 3; i++) {
 		ians[i] = 0;
+	}
 	int irow = 0;
-    for (TieIterator iter=net.ties(); iter.valid(); iter.next())
-    {
+	for (TieIterator iter = net.ties(); iter.valid(); iter.next()) {
 		ians[irow ] = iter.ego() + 1;
 		ians[nties + irow] = iter.alter() + 1;
 		ians[2 * nties + irow] = iter.value();
@@ -386,10 +385,26 @@ SEXP getEdgeList(const Network& net)
 }
 /**
  * utilities to access chains and ministeps
- *
  */
 namespace siena
 {
+
+SEXP net_to_sexp(const Network * pNet) {
+	return getEdgeList(*pNet);
+}
+
+SEXP var_to_sexp(DependentVariable * pVar) {
+	NetworkVariable * pNetworkVariable = dynamic_cast<NetworkVariable *>(pVar);
+	BehaviorVariable * pBehaviorVariable = dynamic_cast<BehaviorVariable *>(pVar);
+	if (pNetworkVariable) {
+		return net_to_sexp(pNetworkVariable->pNetwork());
+	} else if (pBehaviorVariable) {
+		return getBehaviorValues(*pBehaviorVariable);
+	} else {
+		throw domain_error(pVar->name() + ": unexpected class of DependentVariable");
+	}
+}
+
 /** Create a data frame with a single row from a ministep. (prints nicely
  * with PrintValue)
  */
@@ -1094,5 +1109,4 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	return pChain;
 }
 
-
-}
+} // namespace siena

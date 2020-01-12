@@ -46,7 +46,7 @@ model fit. The components of the object are.
 \seealso{
 \code{\link{sienaDependent}}, \code{\link{coCovar}}, \code{\link{varCovar}},
 \code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},
-\code{\link{sienaCompositionChange}},\cr
+\code{\link{sienaNodeSet}}, \code{\link{sienaCompositionChange}},
 \code{\link{sienaGroupCreate}},
 \code{\link{sienaDataConstraint}}, \code{\link{sienaNodeSet}},
 \code{\link{print01Report}}}

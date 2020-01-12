@@ -25,15 +25,26 @@ namespace siena
  * Constructor.
  */
 TruncatedOutdegreeEffect::TruncatedOutdegreeEffect(
-	const EffectInfo * pEffectInfo) : NetworkEffect(pEffectInfo)
+	const EffectInfo * pEffectInfo, bool right, bool outIso) : NetworkEffect(pEffectInfo)
+{
+	this->lOutIso = outIso;
+	this->lc = 1;
+	this->lright = right;
+
+	if (this->lOutIso)
+	{
+		this->lc = 1;
+	}
+	else
 {
 	this->lc = int(pEffectInfo->internalEffectParameter() + 0.01);
+	}
 	// C++ always rounds downward
 
 	if (this->lc < 1)
 	{
 		throw invalid_argument(
-			"TruncatedOutdegreeEffect: Parameter value must be at least 1");
+			"Truncated/More OutdegreeEffect: Parameter value must be at least 1");
 	}
 }
 
@@ -48,6 +59,8 @@ double TruncatedOutdegreeEffect::calculateContribution(int alter) const
 	// Current out-degree
 	int d =	this->pNetwork()->outDegree(this->ego());
 
+	if (lright) // outTrunc or outIso
+	{
 	if (this->outTieExists(alter))
 	{
 		// After a tie withdrawal, the new out-degree would be d-1, and
@@ -55,17 +68,53 @@ double TruncatedOutdegreeEffect::calculateContribution(int alter) const
 
 		if (d <= this->lc)
 		{
+				if (this->lOutIso)
+				{
+					change = -1;
+				}
+				else
+				{
 			change = 1;
 		}
 	}
+		}
 	else
 	{
 		// When introducing a new tie, the new out-degree would be d+1, and
 		// the new effect value would have increased by 1 if d < this->lc
 		if (d < this->lc)
 		{
+				if (this->lOutIso)
+				{
+					change = -1;
+				}
+				else
+				{
+					change = 1;
+				}
+			}
+		}
+	}
+	else // More
+	{
+		if (this->outTieExists(alter))
+		{
+		// After a tie withdrawal, the new out-degree would be d-1, and
+		// the new effect value would have decreased by 1 if d >= this->lc
+			if (d >= this->lc)
+			{
+				change = 1;
+			}
+		}
+		else
+		{
+		// When introducing a new tie, the new out-degree would be d+1, and
+		// the new effect value would have increased by 1 if d > this->lc
+			if (d > this->lc)
+			{
 			change = 1;
 		}
+	}
 	}
 
 	return change;
@@ -75,31 +124,46 @@ double TruncatedOutdegreeEffect::calculateContribution(int alter) const
  * Calculates the statistic corresponding to the given ego. The parameter
  * pNetwork is always the current network as there are no endowment effects
  * of this kind.
+ * TS: well, the endowment effect is implemented. I'm not sure about this.
  */
 double TruncatedOutdegreeEffect::egoStatistic(int ego,
 	const Network * pNetwork)
 {
-	// Current out-degree
-	int d =	this->pNetwork()->outDegree(this->ego());
+	int statistic =	this->pNetwork()->outDegree(this->ego());
 
-	if (d <= this->lc)
+	if (this->lOutIso)
 	{
-		return d;
+		if (statistic <= 0)
+		{
+			statistic = 1;
+		}
+		else
+		{
+			statistic = 0;
+		}
 	}
 	else
 	{
-		return this->lc;
+		if (this->lright)
+		{
+			if (statistic > this->lc)
+			{
+				statistic = this->lc;
+			}
+		}
+		else
+		{
+			if (statistic > this->lc)
+	{
+				statistic = statistic - this->lc;
 	}
-}
-
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function.
- */
-double TruncatedOutdegreeEffect::endowmentStatistic(Network * pLostTieNetwork)
-{
-	throw logic_error(
-		"TruncatedOutdegreeEffect: Endowment effect not supported.");
+	else
+	{
+				statistic = 0;
+			}
+		}
+	}
+	return statistic;
 }
 
 }

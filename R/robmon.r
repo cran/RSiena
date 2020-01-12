@@ -73,6 +73,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
        # {
        #     stop("Multiple processors only for simstats0c at present")
        # }
+		if (z$returnChains)
+		{
+			stop("returnChains and useCluster are incompatible")
+		}
         if (!clusterIter && nbrNodes >= z$observations)
         {
             stop("Not enough observations to use the nodes")
@@ -120,6 +124,16 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     {
         z$cl  <-  NULL
     }
+
+	# check dimensionality of thetaValues
+	if (z$thetaFromFile)
+	{
+		if (dim(z$thetaValues)[2] != z$pp)
+		{
+			stop(paste('Matrix thetaValues, if given, should have', z$pp, 'columns.'))
+		}
+	}
+
     z$newFixed <- rep(FALSE, z$pp)
     z$AllNowFixed <- FALSE
     if (!z$haveDfra)
@@ -353,7 +367,22 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z <- terminateFRAN(z, x)
     ## #####################################################
     ## call to FRAN changes covariance matrix for conditional estimation
-	if (!x$simOnly)
+	if (x$simOnly)
+	{
+		if (z$thetaFromFile)
+		{
+			z$theta <- colMeans(z$thetaUsed)
+			z$covtheta <- cov(z$thetaUsed)
+			z$se <- sqrt(diag(z$covtheta))
+			z$thetaValues <- NULL # not needed any longer, superseded by z$thetaUsed
+		}
+		else
+		{
+			z$covtheta <- matrix(0, z$pp, z$pp )
+			z$se <- rep(0, z$pp)
+		}
+	}
+	else
 	{
 		z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)
 		z$covtheta[z$diver, ] <- NA # was Root(diag(z$covtheta)) * 33

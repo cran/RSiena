@@ -260,12 +260,12 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		depvarnames <- names(data[[1]]$depvars)
 
 		effects1 <- split(requestedEffects, requestedEffects$name)
-		effects1order <- match(depvarnames, names(effects1))
+		effects1order <- match(c(depvarnames, "sde"), names(effects1))
 		requestedEffects <- do.call(rbind, effects1[effects1order])
 		row.names(requestedEffects) <- 1:nrow(requestedEffects)
 
 		effects1 <- split(effects, effects$name)
-		effects1order <- match(depvarnames, names(effects1))
+		effects1order <- match(c(depvarnames, "sde"), names(effects1))
 		effects <- do.call(rbind, effects1[effects1order])
 		row.names(effects) <- 1:nrow(effects)
 
@@ -304,6 +304,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 			if (x$cconditional)
 			{
 				x$condvarno <- 1
+			}
+		}
+
+		if (any(hasSettings(data)))
+		{
+			if (x$cconditional)
+			{
+				stop("Estimation for a settings model requires ",
+						"conditional estimation")
 			}
 		}
 		types <- sapply(data[[1]]$depvars, function(x) attr(x, "type"))
@@ -492,6 +501,8 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		pData, lapply(f, function(x)x$bipartites))
 	ans <- .Call(C_Behavior, PACKAGE=pkgname,
 		pData, lapply(f, function(x)x$behavs))
+	ans <- .Call(C_Continuous, PACKAGE=pkgname,
+		pData, lapply(f, function(x)x$contbehavs))
 	ans <-.Call(C_ConstantCovariates, PACKAGE=pkgname,
 		pData, lapply(f, function(x)x$cCovars))
 	ans <-.Call(C_ChangingCovariates, PACKAGE=pkgname,
@@ -524,7 +535,15 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		storage.mode(effects$group) <- "integer"
 		storage.mode(effects$period) <- "integer"
 		effects$effectPtr <- rep(NA, nrow(effects))
+
+		if (any(attr(f,"types") == "continuous"))
+		{
+			splitFactor <- factor(effects$name, levels=c(attr(f, "netnames"), "sde"))
+		}
+		else
+		{
 		splitFactor <- factor(effects$name, levels=attr(f, "netnames"))
+		}
 		if (!all(attr(f,"netnames") %in% effects$name))
 		{
 			stop("Must have at least one effect for each dependent variable")
@@ -694,6 +713,19 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		{
 			z$targets <- rowSums(ans)
 			z$targets2 <- ans
+# For the moment, the following is an undocumented and hidden option.
+# This replaces the targets calculated from the data
+# by user-defined targets.
+			if ((!is.null(x$targets[1])) & (nGroup == 1) & (groupPeriods[1] == 2))
+			{
+				if (length(z$targets) == length(x$targets))
+				{
+					z$targets <- x$targets
+					z$targets2 <- matrix(x$targets, length(x$targets), 1)
+					message('Note: targets taken from algorithm object.\n')
+					message(z$targets , '\n')
+				}
+			}
 		}
 		else
 		{
@@ -703,6 +735,14 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 			z$maxlikeTargets <- rowSums(ans)
 			z$maxlikeTargets2 <- ans
 			z$mult <- x$mult
+			length.nrunMH <- length(colSums(z$maxlikeTargets2[z$requestedEffects$basicRate,
+					, drop=FALSE ]))
+			if ((length(z$mult) >= 2) &&
+				(length(z$mult) != length.nrunMH))
+			{
+				stop(paste('Length of parameter mult in the algorithm object is incorrect',
+				'(should be 1 or', length.nrunMH, ').'))
+			}
 			z$nrunMH <- floor(z$mult *
 				colSums(z$maxlikeTargets2[z$requestedEffects$basicRate,
 					, drop=FALSE ]))
@@ -1318,7 +1358,6 @@ unpackOneMode <- function(depvar, observations, compositionChange)
 	attr(edgeLists, "structmean") <- attr(depvar, "structmean")
 	attr(edgeLists, "averageInDegree") <- attr(depvar, "averageInDegree")
 	attr(edgeLists, "averageOutDegree") <- attr(depvar, "averageOutDegree")
-	attr(edgeLists, "settings") <- attr(depvar, "settings")
 	attr(edgeLists, "settingsinfo") <- attr(depvar, "settingsinfo")
 	return(edgeLists = edgeLists)
 }
@@ -1665,13 +1704,21 @@ unpackBipartite <- function(depvar, observations, compositionChange)
 ##@unpackBehavior siena07 Reformat data for C++
 unpackBehavior<- function(depvar, observations)
 {
-    dimdv <- dim(depvar[,1,])
-    beh <- matrix(as.integer(depvar[, 1, ]), dimdv[1], dimdv[2])
+    beh <- depvar[, 1, ]
     behmiss <- is.na(beh)
     allna <- apply(beh, 1, function(x)all(is.na(x)))
     modes <- attr(depvar, "modes")
-    ## carry forward missings ### nb otherwise use the mode
-    ## allNAs: use modes
+
+    ## in case of missing data, use imputation values, provided by user
+    ## else carry forward missings (otherwise use the mode / median)
+    ## allNAs: use modes, in case of continuous behavior depvar$modes
+	##         contains medians
+    if (!is.null(attr(depvar, "imputationValues")) )
+    {
+        beh[behmiss] <- attr(depvar, "imputationValues")[behmiss]
+    }
+    else
+    {
     beh[allna, ] <- rep(modes, each=sum(allna))
     for (i in 2:observations)
     {
@@ -1680,6 +1727,7 @@ unpackBehavior<- function(depvar, observations)
     for (i in (observations-1):1)
     {
             beh[is.na(beh[, i]), i] <-  beh[is.na(beh[, i]), i +1]
+    }
     }
     ## need a better definition of structural for behavior variables
     ## struct <- beh %in% c(10, 11)
@@ -1702,7 +1750,15 @@ unpackBehavior<- function(depvar, observations)
     attr(beh, "simMean") <- attr(depvar, "simMean")
     ## attr simMeans
     attr(beh, "simMeans") <- attr(depvar, "simMeans")
+    if (attr(depvar, "type") == "behavior")
+    {
+        beh <- round(beh)
     storage.mode(beh) <- "integer"
+    }
+    else # type == "continuous"
+    {
+        storage.mode(beh) <- "double"
+    }
     list(beh=beh, behmiss=behmiss)
 }
 ##@convertToStructuralZeros Miscellaneous To be implemented
@@ -1831,6 +1887,7 @@ unpackData <- function(data, x)
     f$nDepvars <- length(data$depvars)
     oneModes <- data$depvars[types == "oneMode"]
     Behaviors <- data$depvars[types == "behavior"]
+    continuousBehaviors <- data$depvars[types == "continuous"]
     bipartites <- data$depvars[types == "bipartite"]
 	## add the settings
     # oneModes <- lapply(oneModes, function(depvar) {
@@ -1852,12 +1909,16 @@ unpackData <- function(data, x)
     f$behavs <-  lapply(Behaviors, function(x, n) unpackBehavior(x, n),
                         n = observations)
     names(f$behavs) <- names(Behaviors)
+    f$contbehavs <- lapply(continuousBehaviors, function(x, n)
+			unpackBehavior(x, n), n = observations)
+    names(f$contbehavs) <- names(continuousBehaviors)
     f$observations <- observations
     f$seed<- vector("list", observations - 1)
     f$depvars <- data$depvars
     f$nodeSets <- data$nodeSets
     f$oneModes <- oneModes
     f$Behaviors <- Behaviors
+    f$continuousBehaviors <- continuousBehaviors
     f$oneModeUpOnly <- sapply(oneModes, function(x) attr(x, "uponly"))
     f$oneModeDownOnly <- sapply(oneModes, function(x) attr(x, "downonly"))
     f$behaviorUpOnly <- sapply(Behaviors, function(x) attr(x, "uponly"))
@@ -2138,6 +2199,105 @@ fixUpEffectNames <- function(effects)
                    tmpname
                }, y=interactions, z=effects)
         effects[effects$shortName == "behUnspInt" & effects$include &
+                !is.na(effects$effect1), c("effectName", "functionName")] <-
+                    unspIntNames
+    }
+    ##validate user-specified continuous interactions
+    interactions <- effects[effects$shortName == "contUnspInt" &
+                            effects$include &
+                            effects$effect1 > 0, ]
+    if (nrow(interactions) > 0)
+    {
+        unspIntNames <-
+            sapply(1:nrow(interactions), function(x, y, z)
+               {
+                   #browser()
+				   y <- y[x, ] ## get the interaction effect
+                   twoway <- y$effect3 == 0
+                   ## now get the rows which are to interact
+                   inter1 <- z[z$effectNumber == y$effect1, ]
+                   if (nrow(inter1) != 1 )
+                   {
+                       stop("invalid behavior interaction specification: ",
+                            "effect number 1")
+                   }
+                   inter2 <- z[z$effectNumber == y$effect2, ]
+                   if (nrow(inter2) != 1 )
+                   {
+                       stop("invalid behavior interaction specification: ",
+                            "effect number 2")
+                   }
+                   if (!twoway)
+                   {
+                       inter3 <- z[z$effectNumber == y$effect3, ]
+                       if (nrow(inter3) != 1)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "effect number 3")
+                       }
+                   }
+                   else
+                   {
+                       inter3 <- z[is.na(z$effectNumber), ]
+                       ## should be empty row
+                   }
+                   if (twoway)
+                   {
+                       if (inter1$name != inter2$name)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be same behavior variable")
+                       }
+                       if (inter1$type != inter2$type)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must be same type: evaluation")
+                       }
+                   }
+                   else
+                   {
+                       if (inter1$name != inter2$name ||
+                           inter1$name != inter3$name)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be same behavior variable")
+                       }
+                       if (inter1$type != inter2$type ||
+                           inter1$type != inter3$type)
+                       {
+                           stop("invalid behavior interaction specification: ",
+                                "must all be same type: evaluation")
+                       }
+                   }
+                   ## check types - at most one should be not OK here
+                   inters <- rbind(inter1, inter2, inter3)
+                   if (length(which(inters$interactionType != "OK")) > 1)
+				   {
+				   	   stop("invalid behavior interaction specification: ",
+				   			"at most one effect with interactionType ",
+				   			"not OK is allowed")
+                   }
+                   ##if (any(inters$interactionType != "OK"))
+                   ##{
+                   ##    stop("invalid behavior interaction specification: ",
+                   ##         "only effects with interactionType OK are allowed")
+                   ##}
+                   ## construct a name
+				   tmpnames <- inters$effectName
+				   tmpnames[-1] <- sub(paste("behavior ", inters$name[1], " ",
+											 sep=""), "", tmpnames[-1])
+				   tmpname <- paste(tmpnames, collapse = " x ")
+                   if (twoway && nchar(tmpname) < 38)
+                   {
+                       tmpname <- paste("int. ", tmpname)
+                   }
+                   if (!twoway)
+                   {
+                       tmpname <- paste("i3.", tmpname)
+                   }
+                   tmpname
+               }, y=interactions, z=effects)
+        effects[effects$shortName == "contUnspInt" & effects$include &
                 !is.na(effects$effect1), c("effectName", "functionName")] <-
                     unspIntNames
     }

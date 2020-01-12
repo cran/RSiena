@@ -18,16 +18,21 @@ namespace siena
 {
 
 /**
- * Isolate effect defined as z_i * I{x_{+i} = 0}.
+ * Isolate effect defined for in as z_i * I{x_{+i} = 0} and else z_i * I{x_{i+} = 0}
  */
 class IsolateEffect : public NetworkDependentBehaviorEffect
 {
 public:
-	IsolateEffect(const EffectInfo * pEffectInfo);
+	IsolateEffect(const EffectInfo * pEffectInfo, bool in);
 
 	virtual double calculateChangeContribution(int actor,
 		int difference);
 	virtual double egoStatistic(int ego, double * currentValues);
+
+private:
+	// Indicates if in- or out-isolate
+	bool lin;
+
 };
 
 }

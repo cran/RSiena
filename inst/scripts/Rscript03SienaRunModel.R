@@ -3,7 +3,7 @@
 ###
 ### ---- Rscript03SienaRunModel.R: a script for the introduction to RSiena -----
 ###
-###							version April 16, 2013
+###                         version June 19, 2015
 ################################################################################
 #
 # The introductory script is divided into the following script files:
@@ -13,8 +13,8 @@
 # Rscript03SienaRunModel.R, which runs the model and estimates parameters, and
 # Rscript04SienaBehaviour.R, which illustrates an example of analysing the
 # coevolution of networks and behaviour.
-# Written with contributions by Robin Gauthier, Tom Snijders, Ruth Ripley,
-# Johan Koskinen, and Paulina Preciado.
+# Written by Tom Snijders, with earlier contributions from Robin Gauthier,
+# Ruth Ripley, Johan Koskinen, and Paulina Preciado.
 #
 # This script, Rscript03SienaRunModel.R, runs the estimation in RSiena for the
 # model set up and defined in the script Rscript02SienaVariableFormat.R.
@@ -23,6 +23,31 @@
 # of this script
 
 ########################### ESTIMATION OF PARAMETERS ###########################
+
+## For this script, you will need the data read and modified in the script
+# Rscript02SienaVariableFormat.R. If you have already ran that script, you may
+# load the required workspace:
+
+	load("WorkspaceRscript02.RData")
+
+# If not, to make this script self-contained, you may run the following commands:
+
+	library(RSiena)
+	friend.data.w1 <- s501
+	friend.data.w2 <- s502
+	friend.data.w3 <- s503
+	drink <- s50a
+	smoke <- s50s
+	friendship <- sienaDependent(
+                     array( c( friend.data.w1, friend.data.w2, friend.data.w3 ),
+                     dim = c( 50, 50, 3 ) ) )
+	smoke1 <- coCovar( smoke[ , 1 ] )
+	alcohol <- varCovar( drink )
+	mydata <- sienaDataCreate( friendship, smoke1, alcohol )
+
+# and request
+	mydata
+# to see what you have produced.
 
 # Parameters of the model are estimated by the function siena07.
 # This requires the data specification; the effects specification;
@@ -39,16 +64,7 @@
 # New estimation runs will append to it.
 # A new call to print01Report will overwrite it!
 
-		myalgorithm <- sienaAlgorithmCreate(useStdInits = FALSE, projname = 's50_3')
-
-# The useStdInits parameter determines the initial values used for
-# the estimation algorithm.
-# If useStdInits = TRUE, standard initial values are used;
-# if useStdInits = FALSE, the initial values are used that are contained
-# in the "initialValue" column of the effects object,
-# which are reported by the information request
-		myeff
-# Below we shall see how these initial values can be altered.
+	myalgorithm <- sienaAlgorithmCreate(projname = 's50_3')
 
 # Let us first redefine the model, to obtain a simpler specification
 # that will serve as an illustration here.
@@ -96,8 +112,7 @@
 # where projname is the name given in sienaAlgorithmCreate)
 # and to the creation of the object which here is called ans (for "answer").
 
-# To use multiple processors, in the simplest case where your computer has 2
-# processors, use
+# To use multiple processors, e.g., if you wish to use 2 processes, request
 
 #		ans <- siena07( myalgorithm, data = mydata, effects = myeff,
 #					  nbrNodes = 2, useCluster = TRUE)
@@ -147,19 +162,21 @@
 #													 Error		t-ratio
 #
 #Rate parameters:
-#  0.1		Rate parameter period 1		 6.6331	 ( 1.1770	)
-#  0.2		Rate parameter period 2		 5.2105	 ( 0.8790	)
+#  0.1      Rate parameter period 1      6.6141  ( 1.1703   )
+#  0.2      Rate parameter period 2      5.1578  ( 0.8523   )
 #
 #Other parameters:
-#  1.  eval outdegree (density)			-2.7194	 ( 0.1191	)	 0.0024
-#  2.  eval reciprocity					 2.4344	 ( 0.2208	)	 0.0013
-#  3.  eval transitive triplets			 0.6449	 ( 0.1378	)	 0.0039
-#  4.  eval 3-cycles					-0.0881	 ( 0.2917	)	 0.0168
-#  5.  eval smoke1 similarity			 0.2239	 ( 0.1991	)	-0.0792
-#  6.  eval alcohol alter				-0.0256	 ( 0.0676	)	-0.0048
-#  7.  eval alcohol ego					 0.0348	 ( 0.0730	)	 0.0075
-#  8.  eval alcohol ego x alcohol alter	 0.1295	 ( 0.0489	)	 0.0126
-#
+#  1.  eval outdegree (density)         -2.7149  ( 0.1236   )   0.0618
+#  2.  eval reciprocity                  2.4114  ( 0.2188   )   0.0412
+#  3.  eval transitive triplets          0.6381  ( 0.1491   )   0.0673
+#  4.  eval 3-cycles                    -0.0564  ( 0.3012   )   0.0842
+#  5.  eval smoke1 similarity            0.2631  ( 0.2078   )   0.0894
+#  6.  eval alcohol alter               -0.0217  ( 0.0688   )   0.0399
+#  7.  eval alcohol ego                  0.0387  ( 0.0834   )   0.0319
+#  8.  eval alcohol ego x alcohol alter  0.1270  ( 0.0512   )   0.0412
+
+# Overall maximum convergence ratio:    0.2287
+# Total of 2244 iteration steps.
 
 # The results can also be viewed externally in the output file s50_3.out
 # It is advisable that you have a look at all three reports and
@@ -168,11 +185,12 @@
 # To understand the table above, note that the "convergence t-ratio"
 # is the t-ratio for convergence checking,
 # not the t statistic for testing the significance of this effect!
-# (See Section 6.1.2 of the manual.)
+# See Section 6.1.2 of the manual to understand this better.
 # In the external output file, these are called
 # "t-ratios for deviations from targets".
 # The rule of thumb is that all t-ratios for convergence
-# should ideally be less than 0.1 in absolute value;
+# should ideally be less than 0.1 in absolute value,
+# and the "Overall maximum convergence ratio" should be less than 0.25;
 # this signifies good convergence of the algorithm.
 # In the example here, this is the case.
 # If this would not be the case, the best thing to do would be
@@ -199,32 +217,30 @@
 # contains the covariance matrix of the estimates.
 # There are several "methods" available for viewing the object
 # containing the results of the estimation.
-# Above we already mentioned
+# Above we already mentioned the commands
 #		ans
 # and
 #		summary( ans )
 # The command
 
-		xtable( ans )
+	siena.table( ans )
 
-# will produce a table formatted for inclusion in a LaTeX document
-# or formatted in html. Use e.g.
+# will produce in your working directory a table formatted
+# for inclusion in a LaTeX document.
+# The command
 
-		xtable( ans, type = 'html' )
+	siena.table( ans, type="html" )
 
-# to get html, and e.g.
-
-		xtable( ans, file = 'ff.tex' )
-
-# to write the results to a file.
-# At http://cran.r-project.org/web/packages/xtable you can find
-# a set of vignettes for the xtable package, the xtable gallery,
-# which gives more options.
-# A function siena.table is available that is specially designed
-# for RSiena results and produces html or LaTeX files.
+# produces a table formatted in html,
+# which can be included, e.g., in a Word document.
 # See
 
 		?print.sienaFit
+
+# for further information, e.g., about the use of the xtable package
+# for RSiena; if you use xtable, see the set of vignettes for xtable at
+# http://cran.r-project.org/web/packages/xtable ,
+# which gives more options.
 
 
 ############## MORE ON INITIALIZING PARAMETERS FOR ESTIMATION ########
@@ -232,7 +248,8 @@
 # If the estimation algorithm has not produced good estimates
 # (it 'has not converged well'),
 # as will be indicated by some of the t-ratios for convergence being larger
-# than 0.1 (this threshold is not to be taken too precisely, though),
+# than 0.1 or the overall maximum convergence ratio being more than 0.25,
+# (the precise values of these thresholds may be taken with a gain of salt)
 # the best thing to do is continuing the estimation,
 # using the estimates produced here,
 # and contained in ans, as the new initial values.
@@ -247,42 +264,19 @@
 # This should be used only if the model specification in myeff
 # has not changed, and if the provisional parameter estimates obtained
 # in ans are reasonable; if they are not reasonable,
-# omit the prevAns option, use
-#		myalgorithm$useStdInits <- TRUE
-# to get back on track, and return at the next estimation to
-#		myalgorithm$useStdInits <- FALSE
-# To understand what happens here, read on:
+# make a fresh estimation withour the prevAns parameter.
 
-# Another and more flexible way for determining initial values is by
-# using the useStdInits element of the model object,
-# and the initial values in the effects object.
-# This is done as follows.
-# The option useStdInits = TRUE in sienaAlgorithmCreate, will make
-# each estimation run start with standard initial values.
-# The option useStdInits = FALSE makes the estimation start
-# with the initial values in the effects object.
-# You can switch between these by commands such as
+# In Section 6.1.1 of the manual you can read more about the initial
+# values used for the estimation algorithm; but this rarely is of any concern.
 
-#		myalgorithm$useStdInits <- FALSE
-#		myalgorithm$useStdInits <- TRUE
+# If convergence is difficult to obtain, a better algorithm may be created
+# by the options
 
-# Putting the estimates from the results object ans into the
-# effects object myeff is done by
+	betterAlgorithm <- sienaAlgorithmCreate( projname = 's50_3',
+	                           diagonalize = 0.2, doubleAveraging = 0 )
 
-		myeff <- updateTheta(myeff, ans)
-
-# A check that the effects object contains the desired initial values is made by
-
-		myeff
-
-# The initial values are in the vector
-
-		myeff$initialValue[myeff$include]
-
-# and this also can be initialised differently, if this is desired.
-# Note that this initial vector will be used until you change it again,
-# e.g., to the results of a new run, or if you use the prevAns parameter,
-# or until you set useStdInits to TRUE.
+# These options may become the default in future versions of RSiena;
+# the impression is that they are preferable.
 
 ################################################################################
 ###
@@ -290,7 +284,8 @@
 ###
 ################################################################################
 #
-# Two types of tests are available in SIENA.
+# Three types of tests are available in SIENA.
+
 # 1. t-type tests of single parameters can be carried out by dividing
 # the parameter estimate by its standard error.
 # Under the null hypothesis that the parameter is 0, these tests have
@@ -311,6 +306,10 @@
 		summary(ans)
 
 # to see the results, including those for the score test.
+
+# 3. Wald tests of single and multiple parameters can be obtained by means
+# of the functions Wald.RSiena and Multipar.RSiena;
+# see the help pages for these functions and also see the manual.
 
 
 ################################################################################
@@ -342,16 +341,13 @@
 ###
 ################################################################################
 
-	  friend.data.w1 <- as.matrix(read.table("s50-network1.dat")) # read data
-	  friend.data.w2 <- as.matrix(read.table("s50-network2.dat"))
-	  friend.data.w3 <- as.matrix(read.table("s50-network3.dat"))
-	  drink <- as.matrix(read.table("s50-alcohol.dat"))
-	  smoke <- as.matrix(read.table("s50-smoke.dat"))
-
-	  friend.data.w1[ friend.data.w1 %in% c(6,9) ] <- NA # define missing data
-	  friend.data.w1[ friend.data.w2 %in% c(6,9) ] <- NA
-	  friend.data.w1[ friend.data.w3 %in% c(6,9) ] <- NA
-
+# define original data
+	friend.data.w1 <- s501
+	friend.data.w2 <- s502
+	friend.data.w3 <- s503
+	drink <- s50a
+	smoke <- s50s
+# define RSiena data structures
 	  friendship <- sienaDependent( array( c( friend.data.w1,
 											  friend.data.w2, friend.data.w3 ),
 									dim = c( 50, 50, 3 ) ) )
@@ -361,19 +357,24 @@
 	  alcohol <- varCovar( drink )
 
 	  mydata <- sienaDataCreate( friendship, smoke1, alcohol )
-
-	  myeff <- getEffects( mydata )  # create effects structure
-
+# create effects structure
+	myeff <- getEffects( mydata )
+# get initial description
 	  print01Report( mydata, modelname = 's50_3_init' )
-
+# specify model
 	  myeff <- includeEffects( myeff, transTrip, cycle3 )
 	  myeff <- includeEffects( myeff, egoX, altX,
 							   egoXaltX, interaction1 = "alcohol" )
 	  myeff <- includeEffects( myeff, simX, interaction1 = "smoke1" )
-
+# estimate
 	  myalgorithm <- sienaAlgorithmCreate( projname = 's50_3' )
-# and finally (commented out because no need to repeat the actual calculations)
-#	  ans <- siena07( myalgorithm, data = mydata, effects = myeff)
+	(ans <- siena07( myalgorithm, data = mydata, effects = myeff))
+# (the outer parentheses lead to printing the obttained result on the screen)S
+# if necessary, estimate further
+	betterAlgorithm <- sienaAlgorithmCreate( projname = 's50_3',
+	                    diagonalize = 0.2, doubleAveraging = 0 )
+	(ans <- siena07( betterAlgorithm,
+	                    data = mydata, effects = myeff, prevAns=ans))
 
 ################################################################################
 ###

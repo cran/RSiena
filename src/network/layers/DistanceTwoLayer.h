@@ -26,7 +26,7 @@ namespace siena {
 class DistanceTwoLayer: public NetworkLayer {
 public:
 
-	DistanceTwoLayer(const Network& rNetwork);
+	DistanceTwoLayer();
 
 	virtual ~DistanceTwoLayer();
 
@@ -38,7 +38,13 @@ public:
 
 	void onNetworkClearEvent(const Network& rNetwork);
 
+	void onNetworkDisposeEvent(const Network& rNetwork);
+
 	IncidentTieIterator getDistanceTwoNeighbors(int ego) const;
+
+	virtual int size(int actor);
+
+	void clear(int numOfActors);
 
 protected:
 

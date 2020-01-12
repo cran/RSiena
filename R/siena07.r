@@ -12,7 +12,9 @@
 
 ##@siena07 siena07
 siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
-	useCluster = FALSE, nbrNodes = 2, initC=TRUE,
+	useCluster = FALSE, nbrNodes = 2,
+	thetaValues = NULL,
+	initC=TRUE,
 	clusterString=rep("localhost", nbrNodes), tt=NULL,
 	parallelTesting=FALSE, clusterIter=!x$maxlike,
 	clusterType=c("PSOCK", "FORK"), cl=NULL, ...)
@@ -140,7 +142,7 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
 			if (!capabilities("X11"))
 			{
 				batchUse <- TRUE
-				cat("No X11 device available, forcing use of batch mode")
+				message("No X11 device available, forcing use of batch mode")
 			}
 		}
 		if(nzchar(Sys.getenv("RSIENA_TESTING")))
@@ -167,6 +169,29 @@ siena07 <- function(x, batch = FALSE, verbose = FALSE, silent=FALSE,
 	else
 	{
 		z$pb <- list(pb=NULL, pbval=0, pbmax=1)
+	}
+
+	## create theta values for phase 3, if necessary
+	if (is.null(thetaValues))
+	{
+		z$thetaValues <- NULL
+		z$thetaFromFile <- FALSE
+	}
+	else
+	{
+		if (!x$simOnly)
+		{
+			cat('The thetaValues parameter was given\n')
+			cat('but simOnly was not specified in the algorithm object.\n')
+			cat('This is inconsistent.\n')
+			stop('Inconsistent combination simOnly - thetaValues')
+		}
+		if (!is.matrix(thetaValues))
+		{
+			stop('thetaValues should be a matrix.')
+		}
+		z$thetaValues <- thetaValues
+		z$thetaFromFile <- TRUE
 	}
 
 	z <- robmon(z, x, useCluster, nbrNodes, initC, clusterString,
@@ -236,6 +261,7 @@ InitReports <- function(z, seed, newseed)
 	}
 	z$revision <- revision
 	z$version <- version
+	z$startingDate <- date()
 	z
 }
 

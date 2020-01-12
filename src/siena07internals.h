@@ -25,6 +25,7 @@ namespace siena
 	class NetworkLongitudinalData;
 	class OneModeNetworkLongitudinalData;
 	class BehaviorLongitudinalData;
+	class ContinuousLongitudinalData;
 	class ConstantCovariate;
 	class ChangingCovariate;
 	class ConstantDyadicCovariate;
@@ -104,6 +105,19 @@ void setupBehavior(SEXP BEHAVIOR, BehaviorLongitudinalData * pBehaviorData);
  *
  */
 void setupBehaviorGroup(SEXP BEHGROUP, Data *pData);
+
+/**
+ * Create all observations for a continuous dependent variable
+ *
+ */
+void setupContinuous(SEXP CONTINUOUS, ContinuousLongitudinalData * 
+	pContinuousData);
+
+/**
+ * Create one group of Continuous dependent variables
+ *
+ */
+void setupContinuousGroup(SEXP CONTGROUP, Data *pData);
 
 /**
  * Create a constant covariate

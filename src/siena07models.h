@@ -12,6 +12,8 @@
 #ifndef SIENA07MODELS_H_
 #define SIENA07MODELS_H_
 
+#include <Rinternals.h>
+
 extern "C"
 {
 
@@ -38,9 +40,6 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR,
 
 SEXP clearStoredChains(SEXP MODELPTR, SEXP KEEP, SEXP GROUPPERIOD);
 
-SEXP getChainProbabilities(SEXP CHAIN, SEXP DATAPTR, SEXP MODELPTR,
-	SEXP GROUP, SEXP PERIOD, SEXP EFFECTSLIST, SEXP THETA);
-
-}
+} // extern "C"
 
 #endif /*SIENA07MODELS_H_*/

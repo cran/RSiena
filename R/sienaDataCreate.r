@@ -588,9 +588,11 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 		attr(compositionChange[[i]], "activeStart") <- activeStart
 		attr(compositionChange[[i]], "action") <- action
 	}
-	## dependent variables. First we sort the list so behavior are at the end
+	## dependent variables. First we sort the list so discrete and then continuous 
+	## behavior are at the end
 	types <- sapply(depvars, function(x)attr(x, "type"))
-	depvars <- depvars[c(which(types !='behavior'), which(types =="behavior"))]
+	depvars <- depvars[c(which(!(types %in% c('behavior', 'continuous'))), 
+						which(types == 'behavior'), which(types == "continuous"))]
 
 	for (i in 1:v1) ## dependent variables
 	{
@@ -613,7 +615,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 		attr(depvars[[i]], 'noMissingEither') <- rep(0, observations - 1)
 		attr(depvars[[i]], 'nonMissingEither') <- rep(0, observations - 1)
 		someOnly <- FALSE
-		if (type == 'behavior')
+		if (type == 'behavior' || type == 'continuous')
 		{
 			attr(depvars[[i]], 'noMissing') <- FALSE
 			attr(depvars[[i]], 'symmetric') <- NA
@@ -660,12 +662,20 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 			attr(depvars[[i]],'range') <- crange
 			attr(depvars[[i]], "range2") <- rr
 			attr(depvars[[i]],'moreThan2') <- length(unique(depvars[[i]])) > 2
+			if (type == 'behavior')
+			{
 			modes <- apply(depvars[[i]][, 1, ], 2, function(z)
 					   {
 						   taba <- table(round(z))
 						   as.numeric(names(which.max(taba)))
 					   }
 						   )
+			}
+			else # type == 'continuous', input the medians here; these will be
+				 #						 used for missing data imputation 
+			{
+				modes <- apply(depvars[[i]][, 1, ], 2, median, na.rm=TRUE)
+			}
 			attr(depvars[[i]],'modes') <- modes
 			attr(depvars[[i]], 'missing') <- any(is.na(depvars[[i]]))
 			tmpmat <- depvars[[i]][, 1, ]
@@ -965,9 +975,9 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 	}
 	if (someOnly)
 	{
-cat('For some variables, in some periods, there are only increases, or only decreases.\n')
-cat('This will be respected in the simulations.\n')
-cat('If this is not desired, use allowOnly=FALSE when creating the dependent variables.\n')
+message('For some variables, in some periods, there are only increases, or only decreases.')
+message('This will be respected in the simulations.')
+message('If this is not desired, use allowOnly=FALSE when creating the dependent variables.')
 	}
 	## create the object
 	z <- NULL
@@ -1042,7 +1052,8 @@ checkConstraints <- function(z)
 			symmetric2 <- symmetrics[net2]
 
 			if (type1 == type2 && type1 != "behavior" && nodes1 == nodes2
-				&& symmetric1 == symmetric2)
+				&& symmetric1 == symmetric2 && type1 != "continuous" 
+				&& type2 != "continuous")
 			{
 				higher[i] <- TRUE
 				disjoint[i] <- TRUE
@@ -1102,9 +1113,10 @@ checkConstraints <- function(z)
 			   paste(c("Network ", x[1], " is higher than network ", x[2],
 						".\n"), sep="")
 		  })
-		cat(report)
-		cat("This will be respected in the simulations.\n")
-cat("If this is not desired, change attribute 'higher'.\n")
+		message(report)
+		cat("This will be respected in the simulations.")
+		cat("If this is not desired, change attribute 'atLeastOne'\n")
+		cat("by function sienaDataConstraint.\n")
 	}
 	if (any(disjoint))
 	{
@@ -1114,9 +1126,11 @@ cat("If this is not desired, change attribute 'higher'.\n")
 			   paste(c("Network ", x[1], " is disjoint from network ",
 						x[2], ".\n"), sep="")
 		  })
-		cat(report)
+		message(report)
 		cat("This will be respected in the simulations.\n")
-cat("If this is not desired, change attribute 'disjoint'.\n")
+		cat("If this is not desired, change attribute 'disjoint'.\n")
+		cat("by function sienaDataConstraint.\n")
+
 	}
 	if (any(atLeastOne))
 	{
@@ -1127,9 +1141,10 @@ cat("If this is not desired, change attribute 'disjoint'.\n")
 						x[1], " and", x[2],
 					   " always exists.\n"), sep="")
 		  })
-		cat(report)
-		cat("This will be respected in the simulations.\n")
-cat("If this is not desired, change attribute 'atLeastOne'.\n")
+		message(report)
+		message("This will be respected in the simulations.")
+		cat("If this is not desired, change attribute 'atLeastOne'\n")
+		cat("by function sienaDataConstraint.\n")
 	}
 	z
 }
@@ -1177,7 +1192,7 @@ groupRangeAndSimilarityAndMean <- function(group)
 	bPoszvar <- namedVector(NA, netnames)
 	bMoreThan2 <- namedVector(NA, netnames)
 	bAnyMissing <- namedVector(FALSE, netnames)
-	for (net in which(atts$types == "behavior"))
+	for (net in which(atts$types %in% c("behavior", "continuous")))
 	{
 		simTotal <- 0
 		simCnt <- 0
@@ -1197,7 +1212,7 @@ groupRangeAndSimilarityAndMean <- function(group)
 				anyMissing <- TRUE
 			}
 		}
-		behRange[, net] <- range(thisrange, na.rm=TRUE)
+		behRange[, net] <- round(range(thisrange, na.rm=TRUE))
 		bRange[net] <- behRange[, net][2] - behRange[, net][1]
 		if (behRange[, net][2] == behRange[, net][1] && !anyMissing)
 		{
@@ -1288,10 +1303,17 @@ groupRangeAndSimilarityAndMean <- function(group)
 		for (i in 1:length(group))
 		{
 			j <- match(atts$vCovars[covar], names(group[[i]]$vCovars))
+			j1 <- match(atts$vCovars[covar], names(group[[1]]$vCovars))
 			if (is.na(j))
 			{
 				stop("inconsistent actor covariate names")
 			}
+			if (attr(group[[i]]$vCovars[[j]],"centered") != attr(group[[1]]$vCovars[[j]],"centered"))
+			{
+				stop(paste("Inconsistent centering for covariate", names(group[[i]]$vCovars)[j]))
+			}
+			if (attr(group[[i]]$vCovars[[j]],"centered"))
+			{
 			vartotal <- vartotal + attr(group[[i]]$vCovars[[j]], "vartotal")
 			nonMissingCount <- nonMissingCount +
 				attr(group[[i]]$vCovars[[j]], "nonMissingCount")
@@ -1299,8 +1321,8 @@ groupRangeAndSimilarityAndMean <- function(group)
 				attr(group[[i]]$vCovars[[j]], "vartotal") /
 					attr(group[[i]]$vCovars[[j]], "nonMissingCount")
 		}
+		}
 		varmean <- vartotal / nonMissingCount
-#browser() # Hier kijken hoe je moet centreren in de groep.
 		j <- match(atts$vCovars[covar], names(group[[1]]$vCovars))
 		if (attr(group[[1]]$vCovars[[j]],"centered"))
 		{
@@ -1462,6 +1484,107 @@ namedVector <- function(vectorValue, vectorNames, listType=FALSE)
 	names(tmp) <- vectorNames
 	tmp
 }
+
+
+##@createSettings DataCreate
+# create a settings structure for sienaData object x
+createSettings <- function(x, varName=1)
+##
+{
+	if (!inherits(x, 'siena'))
+	{
+		stop('x should be a siena data object')
+	}
+	if (is.null(x$depvars[[varName]]))
+	{
+		stop('varName should refer to a dependent network variable in x')
+	}
+	if ((attr(x$depvars[[varName]], 'type')) != 'oneMode')
+	{
+		stop('varName should refer to a dependent network variable in x')
+	}
+	attr(x$depvars[[varName]], 'settingsinfo') <- list(
+		list(id="universal", type="universal", only="up", covariate=""),
+		list(id="primary", type="primary", only="both", covariate=""))
+	x
+}
+
+##@hasSettings DataCreate
+# do the dependent variables in sienaData object x have a settings structure
+# if varName is specified (number or name),
+# this refers only to the indicated variable.
+hasSettings <- function(x, varName=NULL)
+{
+	if (!inherits(x, 'siena'))
+	{
+		stop('x should be a siena data object')
+	}
+	if (is.null(varName))
+	{
+		varNames <- 1:length(x$depvars)
+	}
+	else
+	{
+		varNames <- varName
+		if (is.numeric(varName))
+		{
+			if ((varName < 1) | (varName > length(x$depvars)))
+			{
+				stop('varName should indicate one among the dependent variables')
+			}
+		}
+		else
+		{
+			if (is.null(x$depvars[[varName]]))
+			{
+				stop('varName should indicate one among the dependent variables')
+			}
+		}
+	}
+	hasSettingsi <- rep('',FALSE)
+	for (i in seq(along = varNames))
+	{
+		hasSettingsi[i] <- (!is.null(attr(x$depvars[[varNames[i]]], 'settingsinfo')))
+	}
+	as.logical(hasSettingsi)
+}
+
+##@describeTheSetting DataCreate
+# gives a description of the settings structure of depvar
+describeTheSetting <- function(depvar)
+{
+	if (!inherits(depvar, 'sienaDependent'))
+	{
+		stop('depvar should be a dependent variable')
+	}
+	settingsinfo <- attr(depvar, 'settingsinfo')
+	if (is.null(settingsinfo))
+	{
+		dts <- ""
+	}
+	else
+	{
+		dts <- list()
+		for (i in seq_along(settingsinfo))
+		{
+			dts[[i]] <- unlist(c(name=attr(depvar, 'name'), settingsinfo[[i]]))
+		}
+		dtsn <- sapply(dts, function(x){x['name']})
+		dtsid <- sapply(dts, function(x){x['id']})
+		dtstype <- sapply(dts, function(x){x['type']})
+		dtscovar <- sapply(dts, function(x){x['covar']})
+		dtscovar <- sapply(dtscovar, function(x){ifelse(is.na(x),'none',x)})
+		dtsonly <- sapply(dts, function(x){x['only']})
+		dtsonly  <- sapply(dtsonly, function(x){ifelse(is.na(x),'both',x)})
+		dts <- cbind(dtsn, dtsid, dtstype, dtscovar, dtsonly)
+		colnames(dts) <- c('dependent variable', 'setting', 'type', 'covariate', 'direction')
+		rownames(dts) <- 1:dim(dts)[1]
+	}
+	dts
+}
+
+
+
 ##@sienaGroupCreate DataCreate
 sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
 {
@@ -1779,6 +1902,8 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
 			nVCovar <- length(vars)
 			for (j in seq(along=const))
 			{
+				oneCentered <- FALSE
+				oneNonCentered <- FALSE
 				dim3 <- objlist[[i]]$observations - 1
 				newcovar <-
 					varDyadCovar(array(const[[j]], dim=c(dim(const[[j]]),
@@ -2291,13 +2416,14 @@ covarDist2 <- function(z)
 	}
 	for (i in seq(along=z$depvars))
 	{
-		if (netTypes[i] == "behavior")
+		if (netTypes[i] %in% c("behavior", "continuous"))
 		{
 			beh <- z$depvars[[i]][, 1, ]
 			## take off the mean NB no structurals yet!
 			beh <- beh - mean(beh, na.rm=TRUE)
 			nodeSet <- netActorSet[i]
-			use <- (netTypes != "behavior" & netActorSet == nodeSet)
+			use <- (!(netTypes %in% c("behavior", "continuous")) 
+			        & netActorSet == nodeSet)
 			simMeans <- namedVector(NA, netNames[use])
 			for (j in which(use))
 			{

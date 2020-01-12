@@ -121,7 +121,7 @@ mynet1 <- sienaNet(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
-myalgorithm <- sienaAlgorithmCreate(fn=simstats0c, nsub=2, n3=100)
+myalgorithm <- sienaAlgorithmCreate(fn=simstats0c, nsub=2, n3=100, projname=NULL)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff,  batch=TRUE)
 }
 \keyword{models}

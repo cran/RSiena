@@ -8,7 +8,7 @@
 ## * Description: This file contains the code to create and use global objects
 ## *
 ## ****************************************************************************/
-##@outf Objects/File project .out file
+##@outf Objects/File project .txt file
 outf <- NULL
 ##@lf Objects/File suppressed or to console
 lf <- NULL
@@ -36,11 +36,11 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
 			noReportFile <<- FALSE
             if (type =='w')
             {
-                x$outf <<- file(paste(projname, ".out", sep=""), open="w")
+                x$outf <<- file(paste(projname, ".txt", sep=""), open="w")
             }
             else if (type =="a")
             {
-                x$outf <<- file(paste(projname, ".out", sep=""), open="a")
+                x$outf <<- file(paste(projname, ".txt", sep=""), open="a")
             }
             else if (type == "n")
             {
@@ -50,9 +50,9 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
         }
         else if (closefiles)
         {
-            close(x[["outf"]])
-            x$outf <<- NULL
-        }
+				close(x[["outf"]])
+				x$outf <<- NULL
+			}
         else
         {
             if (missing(dest) && missing(hdest))
@@ -111,7 +111,7 @@ Reportfun<- function(x, verbose = FALSE, silent=FALSE)
                 }
             }
         }
-    }
+	  }
 }
 
 
@@ -141,50 +141,50 @@ FRANstore <- local({A <-  NULL;function(x){if (!missing(x)) A<<-x;A}})
 ##@Heading Reporting Global function
 Heading<- function(level=1, dest, text, fill=FALSE)
 {
-    ch <- c("=", "-", " ")[level]
-    if (missing(dest))
-    {
+	ch <- c("=", "-", " ")[level]
+	if (missing(dest))
+	{
         Report(c("\n", "@", level, "\n", text, "\n"), sep="", fill=fill)
         Report(rep(ch, sum(nchar(text)) + 3), sep="", fill=fill)
-        Report("\n\n")
-    }
-    else
-    {
-        dest <- deparse(substitute(dest))
-        Report(c("\n", "@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
+		Report("\n\n")
+	}
+	else
+	{
+		dest <- deparse(substitute(dest))
+		Report(c("\n", "@", level, "\n", text, "\n"), hdest=dest, sep="", fill=fill)
         Report(rep(ch, sum(nchar(text))), hdest=dest, sep="", fill=fill)
-        if (level < 3)
-        {
-            Report("\n\n", hdest = dest)
-        }
-        else
-        {
-            Report("\n", hdest = dest)
-        }
-    }
+		if (level < 3)
+			{
+			Report("\n\n", hdest = dest)
+		}
+		else
+		{
+			Report("\n", hdest = dest)
+		}
+	}
 }
 
 ##@PrtOutMat Reporting
 PrtOutMat<- function(mat, dest)
-{
-	if (is.null(mat))
 	{
-		return()
-	}
-	testing <- Sys.getenv("RSIENATESTING")
-	testing <- testing != ""
-    if (missing(dest))
-    {
-        Report(format(t(mat), scientific=testing),
-               sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
-    }
-    else
-    {
-        Report(format(t(mat), scientific=testing),
-               sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
-               hdest=deparse(substitute(dest)))
-        Report("\n", hdest=deparse(substitute(dest)))
-    }
+	if (is.null(mat))
+		{
+			return()
+		}
+		testing <- Sys.getenv("RSIENATESTING")
+		testing <- testing != ""
+		if (missing(dest))
+		{
+			Report(format(t(mat), scientific=testing),
+				sep=c(rep.int(" ", ncol(mat) - 1), "\n"))
+		}
+		else
+		{
+			Report(format(t(mat), scientific=testing),
+				sep=c(rep.int(" ", ncol(mat) - 1), "\n"),
+				hdest=deparse(substitute(dest)))
+			Report("\n", hdest=deparse(substitute(dest)))
+		}
 }
 ##@NullChecks siena07/GlobalFunctions Resets global flags
 NullChecks <- function()

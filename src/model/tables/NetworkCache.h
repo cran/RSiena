@@ -47,6 +47,8 @@ public:
 	inline bool inTieExists(int alter) const;
 	inline int outTieValue(int alter) const;
 	inline int inTieValue(int alter) const;
+	inline int stepTypeValue() const;
+	inline void stepTypeSet(int stepType);
 
 	inline EgocentricConfigurationTable * pTwoPathTable() const;
 	inline EgocentricConfigurationTable * pReverseTwoPathTable() const;
@@ -71,6 +73,9 @@ private:
 
 	// Stores the values of ties to ego from each of the alters.
 	int * linTieValues;
+
+	// Stores the values of the stepType (settings model)
+	int lstepTypeValue;
 
 	// The number of two-paths from the ego to each of the alters
 	EgocentricConfigurationTable * lpTwoPathTable;
@@ -160,6 +165,19 @@ int NetworkCache::inTieValue(int alter) const
 	return this->linTieValues[alter];
 }
 
+
+/**
+ * Returns the value of the stepType.
+ */
+int NetworkCache::stepTypeValue() const
+{
+	return this->lstepTypeValue;
+}
+
+void NetworkCache::stepTypeSet(int stepType)
+{
+	this->lstepTypeValue = stepType;
+}
 
 /**
  * Returns the table storing the number of two-paths from the ego to

@@ -21,6 +21,7 @@ extern "C"
 
 static const R_CallMethodDef CallEntries[] = {
    CALLDEF(Behavior, 2),
+    CALLDEF(Continuous, 2),
    CALLDEF(Bipartite, 2),
    CALLDEF(ChangingCovariates, 2),
    CALLDEF(ChangingDyadicCovariates, 2),
@@ -33,7 +34,6 @@ static const R_CallMethodDef CallEntries[] = {
    CALLDEF(effects, 2),
    CALLDEF(ExogEvent, 2),
    CALLDEF(forwardModel, 16),
-	CALLDEF(getChainProbabilities, 8),
    CALLDEF(getTargets, 6),
    CALLDEF(interactionEffects, 2),
    CALLDEF(mlInitializeSubProcesses, 10),

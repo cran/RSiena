@@ -247,7 +247,7 @@ EvaluateTestStatistic<- function(maxlike, test, redundant, dfra, msf, fra)
 	z2 <- fra[test]
 	if (inherits(try(id11 <- solve(d11), silent=TRUE), "try-error"))
 	{
-		cat('Score test: Error for inversion of d11 \n')
+		warning('Score test: Error for inversion of d11 \n')
 		oneSided <- NA
 		v9 <- d22
 		v9[] <- NA
@@ -275,7 +275,7 @@ EvaluateTestStatistic<- function(maxlike, test, redundant, dfra, msf, fra)
 		if (inherits(try(vav <- solve(v9), silent=TRUE), "try-error"))
 			## vav is the inverse variance matrix of ov
 		{
-			cat('Score test: Error for inversion of v9\n')
+			warning('Score test: Error for inversion of v9\n')
 			vav <- v9
 			vav[] <- NA
 			cvalue <- NA
@@ -321,14 +321,30 @@ score.Test <- function(ans, test=ans$test)
 	}
 	if (sum(test) <= 0) stop(paste('Something should be tested, but the total requested is',
 			sum(test)))
-	if (length(test) != ans$pp) stop('Dimensions of must agree')
-	if (any(test & (!ans$fix))) cat('Warning: some tested parameters were not fixed; do you know what you are doing??? \n')	
+	if (length(test) != ans$pp) stop('Dimensions of test must agree')
+	if (any(test & (!ans$fix))) warning('Warning: some tested parameters were not fixed; do you know what you are doing??? \n')
 	fra <- colMeans(ans$sf, na.rm=TRUE)
 	redundant <- (ans$fix & (!test))
-	teststat <- EvaluateTestStatistic(ans$maxlike, test, redundant, ans$dfra, ans$msf, fra)$cvalue
+	tests <- EvaluateTestStatistic(ans$maxlike, test, redundant, ans$dfra, ans$msf, fra)
+	teststat <- tests$cvalue
 	df <- sum(test)
+	if (df == 1)
+	{
+		onesided <- tests$oneSided
+	}
+	else
+	{
+		onesided <- NULL
+	}
 	pval <- 1 - pchisq(teststat, df)
-	list(chisquare = teststat, df = df, pvalue = pval)
+	efnames <- paste(ans$effects$name[test], ans$effects$effectName[test], sep=': ')
+	if (any(ans$effects$type != "eval"))
+	{
+		efnames <- paste(efnames, ans$effects$type[test], sep=' ')
+	}
+	t.ans <- list(chisquare=teststat, df=df, pvalue=pval, onesided=onesided, efnames=efnames)
+	class(t.ans) <- "sienaTest"
+	t.ans
 }
 
 ##@Wald.RSiena  Calculate Wald test statistics
@@ -351,17 +367,67 @@ Wald.RSiena <- function(A, ans)
 	th <- A %*% ans$theta
 	covmat <- A %*% sigma %*% t(A)
 	chisq <- drop(t(th) %*% solve(covmat) %*% th)
-	d.f. <- nrow(A)
-	pval <- 1 - pchisq(chisq, d.f.)
-	list(chisquare = chisq, df = d.f., pvalue = pval)
+	df <- nrow(A)
+	pval <- 1 - pchisq(chisq, df)
+	if (df == 1)
+	{
+		onesided <- sign(th) * sqrt(chisq)
+	}
+	else
+	{
+		onesided <- NULL
+	}
+	t.ans <- list(chisquare=chisq, df=df, pvalue=pval, onesided=onesided)
+	class(t.ans) <- "sienaTest"
+	t.ans
 }
 
 ##@Multipar.RSiena  Calculate Wald test statistic for hypothesis that subvector = 0.
 Multipar.RSiena <- function(ans, ...)
 {
 	p <- length(ans$theta)
-	k <- length(c(...))
+	tested <- c(...)
+	efnames <- paste(ans$effects$name[tested], ans$effects$effectName[tested], sep=': ')
+	if (any(ans$effects$type != "eval"))
+	{
+		efnames <- paste(efnames, ans$effects$type[tested], sep=' ')
+	}
+	k <- length(tested)
 	A <- matrix(0, nrow=k, ncol=p)
-	A[cbind(1:k,c(...))] <- 1
-	Wald.RSiena(A, ans)
+	A[cbind(1:k,tested)] <- 1
+	t.ans <- Wald.RSiena(A, ans)
+	t.ans$efnames <- efnames
+	t.ans
+}
+
+##@print.sienaTest Methods
+print.sienaTest <- function(x, ...)
+{
+	if (!inherits(x, "sienaTest"))
+	{
+		stop("not a legitimate sienaTest object")
+	}
+	if (!is.null(x$efnames))
+	{
+		cat('Tested effects:\n ')
+		cat(paste(x$efnames,'\n'))
+	}
+	cat(paste('chi-squared = ',
+		format(round(x$chisquare, digits=2), nsmall = 2),
+		', d.f. = ', x$df, '; ', sep=''))
+	if ((x$df == 1) & (!is.null(x$onesided)))
+	{
+		cat(paste('one-sided Z = ',
+			format(round(x$onesided, digits=2), nsmall = 2), '; ', sep=''))
+	}
+	if (x$pvalue < 0.001)
+	{
+		cat(' p < 0.001. \n')
+	}
+	else
+	{
+		cat(paste(' p = ',
+			format(round(x$pvalue, digits=3), nsmall = 2), '. \n', sep=''))
+	}
+	invisible(x)
 }

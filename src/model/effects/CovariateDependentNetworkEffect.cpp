@@ -121,6 +121,8 @@ void CovariateDependentNetworkEffect::initialize(const Data* pData,
 
 /**
  * Returns the covariate value for the given actor.
+ * Note that this differs from what is done in BehaviorEffect,
+ * where value is the non-centered and centeredValue is the centered value.
  */
 double CovariateDependentNetworkEffect::value(const int i) const
 {
@@ -146,6 +148,7 @@ bool CovariateDependentNetworkEffect::missing(int i) const
 		return this->lpChangingCovariate->missing(i, this->period() + lSimulatedOffset);
 	}
   return this->lpBehaviorData->missing(this->period() + lSimulatedOffset, i);
+// This means: if simulated state, period+1; else period.
 }
 
 
@@ -198,11 +201,11 @@ ChangingCovariate * CovariateDependentNetworkEffect::pChangingCovariate() const
 }
 
 /**
- * Returns the changing covariate associated with this effect.
+ * Returns the behavioral variable associated with this effect.
  */
 BehaviorLongitudinalData * CovariateDependentNetworkEffect::pBehaviorData() const
 {
 		return this->lpBehaviorData;
-
 }
+
 }

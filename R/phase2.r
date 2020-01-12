@@ -101,9 +101,7 @@ proc2subphase <- function(z, x, subphase, ...)
 		## ###############################################
 		## do the iterations for this repeat of this subphase
 		## ##############################################
-		##z <- doIterationsCopy(z, x, subphase, ...) removed as out of sync
 		z <- doIterations(z, x, subphase, ...)
-		##   if (z$nit == 50) browser()
 		if (!z$OK || UserInterruptFlag() || UserRestartFlag() ||
 			EarlyEndPhase2Flag())
 		{
@@ -407,9 +405,11 @@ doIterations<- function(z, x, subphase,...)
 		fchange <- as.vector(z$gain * changestep)
 
 		## check positivity restriction
+		fchange[is.na(fchange)] <- 0
 		z$positivized[fchange > z$theta] <- z$positivized[fchange > z$theta] +1
 		z$positivized[!z$posj] <- 0
 		fchange <- ifelse(z$posj & (fchange > z$theta), z$theta * 0.5, fchange)
+		# make step
 		if (subphase > x$doubleAveraging)
 		{
 			zsmall$theta <- (z$thav/z$thavn) - fchange
@@ -427,7 +427,7 @@ doIterations<- function(z, x, subphase,...)
 			}
 			else
 			{
-				cat('thetaStore?\n')
+				message('thetaStore?')
 				browser()
 			}
 		}

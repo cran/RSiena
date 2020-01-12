@@ -41,9 +41,6 @@ public:
 protected:
 	virtual double egoStatistic(int ego,
 		const Network * pSummationTieNetwork);
-	virtual double endowmentStatistic(Network * pLostTieNetwork);
-
-	
 
 };
 

@@ -90,9 +90,7 @@ siena07Gui <- function(tt, getDocumentation=FALSE)
     tkinsert(phase, 0, ' 1')
     tkgrab.set(tt)
     tcl('update')
- #   browser()
     tkfocus(tt)
-  # cat('here\n')
     list(tt=tt, pb=progressbar, earlyEndPhase2=button2, current=text1,
          quasi=text2, deviations=text3, phase=phase, subphase=subphase,
          iteration=iteration, subphaselabel=subphaselabel,

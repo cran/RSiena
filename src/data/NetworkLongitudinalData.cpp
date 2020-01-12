@@ -514,16 +514,18 @@ bool NetworkLongitudinalData::oneModeNetwork() const
 /**
  *Stores a setting name for this network.
  */
-void NetworkLongitudinalData::addSettingName(string name)
+void NetworkLongitudinalData::addSettingName(const string id,
+		const string settingType, const string covarName,
+		const Permission_Type permType)
 {
-	this->lsettingNames.push_back(name);
+	this->lsettingNames.push_back(
+			SettingInfo(id, settingType, covarName, permType));
 }
 
 /**
  * Returns the collection of settings names for this network.
  */
-const std::vector<string> & NetworkLongitudinalData::rSettingNames() const
-{
+const std::vector<SettingInfo> & NetworkLongitudinalData::rSettingNames() const {
 	return this->lsettingNames;
 }
 }

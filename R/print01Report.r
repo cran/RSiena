@@ -71,7 +71,10 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 				Report(c(sum(types=="bipartite"),
 						 "dependent bipartite variables,\n"), outf)
 				Report(c(sum(types=="behavior"),
-						 "dependent behavior variables,\n"),
+						 "dependent discrete behavior variables,\n"),
+					   outf)
+				Report(c(sum(types=="continuous"),
+						 "dependent continuous behavior variables,\n"),
 					   outf)
 			}
 			Report(c(length(x$cCovars), "constant actor covariates,\n"), outf)
@@ -109,7 +112,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 				atts <- attributes(depvar)
 				netname <- atts$name
 				type <- atts$type
-				if (type != "behavior")
+				if (!(type %in% c("behavior", "continuous")))
 				{
 					Report("Name of ", outf)
 					if (nNetworks > 1)
@@ -345,7 +348,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 			iBehav <- 0
 			for (i in 1:length(x$depvars))
 			{
-				if (types[i] == "behavior")
+				if (types[i] %in% c("behavior", "continuous"))
 				{
 					depvar <- x$depvars[[i]]
 					atts <- attributes(depvar)
@@ -360,15 +363,24 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 					Report(c(mystr, " dependent actor variable named ",
 							 netname,".\n"), sep="", outf)
 					ranged <- atts$range2
-					Report(c("Maximum and minimum rounded values are ",
-							 round(ranged[1]), " and ",
-							 round(ranged[2]), ".\n"), sep="", outf)
+
+					if (types[i] == "behavior")
+						ranged <- round(ranged)
+					else
+						ranged <- signif(ranged, 4)							
+					Report(c("Maximum and minimum ", 
+							 ifelse(types[i] == "behavior", "rounded ", ""), 
+							 "values are ", ranged[1], " and ", ranged[2], 
+							 ".\n"), sep="", outf)
+					if (types[i] == "behavior")
+					{
 					if (ranged[1] < 0 )
-						stop("Negative minima not allowed for dependent actor ",
-							 "variables.\n")
+							stop("Negative minima not allowed for discrete ",
+								 "dependent actor variables.\n")
 					if (ranged[2] > 255 )
-						stop("Maxima more than 255 not allowed for dependent",
-							 "actor ", "variables.\n")
+							stop("Maxima more than 255 not allowed for ",
+								 "discrete dependent actor variables.\n")
+					}
 					if (ranged[1] >= ranged[2] )
 						stop("Dependent actor variables must not be",
 							 " constant.\n")
@@ -389,9 +401,9 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 					}
 					depvar2 <- depvar
 					depvar2[is.na(depvar2)] <- 0
-					if (!isTRUE(all.equal(as.vector(depvar2) -
-										  round(as.vector(depvar2)),
-										  rep(0, length(depvar2)))))
+					if (types[i] == "behavior" &&
+						!isTRUE(all.equal(as.vector(depvar2),
+										  round(as.vector(depvar2)))))
 					{
 						 Report(c("Non-integer values noted in this behavior",
 								  "variable: they will be truncated.\n")
@@ -409,7 +421,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 					 "		overall\n"), sep="", outf)
 			for (i in 1:length(x$depvars))
 			{
-				if (types[i] == "behavior")
+				if (types[i] %in% c("behavior", "continuous"))
 				{
 					depvar <- x$depvars[[i]][, 1, ]
 					atts <- attributes(x$depvars[[i]])
@@ -429,7 +441,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 					 "		overall\n"), sep="", outf)
 			for (i in 1:length(x$depvars))
 			{
-				if (types[i] == "behavior")
+				if (types[i] %in% c("behavior", "continuous"))
 				{
 					depvar <- x$depvars[[i]][, 1, ]
 					atts <- attributes(x$depvars[[i]])
@@ -748,7 +760,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 					any.noncent <- any.noncent+1
 				}
 				Report(c(format(covars[i], width=28), cent, '\n'), outf) # name
-				for (j in 1:(dim(x$dyvCovars[[i]])[3]))
+				for (j in 1:(atts$vardims[3]))
 				{
 					Report(c("	period", format(j + periodFromStart,
 											   width=3),
@@ -827,7 +839,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 		types <- lapply(x$depvars, function(z) attr(z, "type"))
 		reportStart()
 		nNetworks <- sum(types != "behavior")
-		nBehavs <- sum(types == "behavior")
+		nBehavs <- sum(types %in% c("behavior", "continuous"))
 		if (nNetworks > 0)
 		{
 			reportNetworks()
@@ -882,10 +894,10 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 	}
 	Report(openfiles=TRUE, type="w", projname=modelname)
 	Report("							************************\n", outf)
-	Report(c("									 ", modelname, ".out\n"),
+	Report(c("									 ", modelname, ".txt\n"),
 		sep='', outf)
 	Report("							************************\n\n", outf)
-	Report(c("Filename is ", modelname, ".out.\n\n"), sep="", outf)
+	Report(c("Filename is ", modelname, ".txt.\n\n"), sep="", outf)
 	Report(c("This file contains primary output for SIENA project <<",
 		modelname, ">>.\n\n"), sep="", outf)
 	Report(c("Date and time:", format(Sys.time(), "%d/%m/%Y %X"), "\n\n"), outf)
@@ -941,7 +953,8 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 		reportDataObject(data[[1]], 0, multi=FALSE)
 	}
 	atts <- attributes(data)
-	nets <- atts$types != "behavior"
+	nets <- !(atts$types %in% c("behavior", "continuous"))
+	behs <- atts$types == "behavior"
 	if (length(data) > 1)
 	{
 		Heading(1, outf, "Further processing of multi-group data.")
@@ -1040,12 +1053,12 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 			}
 		}
 	}
-	if (any(atts$anyUpOnly[!nets]))
+	if (any(atts$anyUpOnly[behs])) # only for discrete behavior
 	{
-		netnames <- atts$netnames[!nets]
-		upOnly <- atts$anyUpOnly[!nets]
-		allUpOnly <- atts$allUpOnly[!nets]
-		for (i in which(upOnly))
+		netnames <- atts$netnames[behs]   
+		upOnlyAndBeh <- atts$anyUpOnly[behs] 
+		allUpOnly <- atts$allUpOnly[behs]
+		for (i in which(upOnlyAndBeh))
 		{
 			Report(c("\nBehavior variable ", netnames[i], ":\n"), sep = "",
 				   outf)
@@ -1074,11 +1087,11 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 			}
 		}
 	}
-	if (any(atts$anyDownOnly[!nets]))
+	if (any(atts$anyDownOnly[behs]))
 	{
-		netnames <- atts$netnames[!nets]
-		downOnly <- atts$anyDownOnly[!nets]
-		allDownOnly <- atts$allDownOnly[!nets]
+		netnames <- atts$netnames[behs]
+		downOnly <- atts$anyDownOnly[behs]
+		allDownOnly <- atts$allDownOnly[behs]
 		for (i in which(downOnly))
 		{
 			Report(c("\nBehavior ", netnames[i], ":\n"), sep = "", outf)
@@ -1195,7 +1208,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 			}
 		}
 	}
-	if (sum(atts$types == "behavior") > 0 ||
+	if (sum(atts$types %in% c("behavior", "continuous")) > 0 ||
 		(nData ==1 && length(atts$cCovars) > 0) ||
 		length(atts$vCovars) > 0)
 	{
@@ -1240,7 +1253,7 @@ print01Report <- function(data, modelname="Siena", getDocumentation=FALSE)
 		}
 		for (i in seq(along=atts$netnames))
 		{
-			if (atts$types[i] == "behavior" && atts$bPoszvar[i])
+			if ((atts$types[i] %in% c("behavior", "continuous")) && atts$bPoszvar[i])
 			{
 				if (nData > 1)
 				{

@@ -14,6 +14,7 @@
 
 #include <vector>
 #include "data/LongitudinalData.h"
+#include "../model/settings/SettingInfo.h"
 
 namespace siena
 {
@@ -82,8 +83,9 @@ public:
 
 	bool oneModeNetwork() const;
 
-	const std::vector<std::string> & rSettingNames() const;
-	void addSettingName(std::string name);
+	const std::vector<SettingInfo> & rSettingNames() const;
+	void addSettingName(const std::string id, const std::string settingType,
+			const std::string covarName, const Permission_Type permType);
 
 private:
 	// The set of actors receiving the ties of the network
@@ -135,7 +137,7 @@ private:
 	bool loneMode;
 
 	// vector of setting names for this network
-	std::vector<std::string> lsettingNames;
+	std::vector<SettingInfo> lsettingNames;
 };
 
 }

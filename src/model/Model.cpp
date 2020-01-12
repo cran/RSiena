@@ -8,6 +8,7 @@
  * Description: This file contains the implementation of the Model class.
  *****************************************************************************/
 #include <R_ext/Print.h>
+#include <R_ext/Error.h>
 #include <vector>
 #include "Model.h"
 #include "utils/Utils.h"
@@ -34,6 +35,7 @@ namespace siena
 Model::Model()
 {
 	this->lconditional = false;
+	this->lbasicScaleParameters = 0;
 	this->lneedChain = false;
 	this->lneedScores = false;
 	this->lneedDerivatives = false;
@@ -91,6 +93,10 @@ Model::~Model()
 	{
 		deallocateVector(this->lchainStore[i]);
 	}
+	
+	// Delete the array of basic scale parameters
+	delete[] this->lbasicScaleParameters;
+	this->lbasicScaleParameters = 0;
 }
 
 
@@ -361,6 +367,41 @@ double Model::basicRateParameter(LongitudinalData * pDependentVariableData,
 	}
 
 	return value;
+}
+
+/**
+ * Stores the basic scale parameter for the SDE at the given period.
+ */
+void Model::basicScaleParameter(int period, double value)
+{
+	if (period >= this->lnumberOfPeriods)
+		error("Array basicScaleParameter out of bounds\n");
+		
+	if (!this->lbasicScaleParameters)
+	{
+		double * array = new double[this->lnumberOfPeriods];
+
+		// The default basic scale is 1.
+		for (int i = 0; i < this->lnumberOfPeriods; i++)
+		{
+			array[i] = 1;
+		}
+
+		this->lbasicScaleParameters = array;
+	}
+	this->lbasicScaleParameters[period] = value;
+}
+
+
+/**
+ * Returns the basic scale parameter for the SDE at the given period.
+ */
+double Model::basicScaleParameter(int period) const
+{
+	if (period >= this->lnumberOfPeriods)
+		error("Array basicScaleParameter out of bounds\n");
+
+	return this->lbasicScaleParameters[period];
 }
 
 /**

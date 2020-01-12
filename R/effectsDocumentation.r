@@ -56,6 +56,7 @@ effectsDocumentation <- function(effects= NULL, type="html",
 				"covarBehaviorSymmetricRate",
 				"behaviorBipartiteRate",
 				"covarBehaviorRate",
+				"continuousRate",
 
 				"nonSymmetricObjective",
 				"dyadObjective",
@@ -63,9 +64,11 @@ effectsDocumentation <- function(effects= NULL, type="html",
 				"unspecifiedNetInteraction",
 				"nonSymmetricNonSymmetricObjective",
 				"nonSymmetricSymmetricObjective",
+				"nonSymmetricSymmetricSObjective",
 				"nonSymmetricBipartiteObjective",
 				"covarNetNetObjective",
 				"tripleNetworkObjective",
+				"settingsObjective",
 
 				"symmetricObjective",
 				"covarSymmetricObjective",
@@ -94,7 +97,12 @@ effectsDocumentation <- function(effects= NULL, type="html",
 				"dyadBehaviorNetObjective",
 				"covarABehaviorBipartiteObjective",
 				"covarBBehaviorBipartiteObjective",
-				"unspecifiedBehaviorInteraction")
+				"unspecifiedBehaviorInteraction",
+				"continuousFeedback", 
+				"continuousWiener",
+				"continuousIntercept",
+				"continuousOneModeObjective",
+				"unspecifiedContinuousInteraction")
 
 	mytab <- table(RSiena::allEffects[,1])
 

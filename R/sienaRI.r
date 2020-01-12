@@ -17,6 +17,11 @@ sienaRI <- function(data, ans=NULL, theta=NULL, algorithm=NULL, effects=NULL,
 	{
 		stop("no a legitimate Siena data specification")
 	}
+	datatypes <- sapply(data$depvars, function(x){attr(x,"type")})
+	if (any(datatypes == "bipartite"))
+	{
+		stop("sienaRI works only for dependent variables of type 'oneMode' or 'behavior'")
+	}
 	if(!is.null(ans))
 	{
 		if (!inherits(ans, "sienaFit"))
@@ -25,7 +30,7 @@ sienaRI <- function(data, ans=NULL, theta=NULL, algorithm=NULL, effects=NULL,
 		}
 		if(!is.null(algorithm)||!is.null(theta)||!is.null(effects))
 		{
-			warning(paste("some information are multiply defined \n",
+			warning(paste("some informations are multiply defined \n",
 					"results will be based on 'theta', 'algorithm', and 'effects'\n",
 					"stored in 'ans' (as 'ans$theta', 'ans$x', 'ans$effects')\n", sep=""))
 		}
@@ -218,7 +223,7 @@ expectedRelativeImportance <- function(conts, effects, theta, thedata=NULL,
 			structurals <- (depNetwork >= 10)
 			if (networkTypes[eff] == "oneMode"){
 				if (attr(depNetwork, 'symmetric')){
-					cat('\nNote that for symmetric networks, effect sizes are for modelType 2 (forcing).\n')}}
+message('\nNote that for symmetric networks, effect sizes are for modelType 2 (forcing).')}}
 
 			#			currentDepObjEffsNames <- paste(effects$shortName[currentDepEffs],
 			#				effects$type[currentDepEffs],effects$interaction1[currentDepEffs],sep=".")
@@ -330,9 +335,9 @@ expectedRelativeImportance <- function(conts, effects, theta, thedata=NULL,
 	}
 	if(depNumber>1)
 	{
-		warning(paste("more than one dependent variable\n",
+		message(paste("more than one dependent variable\n",
 				"return value is therefore not of class 'sienaRI'\n",
-				"but a list of objects of class 'sienaRI'.\n"))
+				"but a list of objects of class 'sienaRI'."))
 	}
 	RI
 }

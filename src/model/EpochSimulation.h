@@ -25,6 +25,7 @@ namespace siena
 // ----------------------------------------------------------------------------
 
 class DependentVariable;
+class ContinuousVariable;
 class Model;
 class ActorSet;
 class EffectInfo;
@@ -33,6 +34,7 @@ class State;
 class Cache;
 class Chain;
 class MiniStep;
+class SdeSimulation;
 
 
 // ----------------------------------------------------------------------------
@@ -57,8 +59,11 @@ public:
 	// Accessors
 	const Data * pData() const;
 	const Model * pModel() const;
+	const SdeSimulation * pSdeSimulation() const;
 	const DependentVariable * pVariable(std::string name) const;
+	const ContinuousVariable * pContinuousVariable(std::string name) const;
 	const std::vector<DependentVariable *> & rVariables() const;
+	const std::vector<ContinuousVariable *> & rContinuousVariables() const;
 	const SimulationActorSet * pSimulationActorSet(
 			const ActorSet * pOriginalActorSet) const;
 	int period() const;
@@ -69,6 +74,7 @@ public:
 
 	double score(const EffectInfo * pEffect) const;
 	void score(const EffectInfo * pEffect, double value);
+	void basicScaleScore(double score);
 	std::map<const EffectInfo *, double>
 		derivative(const EffectInfo * pEffect1) const;
 	double derivative(const EffectInfo * pEffect1,
@@ -87,12 +93,15 @@ public:
 	double lnFactorial(int a) const;
 protected:
 	void calculateRates();
-	double totalRate() const;
+	double grandTotalRate() const;
 	DependentVariable * chooseVariable() const;
 	int chooseActor(const DependentVariable * pVariable) const;
 
-	// A vector of dependent variables with their current values
+    // A vector of discrete dependent variables with their current values
 	std::vector<DependentVariable *> lvariables;
+
+	// A vector of continuous dependent variables with their current values
+    std::vector<ContinuousVariable *> lcontinuousVariables;
 
 private:
 	void runStep();
@@ -103,12 +112,17 @@ private:
 	void accumulateRateScores(double tau,
 			const DependentVariable * pSelectedVariable = 0,
 			int selectedActor = 0);
+	void updateContinuousVariablesAndScores();
 
 	// The observed data the model is based on
 	Data * lpData;
 
 	// The actor-based model to be simulated
 	Model * lpModel;
+
+	// The addition to the lpModel for the simulation of
+	// continuous variables
+	SdeSimulation * lpSdeSimulation;
 
 	// A wrapper object per actor set for simulation purposes
 	std::vector<SimulationActorSet *> lsimulationActorSets;
@@ -119,6 +133,9 @@ private:
 	// The dependent variable for look-ups by variable names
 	std::map<std::string, DependentVariable *> lvariableMap;
 
+	// The continuous dependent variable for look-ups by variable names
+    std::map<std::string, ContinuousVariable *> lcontinuousVariableMap;
+	
 	// The current period to be simulated
 	int lperiod;
 
@@ -128,12 +145,12 @@ private:
 	double * lcummulativeRates;
 
 	// The total rate over all dependent variables
-	double ltotalRate;
+	double lgrandTotalRate;
 
-	// The current time of the simmulation
+	// The current time of the simulation
 	double ltime;
 
-	// The current increment of time of the simmulation
+	// The current increment of time of the simulation
 	double ltau;
 
 	// A sorted set of exogenous events of composition change

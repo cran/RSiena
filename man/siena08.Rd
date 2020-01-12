@@ -100,10 +100,10 @@ siena08(..., projname = "sienaMeta", bound = 5, alpha = 0.05, maxit=20)
   \item{ns}{Number of fits on which the score test analysis is based}
 }
 \references{
-  T. A. B. Snijders and Chris Baerveldt.
+  T. A. B. Snijders and Chris Baerveldt (2003).
   Multilevel network study of the effects
   of delinquent behavior on friendship
-  evolution. \emph{Journal of Mathematical Sociology}, 27: 123-151, 2003.
+  evolution. \emph{Journal of Mathematical Sociology} \bold{27}, 123--151.
 
   See also the manual (Section 11.2)
   and \url{http://www.stats.ox.ac.uk/~snijders/siena/}
@@ -125,16 +125,16 @@ Group4 <- sienaDependent(array(c(N3404, HN3404), dim=c(33, 33, 2)))
 dataset.1 <- sienaDataCreate(Friends = Group1)
 dataset.3 <- sienaDataCreate(Friends = Group3)
 dataset.4 <- sienaDataCreate(Friends = Group4)
-OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups", seed=1234)
+OneAlgorithm <- sienaAlgorithmCreate(projname = "SingleGroups", seed=128)
 effects.1 <- getEffects(dataset.1)
 effects.3 <- getEffects(dataset.3)
 effects.4 <- getEffects(dataset.4)
 effects.1 <- includeEffects(effects.1, transTrip)
-effects.1 <- setEffect(effects.1, cycle3, fix=TRUE, test=TRUE)
+effects.1 <- setEffect(effects.1, transRecTrip, fix=TRUE, test=TRUE)
 effects.3 <- includeEffects(effects.3, transTrip)
-effects.3 <- setEffect(effects.3, cycle3, fix=TRUE, test=TRUE)
+effects.3 <- setEffect(effects.3, transRecTrip, fix=TRUE, test=TRUE)
 effects.4 <- includeEffects(effects.4, transTrip)
-effects.4 <- setEffect(effects.4, cycle3, fix=TRUE, test=TRUE)
+effects.4 <- setEffect(effects.4, transRecTrip, fix=TRUE, test=TRUE)
 ans.1 <- siena07(OneAlgorithm, data=dataset.1, effects=effects.1, batch=TRUE)
 ans.3 <- siena07(OneAlgorithm, data=dataset.3, effects=effects.3, batch=TRUE)
 ans.4 <- siena07(OneAlgorithm, data=dataset.4, effects=effects.4, batch=TRUE)
@@ -142,6 +142,7 @@ ans.1
 ans.3
 ans.4
 (meta <- siena08(ans.1, ans.3, ans.4))
+plot(meta, which=2:3, layout = c(2,1))
 # For specifically presenting the Fisher combinations:
 # First determine the components of meta with estimated effects:
 which.est <- sapply(meta, function(x){ifelse(is.list(x),!is.null(x$cjplus),FALSE)})

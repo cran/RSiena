@@ -43,4 +43,4 @@ xtable(ans, type="html", file="ans.html")}
 }
 % Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.
-\keyword{ methods }
+\keyword{ print }

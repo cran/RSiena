@@ -6,30 +6,34 @@
 \alias{print.summary.sienaMeta}
 \title{Methods for processing sienaMeta objects}
 \usage{
-\method{print}{sienaMeta}(x, file=FALSE, ...)
+\method{print}{sienaMeta}(x, file=FALSE, reportEstimates=FALSE, ...)
 
 \method{summary}{sienaMeta}(object, file=FALSE, extra=TRUE, ...)
 
 \method{print}{summary.sienaMeta}(x, file=FALSE, extra=TRUE, ...)
 
-\method{plot}{sienaMeta}(x,  ..., layout=c(2,2))
+\method{plot}{sienaMeta}(x, ..., which = 1:length(x$theta),
+                         useBound=TRUE, layout = c(2,2))
 }
 \description{
   \code{print}, \code{summary}, and \code{plot} methods for
    \code{sienaMeta} objects.
 }
 \arguments{
-  \item{object}{An object of class \code{sienaMeta}}
+  \item{object}{An object of class \code{sienaMeta}.}
   \item{x}{An object of class \code{sienaMeta}, or
-    \code{summary.sienaMeta} as appropriate}
+    \code{summary.sienaMeta} as appropriate.}
   \item{file}{Boolean: if TRUE, sends output to file named
-    \code{x$projname.out}. If FALSE, output is to the terminal.}
-  \item{extra}{Boolean: if TRUE, prints more information}
-  \item{layout}{the vector giving number of rows and columns
+    \code{x$projname.txt}. If FALSE, output is to the terminal.}
+  \item{reportEstimates}{Boolean: whether to report all estimates and standard errors.}
+  \item{extra}{Boolean: if TRUE, prints more information.}
+  \item{which}{Set of effects contained in the plot (given by sequence numbers).}
+  \item{useBound}{Boolean: whether to restict plotted symbols to the bound
+    used in the call of \code{sienaMeta}.}
+  \item{layout}{Vector giving number of rows and columns
     in the arrangement of the several panels in a
-    rectangular array, possibly spanning multiple pages}
-  \item{\dots}{For extra arguments (none used at present)
-  }
+    rectangular array, possibly spanning multiple pages.}
+  \item{\dots}{For extra arguments (none used at present).}
 }
 \value{
  The function \code{print.sienaMeta} prints details of the merged
@@ -43,7 +47,7 @@
 
  Output from either can be directed to a file by using the argument
  \code{file}. It will be appended to any existing file of the same
- name: \code{projname.out}  where \code{projname} is the value of the
+ name: \code{projname.txt}  where \code{projname} is the value of the
  argument to \code{siena08}.
 
  The function \code{plot.sienaMeta} plots estimates against standard
@@ -83,18 +87,20 @@ effects.1 <- getEffects(dataset.1)
 effects.3 <- getEffects(dataset.3)
 effects.4 <- getEffects(dataset.4)
 effects.1 <- includeEffects(effects.1, transTrip)
-effects.1 <- setEffect(effects.1, cycle3, fix=TRUE, test=TRUE)
+effects.1 <- setEffect(effects.1, transRecTrip, fix=TRUE, test=TRUE)
 effects.3 <- includeEffects(effects.3, transTrip)
-effects.3 <- setEffect(effects.3, cycle3, fix=TRUE, test=TRUE)
+effects.3 <- setEffect(effects.3, transRecTrip, fix=TRUE, test=TRUE)
 effects.4 <- includeEffects(effects.4, transTrip)
-effects.4 <- setEffect(effects.4, cycle3, fix=TRUE, test=TRUE)
+effects.4 <- setEffect(effects.4, transRecTrip, fix=TRUE, test=TRUE)
 ans.1 <- siena07(OneAlgorithm, data=dataset.1, effects=effects.1, batch=TRUE)
 ans.3 <- siena07(OneAlgorithm, data=dataset.3, effects=effects.3, batch=TRUE)
 ans.4 <- siena07(OneAlgorithm, data=dataset.4, effects=effects.4, batch=TRUE)
 ans.1
 ans.3
 ans.4
-(meta <- siena08(ans.1, ans.3, ans.4))
+meta <- siena08(ans.1, ans.3, ans.4)
+print(meta, reportEstimates=FALSE)
+print(meta)
 summary(meta)
 # For specifically presenting the Fisher combinations:
 # First determine the number of estimated effects:
@@ -109,5 +115,9 @@ Fishers
 plo <- plot(meta, layout = c(3,1))
 plo
 plo[3]
+# Show effects of bound (bounding at 0.4 is not reasonable, just for example)
+meta <- siena08(ans.1, ans.3, ans.4, bound=0.4)
+plot(meta, which=c(2,3), layout=c(2,1))
+plot(meta, which=c(2,3), layout=c(2,1), useBound=FALSE)
 }}
-\keyword{ methods }
+\keyword{ print }

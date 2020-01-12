@@ -22,9 +22,18 @@ varDyadCovar(val, centered=TRUE, nodeSets=c("Actors", "Actors"),
 }
 \details{
   When part of a Siena data object, the covariate is assumed to be
-  associated with the node sets named NodeSets
+  associated with the node sets named \code{NodeSets}
   of the Siena data object. The names of the associated node sets will only
   be checked when the Siena data object is created.
+  In practice, the node set needs to be specified only in the case of
+  the use of the covariate with a two-mode network.\cr
+  The value of the changing covariate for wave \code{m} is supposed
+  in the simulations to be valid in the whole period from wave \code{m} 
+  to wave \code{m+1}.
+  If the data set has \code{M} waves, this means that the values,
+  if any, for wave \code{M} will not be used. Therefore, the number of columns
+  can be \code{M} or \code{M-1}; if the former, the values in the last 
+  column will not be used.
 }
 \value{
   Returns the covariate as an object of class "varDyadCovar", in which
@@ -33,7 +42,8 @@ varDyadCovar(val, centered=TRUE, nodeSets=c("Actors", "Actors"),
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
 \seealso{\code{\link{sienaDataCreate}}, \code{\link{coDyadCovar}},
-\code{\link{coCovar}}, \code{\link{varCovar}}}
+\code{\link{coCovar}}, \code{\link{varCovar}},
+\code{\link{sienaNodeSet}}}
 \examples{
 
 mydyadvar <- varDyadCovar(array(c(s501, s502), dim=c(50, 50, 2)))

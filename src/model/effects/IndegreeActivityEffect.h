@@ -12,7 +12,10 @@
 #ifndef INDEGREEACTIVITYEFFECT_H_
 #define INDEGREEACTIVITYEFFECT_H_
 
+#include <string>
 #include "NetworkEffect.h"
+
+using namespace std;
 
 namespace siena
 {
@@ -40,8 +43,11 @@ class SqrtTable;
 class IndegreeActivityEffect : public NetworkEffect
 {
 public:
-	IndegreeActivityEffect(const EffectInfo * pEffectInfo, bool root);
+	IndegreeActivityEffect(const EffectInfo * pEffectInfo,
+							bool root, bool centered);
 
+	virtual void initialize(const Data * pData, State * pState,	int period,
+			Cache * pCache);
 	virtual double calculateContribution(int alter) const;
 
 protected:
@@ -54,6 +60,9 @@ private:
 
 	// Lookup table for fast square root calculations
 	SqrtTable * lsqrtTable;
+	bool lcentered;
+	double lcentering;
+	string lvariableName;
 };
 
 }

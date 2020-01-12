@@ -70,15 +70,4 @@ double InverseSquaredOutdegreeEffect::egoStatistic(int ego,
 }
 
 
-/**
- * Returns the statistic corresponding to this effect as part of
- * the endowment function.
- */
-double InverseSquaredOutdegreeEffect::endowmentStatistic(
-	Network * pLostTieNetwork)
-{
-	throw logic_error(
-		"InverseSquaredOutdegreeEffect: Endowment effect not supported.");
-}
-
 }

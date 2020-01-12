@@ -12,6 +12,11 @@
 #ifndef SIENA07UTILITIES_H_
 #define SIENA07UTILITIES_H_
 
+#include <Rinternals.h>
+
+#include "network/Network.h"
+#include "model/variables/DependentVariable.h"
+
 namespace siena
 {
 	class Data;
@@ -56,10 +61,12 @@ SEXP getEdgeList(const Network& net);
 
 /**
  * utilities to access chains and ministeps
- *
  */
 namespace siena
 {
+	SEXP var_to_sexp(DependentVariable * pVar);
+	SEXP net_to_sexp(const Network * pVar);
+
 	SEXP getMiniStepDF(const MiniStep & miniStep);
 	SEXP getChainDF(const Chain& chain, bool sort=true);
 	SEXP getChainDFPlus(const Chain & chain, bool sort=true);
@@ -70,7 +77,7 @@ namespace siena
 	SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP & stats);
 	Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period);
 	MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP);
-	Chain * createMissingChain(int period, Data * data,
-			const State& initialState);
+	Chain * createMissingChain(int period, Data * data, const State& initialState);
 }
-#endif /*SIENA07UTILITIES_H_*/
+
+#endif // SIENA07UTILITIES_H_

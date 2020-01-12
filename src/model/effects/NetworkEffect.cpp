@@ -39,6 +39,7 @@ NetworkEffect::NetworkEffect(const EffectInfo * pEffectInfo) :
 	this->lpNetwork = 0;
 	this->lpNetworkData = 0;
 	this->lpNetworkCache = 0;
+	this->lstepTypeVal = -1;
 	this->lpTwoPathTable = 0;
 	this->lpReverseTwoPathTable = 0;
 	this->lpInStarTable = 0;
@@ -76,6 +77,7 @@ void NetworkEffect::initialize(const Data * pData,
 
 	this->lpNetwork = pState->pNetwork(name);
 	this->lpNetworkCache = pCache->pNetworkCache(this->lpNetwork);
+	this->lstepTypeVal = this->lpNetworkCache->stepTypeValue();
 
 	this->lpTwoPathTable = this->lpNetworkCache->pTwoPathTable();
 	this->lpReverseTwoPathTable = this->lpNetworkCache->pReverseTwoPathTable();

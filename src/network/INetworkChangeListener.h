@@ -30,6 +30,8 @@ public:
 	virtual ~INetworkChangeListener() {
 	}
 
+	virtual void onInitializationEvent(const Network& rNetwork) = 0;
+
 	/**
 	 * Invoked when an tie is introduced to the network.
 	 */
@@ -46,6 +48,11 @@ public:
 	 * Invoked when the network is cleared.
 	 */
 	virtual void onNetworkClearEvent(const Network& rNetwork) = 0;
+
+	/**
+	 * Invoked when the network is disposed.
+	 */
+	virtual void onNetworkDisposeEvent(const Network& rNetwork) = 0;
 
 protected:
 

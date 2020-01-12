@@ -16,6 +16,7 @@
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
 #include <Rinternals.h>
+#include "SdeSimulation.h"
 #include "EpochSimulation.h"
 #include "utils/Random.h"
 #include "utils/Utils.h"
@@ -24,9 +25,11 @@
 #include "data/LongitudinalData.h"
 #include "data/NetworkLongitudinalData.h"
 #include "data/BehaviorLongitudinalData.h"
+#include "data/ContinuousLongitudinalData.h"
 #include "model/variables/DependentVariable.h"
 #include "model/variables/NetworkVariable.h"
 #include "model/variables/BehaviorVariable.h"
+#include "model/variables/ContinuousVariable.h"
 #include "model/Model.h"
 #include "model/SimulationActorSet.h"
 #include "model/State.h"
@@ -82,23 +85,41 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel) {
 	// Create the dependent variables from the observed data
 
 	for (unsigned i = 0; i < pData->rDependentVariableData().size(); i++) {
-		DependentVariable * pVariable = 0;
+
 		NetworkLongitudinalData * pNetworkData =
 				dynamic_cast<NetworkLongitudinalData *>(pData->rDependentVariableData()[i]);
 		BehaviorLongitudinalData * pBehaviorData =
 				dynamic_cast<BehaviorLongitudinalData *>(pData->rDependentVariableData()[i]);
+		ContinuousLongitudinalData * pContinuousData =
+			dynamic_cast<ContinuousLongitudinalData *>(pData->rDependentVariableData()[i]);
 
-		if (pNetworkData) {
+		DependentVariable * pVariable = 0;
+		ContinuousVariable * pContinuousVariable = 0;
+
+		if (pNetworkData) 
+		{
 			pVariable = new NetworkVariable(pNetworkData, this);
-		} else if (pBehaviorData) {
+			this->lvariables.push_back(pVariable);
+			this->lvariableMap[pVariable->name()] = pVariable;
+		} 
+		else if (pBehaviorData) 
+		{
 			pVariable = new BehaviorVariable(pBehaviorData, this);
-		} else {
+			this->lvariables.push_back(pVariable);
+			this->lvariableMap[pVariable->name()] = pVariable;
+		} 
+		else if (pContinuousData) 
+		{
+			pContinuousVariable = new ContinuousVariable(pContinuousData, this);
+			this->lcontinuousVariables.push_back(pContinuousVariable);
+			this->lcontinuousVariableMap[pContinuousVariable->name()]
+				= pContinuousVariable;
+		} 
+		else 
+		{
 			throw logic_error(
 					"EpochSimulation: Network or behavior data expected.");
 		}
-
-		this->lvariables.push_back(pVariable);
-		this->lvariableMap[pVariable->name()] = pVariable;
 
 		if (pModel->conditional()
 				&& pModel->conditionalDependentVariable()
@@ -117,6 +138,12 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel) {
 		this->lvariables[i]->initializeCreationFunction();
 	}
 
+	// Initialize all the effects for the continuous variables.
+	
+	for (unsigned i = 0; i < this->lcontinuousVariables.size(); i++) {
+		this->lcontinuousVariables[i]->initializeFunction();
+	}
+	
 	// Add network constraints to network variables.
 
 	for (unsigned i = 0; i < pData->rNetworkConstraints().size(); i++) {
@@ -167,6 +194,14 @@ EpochSimulation::EpochSimulation(Data * pData, Model * pModel) {
 			(int) this->lvariables.size())];
 	this->ltargetChange = 0;
 
+	// Create an SDE model for the evolution of the continuous variables
+	
+	if (this->lcontinuousVariables.size() > 0) {
+		this->lpSdeSimulation = new SdeSimulation(this);
+	} else {
+		this->lpSdeSimulation = 0;
+	}
+	
 	// Create a state object that will store the current values of all
 	// dependent variables during the simulation.
 
@@ -182,15 +217,19 @@ EpochSimulation::~EpochSimulation() {
 	delete this->lpState;
 	delete this->lpCache;
 	delete this->lpChain;
+	delete this->lpSdeSimulation;
 
 	this->lcummulativeRates = 0;
 	this->lpState = 0;
 	this->lpCache = 0;
+	this->lpSdeSimulation = 0;
 
 	deallocateVector(this->lvariables);
+	deallocateVector(this->lcontinuousVariables);
 	deallocateVector(this->lsimulationActorSets);
 
 	this->lvariableMap.clear();
+	this->lcontinuousVariableMap.clear();
 }
 
 // ----------------------------------------------------------------------------
@@ -216,10 +255,14 @@ void EpochSimulation::initialize(int period) {
 		}
 	}
 
-	// Initialize each dependent variable
-
+	// Initialize each discrete dependent variable
 	for (unsigned i = 0; i < this->lvariables.size(); i++) {
 		this->lvariables[i]->initialize(period);
+	}
+
+	// Initialize each continuous dependent variable
+	for (unsigned i = 0; i < this->lcontinuousVariables.size(); i++) {
+		this->lcontinuousVariables[i]->initialize(period);
 	}
 
 	// Initialize the effects for the upcoming simulation
@@ -245,6 +288,20 @@ void EpochSimulation::initialize(int period) {
 			pFunction->rEffects()[j]->initialize(this->lpData, this->lpState,
 					period, this->lpCache);
 		}
+	}
+
+	for (unsigned i = 0; i < this->lcontinuousVariables.size(); i++) {
+		const Function * pFunction = this->lcontinuousVariables[i]->pFunction();
+
+		for (unsigned j = 0; j < pFunction->rEffects().size(); j++) {
+			pFunction->rEffects()[j]->initialize(this->lpData, this->lpState,
+					period, this->lpCache);
+		}
+	}
+	
+	// Initialize the SDE for the upcoming simulation
+	if (this->lcontinuousVariables.size() > 0) {
+		 this->lpSdeSimulation->initialize(period);
 	}
 
 	// Reset the time
@@ -310,9 +367,7 @@ void EpochSimulation::runEpoch(int period) {
 	}
 	if (this->pModel()->needChain()) {
 		this->calculateRates();
-
-		this->pChain()->finalReciprocalRate(1 / this->totalRate());
-
+		this->pChain()->finalReciprocalRate(1 / this->grandTotalRate());
 	}
 }
 
@@ -328,7 +383,8 @@ void EpochSimulation::runStep() {
 	DependentVariable * pSelectedVariable = 0;
 	int selectedActor = 0;
 
-	if (this->lpModel->conditional() || nextTime < 1) {
+	if (this->lpModel->conditional() || nextTime < 1) 
+	{
 		if (this->reachedCompositionChange()) {
 			this->makeNextCompositionChange();
 			if (this->pModel()->needScores()) {
@@ -340,6 +396,12 @@ void EpochSimulation::runStep() {
 		} else {
 			this->ltime = nextTime;
 
+			// SDE step 
+			if (this->lcontinuousVariables.size() > 0) {
+				this->lpSdeSimulation->setBergstromCoefficients(this->ltau);
+				this->updateContinuousVariablesAndScores();
+			}
+			
 			pSelectedVariable = this->chooseVariable();
 			selectedActor = this->chooseActor(pSelectedVariable);
 
@@ -351,11 +413,10 @@ void EpochSimulation::runStep() {
 				if (this->pModel()->needChain()) {
 					// update rate probabilities on the current final ministep
 					this->lpChain->pLast()->pPrevious()->logOptionSetProbability(
-							log(
-									pSelectedVariable->rate(selectedActor)
-											/ this->totalRate()));
+							log(pSelectedVariable->rate(selectedActor)
+											/ this->grandTotalRate()));
 					this->lpChain->pLast()->pPrevious()->reciprocalRate(
-							1.0 / this->totalRate());
+							1.0 / this->grandTotalRate());
 				}
 			}
 			// Update the scores for rate parameters
@@ -364,29 +425,37 @@ void EpochSimulation::runStep() {
 						selectedActor);
 			}
 		}
-	} else {
+	} else 
+	{
 		// Make sure we stop at 1.0 precisely.
 
 		this->ltau = 1 - this->ltime;
 		this->ltime = 1;
 
+		// SDE step 
+		if (this->lcontinuousVariables.size() > 0) {
+			this->lpSdeSimulation->setBergstromCoefficients(this->ltau);
+			this->updateContinuousVariablesAndScores();
+		}
+			
 		// Update rate scores
-		if (this->pModel()->needScores()) {
+		if (this->pModel()->needScores()) 
+		{
 			this->accumulateRateScores(this->ltau);
 		}
 	}
 }
 
 /**
- * Calculates the rates of chagne of each actor for each dependent variable and
+ * Calculates the rates of change of each actor for each dependent variable and
  * the total rates of change for each variable summed over all actors.
  */
 void EpochSimulation::calculateRates() {
-	this->ltotalRate = 0;
+	this->lgrandTotalRate = 0;
 
 	for (unsigned i = 0; i < this->lvariables.size(); i++) {
 		this->lvariables[i]->calculateRates();
-		this->ltotalRate += this->lvariables[i]->totalRate();
+		this->lgrandTotalRate += this->lvariables[i]->totalRate();
 	}
 }
 
@@ -403,10 +472,10 @@ void EpochSimulation::drawTimeIncrement() {
 #ifndef STANDALONE
 	if (this->lpModel->parallelRun()) {
 #endif
-		tau = nextExponentialQAD(this->ltotalRate);
+		tau = nextExponentialQAD(this->lgrandTotalRate);
 #ifndef STANDALONE
 	} else {
-		tau = nextExponential(this->ltotalRate);
+		tau = nextExponential(this->lgrandTotalRate);
 	}
 #endif
 
@@ -545,6 +614,40 @@ void EpochSimulation::accumulateRateScores(double tau,
 	}
 }
 
+/**
+ * Updates the continuous variables based on the SDE and the scores of
+ * the effects for these variables (in case the score function method
+ * is used).
+ */
+void EpochSimulation::updateContinuousVariablesAndScores() {
+	// up to now only for one continuous variable
+	// function is never called if lcontVar's.size() == 0
+	if (this->lcontinuousVariables.size() > 1) {
+		error("EpochSimulation: Not more than one continuous variable.");
+	}
+
+	ContinuousVariable * pVariable = this->lcontinuousVariables[0];
+	pVariable->calculateEffectContribution();
+	
+	vector<double> actorMeans(pVariable->n());
+	vector<double> actorErrors(pVariable->n());
+	
+	for (unsigned actor = 0; actor < pVariable->n(); actor++) 
+	{
+		// new value = deterministic part + random part
+		actorMeans[actor] = pVariable->totalFunctionContribution(actor);
+		actorErrors[actor] = this->lpSdeSimulation->randomComponent();
+		double newValue = actorMeans[actor] + actorErrors[actor];
+		pVariable->value(actor, newValue);
+		// Rprintf("t = %f: actor %d has value %f\n", this->ltime, actor, newValue);
+	}
+
+	if (this->pModel()->needScores())
+	{
+		pVariable->accumulateScores(actorMeans, actorErrors, this->ltau);
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Section: Accessors
 // ----------------------------------------------------------------------------
@@ -561,6 +664,14 @@ const Data * EpochSimulation::pData() const {
  */
 const Model * EpochSimulation::pModel() const {
 	return this->lpModel;
+}
+
+/**
+ * Returns the object responsible for the simulation of the continuous 
+ * variables.
+ */
+const SdeSimulation * EpochSimulation::pSdeSimulation() const {
+	return this->lpSdeSimulation;
 }
 
 /**
@@ -604,11 +715,35 @@ const DependentVariable * EpochSimulation::pVariable(string name) const {
 }
 
 /**
- * Returns a reference to the vector of dependent variables.
+ * Returns the dependent variable with the given name if it exists;
+ * otherwise 0 is returned.
+ */
+const ContinuousVariable * EpochSimulation::pContinuousVariable(string name) const {
+	map<string, ContinuousVariable *>::const_iterator iter =
+			this->lcontinuousVariableMap.find(name);
+	const ContinuousVariable * pVariable = 0;
+
+	if (iter != this->lcontinuousVariableMap.end()) {
+		pVariable = iter->second;
+	}
+
+	return pVariable;
+}
+
+/**
+ * Returns a reference to the vector of discrete dependent variables.
  */
 const vector<DependentVariable *> & EpochSimulation::rVariables() const {
 	return this->lvariables;
 }
+
+/**
+ * Returns a reference to the vector of continuous dependent variables.
+ */
+const vector<ContinuousVariable *> & EpochSimulation::rContinuousVariables() const {
+	return this->lcontinuousVariables;
+}
+
 
 /**
  * Returns the wrapper actor set corresponding to the given original actor set.
@@ -662,6 +797,14 @@ double EpochSimulation::score(const EffectInfo * pEffect) const {
  */
 void EpochSimulation::score(const EffectInfo * pEffect, double value) {
 	this->lscores[pEffect] = value;
+}
+
+/**
+ * Sets the score of the scale parameter to the given value. 
+ */
+void EpochSimulation::basicScaleScore(double score)
+{
+	this->lpSdeSimulation->basicScaleScore(score);
 }
 
 /**
@@ -830,8 +973,8 @@ Cache * EpochSimulation::pCache() const {
 /**
  * Returns the total rate over all dependent variables.
  */
-double EpochSimulation::totalRate() const {
-	return this->ltotalRate;
+double EpochSimulation::grandTotalRate() const {
+	return this->lgrandTotalRate;
 }
 /**
  * Stores if simple rates should be used in simulations.

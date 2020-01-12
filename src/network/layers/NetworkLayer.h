@@ -30,6 +30,12 @@ public:
 	virtual ~NetworkLayer() {
 	}
 
+	void onInitializationEvent(const Network& rNetwork) {
+		initialize(rNetwork);
+	}
+
+	virtual int size(int actor) = 0;
+
 protected:
 
 	/**

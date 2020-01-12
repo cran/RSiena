@@ -32,7 +32,7 @@ effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
   a table, either latex or html. This table presents all the available
   effects present in this version of RSiena, not delimited
   by a particular data set. The default file name is "effects.tex" or
-  "effects.pdf", respectively. The latter file is also shown in the browser
+  "effects.html", respectively. The latter file is also shown in the browser
   when requesting\cr
   \code{RShowDoc("effects", package="RSiena")}
 

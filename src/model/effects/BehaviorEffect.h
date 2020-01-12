@@ -69,6 +69,7 @@ protected:
 	int n() const;
 	int value(int actor) const;
 	double centeredValue(int actor) const;
+	double overallCenterMean() const;
 	bool missing(int observation, int actor) const;
 	double range() const;
 	double similarity(double a, double b) const;

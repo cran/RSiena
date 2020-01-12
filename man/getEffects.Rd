@@ -8,7 +8,7 @@
   variables in the input siena object.
 }
 \usage{
-getEffects(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
+getEffects(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeriodSde=FALSE)
 }
 \arguments{
   \item{x}{an object of class `siena" or `sienaGroup"}
@@ -18,16 +18,28 @@ getEffects(x, nintn = 10, behNintn=4, getDocumentation=FALSE)
        that can later be created.}
   \item{getDocumentation}{Flag to allow documentation of internal
   functions, not for use by users.}
+  \item{onePeriodSde}{Flag to indicate that the stochastic
+       differential equation (SDE) model dZ(t) = [aZ(t) + b] dt + g dW(t)
+       should be used, instead of the regular SDE with a scale parameter.
+       This is only relevant in case the model includes a continuous
+       dependent variable and one period is studied.}
 }
 \details{
-Creates a data frame of effects for use in siena model fits.
+Creates a data frame of effects for use in siena model estimation.
+The regular way of changing this object is by the functions 
+\code{\link{includeEffects}}, \code{\link{setEffect}},
+and \code{\link{includeInteraction}}.
+
 Note that the class of the return object may be lost if the data.frame
 is edited using \command{fix}.
 See \code{\link{fix}} and \code{\link{edit.data.frame}}.
 }
 \value{An object of class \code{sienaEffects} or \code{sienaGroupEffects}:
-this is a data frame, each part of which relates to one dependent
-variable in the input object, with columns
+this is a data frame of which the rows are the effects available
+for data set \code{x}.\cr
+  The effects object consists of consecutive parts, each of which relates
+  to one dependent variable in the input object.
+  The columns are:
   \item{name}{name of the dependent variable}
   \item{effectName}{name of the effect}
   \item{functionName}{name of the function}
@@ -74,6 +86,9 @@ variable in the input object, with columns
   \code{shortName}, \code{period} and \code{group} uniquely identifies a
   basic rate effect.
 
+  The columns not used for identifying the effect define how the effect is used
+  for the estimation.
+
   A list of all effects in a given effects object (e.g., \code{myeff}),
   including their names of dependent variables, effect names, short names,
   and values of interaction1 and interaction2 (if any),
@@ -81,8 +96,9 @@ variable in the input object, with columns
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
-\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaDataCreate}},
-        \code{\link{includeEffects}}, \code{\link{setEffect}}}
+\seealso{\code{\link{sienaDataCreate}}, \code{\link{sienaGroupCreate}},
+        \code{\link{includeEffects}}, \code{\link{setEffect}},
+        \code{\link{print.sienaEffects}}}
 \examples{
 mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mybeh <- sienaDependent(s50a, type="behavior")

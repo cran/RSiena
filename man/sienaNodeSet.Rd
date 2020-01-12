@@ -25,8 +25,16 @@ sienaNodeSet(n, nodeSetName="Actors", names=NULL)
 }
 \references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/ }}
 \author{Ruth Ripley }
+\seealso{\code{\link{sienaDependent}}, \code{\link{sienaDataCreate}}}
 \examples{
-students <- sienaNodeSet(50, "student")
+senders <- sienaNodeSet(50, nodeSetName="senders")
+receivers <- sienaNodeSet(30, nodeSetName="receivers")
+senders.attribute <- coCovar(rep(1:10, each=5), nodeSet="senders")
+receivers.attribute <- coCovar(rep(1:5, each=6), nodeSet="receivers")
+mynet <- sienaDependent(array(c(s501[,1:30], s502[,1:30]), dim=c(50, 30, 2)),
+      nodeSet=c("senders", "receivers"))
+(mydata <- sienaDataCreate(mynet, senders.attribute, receivers.attribute,
+      nodeSets=list(senders, receivers)))
 }
 % Add one or more standard keywords, see file "KEYWORDS" in the
 % R documentation directory.

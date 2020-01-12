@@ -108,7 +108,7 @@ public:
 
 	// Copy
 	Chain * copyChain() const;
-	void dumpChain() const;
+//	void dumpChain() const;
 
 private:
 	void resetOrderingKeys();

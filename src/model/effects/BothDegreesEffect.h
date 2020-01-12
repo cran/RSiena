@@ -12,6 +12,7 @@
 #ifndef BOTHDEGREESEFFECT_H_
 #define BOTHDEGREESEFFECT_H_
 
+#include <string>
 #include "NetworkEffect.h"
 
 namespace siena
@@ -34,8 +35,13 @@ class SqrtTable;
 class BothDegreesEffect : public NetworkEffect
 {
 public:
-	BothDegreesEffect(const EffectInfo * pEffectInfo);
+	BothDegreesEffect(const EffectInfo * pEffectInfo, bool centered);
+
+	virtual void initialize(const Data * pData, State * pState,	int period,
+			Cache * pCache);
 	virtual double calculateContribution(int alter) const;
+	virtual double endowmentStatistic(Network * pLostTieNetwork);
+
 
 protected:
 	virtual double tieStatistic(int alter);
@@ -45,6 +51,9 @@ private:
 	bool lroot;
 	// Lookup table for fast square root calculations
 	SqrtTable * lsqrtTable;
+	bool lcentered;
+	double lcentering;
+	std::string lvariableName;
 };
 
 }

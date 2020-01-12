@@ -15,6 +15,7 @@
 #include "data/NetworkLongitudinalData.h"
 #include "data/OneModeNetworkLongitudinalData.h"
 #include "data/BehaviorLongitudinalData.h"
+#include "data/ContinuousLongitudinalData.h"
 #include "data/ConstantCovariate.h"
 #include "data/ChangingCovariate.h"
 #include "data/ConstantDyadicCovariate.h"
@@ -131,8 +132,7 @@ NetworkLongitudinalData * Data::createNetworkData(std::string name,
  * @param[in] pActors the set of actors of the network
  */
 OneModeNetworkLongitudinalData * Data::createOneModeNetworkData(
-	std::string name,
-	const ActorSet * pActors)
+	std::string name, const ActorSet * pActors)
 {
 	OneModeNetworkLongitudinalData * pNetworkData =
 		new OneModeNetworkLongitudinalData(this->ldependentVariableData.size(),
@@ -140,6 +140,16 @@ OneModeNetworkLongitudinalData * Data::createOneModeNetworkData(
 			pActors,
 			this->lobservationCount);
 	this->ldependentVariableData.push_back(pNetworkData);
+	return pNetworkData;
+}
+
+OneModeNetworkLongitudinalData * Data::createOneModeSimNetworkData(
+	std::string name, const ActorSet * pActors)
+{
+	OneModeNetworkLongitudinalData * pNetworkData =
+		new OneModeNetworkLongitudinalData(this->lsimVariableData.size(),
+			name, pActors, this->lobservationCount);
+	this->lsimVariableData.push_back(pNetworkData);
 	return pNetworkData;
 }
 
@@ -160,6 +170,25 @@ BehaviorLongitudinalData * Data::createBehaviorData(std::string name,
 			this->lobservationCount);
 	this->ldependentVariableData.push_back(pBehaviorData);
 	return pBehaviorData;
+}
+
+
+/**
+ * Creates a new data object for storing observations of a continuous behavior
+ * variable for the given set of actors.
+ * @param[in] name the name of the continuous behavior variable
+ */
+ContinuousLongitudinalData * Data::createContinuousData(std::string name,
+	const ActorSet * pActorSet)
+{
+	// The index of the longitudinal data object
+	ContinuousLongitudinalData * pContinuousData =
+		new ContinuousLongitudinalData(this->ldependentVariableData.size(),
+			name,
+			pActorSet,
+			this->lobservationCount);
+	this->ldependentVariableData.push_back(pContinuousData);
+	return pContinuousData;
 }
 
 
@@ -235,6 +264,10 @@ const std::vector<LongitudinalData *> & Data::rDependentVariableData() const
 	return this->ldependentVariableData;
 }
 
+const std::vector<LongitudinalData *> & Data::rSimVariableData() const
+{
+	return this->lsimVariableData;
+}
 
 /**
  * Returns the collection of constant covariates.
@@ -361,15 +394,25 @@ NetworkLongitudinalData * Data::pNetworkData(std::string name) const
 		findNamedObject(name, this->ldependentVariableData));
 }
 
+NetworkLongitudinalData * Data::pSimNetworkData(std::string name) const
+{
+	return dynamic_cast<NetworkLongitudinalData *>(
+		findNamedObject(name, this->lsimVariableData));
+}
 
 /**
  * Returns the longitudinal one-mode network data with the given name.
  */
-OneModeNetworkLongitudinalData * Data::pOneModeNetworkData(std::string name)
-	const
+OneModeNetworkLongitudinalData * Data::pOneModeNetworkData(std::string name) const
 {
 	return dynamic_cast<OneModeNetworkLongitudinalData *>(
 		findNamedObject(name, this->ldependentVariableData));
+}
+
+OneModeNetworkLongitudinalData * Data::pOneModeSimNetworkData(std::string name) const
+{
+	return dynamic_cast<OneModeNetworkLongitudinalData *>(
+		findNamedObject(name, this->lsimVariableData));
 }
 
 
@@ -379,6 +422,16 @@ OneModeNetworkLongitudinalData * Data::pOneModeNetworkData(std::string name)
 BehaviorLongitudinalData * Data::pBehaviorData(std::string name) const
 {
 	return dynamic_cast<BehaviorLongitudinalData *>(
+		findNamedObject(name, this->ldependentVariableData));
+}
+
+
+/**
+ * Returns the longitudinal continuous behavior data with the given name.
+ */
+ContinuousLongitudinalData * Data::pContinuousData(std::string name) const
+{
+	return dynamic_cast<ContinuousLongitudinalData *>(
 		findNamedObject(name, this->ldependentVariableData));
 }
 
