@@ -25,7 +25,7 @@ class ConstantCovariate;
 class ChangingCovariate;
 class BehaviorVariable;
 class BehaviorLongitudinalData;
-
+class ContinuousLongitudinalData;
 
 // ----------------------------------------------------------------------------
 // Section: Class definition
@@ -51,13 +51,14 @@ public:
 protected:
 	double value(const int i) const;
 	bool missing(int i) const;
-	double similarity(int i, int j) const;
+	double actor_similarity(int i, int j) const;
 	ConstantCovariate * pConstantCovariate() const;
 	ChangingCovariate * pChangingCovariate() const;
 	BehaviorLongitudinalData * pBehaviorData() const;
+    ContinuousLongitudinalData * pContinuousData() const;
 
 private:
-	//! If `1` value(), missing() and similarity() returns the simulated value
+	//! If `1` value(), missing() and actor_similarity() returns the simulated value
 	//! (if the covariate is a behavior) or the observed value at the end of the
 	//! period.
 	const int lSimulatedOffset;
@@ -65,11 +66,14 @@ private:
 	ConstantCovariate * lpConstantCovariate;
 	ChangingCovariate * lpChangingCovariate;
 	BehaviorLongitudinalData * lpBehaviorData;
+    ContinuousLongitudinalData * lpContinuousData;
 
-	// The current value of a behavior variable per each actor.
+	// The current value of a (discrete or continuous) behavior
+    // variable per each actor.
 	// This array is 0 for covariate-based effects.
 
 	const int * lvalues;
+    const double * lcontinuousValues;
 };
 
 }

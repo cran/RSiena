@@ -3,8 +3,9 @@
 \concept{estimation}
 \title{Function to estimate parameters in a Siena model}
 \description{
- Estimates parameters in a Siena model using method of moments, based on direct
- simulation, conditional or otherwise; or using Maximum Likelihood by MCMC
+ Estimates parameters in a Siena model using Method of Moments, based on direct
+ simulation, conditional or otherwise; or using Generalized Method of Moments;
+ or using Maximum Likelihood by MCMC
  simulation. Estimation is done using a Robbins-Monro algorithm. Note that
  the data and particular model to be used
  must be passed in using named arguments as the \code{...},
@@ -22,33 +23,34 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
       }
 \arguments{
   \item{x}{A control object, of class \code{\link{sienaAlgorithm}. }}
-  \item{batch}{ Desired interface: FALSE gives a gui (graphical user interface
-     implemented as a tcl/tk screen),
-     TRUE gives a small (if \code{verbose=FALSE}) amount of printout
+  \item{batch}{ Desired interface: \code{FALSE} gives a gui
+     (graphical user interface implemented as a tcl/tk screen),
+     \code{TRUE} gives a small (if \code{verbose=FALSE}) amount of printout
      to the console.}
-  \item{verbose}{Produces various output to the console if TRUE.}
-  \item{silent}{Produces no output to the console if TRUE, even if batch mode.}
+  \item{verbose}{Produces various output to the console if \code{TRUE}.}
+  \item{silent}{Produces no output to the console if \code{TRUE},
+     even if batch mode.}
   \item{useCluster}{Boolean: whether to use a cluster of processes (useful if
   multiple processors are available).}
-  \item{nbrNodes}{Number of processes to use if useCluster is TRUE.}
+  \item{nbrNodes}{Number of processes to use if useCluster is \code{TRUE}.}
   \item{thetaValues}{If not \code{NULL}, this should be a matrix with parameter
     values to be used in Phase 3. The number of columns must be equal to the
-    number of estimated parameters in the effects object (if conditional estimation
-    is used, without the rate parameters for the conditioning
+    number of estimated parameters in the effects object (if conditional
+    estimation is used, without the rate parameters for the conditioning
     dependent variable). Can only be used if \code{x$simOnly=TRUE}.}
-  \item{initC}{Boolean: set to TRUE if the simulation will use C
+  \item{initC}{Boolean: set to \code{TRUE} if the simulation will use C
    routines (currently always needed). Only for use if using
    multiple processors, to ensure all copies are initialised
-   correctly. Ignored otherwise, so is set to TRUE by default.}
+   correctly. Ignored otherwise, so is set to \code{TRUE} by default.}
   \item{clusterString}{Definitions of clusters. Default set up to use
    the local machine only.}
   \item{tt}{A \code{tcltk} toplevel window. Used if called from the
    model options screen.}
-  \item{parallelTesting}{Boolean. If TRUE, sets up random numbers to
+  \item{parallelTesting}{Boolean. If \code{TRUE}, sets up random numbers to
    parallel those in Siena 3.}
-  \item{clusterIter}{Boolean. If TRUE, multiple processes execute
+  \item{clusterIter}{Boolean. If \code{TRUE}, multiple processes execute
    complete iterations at each call.
-   If FALSE, multiple processes execute a single wave at each call.}
+   If \code{FALSE}, multiple processes execute a single wave at each call.}
   \item{clusterType}{Either "PSOCK" or "FORK". On Windows, must be
   "PSOCK". On a single non-Windows machine may be "FORK", and
   subprocesses will be formed by forking. If "PSOCK", subprocesses are
@@ -65,6 +67,8 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
     of ministeps should be returned; this may produce a very big file.}
 }
 \details{
+  This is the main function and workhorse of RSiena.
+
   For use of \code{siena07}, it is necessary to specify parameters \code{data}
   (RSiena data set) and \code{effects} (effects object), which are
   required parameters in function \code{\link{simstats0c}}.
@@ -75,14 +79,19 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
  implementation in Snijders (2001) and
  Snijders, Steglich and Schweinberger (2007),
  with (if \code{x$findiff=FALSE})
- derivative estimation as in Schweinberger and Snijders (2007).
+ derivative estimation as in Schweinberger and Snijders (2007).\cr
+ If  \code{x$gmm=TRUE} and \code{myeff} contains one or more
+ \code{gmm} statistics as included by function
+ \code{\link{includeGMoMStatistics}}, the algorithm employs the
+ Generalized Method of Moments as defined in Amati, Schoenenberger, and Snijders
+ (2015, 2019).\cr
  Phase 1 does a few iterations to
  estimate the derivative matrix of the targets with respect to the
  parameter vector. Phase 2 does the estimation. Phase 3 runs a
- simulation to estimate standard errors and check convergence of the model. The
- simulation function is called once for each iteration in these phases
+ simulation to estimate standard errors and check convergence of the model.
+ The simulation function is called once for each iteration in these phases
  and also once to initialise the model fitting and once to complete it.
- Unless in batch mode, displays a tcl/tk screen to allow interruption
+ Unless in batch mode, a tcl/tk screen is displayed to allow interruption
  and to show progress.
 
  If  \code{x$maxlike=TRUE}, estimation is done by Maximum Likelihood
@@ -98,6 +107,12 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
  the parameter \code{prevAns} as illustrated in the example below.
  (This parameter is inserted through '\dots' into the function
  \code{\link{initializeFRAN}}.)
+
+ For good estimation of standard errors, it is necessary that \code{x$n3} is
+ large enough. More about this is in the manual. The default value \code{x$n3}
+ set in \code{\link{sienaAlgorithmCreate}} is adequate for most explorative use,
+ but for presentation in publications larger values are necessary, depending
+ on the data set and model; e.g., \code{x$n3=3000} or larger.
 
  Parameters can be tested against zero by dividing the estimate by its
  standard error and using an approximate standard normal null distribution.
@@ -120,9 +135,9 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
  output matrix \code{thetaUsed}.
 
  In the case of using multiple processors, there are two options for telling
- \code{siena07} to use them. By specifying the options \code{useCluster}, \code{nbrNodes},
- \code{clusterString} and \code{initC}, \code{siena07} will create a
- \code{cluster object} that will be used by the
+ \code{siena07} to use them. By specifying the options \code{useCluster},
+ \code{nbrNodes}, \code{clusterString} and \code{initC}, \code{siena07}
+ will create a \code{cluster object} that will be used by the
  \code{parallel} package. After finishing the estimation procedure,
  \code{siena07} will automatically stop the cluster. Alternatively, instead of
  having the function to create a cluster, the user may provide its own by
@@ -148,13 +163,15 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   \item{theta}{Estimated value of theta, if \code{x$simOnly=FALSE}.}
   \item{covtheta}{Estimated covariance matrix of theta; this is not available
     if \code{x$simOnly=TRUE}.}
-  \item{se}{Vector of standard errors of estimated theta, if \code{x$simOnly=FALSE}.}
+  \item{se}{Vector of standard errors of estimated theta,
+    if \code{x$simOnly=FALSE}.}
   \item{dfra}{Matrix of estimated derivatives.}
   \item{sf}{Matrix of simulated deviations from targets in phase 3.}
   \item{sf2}{Array of periodwise deviations from simulations in phase 3.
-    Not included if \code{lessMem=FALSE} in \code{\link{sienaAlgorithmCreate}}.}
+    Not included if \code{x$lessMem=FALSE}.}
   \item{tconv}{t-statistics for convergence.}
-  \item{tmax}{maximum absolute t-statistic for convergence for non-fixed parameters.}
+  \item{tmax}{maximum absolute t-statistic for convergence for
+    non-fixed parameters.}
   \item{tconv.max}{overall maximum convergence ratio.}
   \item{targets}{Observed statistics; for ML, zero vector.}
   \item{targets2}{Observed statistics by wave,
@@ -174,7 +191,11 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
     estimated means of estimation statistics.}
  \item{sims}{If \code{returnDeps=TRUE}:
     list of simulated dependent variables (networks, behaviour).
-    Networks are given as a list of edgelists, one for each period.}
+    Networks are given as a list of edgelists, one for each period.\cr
+    The structure of sims is a nested list:
+    \code{sims[[run]][[group]][[dependent variable]][[period]]}.
+    If \code{x$maxlike=TRUE} and there is only one group and one period,
+    the structure is \code{[[run]][[dependent variable]]}.}
  \item{chain}{If \code{returnChains = TRUE}:
     list, or data frame, of simulated chains of ministeps.
     The chain has the structure
@@ -187,15 +208,23 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   in the \code{\link{sienaAlgorithm}} object \code{x}.
 }
 \references{\itemize{
+   \item Amati, Viviana, Schoenenberger, Felix, and Snijders, Tom A. B. (2015).
+    Estimation of stochastic actor-oriented models for the evolution of networks
+    by generalized method of moments.
+    \emph{Journal de la Societe Francaise de Statistique} \bold{156}, 140-165.
+   \item Amati, Viviana, Schoenenberger, Felix, and Snijders, Tom A. B. (2019).
+    Contemporaneous statistics for estimation in stochastic actor-oriented
+    co-evolution models. \emph{Psychometrika} \bold{84}, 1068-1096.
    \item Schweinberger, Michael, and Snijders,
     Tom A.B. (2007). Markov models for digraph panel data:
     Monte Carlo-based derivative estimation.
     \emph{Computational Statistics and Data Analysis} \bold{51}, 4465--4483.
     \item Snijders, Tom A.B. (2001).
     The statistical evaluation of social network dynamics.
-    \emph{Sociological Methodology} 31, 361-395.
+    \emph{Sociological Methodology} \bold{31}, 361-395.
    \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
-   Dynamics. \emph{Annual Review of Statistics and Its Application} \bold{4}, 343--363.
+   Dynamics. \emph{Annual Review of Statistics and Its Application}
+    \bold{4}, 343--363.
    \item Snijders, Tom A. B., Koskinen, Johan, and Schweinberger, Michael (2010).
     Maximum likelihood estimation for social network dynamics.
     \emph{Annals of Applied Statistics} \bold{4}, 567--588.
@@ -206,14 +235,14 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
     edited by Kees van Montfort, Han Oud and Albert Satorra; Lawrence Erlbaum.
    \item Steglich, Christian E. G., Snijders, Tom A. B., and
     Pearson, Michael A. (2010). Dynamic networks and behavior:
-    Separating selection from influence. 
+    Separating selection from influence.
     \emph{Sociological Methodology} \bold{40}, 329--393.
    \item Information about the implementation of the algorithm is in
      \url{http://www.stats.ox.ac.uk/~snijders/siena/Siena_algorithms.pdf}.
    \item Further see \url{http://www.stats.ox.ac.uk/~snijders/siena/} .
     }
 }
-\author{Ruth Ripley, Tom Snijders}
+\author{Ruth Ripley, Tom Snijders, Viviana Amati, Felix Schoenenberger}
 
 \seealso{\code{\link{siena}}, \code{\link{sienaAlgorithmCreate}},
   \code{\link{sienaEffects}},
@@ -223,8 +252,8 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   There are print, summary and xtable methods for \code{\link{sienaFit}}
   objects: \code{\link{xtable}}, \code{\link{print.sienaFit}}.}
 \examples{
-myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100, seed=1293, projname=NULL)
-# nsub=2 and n3=100 is used here for having a brief computation, not for practice.
+myalgorithm <- sienaAlgorithmCreate(nsub=2, n3=100, seed=1293)
+# nsub=2, n3=100 is used here for having a brief computation, not for practice.
 mynet1 <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
@@ -294,7 +323,7 @@ mat3 <- matrix(c(0,1,0,1,
 mats <- array(c(mat1,mat2,mat3), dim=c(4,4,3))
 net <- sienaDependent(mats, allowOnly=FALSE)
 sdat <- sienaDataCreate(net)
-alg <- sienaAlgorithmCreate(maxlike=TRUE, nsub=3, n3=100, seed=12534, projname=NULL)
+alg <- sienaAlgorithmCreate(maxlike=TRUE, nsub=3, n3=100, seed=12534)
 effs <- getEffects(sdat)
 (ans <- siena07(alg, data=sdat, effects=effs, returnDeps=TRUE, batch=TRUE))
 # See manual Section 9.1 for information about the following functions
@@ -312,9 +341,13 @@ the.edge <- function(x,n,h,k){
 n <- 4
 ego <- rep.int(1:n,n)
 alter <- rep(1:n, each=n)
+# Get the average simulated adjacency matrices for wave 3 (period 2):
 ones <- sapply(1:n^2, function(i)
     {mean(sapply(ans$sims,
            function(x){the.edge(x[[1]][[2]][[1]],n,ego[i],alter[i])}))})
+# Note that for maximum likelihood estimation,
+# if there is one group and one period,
+# the nesting levels for group and period are dropped from ans$sims.
 cbind(ego,alter,ones)
 matrix(ones,n,n)
 }

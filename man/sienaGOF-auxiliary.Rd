@@ -8,6 +8,7 @@
 \alias{BehaviorDistribution}
 \alias{TriadCensus}
 \alias{mixedTriadCensus}
+\alias{dyadicCov}
 
 \title{Auxiliary functions for goodness of fit assessment by \code{\link{sienaGOF}}}
 \description{
@@ -42,6 +43,8 @@ TriadCensus(i, obsData, sims, period, groupName, varName, levls=1:16)
 
 mixedTriadCensus(i, obsData, sims, period, groupName, varName)
 
+dyadicCov(i, obsData, sims, period, groupName, varName, dc)
+
 sparseMatrixExtraction(i, obsData, sims, period, groupName, varName)
 
 networkExtraction(i, obsData, sims, period, groupName, varName)
@@ -68,6 +71,11 @@ behaviorExtraction(i, obsData, sims, period, groupName, varName)
     range of values.}
   \item{cumulative}{ Are the distributions to be considered as raw or
     cumulative (<=) distributions?}
+  \item{dc}{Dyadic covariate: either a matrix with dimensions
+    \eqn{n \times n}{n * n}; or, as period-dependent values,
+	an array with dimensions \eqn{n \times n \times (M-1)}{n * n * (M-1)};
+    where \eqn{n} is the number of actors and \eqn{M} is the number of waves.
+	There may be more time points, but those after \eqn{(M-1)} will not be used.}
 }
 \details{
  The statistics should be chosen to represent features of the network
@@ -102,6 +110,12 @@ behaviorExtraction(i, obsData, sims, period, groupName, varName)
  The Batagelj-Mrvar algorithm is optimized for sparse, large graphs and may be
  much faster than the procedure implemented in \code{sna}. For dense graphs
  the \code{sna} procedure may be faster.
+
+ \code{dyadicCov} assumes that \code{dc} is a categorical dyadic variable,
+ and returns the frequencies of the non-zero values for realized ties.
+ Since zero values of dc are not counted, it may be advisable
+ to code dc so that all non-diagonal values are non-zero,
+ and all diagonal values are zero.
  }
 
 \value{
@@ -119,6 +133,9 @@ behaviorExtraction(i, obsData, sims, period, groupName, varName)
 
  \code{mixedTriadCensus} returns a named vector, the distribution of the
   mixed triad census of Hollway, Lomi, Pallotti,and Stadtfeld (2017).
+
+ \code{dyadicCov} returns a named vector, the frequencies of the non-missing
+  non-zero values dc(ego,alter) of the observed or simulated (ego,alter) ties.
 
  \code{sparseMatrixExtraction} returns the simulated network as a
   \code{dgCMatrix};
@@ -151,19 +168,17 @@ behaviorExtraction(i, obsData, sims, period, groupName, varName)
 \itemize{
 \item Batagelj, V., and Mrvar, A. (2001).
   A subquadratic triad census algorithm for large sparse networks with small
-  maximum degree. \emph{Social networks}, 23, 237-243.
+  maximum degree. \emph{Social Networks}, 23, 237-243.
 \item See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
   for general information on RSiena.
-\item Holland, Paul W., and Leinhardt, Samuel (1976).
+\item Holland, P.W., and Leinhardt, S. (1976).
   Local structure in social networks. \emph{Sociological Methodology}, 6, 1-45.
 \item Hollway, J., Lomi, A., Pallotti, F., and Stadtfeld, C. (2017)
    Multilevel social spaces: The network dynamics of organizational fields.
    \emph{Network Science}, 5(2), 187-212.
-\item Lospinoso, J.A. and Snijders, T.A.B., (2011).
-  \dQuote{Goodness of fit for Stochastic Actor Oriented Models.}
-  Presentation given at Sunbelt XXXI, St. Petes Beach, FL.
-\item Lospinoso, J.A. (2012). \dQuote{Statistical Models for Social Network Dynamics.}
-Ph.D. Thesis. University of Oxford: U.K.
+\item Lospinoso, J.A. and Snijders, T.A.B. (2019).
+  Goodness of fit for stochastic actor-orientedmodels.
+  \emph{Methodological Innovations}, 12:2059799119884282.
 \item Parimalarangan S., Slota, G.M., and Madduri, K. (2017).
  Fast parallel graph triad census and triangle counting on shared-memory platforms,
  2017 IEEE International Parallel and Distributed Processing Symposium Workshops
@@ -177,6 +192,8 @@ Ph.D. Thesis. University of Oxford: U.K.
 
 mynet1 <- sienaDependent(array(c(s501, s502), dim=c(50, 50, 2)))
 mybeh <- sienaDependent(s50a[,1:2], type="behavior")
+mycov <- c(rep(1:3,16),1,2) # artificial, just for trying
+mydycov <- matrix(rep(1:5, 500), 50, 50) # also artificial, just for trying
 mydata <- sienaDataCreate(mynet1, mybeh)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTies, cycle3)
@@ -185,8 +202,12 @@ myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=50, seed=122, projname=NULL)
 (ans <- siena07(myalgorithm, data=mydata, effects=myeff, returnDeps=TRUE,
    batch=TRUE))
 
+# NULL for the observations:
 OutdegreeDistribution(NULL, ans$f, ans$sims, period=1, groupName="Data1",
   levls=0:7, varName="mynet1")
+dyadicCov(NULL, ans$f, ans$sims, period=1, groupName="Data1",
+  dc=mydycov, varName="mynet1")
+# An arbitrary selection for simulation run i:
 IndegreeDistribution(5, ans$f, ans$sims, period=1, groupName="Data1",
   varName="mynet1")
 BehaviorDistribution(20, ans$f, ans$sims, period=1, groupName="Data1",
@@ -207,6 +228,28 @@ plot(gofi)
     varName="mynet1", cumulative=FALSE))
 # cumulative is an example of "\dots".
 plot(gofo)
+
+(gofdc <- sienaGOF(ans, dyadicCov, verbose=TRUE, join=TRUE,
+    dc=mydycov, varName="mynet1"))
+plot(gofdc)
+
+# How to use dyadicCov for ego-alter combinations of a monadic variable:
+mycov.egoalter <- outer(10*mycov, mycov ,'+')
+diag(mycov.egoalter) <- 0
+dim(mycov.egoalter) # 50 * 50 matrix
+# This is a dyadic variable indicating ego-alter combinations of mycov.
+# This construction works since mycov has integer values 
+# not outside the interval from 1 to 9.
+# All cells of this matrix contain a two-digit number,
+# left digit is row (ego) value, right digit is column (alter) value.
+# See the top left part of the matrix:
+mycov.egoalter[1:10,1:12]
+# The number of values is the square of the number of values of mycov;
+# therefore, unwise to do this for a monadic covariate with more than 5 values.
+gof.mycov <- sienaGOF(ans, dyadicCov, verbose=TRUE, varName="mynet1", 
+    dc=mycov.egoalter)  
+plot(gof.mycov)
+descriptives.sienaGOF(gof.mycov, showAll=TRUE)
 
 (gofb <- sienaGOF(ans, BehaviorDistribution, varName = "mybeh",
     verbose=TRUE, join=TRUE, cumulative=FALSE))
@@ -244,7 +287,7 @@ twoeff <- includeEffects(twoeff, to, name="twomodenet",
 twoeff
 # Shorter phases 2 and 3, just for example:
 twoalgorithm <- sienaAlgorithmCreate(projname="twomode", nsub=1, n3=100, 
-                                     seed=5634, projname=NULL)
+                                     seed=5634)
 (ans <- siena07(twoalgorithm, data=twodata, effects=twoeff, returnDeps=TRUE,
    batch=TRUE))
 (gof.two <- sienaGOF(ans, mixedTriadCensus,
@@ -379,7 +422,7 @@ mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
 mybeh <- sienaDependent(s50a, type="behavior")
 mydata <- sienaDataCreate(mynet1, mybeh)
 myeff <- getEffects(mydata)
-myeff <- includeEffects(myeff, transTrip, cycle3, nbrDist2)
+myeff <- includeEffects(myeff, transTrip, cycle3)
 myeff <- includeEffects(myeff, outdeg, name="mybeh", interaction1="mynet1")
 myeff <- includeEffects(myeff,  outdeg, name="mybeh", interaction1="mynet1")
 # Shorter phases 2 and 3, just for example:

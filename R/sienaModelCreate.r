@@ -14,7 +14,7 @@ sienaModelCreate <- function(fn,
 	projname="Siena", MaxDegree=NULL, Offset=NULL,
 	useStdInits=FALSE,
 	n3=1000, nsub=4, n2start = NULL, dolby=TRUE,
-	maxlike=FALSE, diagonalize=0.2*!maxlike,
+	maxlike=FALSE, gmm=FALSE, diagonalize=0.2*!maxlike,
 	condvarno=0, condname='',
 	firstg=0.2, reduceg=0.5, cond=NA, findiff=FALSE,  seed=NULL,
 	pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
@@ -25,19 +25,29 @@ sienaModelCreate <- function(fn,
 	lessMem=FALSE)
 {
 	model <- NULL
-	if (is.null(projname))
+	checking <- any(grepl("_R_CHECK", names(Sys.getenv()))) 
+	if (is.null(projname) | checking)
 	{
 		model$projname <- tempfile("Siena")
-		cat('siena07 will create an output file', 
+		if (checking)
+		{		
+	cat('If you use this algorithm object, siena07 will create/use an output file', 
+				paste('Siena','.txt',sep=''),'.\n')
+		
+		}
+		else
+		{
+	cat('If you use this algorithm object, siena07 will create/use an output file',
 				paste(model$projname,'.txt',sep=''),'.\n')
-		cat('This is a temporary file for this R session.\n')
+			cat('This is a temporary file for this R session.\n')
+		}
 	}
 	else
 	{
 		if (is.character(projname))
 		{
 			model$projname <- projname
-			cat('siena07 will create an output file', 
+			cat('If you use this algorithm object, siena07 will create/use an output file', 
 				paste(model$projname,'.txt',sep=''),'.\n')
 		}
 		else
@@ -53,6 +63,7 @@ sienaModelCreate <- function(fn,
 	model$maxrat <- 1.0
 	model$normSetRates <- FALSE
 	model$maxlike <- maxlike
+	model$gmm <- gmm
 	model$simOnly <- simOnly
 	model$localML <- localML
 	model$FRANname <- deparse(substitute(fn))
@@ -98,7 +109,7 @@ sienaModelCreate <- function(fn,
 	model$FinDiff.method <-  findiff
 	model$nsub <- nsub
 	model$n2start <- n2start
-	model$dolby <- (dolby && (!maxlike))
+	model$dolby <- (dolby && (!maxlike)&& (!gmm))
 	if (diagonalize < 0) {diagonalize <- 0}
 	if (diagonalize > 1) {diagonalize <- 1}
 	model$diagg <- (diagonalize >= 0.9999)

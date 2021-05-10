@@ -19,6 +19,8 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 	##@checkNames used in initializeFRAN for siena07
 	checkNames <- function(xx, types) {
 		# checks whether names of named vectors are in names of dependent variables.
+		# returns xx; if is.null(xx), returns named vector
+		# with variable names and all values 1.
 		if (('oneMode' %in% types) || ('bipartite' %in% types))
 		{
 			thetype <- 'network'
@@ -39,6 +41,16 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		}
 		if ((length(xx) >= 1) && (!(length(xx) == sum(theVars))))
 		{
+			cat(deparse(substitute(xx)), ' =  (',
+					paste(names(xx), xx, sep=" = ", collapse="; ") ,') ,\n')
+			if (sum(theVars)==1)
+			{
+				cat('but there is only one dependent variable.\n')
+			}
+			else
+			{
+				cat('but there are ', sum(theVars), ' dependent variables.\n')
+			}
 			cat('Length of',deparse(substitute(xx)),
 				'should be equal to number of', thetype,'variables.\n')
 			stop('Invalid algorithm-data combination.')
@@ -49,6 +61,8 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		if (is.null(xx))
 		{
 			wrongName <- FALSE
+			xx <- rep(1, sum(theVars))
+			names(xx) <- theVarNames
 		}
 		else
 		{
@@ -70,10 +84,12 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 					'in the algorithm object x should be a named vector with\n')
 				cat(' the names of dependent', thetype, 'variables')
 				cat(' in the data set, in the same order.\n')
+				cat(' Names in algorithm object: ', names(xx), '\n')
+				cat(' Names in data set: ', theVarNames, '\n')
 				stop('Invalid algorithm-data combination.')
 			}
 		}
-		invisible(!wrongName)
+		xx
 	}
 
 	# start of initializeFRAN proper
@@ -101,11 +117,12 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		defaultEffects <- getEffects(data)
 		if (is.null(effects))
 		{
+			cat("You specified no effects. The default effects are used.\n")
 			effects <- defaultEffects
 		}
 		else
 		{
-			## todo check that the effects match the data dependent variables
+			## check that the effects match the data dependent variables
 			userlist <- apply(effects[effects$include,], 1, function(x)
 				paste(x[c("name", "effectName",
 						"type", "groupName")],
@@ -136,12 +153,17 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 			}
 			effects$initialValue <- defaultEffects$initialValue
 		}
-
+		if ((sum(!effects$fix[effects$include]) == 0) & (!x$simOnly))
+		{
+			stop('All parameters are fixed, none are estimated, but simOnly is FALSE.')
+		}
 		# Check that the following attributes have correct names
+		# and change NULL to default values for x$modelType and x$behModelType
+		# For symmetric networks, default is changed below from 1 to 2.
 		checkNames(x$MaxDegree, c('oneMode','bipartite'))
 		checkNames(x$UniversalOffset, c('oneMode','bipartite'))
-		checkNames(x$modelType, 'oneMode')
-		checkNames(x$behModelType, 'behavior')
+		x$modelType <- checkNames(x$modelType, c('oneMode','bipartite'))
+		x$behModelType <- checkNames(x$behModelType, 'behavior')
 		# The following error will occur if ML estimation is requested
 		# and there are any impossible changes from structural values
 		# to different observed values.
@@ -277,6 +299,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		z$posj <- rep(FALSE, z$pp)
 		z$posj[requestedEffects$basicRate] <- TRUE
 		z$BasicRateFunction <- z$posj
+		z$gmmEffects <- (requestedEffects$type=="gmm")
 
 		## sort out names of user specified interaction effects
 		effects <- fixUpEffectNames(effects)
@@ -360,6 +383,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 				z$condname][1:observations]
 			z$theta<- z$theta[-z$condvar]
 			z$fixed<- z$fixed[-z$condvar]
+			z$gmmEffects <- z$gmmEffects[-z$condvar]
 			z$test<- z$test[-z$condvar]
 			z$pp<- z$pp - length(z$condvar)
 			z$scale<- z$scale[-z$condvar]
@@ -456,13 +480,29 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 				# from phase1.r.
 				# Partial diagonalization of derivative matrix
 				# for use if 0 < x$diagonalize < 1.
-				temp <- (1-x$diagonalize)*z$dfra +
-					x$diagonalize*diag(diag(z$dfra), nrow=dim(z$dfra)[1])
-				temp[z$fixed, ] <- 0.0
-				temp[, z$fixed] <- 0.0
-				diag(temp)[z$fixed] <- 1.0
-				# Invert this matrix
-				z$dinvv <- solve(temp)
+				if (!z$gmm)
+				{
+				  temp <- (1-x$diagonalize)*z$dfra +
+				    x$diagonalize*diag(diag(z$dfra), nrow=dim(z$dfra)[1])
+				  temp[z$fixed, ] <- 0.0
+				  temp[, z$fixed] <- 0.0
+				  diag(temp)[z$fixed] <- 1.0
+				  # Invert this matrix
+				  z$dinvv <- solve(temp)
+				}
+				else
+				{
+				  z$B <- prevAns$B
+				  z$D0 <- prevAns$D0
+				  z$gamma <- prevAns$gamma
+				  temp <- (1-x$diagonalize)*z$D0 +
+				    x$diagonalize*diag(diag(z$D0), nrow=dim(z$D0)[1])
+				  temp[which(z$fixed & !z$gmmEffects), ] <- 0.0
+				  temp[, which(z$fixed & !z$gmmEffects)] <- 0.0
+				  diag(temp)[which(z$fixed & !z$gmmEffects)] <- 1.0
+				  # Invert this matrix
+				  z$dinvv <- solve(temp)%*%z$B
+				}
 
 				z$sf <- prevAns$sf
 				# check for backward compatibility with pre-1.1-220 versions:
@@ -657,7 +697,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		UNIVERSALOFFSET <- x$UniversalOffset
 		storage.mode(UNIVERSALOFFSET) <- "double"
 	}
-	if ((length(x$modelType) == 0)||(x$modelType == 0) || is.null(x$modelType))
+	if ((length(x$modelType) == 0)||all(x$modelType == 0) || is.null(x$modelType))
 	{
 		MODELTYPE <-  NULL
 	}
@@ -722,8 +762,10 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 				{
 					z$targets <- x$targets
 					z$targets2 <- matrix(x$targets, length(x$targets), 1)
-					message('Note: targets taken from algorithm object.\n')
-					message(z$targets , '\n')
+					message('Note: targets taken from algorithm object.')
+					cat('\n')
+					print(z$targets)
+					cat('\n')
 				}
 			}
 		}
@@ -2315,8 +2357,16 @@ updateTheta <- function(effects, prevAns, varName=NULL)
 	{
 		stop("prevAns is not an RSiena fit object")
 	}
-	prevEffects <- prevAns$requestedEffects[which(prevAns$requestedEffects$type != 'gmm'),]
-	prevEffects$initialValue <- prevAns$theta
+  	if (!prevAns$gmm)
+	{
+		prevEffects <- prevAns$requestedEffects[which(prevAns$requestedEffects$type != 'gmm'),]
+		prevEffects$initialValue <- prevAns$theta
+	}
+	else if (prevAns$gmm)
+	{
+		prevEffects <- prevAns$requestedEffects
+    	prevEffects$initialValue <- prevAns$theta
+	}
 	if (prevAns$cconditional)
 	{
 		condEffects <- attr(prevAns$f, "condEffects")

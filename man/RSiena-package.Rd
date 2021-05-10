@@ -12,10 +12,8 @@ Not only one-mode networks but also two-mode networks
 and multivariate networks are allowed.
 The models are stochastic actor-oriented models.
 
-Package \code{"RSienaTest"} is the development version, and
-is distributed through R-Forge, see
-\url{http://r-forge.r-project.org/R/?group_id=461}.
-Package \code{"RSiena"} is the official release.
+Recent versions of the package are distributed through GitHub,
+see \url{https://github.com/snlab-nl/rsiena/ }.
 }
 \details{
   The main flow of operations of this package is as follows.
@@ -36,6 +34,7 @@ Package \code{"RSiena"} is the official release.
   and which can be created by \code{\link{sienaAlgorithmCreate}}.
 
   Function \code{\link{siena07}} is used to fit a model.
+ Function \code{\link{sienaGOF}} can be used for studying goodness of fit.
 
   A general introduction to the method is available in the tutorial paper
   Snijders, van de Bunt, and Steglich (2010).
@@ -44,14 +43,13 @@ Package \code{"RSiena"} is the official release.
   \tabular{ll}{
     Package: \tab RSiena\cr
     Type: \tab Package\cr
-    Version: \tab 1.2-23\cr
-    Date: \tab 2020-01-12\cr
-    Depends: \tab R (>= 3.0.0)\cr
-    Imports: \tab Matrix\cr
-    Suggests: \tab tcltk, network, codetools, lattice, MASS, parallel,
-    xtable, tools, utils\cr
-    SystemRequirements: \tab GNU make, tcl/tk 8.5, Tktable\cr
-    License: \tab GPL-2 \cr
+    Version: \tab 1.3.0\cr
+    Date: \tab 2021-05-02\cr
+    Depends: \tab R (>= 3.5.0)\cr
+    Imports: \tab Matrix, lattice, parallel, MASS, methods, xtable\cr
+    Suggests: \tab network, tools, codetools, tcltk\cr
+    SystemRequirements: \tab GNU make\cr
+    License: \tab GPL-2 | GPL-3 \cr
     LazyData: \tab yes\cr
     NeedsCompilation: \tab yes\cr
     BuildResaveData: \tab no\cr
@@ -60,14 +58,18 @@ Package \code{"RSiena"} is the official release.
 \author{
   Ruth Ripley, Krists Boitmanis, Tom Snijders, Felix Schoenenberger,
   Nynke Niezink.
-  Contributions by Josh Lospinoso, Charlotte Greenan, Christian Steglich,
-  Johan Koskinen, Mark Ortmann, Natalie Indlekofer,
-  Christoph Stadtfeld, Per Block, Marion Hoffman, and Robert Hellpap.
+  Contributions by Josh Lospinoso, Charlotte Greenan, Viviana Amati,
+  Christian Steglich, Johan Koskinen, Mark Ortmann, Natalie Indlekofer,
+  Christoph Stadtfeld, Per Block, Marion Hoffman, Michael Schweinberger,
+  Robert Hellpap, and Alvaro Uzaheta.
 
   Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 }
 \references{
   \itemize{
+    \item Amati, Viviana, Schoenenberger, Felix, and Snijders, Tom A.B. (2019).
+      Contemporaneous statistics for estimation in stochastic actor-oriented
+      co-evolution models. \emph{Psychometrika} \bold{84}, 1068--1096.
     \item Schweinberger, Michael, and Snijders, Tom A.B. (2007).
       Markov models for digraph panel data:
       Monte Carlo-based derivative estimation.
@@ -76,7 +78,7 @@ Package \code{"RSiena"} is the official release.
       The statistical evaluation of social network dynamics.
       \emph{Sociological Methodology} \bold{31}, 361-395.
     \item Snijders, Tom A.B. (2017). Stochastic Actor-Oriented Models for Network
-      Dynamics. 
+      Dynamics.
       \emph{Annual Review of Statistics and Its Application} \bold{4}, 343--363.
     \item  Snijders, Tom A.B., van de Bunt, Gerhard G., and
       Steglich, Christian E.G. (2010).
@@ -103,7 +105,7 @@ mydata <- sienaDataCreate(mynet1)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff
-myalgorithm <- sienaAlgorithmCreate(nsub=3, n3=200, projname=NULL)
+myalgorithm <- sienaAlgorithmCreate(nsub=3, n3=200)
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE)
 summary(ans)
 }

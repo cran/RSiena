@@ -3,45 +3,51 @@
  *
  * Web: http://www.stats.ox.ac.uk/~snijders/siena/
  *
- * File: MixedOutStarFunction.h
+ * File: TwoStepFunction.h
  *
  * Description: This file contains the definition of the
- * MixedOutStarFunction class.
+ * TwoStepFunction class.
  *****************************************************************************/
 
-#ifndef MIXEDOUTSTARFUNCTION_H_
-#define MIXEDOUTSTARFUNCTION_H_
+#ifndef TWOSTEPFUNCTION_H_
+#define TWOSTEPFUNCTION_H_
 
-#include "MixedNetworkAlterFunction.h"
+#include "OneModeNetworkAlterFunction.h"
 #include "IntAlterFunction.h"
+#include "network/NetworkUtils.h"
 
 namespace siena
 {
 
-class MixedConfigurationTable;
+class ConfigurationTable;
 
 
 /**
  * Defines a function that returns the number of two-paths between
  * the ego and alters in a network of the given name.
  */
-class MixedOutStarFunction:
-public MixedNetworkAlterFunction, IntAlterFunction
+class TwoStepFunction:
+	public OneModeNetworkAlterFunction, IntAlterFunction
 {
 public:
-	MixedOutStarFunction(std::string firstNetworkName,
-			std::string secondNetworkName);
+	TwoStepFunction(std::string networkName, Direction direction1, Direction direction2);
 
 	virtual void initialize(const Data * pData,
-		State * pState, int period, Cache * pCache);
+		State * pState,
+		int period,
+		Cache * pCache);
 
 	virtual double value(int alter);
 	virtual int intValue(int alter);
 
 private:
-	MixedConfigurationTable * lpTable;
+	ConfigurationTable * lpTable;
+
+	Direction ldirection1;
+	Direction ldirection2;
+
 };
 
 }
 
-#endif /* MIXEDOUTSTARFUNCTION_H_ */
+#endif /* TWOSTEPFUNCTION_H_ */

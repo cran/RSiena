@@ -7,7 +7,7 @@
 ##  *
 ##  * Description: This file contains the code to save a latex or html table of
 ##  * estimates for a sienaFit or sienaBayesFit object
-##  * Written by Charlotte Greenan; small modifications by Tom Snijders.
+##  * Written by Charlotte Greenan; modifications by Tom Snijders.
 ##  *
 ##  ***************************************************************************/
 
@@ -18,6 +18,31 @@ siena.table <- function(x, type='tex',
 	vertLine=TRUE, tstatPrint=FALSE,
 	sig=FALSE, d=3, nfirst=NULL)
 {
+	## fromObjectToText transforms names from the effects object
+	## to names readable in LateX or text.
+
+    fromObjectToText <- function(a, type='tex'){
+		b <- as.character(a)
+		if (type == 'tex')
+		{
+			b <- gsub('->', '$\\rightarrow$', fixed=TRUE, b)
+			b <- gsub('<-', '$\\leftarrow$', fixed=TRUE, b)
+			b <- gsub('<>', '$\\leftrightarrow$', fixed=TRUE, b)
+			b <- gsub('=>', '$\\Rightarrow$', fixed=TRUE, b)
+			b <- gsub('>=', '$\\geq$', fixed=TRUE, b)
+			b <- gsub('<=', '$\\leq$', fixed=TRUE, b)
+			b <- gsub('sqrt', '$\\sqrt{}$', fixed=TRUE, b)
+			b <- gsub('&', '.', fixed=TRUE, b)
+		}
+# Note: R changes \\ to \ but still displays \\ in printing the string.
+		b <- gsub('^(1/1)', '', fixed=TRUE, b)
+		b <- gsub('^(1/2)', '(sqrt)', fixed=TRUE, b)
+		b <- gsub('^', '', fixed=TRUE, b)
+		b <- gsub('_', '-', fixed=TRUE, b)
+		b <- gsub('#', '.', fixed=TRUE, b)
+		b
+	}
+
 	objectName <- deparse(substitute(x))
 	fromBayes <- FALSE
 	xkind.string <- "sienaFit"
@@ -32,8 +57,7 @@ siena.table <- function(x, type='tex',
 			if (is.null(nfirst))
 			{
 				nfirst <- x$nwarm + 1
-				message
-("Note: the print function for sienaBayesFit objects can also use a parameter nfirst,")
+				message("Note: the print function for sienaBayesFit objects can also use a parameter nfirst,")
 				message("    indicating the first run from which convergence is assumed.")
 				message("    The default value used now is nfirst =",
 					x$nwarm + 1, ".")
@@ -45,11 +69,25 @@ siena.table <- function(x, type='tex',
 			stop('x must be a sienaFit or sienaBayesFit object')
 		}
 	}
-	effects <- x$requestedEffects
-	p <- x$pp
+	if (!gmm(x))
+	{
+	  effects <- x$requestedEffects
+	  p <- x$pp
+	}
+	else
+	{
+	  effects <- x$requestedEffects[!x$gmmEffects,]
+	  p <- x$pp - sum(x$gmmEffects)
+	}
 	condrates <- 0
+	if (fromBayes)
+	{
+		nwaves <- attr(x$initialResults$f,'observations')
+	}
+	else
+	{
 	nwaves <- dim(x$targets2)[2]
-
+	}
 	if (x$cconditional)
 	{
 		condrates <- length(x$rate)
@@ -66,13 +104,28 @@ siena.table <- function(x, type='tex',
 	}
 	else
 	{
-	theta <- x$theta
-	theta[diag(x$covtheta) < 0.0 | x$fixed] <- NA
-	ses <- sqrt(diag(x$covtheta))
-	ses[x$fixed] <- NA
-	max.t1 <- max(abs(x$tstat[!x$fixed]))
-	dd <- 2
-	max.t <- round(max.t1, digits = dd)
+	  if (!x$gmm)
+	  {
+	    theta <- x$theta
+	    theta[diag(x$covtheta) < 0.0 | x$fixed] <- NA
+	    ses <- sqrt(diag(x$covtheta))
+	    ses[x$fixed] <- NA
+	    max.t1 <- max(abs(x$tstat[!x$fixed]))
+	    dd <- 2
+	    max.t <- round(max.t1, digits = dd)
+	  }
+	  else
+	  {
+	    fixednogmm <- x$fixed[!x$gmmEffects]
+	    theta <- x$theta
+	    theta[diag(x$covtheta) < 0.0 | fixednogmm] <- NA
+	    theta <- theta[!x$gmmEffects]
+	    ses <- sqrt(diag(x$covtheta))
+	    ses[fixednogmm] <- NA
+	    max.t1 <- max(abs(x$tstat[!fixednogmm]))
+	    dd <- 2
+	    max.t <- round(max.t1, digits = dd)
+	  }
 	if (max.t < max.t1)
 	{
 		max.t <- max.t + 10^{-dd} #needs to be rounded up
@@ -94,6 +147,7 @@ siena.table <- function(x, type='tex',
 		condvarno <- x$condvarno
 	}
 
+	effects$effectName <- fromObjectToText(effects$effectName, type=type)
 	max.eff.width <- max(nchar(effects$effectName))
 	effects$effectName <- format(effects$effectName,width=max.eff.width)
 
@@ -139,7 +193,7 @@ siena.table <- function(x, type='tex',
 		s
 	}
 
-	## mystr rounds a number and splits into into its integer and fractional parts
+	## mystr rounds a number and splits into its integer and fractional parts
 
 	mystr <- function(theta,int.width=0)
 	{
@@ -377,7 +431,7 @@ siena.table <- function(x, type='tex',
 							max.t,".</TD> </TR> <TR> </TR>",
 							" <TR> <TD colspan=9 align=left>
 							Overall maximum convergence ratio ",
-							maxlincomb.t,".</TD> </TR> <TR> </TR>",							
+							maxlincomb.t,".</TD> </TR> <TR> </TR>",
 							sep="",collapse=""),"</TABLE>")
 		}
 		if (sig)
@@ -422,7 +476,7 @@ siena.table <- function(x, type='tex',
 		{
 			startdate <- NULL
 		}
-		else		
+		else
 		{
 			startdate <- paste("%Estimation date",x$startingDate)
 		}
@@ -524,7 +578,14 @@ siena.table <- function(x, type='tex',
 		mainTable$se2[-mid] <- sapply(ses[rows],mystr)[2,]
 
 		basicRates <- c(1:nwaves)
-		fixed.2 <- c(1:nn)[x$fixed[rows]]
+		if (!x$gmm)
+		{
+		  fixed.2 <- c(1:nn)[x$fixed[rows]]
+		}
+		else
+		{
+		  fixed.2 <- c(1:nn)[fixednogmm[rows]]
+		}
 
 		if (condvarno == sections)
 		{

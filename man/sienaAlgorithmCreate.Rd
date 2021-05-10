@@ -17,7 +17,7 @@
 \usage{
 sienaAlgorithmCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
      useStdInits = FALSE, n3 = 1000, nsub = 4, n2start = NULL,
-     dolby=TRUE, maxlike = FALSE, diagonalize=0.2*!maxlike,
+     dolby=TRUE, maxlike = FALSE, gmm = FALSE, diagonalize=0.2*!maxlike,
      condvarno = 0, condname = "", firstg = 0.2, reduceg = 0.5,
      cond = NA, findiff = FALSE, seed = NULL,
      pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
@@ -29,7 +29,7 @@ sienaAlgorithmCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
 
 sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
      useStdInits = FALSE, n3 = 1000, nsub = 4, n2start = NULL,
-     dolby=TRUE, maxlike = FALSE, diagonalize=0.2*!maxlike,
+     dolby=TRUE, maxlike = FALSE, gmm = FALSE, diagonalize=0.2*!maxlike,
      condvarno = 0, condname = "", firstg = 0.2, reduceg = 0.5,
      cond = NA, findiff = FALSE, seed = NULL,
      pridg=0.05, prcdg=0.05, prper=0.2, pripr=0.3, prdpr=0.3,
@@ -75,6 +75,8 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
     if convergence is problematic, however, dolby=FALSE may be tried.
     Just use whatever works best.}
   \item{maxlike}{Whether to use maximum likelihood method or
+    Method of Moments estimation.}
+  \item{gmm}{Whether to use the Generalized Method of Moments or the regular
     Method of Moments estimation.}
   \item{diagonalize}{Number between 0 and 1 (bounds included),
     values outside this interval will be truncated;
@@ -145,12 +147,13 @@ sienaModelCreate(fn, projname = "Siena", MaxDegree = NULL, Offset = NULL,
     Default \code{NULL} implies values 1.}
   \item{mult}{Multiplication factor for maximum likelihood and Bayes. Number of
     steps per iteration is set to this multiple of the total distance
-    between the observations at start and finish of the wave.
+    between the observations at start and finish of the wave (and rounded).
     Decreasing \code{mult} below a certain value has no further effect.\cr
-    This can be either a number (which needs to be positive) or a vector
-    of numbers, of length equal to the number of basic rate parameters in the
-    model, i.e., the number of periods times the number of dependent
-    variables.}
+     \code{mult} can be either a number (which needs to be positive) or a vector
+    of numbers, of length equal to the total number of periods. Note that for 
+    multi-group data, the total number of periods is equal to the number
+    of groups times the number of periods per group 
+    (if the latter is constant).}
   \item{simOnly}{Logical: If TRUE, then the calculation of the covariance
     matrix and standard errors of the estimates at the end of
     Phase 3 of the estimation algorithm in function siena07 is skipped.

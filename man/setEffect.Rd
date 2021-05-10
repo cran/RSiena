@@ -107,8 +107,9 @@ The arguments \code{shortName}, \code{name}, \code{type},
 \author{Ruth Ripley }
 \seealso{
   \code{\link{getEffects}}, \code{\link{includeEffects}},
-  \code{\link{includeInteraction}},
-  \code{\link{print.sienaEffects}}.
+  \code{\link{includeInteraction}}, \code{\link{includeGMoMStatistics}},
+  \code{\link{updateSpecification}},
+  \code{\link{print.sienaEffects}},\code{\link{effectsDocumentation}}.
 }
 
 \examples{

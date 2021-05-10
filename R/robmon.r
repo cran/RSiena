@@ -28,6 +28,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$gain <- x$firstg
     z$haveDfra <- FALSE
     z$maxlike <- x$maxlike
+    z$gmm <- gmm(x)	
 	if (is.null(x$sf2.byIteration)) # keep compatible
 	{
 		z$sf2.byIteration <- TRUE
@@ -38,7 +39,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
 	}
 	if (z$maxlike && !is.batch())
 	{
-		tkconfigure(z$tkvars$phaselabel, text="MCMC Burnin")
+		tcltk::tkconfigure(z$tkvars$phaselabel, text="MCMC Burnin")
 	}
     #######################################################
     ##do initial setup call of FRAN
@@ -48,9 +49,22 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
         x$FRAN <- getFromNamespace(x$FRANname, pkgname)
     }
     z <- initializeFRAN(z, x, initC=FALSE, ...)
+   ## If gmm=TRUE and no gmm effects are included, the algorithm stops and 
+    ## asks the user to select the regular MoM estimation
+    if (gmm(x) & sum(z$gmmEffects)==0)
+    {
+        stop ("\n No gmm effects are selected. Use the regular Method of Moments estimation. \n")
+    }
+    ## If gmm=FALSE and gmm effects are included, the algorithm stops and 
+    ## asks the user to select use the GMoM estimation
+    if (!gmm(x) & sum(z$gmmEffects)>0)
+    {
+      stop ("\n gmm effects are selected. Use the Generalized Methods of Moments estimation. \n")
+    }
+
 	if (z$maxlike && !is.batch())
 	{
-		tkconfigure(z$tkvars$phaselabel, text="Phase")
+		tcltk::tkconfigure(z$tkvars$phaselabel, text="Phase")
 	}
     ##
     ##if conditional, FRAN changes z$theta etc
@@ -170,7 +184,14 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
     z$theta0 <- z$theta
 	## store starting value without any conditioning variables
     z$anyposj <- any(z$posj)
-    z$n1 <- 7 + 3 * z$pp
+    if (!gmm(x))
+    {
+      z$n1 <- 7 + 3 * z$pp
+    }
+    else
+    {
+      z$n1 <- 100 + 7 * z$pp
+    }
 	if (x$dolby){z$n1 <- max(z$n1, 50)}
     if (any(!z$fixed))
     {
@@ -193,10 +214,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
             phase3Only <- FALSE
             if (!is.batch())
             {
-                tkdelete(z$tkvars$subphase, 0, "end")
-                tkconfigure(z$tkvars$earlyEndPhase2, state="disabled")
-                tkconfigure(z$tkvars$subphase, state="disabled")
-                tkconfigure(z$tkvars$subphaselabel, state="disabled")
+                tcltk::tkdelete(z$tkvars$subphase, 0, "end")
+                tcltk::tkconfigure(z$tkvars$earlyEndPhase2, state="disabled")
+                tcltk::tkconfigure(z$tkvars$subphase, state="disabled")
+                tcltk::tkconfigure(z$tkvars$subphaselabel, state="disabled")
             }
             if (z$AllNowFixed || x$nsub == 0)
             {
@@ -258,10 +279,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                 {
                     if (!is.batch())
                     {
-                        tkdelete(z$tkvars$subphase,0,'end')
-                        tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
-                        tkconfigure(z$tkvars$subphase,state='disabled')
-                        tkconfigure(z$tkvars$subphaselabel,state='disabled')
+                        tcltk::tkdelete(z$tkvars$subphase,0,'end')
+                        tcltk::tkconfigure(z$tkvars$earlyEndPhase2,state='disabled')
+                        tcltk::tkconfigure(z$tkvars$subphase,state='disabled')
+                        tcltk::tkconfigure(z$tkvars$subphaselabel,state='disabled')
                     }
                     break
                 }
@@ -274,10 +295,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                 {
                     if (!is.batch())
                     {
-                        tkdelete(z$tkvars$subphase,0,'end')
-                        tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
-                        tkconfigure(z$tkvars$subphase, state='disabled')
-                        tkconfigure(z$tkvars$subphaselabel, state='disabled')
+                        tcltk::tkdelete(z$tkvars$subphase,0,'end')
+                        tcltk::tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
+                        tcltk::tkconfigure(z$tkvars$subphase, state='disabled')
+                        tcltk::tkconfigure(z$tkvars$subphaselabel, state='disabled')
                     }
                     break
                 }
@@ -291,11 +312,11 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                         {
                             if (!is.batch())
                             {
-                                tkdelete(z$tkvars$subphase, 0, 'end')
-                                tkconfigure(z$tkvars$earlyEndPhase2,
+                                tcltk::tkdelete(z$tkvars$subphase, 0, 'end')
+                                tcltk::tkconfigure(z$tkvars$earlyEndPhase2,
                                             state='disabled')
-                                tkconfigure(z$tkvars$subphase, state='disabled')
-                                tkconfigure(z$tkvars$subphaselabel,
+                                tcltk::tkconfigure(z$tkvars$subphase, state='disabled')
+                                tcltk::tkconfigure(z$tkvars$subphaselabel,
                                             state='disabled')
                             }
                             break
@@ -306,11 +327,11 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
                     {
                         if (!is.batch())
                         {
-                            tkdelete(z$tkvars$subphase, 0, 'end')
-                            tkconfigure(z$tkvars$subphase, state='disabled')
-                            tkconfigure(z$tkvars$subphaselabel,
+                            tcltk::tkdelete(z$tkvars$subphase, 0, 'end')
+                            tcltk::tkconfigure(z$tkvars$subphase, state='disabled')
+                            tcltk::tkconfigure(z$tkvars$subphaselabel,
                                         state='disabled')
-                            tkconfigure(z$tkvars$earlyEndPhase2,
+                            tcltk::tkconfigure(z$tkvars$earlyEndPhase2,
                                         state='disabled')
                         }
                         break
@@ -319,10 +340,10 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
             }
             if (!is.batch())
             {
-                tkdelete(z$tkvars$subphase, 0, 'end')
-                tkconfigure(z$tkvars$subphase, state='disabled')
-                tkconfigure(z$tkvars$subphaselabel, state='disabled')
-                tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
+                tcltk::tkdelete(z$tkvars$subphase, 0, 'end')
+                tcltk::tkconfigure(z$tkvars$subphase, state='disabled')
+                tcltk::tkconfigure(z$tkvars$subphaselabel, state='disabled')
+                tcltk::tkconfigure(z$tkvars$earlyEndPhase2, state='disabled')
             }
             z<- phase3(z, x, ...)
             break
@@ -376,13 +397,18 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
 			z$se <- sqrt(diag(z$covtheta))
 			z$thetaValues <- NULL # not needed any longer, superseded by z$thetaUsed
 		}
-		else
+		else if (!gmm(x))
 		{
 			z$covtheta <- matrix(0, z$pp, z$pp )
 			z$se <- rep(0, z$pp)
 		}
+		else if (gmm(x))
+	  	{
+	    	z$covtheta <- matrix(0, z$pp - sum(z$gmmEffects), z$pp- sum(z$gmmEffects))
+	    	z$se <- rep(0, z$pp- sum(z$gmmEffects))
+	  	}
 	}
-	else
+	else if (!gmm(x))
 	{
 		z$diver<- (z$fixed | z$diver | diag(z$covtheta) < 1e-9) & (!z$AllUserFixed)
 		z$covtheta[z$diver, ] <- NA # was Root(diag(z$covtheta)) * 33
@@ -391,7 +417,7 @@ robmon <- function(z, x, useCluster, nbrNodes, initC, clusterString,
 		diag(z$covtheta)[z$diver] <- NA # was 999
 		z$se <- sqrt(diag(z$covtheta))
 	}
-	z$gmm <- FALSE
+#	z$gmm <- FALSE
     z$termination <- 'OK'
     if (useCluster)
     {

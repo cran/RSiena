@@ -195,6 +195,20 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 					function(x){ifelse(is.null(x$mu.ml.se),NA,x$mu.ml.se)})
 	names(meta.theta) <- rep('', length(meta.theta))
 	names(meta.se) <- rep('', length(meta.se))
+# Put the IWLS estimates easily accessible on the meta object
+	neff <- length(unique((mydf$effects))) # number of effects
+	muhat <- rep(NA, neff)
+	se.muhat <- rep(NA, neff)
+	for (i in 1:neff)
+	{
+	if (!is.null(meta[[i]]$regsummary))
+		{
+			muhat[i] <- meta[[i]]$regsummary$coefficients[1, 1]
+			se.muhat[i] <- meta[[i]]$regsummary$coefficients[1, 2]
+		}
+	}
+	meta$muhat <- muhat
+	meta$se.muhat <- se.muhat
 # add everything to the meta object created
     meta$thetadf <- mydf
     class(meta) <- "sienaMeta"
@@ -206,6 +220,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 	meta$requestedEffects <- requestedEffects
 	meta$theta <- meta.theta
 	meta$se <- meta.se
+	meta$startingDate <- date()
     meta
 }
 
@@ -749,6 +764,325 @@ print.summary.sienaMeta <- function(x, file=FALSE, extra=TRUE, ...)
 							sep="", outf)
 					}
 				}, y=x))
+	}
+}
+
+funnelPlot <- function(anslist, k, threshold=NULL, origin=TRUE,
+				plotAboveThreshold=TRUE, verbose=TRUE, ...)
+{
+	if (!inherits(anslist, 'list'))
+	{
+		stop('this function needs a list of sienaFit objects.')
+	}
+	if (!inherits(anslist[[1]], 'sienaFit'))
+	{
+		stop('this function needs a list of sienaFit objects.')
+	}
+	if (k <= 0)
+	{
+		stop('k should be positive.')
+	}
+	if (k > min(sapply(anslist, function(x){x$pp})))
+	{
+		stop(paste('k is too large, should be less than or equal to ',
+			min(sapply(anslist, function(x){x$pp})),'.', sep=''))
+	}
+	use <- sapply(anslist, function(x){!x$fixed[k]})
+	if (sum(use, na.rm=TRUE) == 0)
+	{
+		stop(paste('no estimations of parameter ',k,'.', sep=''))
+	}
+	notUsed <- sum(!use, na.rm=TRUE)
+	efNames <- sapply(anslist, function(x){x$effects$effectName[k]})
+	if (!all(efNames == efNames[1]))
+	{
+		warning('not all tested effect names are the same.')
+	}
+	use0 <- use
+	th0 <- sapply(anslist, function(x){x$theta[k]}, USE.NAMES=FALSE)
+	se0 <- sapply(anslist, function(x){x$se[k]}, USE.NAMES=FALSE)
+	th <- th0[use]
+	se <- se0[use]
+	if (is.null(threshold))
+	{
+		threshold <- (1.1 * range(se, na.rm=TRUE)[2]) + 0.01
+	}
+	use <- use[se < threshold]
+	tooLarge <- sum(se >= threshold, na.rm=TRUE)
+	use <- (se < threshold)
+	xxlim <- 1.1*range(th[use], na.rm=TRUE)
+	yylim <- c(0,1.1*range(se[use], na.rm=TRUE)[2])
+	if ((plotAboveThreshold) & any(!use))
+	{
+		yylim[2] <- threshold+ 0.05
+	}
+	if (origin)
+	{
+		xxlim[1] <- min(xxlim[1], 0)
+		xxlim[2] <- max(xxlim[2], 0)
+	}
+	plot(th[use], se[use], xlim=xxlim, ylim=yylim, main=efNames[1],
+			xlab='theta', ylab='se', ...)
+	ma <- xxlim[2]
+	mi <- xxlim[1]
+	lines(c(0,ma), c(0, ma/1.96), col='red')
+	lines(c(0,mi), c(0,  mi/(-1.96)), col='red')
+	if ((plotAboveThreshold) & any(!use))
+	{
+		points(th[!use], rep(threshold, sum(!use, na.rm=TRUE)), pch=8)
+	}
+	if ((notUsed > 0) & verbose)
+	{
+		cat(notUsed, 'groups had no estimation of parameter', k,'.\n')
+		cat('Table of parameter values for these groups : \n')
+	#	print(round(cbind((th0[!use0]), se0[!use0]), 4))
+		t0 <- table(round(th0[!use0], 4))
+		t <- matrix(t0, 1, length(t0))
+		colnames(t) <- names(t0)
+		rownames(t) <- 'count'
+		print(t)
+		cat('\n')
+	}
+	if ((tooLarge > 0) & verbose)
+	{
+		cat(tooLarge, 'groups had standard errors larger than', threshold,'.\n')
+		cat('Rounded parameter values for these groups : \n')
+		t <- as.matrix(round(rbind(th[!use], se[!use]), 2))
+		rownames(t) <- c('par', 'se')
+		print(t)
+		flush.console()
+	}
+	invisible(cbind(th[use],se[use]))
+}
+
+meta.table <- function(x, d=3, option=2,
+	filename=paste(deparse(substitute(x)),'_global.tex',sep=""), align=TRUE)
+{
+# Produces three latex tables with summaries of sienaMeta object:
+# with normality assumptions: parameters;
+# with normality assumptions: confidence intervals;
+# and the Fisher right and left combinations.
+# d is number of digits after decimal point.
+	code <- ifelse(align, "r@{.}l", "c")
+	sepsign <- ifelse(align, "&", ".")
+	numdig <- ifelse(align, 2, 1)
+	num2dig <- ifelse(align, 4, 2)
+    fromObjectToLaTeX <- function(a, mw=NULL){
+		b <- as.character(a)
+		b <- gsub('->', '$\\rightarrow$', fixed=TRUE, b)
+		b <- gsub('<-', '$\\leftarrow$', fixed=TRUE, b)
+		b <- gsub('<>', '$\\leftrightarrow$', fixed=TRUE, b)
+		b <- gsub('=>', '$\\Rightarrow$', fixed=TRUE, b)
+		b <- gsub('>=', '$\\geq$', fixed=TRUE, b)
+		b <- gsub('<=', '$\\leq$', fixed=TRUE, b)
+# Note: R changes \\ to \ but still displays \\ in printing the string.
+		b <- gsub('^(1/1)', '', fixed=TRUE, b)
+		b <- gsub('^(1/2)', '(sqrt)', fixed=TRUE, b)
+		b <- gsub('^', '', fixed=TRUE, b)
+		b <- gsub('_', '-', fixed=TRUE, b)
+		b <- gsub('#', '.', fixed=TRUE, b)
+		b <- gsub('&', '.', fixed=TRUE, b)
+		format(b, width=mw)
+	}
+	if (is.null(x$startingDate))
+	{
+		startdate <- NULL
+	}
+	else
+	{
+		startdate <- x$startingDate
+	}
+	max.eff.width <- max(sapply(x$thetadf$effects,
+				function(x){nchar(as.character(fromObjectToLaTeX(x)))}))
+# header
+	line <- c(paste("% Table based on sienaMeta object",
+                               deparse(substitute(x))))
+	cat("\n",line, "\n", file=filename, append = TRUE)
+	cat("% combined sienaFit objects", file=filename, append = TRUE)
+	line <- as.character(unique(x$thetadf$objname))
+	cat("\n%",line, "\n", file=filename, append = TRUE)
+	line <- c(paste("Estimation date",startdate))
+	cat("\n%",line, "\n", file=filename, append = TRUE)
+	neff <- length(unique((x$thetadf$effects))) # number of effects
+	nscores <- 0
+	if (option == 1)
+ {
+# begin table 1
+ 	cat("Without assumptions of normality \\\\ \n", file=filename, append = TRUE)
+	cat("\n", sep="", file=filename, append = TRUE)
+	line <- "\\begin{tabular}{l r"
+	for (i in 1:7) {line <- paste(line, code)}
+	line <- paste(line,"}")
+	cat(line, "\n", sep="", file=filename, append = TRUE)
+	cat("Effect & $N$ & \\multicolumn{", numdig, "}{c}{$T^2$} &  \\multicolumn{",
+					numdig, "}{c}{($p_{T^2}$)} ",
+					file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\mu_k$} &  \\multicolumn{", numdig, "}{c}{(s.e.)}",
+					file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\sigma_k$} &  \\multicolumn{", numdig, "}{c}{$Q$}",
+					file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$p_{Q}$}", file=filename, append = TRUE)
+	cat(" \\\\", "\n", sep="", file=filename, append=TRUE)
+	cat("\\hline \n", file=filename, append=TRUE)
+# body 1
+	for (i in 1:neff)
+	{
+	line <- paste(fromObjectToLaTeX(x$thetadf$effects[i], max.eff.width), "&")
+	line <- paste(line, x[[i]]$n1, " & ")
+	if (x[[i]]$n1 >= 2)
+	{
+		line <- paste(line, formatC(x[[i]]$Tsq, digits=1, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.8em} (", formatC(x[[i]]$pTsq, digits=3, format="f",
+					decimal.mark=sepsign), ")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$regsummary$coefficients[1, 1], digits=d, format="f",
+				decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (",
+				formatC(x[[i]]$regsummary$coefficients[1, 2], digits=d, format="f",
+				decimal.mark=sepsign), ")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$regsummary$stddev, digits=d, format="f",
+				decimal.mark=sepsign), sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$Qstat, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (",
+				formatC(x[[i]]$pttilde, digits=3, format="f", decimal.mark=sepsign), ")", sep="")
+	}
+	cat(line,"\\\\\n", file=filename, append = TRUE)
+	nscores <- nscores + x[[i]]$ns
+	}
+# tailer 1
+	cat("\\end{tabular}\n", file=filename, append=TRUE)
+	if (nscores > 0)
+	{
+	cat("% There also were score tests.\\\\ \n", file=filename, append=TRUE)
+	}
+	cat("\\bigskip\n\n", file=filename, append=TRUE)
+  }
+  	if (option == 2)
+  {
+# begin table 2
+	cat("With assumptions of normality \\\\ \n", file=filename, append = TRUE)
+	cat("\n", sep="", file=filename, append = TRUE)
+	line <- "\\begin{tabular}{l r"
+	for (i in 1:8) {line <- paste(line, code)}
+	line <- paste(line,"}")
+	cat(line, "\n", sep="", file=filename, append = TRUE)
+	cat("Effect & $N$ & \\multicolumn{", numdig, "}{c}{$T^2$} &  \\multicolumn{",
+			numdig, "}{c}{($p_{T^2}$)} ",
+			file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\mu_k$} &  \\multicolumn{", num2dig,
+			"}{c}{(conf. int.)}",
+			file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\sigma_k$} &  \\multicolumn{", num2dig,
+			"}{c}{(conf. int.)}",
+			file=filename, append = TRUE)
+	cat(" \\\\", "\n", sep="", file=filename, append=TRUE)
+	cat("\\hline \n", file=filename, append=TRUE)
+	neff <- length(unique((x$thetadf$effects))) # number of effects
+# body 2
+	for (i in 1:neff)
+	{
+	line <- paste(fromObjectToLaTeX(x$thetadf$effects[i], max.eff.width), "&")
+	line <- paste(line, x[[i]]$n1, " & ")
+	if (x[[i]]$n1 >= 2)
+	{
+		line <- paste(line, formatC(x[[i]]$Tsq, digits=1, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.8em} (", formatC(x[[i]]$pTsq, digits=3, format="f",
+				decimal.mark=sepsign), ")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$mu.ml, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (", formatC(x[[i]]$mu.confint[1], digits=d, format="f",
+				decimal.mark=sepsign),
+					", & \\hspace{-1.1em} ", formatC(x[[i]]$mu.confint[2], digits=d, format="f",
+					decimal.mark=sepsign),")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$sigma.ml, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (", formatC(x[[i]]$sigma.confint[1],
+					digits=d, format="f", decimal.mark=sepsign),
+						", & \\hspace{-1.1em} ", formatC(x[[i]]$sigma.confint[2],
+						digits=d, format="f", decimal.mark=sepsign),")", sep="")
+	}
+	cat(line,"\\\\\n", file=filename, append = TRUE)
+	nscores <- nscores + x[[i]]$ns
+	}
+# tailer 2
+	cat("\\end{tabular}\n", file=filename, append=TRUE)
+	if (nscores > 0)
+	{
+	cat("% There also were score tests.\n", file=filename, append=TRUE)
+	}
+	cat("\\bigskip \n\n\n", file=filename, append=TRUE)
+  }
+
+	if (option == 3)
+  {
+# header 3
+	cat("With assumptions of normality \\\\ \n", file=filename, append = TRUE)
+	cat("\n", sep="", file=filename, append = TRUE)
+	line <- "\\begin{tabular}{l r"
+	for (i in 1:7) {line <- paste(line, code)}
+	line <- paste(line,"}")
+	cat(line, "\n", sep="", file=filename, append = TRUE)
+	cat("Effect & $N$ & \\multicolumn{", numdig, "}{c}{$T^2$} &  \\multicolumn{",
+			numdig, "}{c}{($p_{T^2}$)} ",
+			file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\mu_k$} &  \\multicolumn{", numdig, "}{c}{(s.e.)}",
+			file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{$\\hat\\sigma_k$} &  \\multicolumn{", numdig, "}{c}{$Q$}",
+			file=filename, append = TRUE)
+	cat(" &  \\multicolumn{", numdig, "}{c}{($p$)} \\\\ \n", file=filename, append = TRUE)
+	cat(" \\\\", "\n", sep="", file=filename, append=TRUE)
+	cat("\\hline \n", file=filename, append=TRUE)
+# body 3
+	for (i in 1:neff)
+	{
+	line <- paste(fromObjectToLaTeX(x$thetadf$effects[i], max.eff.width), "&")
+	line <- paste(line, x[[i]]$n1, " & ")
+	if (x[[i]]$n1 >= 2)
+	{
+		line <- paste(line, formatC(x[[i]]$Tsq, digits=1, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.8em} (", formatC(x[[i]]$pTsq, digits=3, format="f",
+					decimal.mark=sepsign), ")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$mu.ml, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (",
+				formatC(x[[i]]$mu.ml.se, digits=d, format="f", decimal.mark=sepsign), ")", sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$sigma.ml, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & ", formatC(x[[i]]$Qstat, digits=d, format="f", decimal.mark=sepsign), sep="")
+		line <- paste(line, " & \\hspace{-0.5em} (",
+				formatC(x[[i]]$pttilde, digits=3, format="f", decimal.mark=sepsign), ")", sep="")
+	}
+	cat(line,"\\\\\n", file=filename, append = TRUE)
+	}
+# tailer 3
+	if (nscores > 0)
+	{
+	cat("% There also were score tests.\n", file=filename, append=TRUE)
+	}
+	cat("\\end{tabular}\\\\ \n", file=filename, append=TRUE)
+	cat("\\bigskip \n\n", file=filename, append=TRUE)
+ }
+
+# header 4
+	cat("Fisher combinations \\\\ \n", file=filename, append = TRUE)
+	cat("\n", sep="", file=filename, append = TRUE)
+	line <- "\\begin{tabular}{l "
+	for (i in 1:2) {line <- paste(line, code)}
+	line <- paste(line,"}")
+	cat(line, "\n", sep="", file=filename, append = TRUE)
+	cat("Effect & \\multicolumn{", numdig, "}{c}{$p$ (right-sided)} &  \\multicolumn{",
+			numdig, "}{c}{$p$ (left-sided)} \\\\ \n", file=filename, append = TRUE)
+	cat("\\hline \n", file=filename, append=TRUE)
+# body 4
+	for (i in 1:neff)
+	{
+	line <- paste(fromObjectToLaTeX(x$thetadf$effects[i], max.eff.width), "&")
+	line <- paste(line, formatC(x[[i]]$cjplusp, digits=3, format="f", decimal.mark=sepsign),
+					" & ", sep="")
+	line <- paste(line, formatC(x[[i]]$cjminusp, digits=3, format="f", decimal.mark=sepsign),
+					sep="")
+	cat(line,"\\\\\n", file=filename, append = TRUE)
+	}
+# tailer 4
+	cat("\\end{tabular}\n\n\n", file=filename, append=TRUE)
+	if (filename > "")
+	{
+		cat('Results written to file', filename,'.\n')
 	}
 }
 

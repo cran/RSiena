@@ -268,12 +268,9 @@ print.sienaFit <- function(x, tstat=TRUE, ...)
 		}
 		else
 		{
-			if (!is.null(x$gmm))
+			if (gmm(x))
 			{
-				if (x$gmm)
-				{
-					cat("Estimated by Generalized Method of Moments\n\n")
-				}
+				cat("Estimated by Generalized Method of Moments\n\n")
 			}
 			if (x$maxlike)
 			{
@@ -370,17 +367,14 @@ print.sienaFit <- function(x, tstat=TRUE, ...)
 				sem <- sem*sqrt(1 - (x$regrCor)^2)
 			}
 # mean.stats is exactly the same as x$estMeans
-			if (!is.null(x$gmm))
+			if (gmm(x))
 			{
-				if (x$gmm)
-				{
-					selection <- which(x$requestedEffects$type=='gmm' |
-									x$requestedEffects$type=='rate')
-				}
-				else
-				{
-					selection <- 1:nrow(x$requestedEffects)
-				}
+				selection <- which(x$requestedEffects$type=='gmm' |
+								x$requestedEffects$type=='rate')
+			}
+			else
+			{
+				selection <- 1:nrow(x$requestedEffects)
 			}
 			mymess1 <- paste(format(1:x$qq,width=3), '. ',
 					format(x$requestedEffects$functionName[selection], width = 56),
@@ -400,12 +394,12 @@ print.sienaFit <- function(x, tstat=TRUE, ...)
 			cat("\nSimulated statistics are in ", objectName,'$sf',sep="")
 			if (x$returnDeps)
 			{
-				cat("\nand simulated dependent variables in ",
-								objectName,'$sims.\n',sep="")
+				cat("\nand simulated dependent variables in ", objectName,
+					'$sims, where ', objectName,' is the created object.\n',sep="")
 			}
 			else
 			{
-				cat(".\n")
+				cat(", where", objectName, "is the created object.\n")
 			}
 		}
 		else
@@ -620,16 +614,13 @@ print.summary.sienaFit <- function(x, matrices=TRUE, ...)
 		covcor[lower.tri(covcor)] <- correl[lower.tri(correl)]
 		printMatrix(format(round(t(covcor),digits=3),width=12))
 		cat("\nDerivative matrix of expected statistics X by parameters:\n\n")
-		if (!is.null(x$gmm))
+		if (gmm(x))
 		{
-			if (x$gmm)
-			{
-				printMatrix(format(round(x$gamma,digits=3),width=12))
-			}
-			else
-			{
-				printMatrix(format(round(x$dfra,digits=3),width=12))
-			}
+			printMatrix(format(round(x$gamma,digits=3),width=12))
+		}
+		else
+		{
+			printMatrix(format(round(x$dfra,digits=3),width=12))
 		}
 		cat("\nCovariance matrix of X (correlations below diagonal):\n\n")
 		covcor <- x$msf
@@ -686,6 +677,7 @@ print.sienaAlgorithm <- function(x, ...)
 	if (x$maxlike)
 	{
 		cat(" Estimation by maximum likelihood\n")
+		cat(' multiplication factor:', x$mult, '\n')
 	}
 	else
 	{
@@ -945,7 +937,7 @@ sienaFitThetaTable <- function(x, fromBayes=FALSE, tstat=FALSE, groupOnly=0, nfi
 	else
 	{
 		theEffects <- x$requestedEffects
-    theEffects <-theEffects[which(theEffects$type!='gmm'),]
+    	theEffects <- theEffects[which(theEffects$type!='gmm'),]
 	}
 	pp <- dim(theEffects)[1]
 	if (is.null(x$thetaFromFile))
@@ -960,8 +952,17 @@ sienaFitThetaTable <- function(x, fromBayes=FALSE, tstat=FALSE, groupOnly=0, nfi
     {
         nrates <- 0
     }
-	xp <- pp
-    pp <- pp + nrates
+	if (!gmm(x))
+	{
+	  xp <- pp
+	  pp <- pp + nrates
+	}
+	else
+	{ 
+	  pp <- sum(x$requestedEffects$include==TRUE)
+	  xp <- pp - sum(x$requestedEffects$type=="gmm")
+	  pp <- xp + nrates
+	}
     ## mydf stores the data before formatting
 	if (fromBayes)
 	{
@@ -1079,14 +1080,26 @@ sienaFitThetaTable <- function(x, fromBayes=FALSE, tstat=FALSE, groupOnly=0, nfi
     }
 	if (!is.null(x$covtheta))
 	{
-		ses <- sqrt(diag(x$covtheta))
-		ses[x$fixed] <- NA
+	  if (!gmm(x))
+	  {
+	    ses <- sqrt(diag(x$covtheta))
+	    ses[x$fixed] <- NA
+	  }
+	  else 
+	  {
+	    ses <- sqrt(diag(x$covtheta))
+	    ses[x$fixed[-which(x$requestedEffects$type=="gmm")]] <- NA  
+	  }
 	}
 	if (fromBayes)
 	{
 		atl <- averageTheta.last(x, groupOnly, nfirst = nfirst)
 		theta <- atl[[1]]
 		postSd <- sqrt(atl[[2]])
+	}
+  	if (gmm(x))
+  	{
+      theta <- x$theta[-which(x$requestedEffects$type=="gmm")]
 	}
 	else
 	{
@@ -1127,12 +1140,22 @@ sienaFitThetaTable <- function(x, fromBayes=FALSE, tstat=FALSE, groupOnly=0, nfi
         theEffects$effectName[theEffects$netType=='continuous'] <-
             contEffects$effectName
     }
-
-	mydf[nrates + (1:xp), 'row'] <-  1:xp
-	mydf[nrates + (1:xp), 'type' ] <- ifelse(theEffects$type == "creation",
-		"creat", theEffects$type)
-	mydf[nrates + (1:xp), 'text' ] <- theEffects$effectName
-	mydf[nrates + (1:xp), 'value' ] <- theta
+    if (!gmm(x))
+      {
+        mydf[nrates + (1:xp), 'row'] <-  1:xp
+        mydf[nrates + (1:xp), 'type' ] <- ifelse(theEffects$type == "creation",
+                                             "creat", theEffects$type)
+        mydf[nrates + (1:xp), 'text' ] <- theEffects$effectName
+        mydf[nrates + (1:xp), 'value' ] <- theta
+      }
+    else if (gmm(x))
+    { 
+      mydf[nrates + (1:xp), 'row'] <-  1:xp
+      mydf[nrates + (1:xp), 'type' ] <- ifelse(theEffects$type == "creation",
+                                               "creat", theEffects$type)
+      mydf[nrates + (1:xp), 'text' ] <- theEffects$effectName
+      mydf[nrates + (1:xp), 'value' ] <- theta
+    }
 
 	if (fromBayes) # then nrates=0
 	{

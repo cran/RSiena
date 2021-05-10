@@ -17,7 +17,7 @@ sienaGOF <- function(
 		sienaFitObject,	auxiliaryFunction,
 		period=NULL, verbose=FALSE, join=TRUE, twoTailed=FALSE,
 		cluster=NULL, robust=FALSE,
-		groupName="Data1", varName, ...)
+		groupName="Data1", varName, tested=NULL, ...)
 	{
 	## require(MASS)
 	## require(Matrix)
@@ -31,9 +31,9 @@ sienaGOF <- function(
 	{
 		stop("You must instruct siena07 to return the simulated networks")
 	}
-	if (!is.null(sienaFitObject$sf2.byIterations))
+	if (!is.null(sienaFitObject$sf2.byIteration))
 	{
-		if (!sienaFitObject$sf2.byIterations)
+		if (!sienaFitObject$sf2.byIteration)
     	{
         	stop("sienaGOF needs sf2 by iterations (use lessMem=FALSE)")
     	}
@@ -52,15 +52,34 @@ sienaGOF <- function(
 		stop("You need to supply the parameter <<auxiliaryFunction>>.")
 	}
 	groups <- length(sienaFitObject$f$groupNames)
+	if (is.null(tested))
+	{
+		tested <- sienaFitObject$test
+	}
+	else
+	{
+		if (!inherits(tested, "logical"))
+		{
+			stop('tested should be a logical vector')
+		}
+		if ((length(tested) != length(sienaFitObject$test)) | (all(tested == FALSE)))
+		{
+			tested <- rep(FALSE, length(sienaFitObject$test))
+		}
+		else
+		{
+			tested <- (tested & sienaFitObject$test)
+		}
+	}
 	if (verbose)
 	{
 		if (groups <= 1)
 		{
-			message("Detected", iterations, "iterations and", groups, "group.")
+			message("Detected ", iterations, " iterations and ", groups, " group.")
 		}
 		else
 		{
-			message("Detected", iterations, "iterations and", groups, "groups.")
+			message("Detected ", iterations, " iterations and ", groups, " groups.")
 		}
 	}
 
@@ -138,7 +157,10 @@ sienaGOF <- function(
 										sienaFitObject$f,
 										sienaFitObject$sims, j, groupName, varName, ...)
 						})
-					cat("  > Completed ", iterations, " calculations\n\n")
+					if (verbose)
+					{
+						cat("  > Completed ", iterations, " calculations\n\n")
+					}
 					flush.console()
 					simStatsByPeriod <-
 							matrix(simStatsByPeriod, ncol=iterations)
@@ -239,8 +261,8 @@ sienaGOF <- function(
 	res <- lapply(1:length(simStats),
 					function (i) {
 				 applyTest(obsStats[[i]], simStats[[i]]) })
-	mhdTemplate <- rep(0, sum(sienaFitObject$test))
-	names(mhdTemplate) <- rep(0, sum(sienaFitObject$test))
+	mhdTemplate <- rep(0, sum(tested))
+	names(mhdTemplate) <- rep(0, sum(tested))
 
 	JoinedOneStepMHD_old <- mhdTemplate
 	OneStepMHD_old <- lapply(period, function(i) (mhdTemplate))
@@ -255,7 +277,7 @@ sienaGOF <- function(
 		lapply(period, function(i) {
 			t(apply(simStatsByPeriod[[i]],1, function(x){x - ExpStat[[i]]}))})
 
-	OneStepSpecs <- matrix(0, ncol=sum(sienaFitObject$test),
+	OneStepSpecs <- matrix(0, ncol=sum(tested),
 			nrow=length(sienaFitObject$theta))
 	if (robust) {
 		covInvByPeriod <- lapply(period, function(i) ginv(
@@ -273,30 +295,30 @@ sienaGOF <- function(
 						t(obsStatsByPeriod[[i]] - ExpStat[[i]] )
 			})
 
-	if (sum(sienaFitObject$test) > 0) {
+	if (sum(tested) > 0) {
 		effectsObject <- sienaFitObject$requestedEffects
 		nSims <- sienaFitObject$Phase3nits
 		for (i in period) {
 			names(OneStepMHD_old[[i]]) <-
-					effectsObject$effectName[sienaFitObject$test]
+					effectsObject$effectName[tested]
 			names(OneStepMHD[[i]]) <-
-					effectsObject$effectName[sienaFitObject$test]
+					effectsObject$effectName[tested]
 		}
 		names(JoinedOneStepMHD_old) <-
-			effectsObject$effectName[sienaFitObject$test]
+			effectsObject$effectName[tested]
 		names(JoinedOneStepMHD) <-
-				effectsObject$effectName[sienaFitObject$test]
+				effectsObject$effectName[tested]
 
 		rownames(OneStepSpecs) <- effectsObject$effectName
-		colnames(OneStepSpecs) <- effectsObject$effectName[sienaFitObject$test]
+		colnames(OneStepSpecs) <- effectsObject$effectName[tested]
 		counterTestEffects <- 0
-		for(index in which(sienaFitObject$test)) {
+		for(index in which(tested)) {
 			if (verbose) {
 				message("Estimating test statistic for model including ",
 						effectsObject$effectName[index], "\n")
 			}
 			counterTestEffects <- counterTestEffects + 1
-			effectsToInclude <- !sienaFitObject$test
+			effectsToInclude <- !tested
 			effectsToInclude[index] <- TRUE
 			theta0 <- sienaFitObject$theta
 			names(theta0) <- effectsObject$effectName
@@ -404,7 +426,7 @@ sienaGOF <- function(
 
 	names(res) <- names(obsStats)
 	class(res) <- "sienaGOF"
-	attr(res, "scoreTest") <- (sum(sienaFitObject$test) > 0)
+	attr(res, "scoreTest") <- (sum(tested) > 0)
 	attr(res, "originalMahalanobisDistances") <- obsMhd
 	attr(res, "oneStepMahalanobisDistances") <- OneStepMHD
 	attr(res, "joinedOneStepMahalanobisDistances") <-
@@ -529,7 +551,7 @@ summary.sienaGOF <- function(object, ...) {
 
 ##@plot.sienaGOF siena07 Plot method for sienaGOF
 plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
-		key=NULL, perc=.05, period=1, fontsize=12, ...)
+		key=NULL, perc=.05, period=1, position=4, fontsize=12, ...)
 {
 	## require(lattice)
 	args <- list(...)
@@ -761,7 +783,7 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 			panel.xyplot(xAxis, obs[i,],  col="red", type="l", lwd=1, ...)
 			panel.xyplot(xAxis, obs[i,],  col="red", type="p", lwd=3, pch=19,
 					...)
-			panel.text(xAxis, obs[i,], labels=obsLabels[i,], pos=4)
+			panel.text(xAxis, obs[i,], labels=obsLabels[i,], pos=position)
 		}
 	}
 	bwplot(as.numeric(sims)~rep(xAxis, each=itns), horizontal=FALSE,
@@ -867,7 +889,9 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 				sort(sims[,i])[ind.lower]  )
 	yperc.upper = sapply(1:ncol(sims), function(i)
 				sort(sims[,i])[ind.upper]  )
-	violins <- matrix(NA, 7, ncol(sims))
+	ypg <- sapply(1:ncol(sims), function(i)	mean(sims[,i] > obs[1,i]))
+	ypp <- sapply(1:ncol(sims), function(i)	mean(sims[,i] >= obs[1,i]))
+    violins <- matrix(NA, 9, ncol(sims))
 	violins[1,] <- sims.themax
 	violins[2,] <- yperc.upper
 	violins[3,] <- sims.mean
@@ -875,8 +899,10 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 	violins[5,] <- yperc.lower
 	violins[6,] <- sims.themin
 	violins[7,] <- obs
-	rownames(violins) <- c('max', 'perc.upper', 'mean',
-							'median', 'perc.lower', 'min', 'obs')
+    violins[8, ] <- ypg
+    violins[9, ] <- ypp
+    rownames(violins) <- c("max", "perc.upper", "mean", "median",
+        "perc.lower", "min", "obs", "p>", "p>=")
 	colnames(violins) <- key
 	violins
 }
@@ -1399,3 +1425,36 @@ TriadCensus <- function (i, obsData, sims, period, groupName, varName, levls = 1
   tc[levls]
 }
 
+
+##@dyadicCov sienaGOF Auxiliary variable for dyadic covariate
+#
+# An auxiliary function calculating the proportion of ties
+# for subsets of ordered pairs corresponding to
+# certain values of the categorical dyadic covariate dc.
+# dc should be a matrix of the same dimensions as
+# the dependent variable,
+# or an array where the third dimension is time.
+# Frequencies of ties with dc == 0 are not counted.
+dyadicCov <-  function (i, obsData, sims, period, groupName, varName, dc){
+	m <- sparseMatrixExtraction(i, obsData, sims, period, groupName, varName)
+    # note that m*dc is a sparse matrix, too:
+	if (length(dim(dc))==3)
+	{
+		tmdyv <- table((m * dc[,,period])@x, useNA = "no")
+	}
+	else
+	{
+		tmdyv <- table((m * dc)@x, useNA = "no")
+	}
+	values <- unique(as.vector(dc))
+	tdyv <- sort(values[!is.na(values)])
+	tdyv <- tdyv[-which(tdyv==0)] # if 0 is included, take it out
+	# Now we want to construct the table of numbers of m*dyv;
+	# and categories in dc not represented in m*dyv should get a 0.
+	# First make a named vector of the correct length with 0s in place.
+	ttmdyv <- 0*tdyv
+	names(ttmdyv) <- tdyv
+	dims <- dimnames(tmdyv)[[1]]
+	ttmdyv[dims] <- tmdyv # The other entries remain 0
+	ttmdyv
+}

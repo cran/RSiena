@@ -47,6 +47,13 @@ print('test6')
 ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
 ans
+myeff <- includeEffects(myeff, recip, include=FALSE)
+myeff <- includeEffects(myeff, recip, type='endow')
+myeff <- includeEffects(myeff, recip, type='creation')
+ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
+              parallelTesting=TRUE, silent=TRUE)
+ans
+testSame.RSiena(ans, 3, 4)
 ##test7
 mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
 mydata <- sienaDataCreate(mynet1)
@@ -130,8 +137,21 @@ myeff <- getEffects(dataset)
 myeff <- includeEffects(myeff, inPop)
 algo <- sienaAlgorithmCreate(nsub=1, n3=20, maxlike=TRUE, seed=15, mult=1)
 (ans <- siena07(algo, data=dataset, effects=myeff, batch=TRUE, silent=TRUE))
+##test 15
+print('test15')
+mynet1 <- sienaDependent(array(c(s501, s502, s503), dim=c(50, 50, 3)))
+mynet2 <- sienaDependent(s50a,type='behavior')
+mydata <- sienaDataCreate(mynet1, mynet2)
+myeff <- getEffects(mydata)
+(myeff <- includeEffects(myeff, transTrip))
+(myeff <- includeEffects(myeff, egoX, simX, interaction1="mynet2"))
+(myeff <- includeEffects(myeff, avSim, name="mynet2", interaction1="mynet1"))
+(myeff <- includeGMoMStatistics(myeff, simX_gmm, interaction1="mynet2"))
+algo <- sienaAlgorithmCreate(nsub=2, n3=100, gmm=TRUE, seed=6)
+(ans <- siena07(algo, data=mydata, effects=myeff, batch=TRUE,
+                parallelTesting=TRUE, silent=TRUE))
 ##test16
-print('test16')
+#print('test16')
 set.seed(123) # simulate behavior data according to dZ(t) = [-0.1 Z + 1] dt + 1 dW(t)
 y1 <- rnorm(50, 0,3)
 y2 <- exp(-0.1) * y1 + (1-exp(-0.1)) * 1/ -0.1 + rnorm(50, 0, (exp(-0.2)- 1) / -0.2 * 1^2)
@@ -140,6 +160,6 @@ behavior <- sienaDependent(matrix(c(y1,y2), 50,2), type = "continuous")
 (mydata <- sienaDataCreate(friend, behavior))
 (myeff <- getEffects(mydata, onePeriodSde = TRUE))
 algorithmMoM <- sienaAlgorithmCreate(nsub=1, n3=20, seed=321)
-(ans <- siena07(algorithmMoM, data = mydata, effects = myeff, batch=TRUE))
+#(ans <- siena07(algorithmMoM, data = mydata, effects = myeff, batch=TRUE))
 ## delete output file
 if (file.exists('Siena.txt')){unlink('Siena.txt')}

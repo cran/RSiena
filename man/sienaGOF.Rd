@@ -24,9 +24,9 @@
 sienaGOF(sienaFitObject, auxiliaryFunction,
         period=NULL, verbose=FALSE, join=TRUE, twoTailed=FALSE,
         cluster=NULL, robust=FALSE, groupName="Data1",
-        varName, \dots)
+        varName, tested=NULL, \dots)
 \method{plot}{sienaGOF}(x, center=FALSE, scale=FALSE, violin=TRUE, key=NULL,
-        perc=.05, period=1, fontsize=12, \dots)
+        perc=.05, period=1, position=4, fontsize=12, \dots)
 descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
         period=1, showAll=FALSE)
 }
@@ -63,6 +63,10 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
   \item{robust}{ Whether to use robust estimation of the covariance matrix.}
   \item{groupName}{ Name of group; relevant for multi-group data sets.}
   \item{varName}{ Name of dependent variable.}
+  \item{tested}{ A logical vector of length \code{sienaFitObject$pp} (number of parameters),
+          indicating a subset of tested parameters;
+          or \code{NULL}, indicating all tested parameters; or \code{FALSE},
+          indicating nothing is to be tested.}
   \item{x}{ Result from a call to sienaGOF. }
   \item{center}{ Whether to center the statistics by median during plotting.}
   \item{scale}{ Whether to scale the statistics by range during plotting.
@@ -71,6 +75,10 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
   \item{key}{ Keys in the plot for the levels of the auxiliary statistic
         (as given by parameter \code{levls} in the examples). }
   \item{perc}{ 1 minus confidence level for the confidence bands (two sided). }
+  \item{position}{ Position where the observed value is plotted: 1=under,
+        2=to the left, 3=above, 4=to the right of the red dot. Can be a single number
+        from 1 to 4, or a vector with positions for each statistic
+        (possibly recycled).}
   \item{fontsize}{ Font size for the observed values plotted.}
   \item{\dots}{Other arguments; for \code{sienaGOF()}, e.g., \code{levls} as a
        parameter for the auxiliary statistic in
@@ -149,12 +157,13 @@ We recommend the following heuristic approach to model checking:
  have precedence. This is an explorative issue.
 
  The \code{summary} function will display some useful information
- to help with model selection if some effects are set to FIX and
- TEST on the effects object. A rough estimator for the Mahalanobis
- distance that would be obtained at each proposed specification
- is given in the output. This can help guide model selection.
+ to help with model selection if some effects are set in the effects object
+ to be fixed and tested. In that case, for all parameters indicated
+ in the vector \code{tested}, a rough estimator is computed for the Mahalanobis
+ distance that would be obtained at each proposed specification.
+ This is then given in the \code{summary}. This can help guide model selection.
  This estimator is called the modified Mahalanobis distance (MMD).
- See Lospinoso (2012), the manual, or the references for more information.
+ See Lospinoso and Snijders (2019) or the manual for more information.
 
  The following functions are pre-fabricated for ease of use, and can
  be passed in as the \cr
@@ -203,8 +212,10 @@ We recommend the following heuristic approach to model checking:
     \code{descriptives.sienaGOF} returns a matrix giving numerical
     information about what is plotted in the \code{plot} method:
     maximum, upper percentile, mean, median, lower percentile, minimum,
-    of the simulated distributions of the auxiliary statistics, and the
-    observed values. If \code{center=TRUE} the median is subtracted
+    of the simulated distributions of the auxiliary statistics, the
+    observed values, and the proportions of simulated values greater
+    and greater-or-equal than the observed values.
+    If \code{center=TRUE} the median is subtracted
     from mean, median, and percentiles; if \code{scale=TRUE}
     these numbers are divided by (maximum - minimum). \cr
     If \code{showAll=FALSE}, statistics with variance 0 will be dropped.
@@ -214,12 +225,9 @@ We recommend the following heuristic approach to model checking:
 \itemize{
 \item See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
   for general information on RSiena.
-\item Lospinoso, J.A. and Snijders, T.A.B., \dQuote{Goodness of fit for
-  Stochastic Actor Oriented Models.} Presentation given at Sunbelt XXXI,
-  St. Petes Beach, Fl. 2011.
-\item Lospinoso, J.A. (2012).
-  \dQuote{Statistical Models for Social Network Dynamics.}
-  Ph.D. Thesis. University of Oxford: U.K.
+\item Lospinoso, J.A. and Snijders, T.A.B. (2019).
+  Goodness of fit for stochastic actor-orientedmodels.
+  \emph{Methodological Innovations}, 12:2059799119884282.
 }
 }
 \author{Josh Lospinoso, modifications by Ruth Ripley and Tom Snijders}
@@ -233,7 +241,7 @@ myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff <- setEffect(myeff, cycle3, fix=TRUE, test=TRUE)
 myeff <- setEffect(myeff, transTies, fix=TRUE, test=TRUE)
-myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=25, projname=NULL)
+myalgorithm <- sienaAlgorithmCreate(nsub=1, n3=10, projname=NULL)
 # Shorter phases 2 and 3, just for example.
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
 gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
@@ -250,6 +258,7 @@ mydata <- sienaDataCreate(mynet1, mynet2, mybeh)
 myeff <- getEffects(mydata)
 myeff <- includeEffects(myeff, transTrip)
 myeff <- includeEffects(myeff, recip, name="mynet2")
+# Shorter phases 2 and 3, just for example.
 ans <- siena07(myalgorithm, data=mydata, effects=myeff, batch=TRUE, returnDeps=TRUE)
 gofi <- sienaGOF(ans, IndegreeDistribution, verbose=TRUE, join=TRUE,
   varName="mynet1")
