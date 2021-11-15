@@ -2,7 +2,7 @@ Encoding: UTF-8
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.3.0
+Version: 1.3.0.1
 Date: 2021-05-02
 Authors@R: c(person("Tom A.B.", "Snijders", role = c("cre", "aut"), email = "tom.snijders@nuffield.ox.ac.uk", comment = c(ORCID = "0000-0003-3157-4157")),
               person("Ruth", "Ripley", role = "aut"),
@@ -47,7 +47,7 @@ NeedsCompilation: yes
 BuildResaveData: no
 URL: http://www.stats.ox.ac.uk/~snijders/siena/
 Config/testthat/edition: 3
-Packaged: 2021-05-02 21:28:55 UTC; Tom.Snijders
+Packaged: 2021-11-15 12:38:36 UTC; ripley
 Author: Tom A.B. Snijders [cre, aut] (<https://orcid.org/0000-0003-3157-4157>),
   Ruth Ripley [aut],
   Christian Steglich [aut, ctb] (<https://orcid.org/0000-0002-9097-0873>),
@@ -69,4 +69,4 @@ Author: Tom A.B. Snijders [cre, aut] (<https://orcid.org/0000-0003-3157-4157>),
   Robert Hellpap [ctb],
   Alvaro Uzaheta [ctb]
 Repository: CRAN
-Date/Publication: 2021-05-10 16:22:15 UTC
+Date/Publication: 2021-11-15 17:13:35 UTC

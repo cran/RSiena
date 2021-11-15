@@ -1982,7 +1982,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 # Find the compiler and compiler flags used by R.
-R_HOME=`R RHOME`
+: ${R_HOME=`R RHOME`}
 if test -z "${R_HOME}"; then
   as_fn_error $? "could not determine R_HOME" "$LINENO" 5
 fi

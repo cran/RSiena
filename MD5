@@ -1,4 +1,4 @@
-cde62ef542dc4a2824d731d51d45107a *DESCRIPTION
+065c55308a86d09d6918c67b6433178a *DESCRIPTION
 1ebbd3e34237af26da5dc08a4e440464 *LICENSE
 fde91fd58fe179f2d1efa50ced1819a6 *NAMESPACE
 ded0b0fcc7f88c72e663785af540ea31 *NEWS.md
@@ -43,7 +43,7 @@ d0c6d472405c6778d94f43ef3ccbe6e6 *R/terminateFRAN.r
 8a463eb1b6b3c9ef866060a6d86682a3 *R/zzz.R
 c850312d784bd69f733c0c067ff2f014 *cleanup
 85421a41346b1eeb40d5d3d42361d00b *cleanup.win
-01c838881071a9a8645cb680c5d4a9b1 *configure
+f41c112bda0ba1f26b8f20802fc345a2 *configure
 8f3de21ce8e5ffeecc8dd68b4cfc8779 *configure.ac
 e2c9b17e7a82f1bc4df53da43e5adfcf *configure.win
 2d1869f906ba1ccd9f0ae1de1c94c094 *data/RSiena.rda
