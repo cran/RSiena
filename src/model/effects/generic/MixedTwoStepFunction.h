@@ -40,7 +40,7 @@ public MixedNetworkAlterFunction, IntAlterFunction
 {
 public:
 	MixedTwoStepFunction(std::string firstNetworkName, std::string secondNetworkName,
-						Direction firstDirection, Direction secondDirection, bool root);
+						Direction firstDirection, Direction secondDirection, double par);
 
 	virtual void initialize(const Data * pData,
 		State * pState,
@@ -54,6 +54,7 @@ private:
 	MixedConfigurationTable * lpTable;
 	Direction ldirection1;
 	Direction ldirection2;
+	bool ltrunc; // should the value be truncated?
 	bool lroot; // should the square root be taken?
 	// Lookup table for fast square root calculations:
 	SqrtTable * lsqrtTable;

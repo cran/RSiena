@@ -122,9 +122,13 @@ sienaNodeSet <- function(n, nodeSetName="Actors", names=NULL)
 }
 
 ##@coCovar Create
-coCovar <- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
+coCovar <- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
 {
-    ##vector, numeric or factor
+    ##val should be vector, numeric or factor
+	if ((sum(!is.na(val))==0) & warn)
+	{
+		warning('Note: all values are missing.')
+	}
     if (!is.vector(val))
 	{
         stop("val must be a vector")
@@ -132,6 +136,13 @@ coCovar <- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
     if (!(is.numeric(val) || is.factor(val)))
 	{
         stop("val must be numeric or a factor")
+	}
+	if (!is.factor(val))
+	{
+		if ((var(val, na.rm=TRUE)==0) & warn)
+		{
+			warning('Note: all values are identical to ', mean(val, na.rm=TRUE),'.')
+		}
 	}
     if (!is.character(nodeSet))
 	{
@@ -160,7 +171,7 @@ coCovar <- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
     out
 }
 ##@varCovar Create
-varCovar<- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
+varCovar<- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
 {
     ##matrix, numeric or factor, nrow = nactors and cols = observations-1
     if (!is.matrix(val))
@@ -170,6 +181,14 @@ varCovar<- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
     if (!(is.numeric(val) || is.factor(val)))
 	{
         stop("val must be numeric or a factor")
+	}
+	if ((sum(!is.na(val))==0) & warn)
+	{
+		warning('Note: all values are missing.')
+	}
+	if ((var(as.vector(val), na.rm=TRUE)==0) & warn)
+	{
+		warning('Note: all values are equal to ', mean(as.vector(val), na.rm=TRUE))
 	}
     if (!is.character(nodeSet))
 	{
@@ -200,7 +219,7 @@ varCovar<- function(val, centered=TRUE, nodeSet="Actors", imputationValues=NULL)
 
 ##@coDyadCovar Create
 coDyadCovar<- function(val, centered=TRUE, nodeSets=c("Actors","Actors"),
-					   sparse=is(val,"dgTMatrix"),
+					   warn=TRUE, sparse=inherits(val,"TsparseMatrix"),
 					   type=c("oneMode", "bipartite"))
 {
     ##matrix, numeric or factor, dims= those of net - must validate later or
@@ -218,12 +237,23 @@ coDyadCovar<- function(val, centered=TRUE, nodeSets=c("Actors","Actors"),
     }
     else
     {
-        if (!is(val, "dgTMatrix"))
+        if (!inherits(val, "TsparseMatrix"))
         {
-            stop("not a sparse triples matrices")
+            stop("not a sparse triples matrix")
         }
         val <- list(val)
     }
+	if ((sum(!is.na(val))==0) & warn)
+	{
+		warning('Note: all values are missing.')
+	}
+	if (!is.factor(val))
+	{
+		if ((var(as.vector(val), na.rm=TRUE)==0) & warn)
+		{
+			warning('Note: all values are identical to ', mean(as.vector(val), na.rm=TRUE),'.')
+		}
+	}
     vardims <- dim(val)
     if (length(nodeSets) > 2)
     {
@@ -272,9 +302,9 @@ coDyadCovar<- function(val, centered=TRUE, nodeSets=c("Actors","Actors"),
     out
 }
 ##@varDyadCovar Create
-varDyadCovar<- function(val, centered=TRUE,
-						nodeSets=c("Actors","Actors"), sparse=is.list(val),
-					   type=c("oneMode", "bipartite"))
+varDyadCovar<- function(val, centered=TRUE, nodeSets=c("Actors","Actors"), 
+						warn=TRUE, sparse=is.list(val),
+						type=c("oneMode", "bipartite"))
 {
     ##array, numeric or factor, dims= those of net by observations-1 -
     ##must validate later or list of sparse matrices
@@ -290,7 +320,7 @@ varDyadCovar<- function(val, centered=TRUE,
     {
          if (!is.list(val))
             stop("values must be an array or a list of sparse matrices")
-        if (!all(sapply(val, function(x) is(x,"dgTMatrix"))))
+        if (!all(sapply(val, function(x){inherits(x,"TsparseMatrix", which = FALSE)})))
             stop("not a list of sparse triples matrices")
         vardims <- sapply(val, dim) ## dimensions of matrices in columns
         if (any(vardims != vardims[, 1]))
@@ -299,6 +329,17 @@ varDyadCovar<- function(val, centered=TRUE,
         vardims[3] <- length(val)
 
     }
+	if ((sum(!is.na(val))==0) & warn)
+	{
+		warning('Note: all values are missing.')
+	}
+	if ((!is.factor(val)) & warn)
+	{
+		if (var(as.vector(val), na.rm=TRUE)==0)
+		{
+			warning('Note: all values are identical to ', mean(as.vector(val), na.rm=TRUE),'.')
+		}
+	}
     if (length(nodeSets) > 2)
         stop("nodeSets may only have one or two elements")
     if (!is.character(nodeSets))
@@ -376,7 +417,7 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior",
 		{
             stop("netarray must be an array or a list of sparse matrices")
 		}
-        if (!all(sapply(netarray, function(x) is(x,"dgTMatrix"))))
+        if (!all(sapply(netarray, function(x){inherits(x,"TsparseMatrix", which = FALSE)})))
 		{
             stop("not a list of sparse triples matrices")
 		}
@@ -388,7 +429,11 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior",
         netdims <- netdims[, 1]
         netdims[3] <- length(netarray)
     }
-    observations <- netdims[3]
+	if (sum(!is.na(netarray))==0)
+	{
+		warning('Note: all values are missing.')
+	}
+	observations <- netdims[3]
     if (observations < 2)
 	{
         stop("netarray must have at least two observations")
@@ -466,15 +511,15 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior",
     {
         if (sparse)
         {
-            netarray <- lapply(netarray, function(x)as(drop0(x), "dgTMatrix"))
+            netarray <- lapply(netarray, function(x)as(drop0(x), "TsparseMatrix"))
             if (!all(sapply(netarray, function(x)
                         {
                             tmp <- x@x
-                                all(is.na(tmp) | tmp == 1 | tmp == 10 |
+                            all(is.na(tmp) | tmp == 1 | tmp == 10 |
                                     tmp == 11 )
                             }
                                 )))
-                 stop("entries in networks must be 0, 1, 10 or 11")
+                 stop("entries in networks must be 0, 1, 10, 11, or NA")
          }
         else
         {
@@ -521,19 +566,6 @@ sienaDependent <- function(netarray, type=c("oneMode","bipartite","behavior",
 
 ##@sienaNet Create
 sienaNet <- sienaDependent
-
-##@validateSienaDependent Miscellaneous not used yet
-validateSienaDependent <- function(net)
-{
-    if (!inherits(net,"sienaDependent"))
-	{
-        stop ("Not a sienaDependent object")
-	}
-    if (!attr(net, "type") %in% c("oneMode", "bipartite", "behavior"))
-	{
-        stop ("invalid type in net")
-	}
-}
 
 ##@sienaDataConstraint DataCreate
 sienaDataConstraint <- function(x, net1, net2, type=c("higher",

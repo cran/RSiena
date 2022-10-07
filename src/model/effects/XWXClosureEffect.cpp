@@ -121,6 +121,7 @@ void XWXClosureEffect::calculateTwoPathSums(int i,
 /**
  * For each j and the given i, this method calculates the sum
  * sum_h x_{ih} w_{jh}.
+ * note that this function differs from XXWClosureEffect.calculateInStarSums.
  */
 void XWXClosureEffect::calculateInStarSums(int i,
 	const Network * pNetwork,

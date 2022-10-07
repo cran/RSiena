@@ -401,47 +401,49 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 			objEffects$type == "eval",'randomEffects'] <- TRUE
 
 		objEffects$untrimmedValue <- rep(0, nrow(objEffects))
-		if (attr(depvar,'symmetric'))
+		if ((attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
 		{
-			objEffects[objEffects$shortName == "density" &
-				objEffects$type == "eval",
-			c('include', "initialValue", "untrimmedValue")] <-
-				list(TRUE, starts$degree, starts$untrimmed)
-#			objEffects[objEffects$shortName=='transTriads' &
-#					   objEffects$type=='eval','include'] <- TRUE
+			objEffects <- objEffects[!objEffects$shortName == "density", ]
 		}
 		else
 		{
-			if (!(attr(depvar,'allUpOnly') || attr(depvar, 'allDownOnly')))
-			{
-				objEffects[objEffects$shortName == "density" &
-					objEffects$type == 'eval',
-				c('include', "initialValue", "untrimmedValue")] <-
-					list(TRUE, starts$degree, starts$untrimmed)
-			}
-			else
-			{
-				objEffects <-
-					objEffects[!objEffects$shortName == "density", ]
-			}
+			objEffects[objEffects$shortName == "density" &
+				objEffects$type == 'eval',
+			c('include', "initialValue", "untrimmedValue")] <-
+				list(TRUE, starts$degree, starts$untrimmed)
+		}
+		if (!(attr(depvar,'symmetric')))
+		{
 			objEffects[objEffects$shortName == 'recip'&
 				objEffects$type == 'eval', 'include'] <- TRUE
 		}
 		rateEffects$basicRate[1:observations] <- TRUE
+		
+		useSettingsModel <- (!is.null(attr(depvar,"settingsinfo")))
+		if (useSettingsModel)
+		{			
+			objEffects <- rbind(objEffects, createEffects(
+				"settingsObjective", varname, name=varname,
+				groupName=groupName, group=group, netType=netType))
+				# append effects with an interaction on the primary settings network of `varname`
+			objEffects <- rbind(objEffects, createEffects(
+				"nonSymmetricSymmetricSObjective", paste0("primary(", varname, ")") , name=varname,
+				groupName=groupName, group=group, netType=netType))
+			settingOnlys <- vapply(attr(depvar,"settingsinfo"), function(s){s$only},
+								FUN.VALUE="a")
+			if (settingOnlys[1] == 'none') 
+			{
+				useSettingsModel  <- FALSE
+			}
+		}
 
-		if (!is.null(attr(depvar,"settingsinfo")))
+		if (useSettingsModel)
 		{
 			settingIds <- sapply(attr(depvar,"settingsinfo"), function(s) s$id)
 			nbrSettings <- length(settingIds)
 
 			if ("primary" %in% settingIds) {
-				objEffects <- rbind(objEffects, createEffects(
-					"settingsObjective", varname, name=varname,
-					groupName=groupName, group=group, netType=netType))
-				# append effects with an interaction on the primary settings network of `varname`
-				objEffects <- rbind(objEffects, createEffects(
-					"nonSymmetricSymmetricSObjective", paste0("primary(", varname, ")") , name=varname,
-					groupName=groupName, group=group, netType=netType))
+			# see above, already done if useSettingsModel before this was reduced.
 			}
 
 			# duplicate rate effects, split by periods
@@ -1678,21 +1680,19 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 									attr(effects[[eff]], "starts")$prec <-  prec
 									if (attr(depvar, 'symmetric'))
 									{
-										effects[[eff]][effects[[eff]]$shortName ==
-											'density' &
+								effects[[eff]][effects[[eff]]$shortName == 'density' &
 											effects[[eff]]$type == 'eval',
 										c('initialValue','untrimmedValue')] <-
 											list(degree, untrimmed)
 									}
 									else
 									{
-										if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
+								if (!(attr(x,'anyUpOnly')[netnamesub] || 
+											attr(x, 'anyDownOnly')[netnamesub]))
 										{
-											effects[[eff]][effects[[eff]]$shortName ==
-												'density' &
+									effects[[eff]][effects[[eff]]$shortName == 'density' &
 												effects[[eff]]$type == 'eval',
-											c('initialValue',
-												"untrimmedValue")] <-
+													c('initialValue', "untrimmedValue")] <-
 													list(degree, untrimmed)
 										}
 									}
@@ -1712,11 +1712,9 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 								period + 1:noPeriods,')', sep='')
 							use <- effects[[eff]]$effectName %in% effectname
 							effects[[eff]][use, c('include', 'initialValue',
-								'groupName', 'group',
-								'period')] <-
+								'groupName', 'group', 'period')] <-
 									list(TRUE, starts$startRate,
-										groupNames[group],
-										group, 1:noPeriods)
+										groupNames[group], group, 1:noPeriods)
 									## now sort out the degree and
 									## update the attribute on the effects list
 									oldstarts <- attr(effects[[eff]], "starts")
@@ -1728,17 +1726,16 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 										ifelse(degree > 3, 3, degree))
 									attr(effects[[eff]], "starts")$alpha <- alpha
 									attr(effects[[eff]], "starts")$prec <-  prec
-									if (!(attr(x,'anyUpOnly') || attr(x, 'anyDownOnly')))
+							if (!(attr(x,'anyUpOnly')[netnamesub] || 
+									attr(x, 'anyDownOnly')[netnamesub]))											
 									{
-										effects[[eff]][effects[[eff]]$shortName ==
-											'density' &
+								effects[[eff]][effects[[eff]]$shortName == 'density' &
 											effects[[eff]]$type == 'eval',
-										c('initialValue',
-											"untrimmedValue")] <-
+												c('initialValue', "untrimmedValue")] <-
 												list(degree, untrimmed)
 									}
 						},
-						stop('error type'))
+						stop('error type dependent variable'))
 			}
 			if (nContinuous > 0)
 			{
@@ -1761,9 +1758,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 				use <- effects[[n+1]]$effectName %in% effectname
 				effects[[n+1]][use, c('include','initialValue',
 										'groupName', 'group', 'period')] <-
-											 list(TRUE, starts$startScale,
-												  groupNames[group], group,
-												  1:noPeriods)
+					list(TRUE, starts$startScale, groupNames[group], group, 1:noPeriods)
 			}
 
 			period <-  period + xx$observations ##periods used so far
@@ -1792,6 +1787,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 	rownames(effects) <- myrownames
 	effects
 }
+
 ##@getBehaviorStartingVals DataCreate
 getBehaviorStartingVals <- function(depvar)
 {

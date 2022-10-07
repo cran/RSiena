@@ -98,7 +98,7 @@ phase3.2 <- function(z, x, ...)
         Report('There was a problem in obtaining convergence.\n', outf)
         Report(c('Therefore, the program decided tentatively to fix',
 				 'parameter(s)',
-               c(1:z$pp)[z$newfixed], '.\n'), outf)
+					(1:z$pp)[z$newfixed], '.\n'), outf)
         Report(c('It may be better to start all over again,',
                  'with better initial values or a reduced model.\n',
                  '(Check that you entered the data properly!)\n'), outf)
@@ -367,7 +367,7 @@ phase3.2 <- function(z, x, ...)
 				message('The following is approximately a linear combination ')
 				message('for which the data carries no information:\n', thetext)
 				message('It is advisable to drop one or more of these effects.')
-				if (any(z$fixed || any(z$newfixed)))
+				if (any(z$fixed) || any(z$newfixed))
 				{
 					Report(c('(This may be unimportant, and related to the fact\n',
 							'that some parameters are fixed.)\n'), outf)
@@ -688,6 +688,7 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 		}
 		if (z$int == 1)
 		{
+
 			zz <- x$FRAN(zsmall, xsmall)
 			if (!zz$OK)
 			{

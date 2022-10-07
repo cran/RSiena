@@ -40,6 +40,7 @@ private:
 		double * sums) const;
 	void calculateInStarSums(int i, const Network * pNetwork,
 		double * sums) const;
+// note that this function differs from XXWClosureEffect.calculateInStarSums
 
 	// For a fixed i, this variable stores the value of sum_h x_{ih} w_{hj} for
 	// each j.

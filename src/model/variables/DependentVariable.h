@@ -135,6 +135,10 @@ public:
 	double reciprocalDegreeScore(const NetworkVariable * pNetwork) const;
 	double inverseOutDegreeScore(const NetworkVariable * pNetwork) const;
 	double logOutDegreeScore(const NetworkVariable * pNetwork) const;
+	double inverseInDegreeScore(const NetworkVariable * pNetwork) const;
+	double logInDegreeScore(const NetworkVariable * pNetwork) const;
+	double inversereciprocalDegreeScore(const NetworkVariable * pNetwork) const;
+	double logreciprocalDegreeScore(const NetworkVariable * pNetwork) const;
 
 	// Diffusion effects
 
@@ -143,13 +147,16 @@ public:
 	double calculateDiffusionRateEffect(
 		const BehaviorVariable * pBehaviorVariable,
 		const Network * pNetwork,
-		int i, std::string effectName);
+		int i, std::string effectName,
+		int internalEffectParameter);
 	double calculateDiffusionRateEffect(
 		const BehaviorVariable * pBehaviorVariable,
 		const Network * pNetwork,
 		int i, std::string effectName,
+		int internalEffectParameter,
 		const ConstantCovariate * pConstantCovariate,
 		const ChangingCovariate * pChangingCovariate);
+// note: calculateDiffusionRateEffect is also a function in StatisticCalculator (almost the same...)
 
 	// Maximum likelihood related
 
@@ -325,6 +332,18 @@ private:
 	// Scores for rate effects depending on log degree
 	std::map<const NetworkVariable *, double> llogOutDegreeScores;
 
+	// Scores for rate effects depending on inverse in degree
+	std::map<const NetworkVariable *, double> linverseInDegreeScores;
+
+	// Scores for rate effects depending on log in degree
+	std::map<const NetworkVariable *, double> llogInDegreeScores;
+
+	// Scores for rate effects depending on inverse reciprocal degree
+	std::map<const NetworkVariable *, double> linversereciprocalDegreeScores;
+
+	// Scores for rate effects depending on log reciprocal degree
+	std::map<const NetworkVariable *, double> llogreciprocalDegreeScores;
+
 	// Sum term for scores for rate effects depending on constant covariates
 	std::map<const ConstantCovariate *, double> lconstantCovariateSumTerm;
 
@@ -349,6 +368,18 @@ private:
 	// Sum term for scores for rate effects depending on log degree
 	std::map<const NetworkVariable *, double> llogOutDegreeSumTerm;
 
+	// Sum term for scores for rate effects depending on inverse degree
+	std::map<const NetworkVariable *, double> linverseInDegreeSumTerm;
+
+	// Sum term for scores for rate effects depending on log degree
+	std::map<const NetworkVariable *, double> llogInDegreeSumTerm;	
+
+	// Sum term for scores for rate effects depending on inverse reciprocal degree
+	std::map<const NetworkVariable *, double> linversereciprocalDegreeSumTerm;
+
+	// Sum term for scores for rate effects depending on log reciprocal degree
+	std::map<const NetworkVariable *, double> llogreciprocalDegreeSumTerm;
+
 	// Sum term for model B scores for rate effects depending on constant
 	// covariates
 	std::map<const ConstantCovariate *, double> lconstantCovariateModelBSumTerm;
@@ -369,6 +400,12 @@ private:
 
 	// Sum term for model B scores for rate effects depending on log degree
 	std::map<const NetworkVariable *, double> llogOutDegreeModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on inverse in degree
+	std::map<const NetworkVariable *, double> linverseInDegreeModelBSumTerm;
+
+	// Sum term for model B scores for rate effects depending on log in degree
+	std::map<const NetworkVariable *, double> llogInDegreeModelBSumTerm;
 
 	// Indicates if the rates are valid and shouldn't be recalculated
 	// provided that the rates are constant during the period.

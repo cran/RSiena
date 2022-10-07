@@ -20,7 +20,7 @@ sienaRI <- function(data, ans=NULL, theta=NULL, algorithm=NULL, effects=NULL,
 	datatypes <- sapply(data$depvars, function(x){attr(x,"type")})
 	if (any(datatypes == "bipartite"))
 	{
-		stop("sienaRI works only for dependent variables of type 'oneMode' or 'behavior'")
+#		stop("sienaRI works only for dependent variables of type 'oneMode' or 'behavior'")
 	}
 	if(!is.null(ans))
 	{
@@ -40,7 +40,7 @@ sienaRI <- function(data, ans=NULL, theta=NULL, algorithm=NULL, effects=NULL,
 			stop("sienaRI does not yet work for models containing endowment or creation effects")
 		}
 		if (any(ans$effects$shortName %in% c("unspInt", "behUnspInt"))){
-			stop("sienaRI does not yet work for models containing interaction effects")
+			stop("sienaRI does not work for models containing interaction effects")
 		}
 		contributions <- getChangeContributions(algorithm = ans$x, data = data,
 			effects = ans$effects)
@@ -167,6 +167,7 @@ getChangeContributions <- function(algorithm, data, effects)
 expectedRelativeImportance <- function(conts, effects, theta, thedata=NULL,
 	getChangeStatistics=FALSE, effectNames = NULL)
 {
+	rms <- function(xx){sqrt((1/dim(xx)[2])*rowSums(xx^2,na.rm=TRUE))}
 	waves <- length(conts[[1]])
 	effects <- effects[effects$include == TRUE,]
 	noRate <- effects$type != "rate"
@@ -183,27 +184,39 @@ expectedRelativeImportance <- function(conts, effects, theta, thedata=NULL,
 	effectIds <- paste(effectNa,effectTypes,networkInteraction, sep = ".")
 	currentDepName <- ""
 	depNumber <- 0
-
 	for(eff in 1:length(effectIds))
 	{
 		if(networkNames[eff] != currentDepName)
 		{
 			currentDepName <- networkNames[eff]
 			actors <- length(conts[[1]][[1]][[1]])
-			if (networkTypes[eff] == "oneMode")
-			{
-				choices <- actors
-			}else if(networkTypes[eff] == "behavior"){
-				choices <- 3
-			} else {
-				stop("so far, sienaRI works only for dependent variables of type 'oneMode' or 'behavior'")
-			}
 			depNumber <- depNumber + 1
 			currentDepEffs <- effects$name == currentDepName
 			effNumber <- sum(currentDepEffs)
 			depNetwork <- thedata$depvars[[depNumber]]
-			# impute for wave 1
 			if (networkTypes[eff] == "oneMode")
+			{
+				choices <- actors
+			}
+			else if (networkTypes[eff] == "behavior")
+			{
+				choices <- 3
+			}
+			else if (networkTypes[eff] == "bipartite")
+			{
+				if (dim(depNetwork)[2] >= actors)
+				{
+					stop("sienaRI does not work for bipartite networks with second mode >= first mode")
+				}
+				choices <- dim(depNetwork)[2] + 1
+			}
+			else
+			{
+				stop("sienaRI does not work for dependent variables of type 'continuous'")
+			}
+
+			# impute for wave 1
+			if (networkTypes[eff] %in% c("oneMode", "bipartite"))
 			{
 				depNetwork[,,1][is.na(depNetwork[,,1])] <- 0
 			}
@@ -218,7 +231,7 @@ expectedRelativeImportance <- function(conts, effects, theta, thedata=NULL,
 				# Make sure the diagonals are not treated as structurals
 				if (networkTypes[eff] == "oneMode")
 				{
-					for (m in 1:dim(depNetwork)[3]){diag(depNetwork[,,m]) <- 0}
+					for (m in 1:(dim(depNetwork)[3])){diag(depNetwork[,,m]) <- 0}
 				}
 			structurals <- (depNetwork >= 10)
 			if (networkTypes[eff] == "oneMode"){
@@ -239,9 +252,24 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 			RHActors <-list()
 			changeStats <-list()
 			sigma <- list()
+			sigmas <- matrix(NA, sum(currentDepEffs), waves)
+			if (networkTypes[eff] == "behavior")
+			{
+				toggleProbabilities <- array(0, dim=c(actors, 3, waves))
+			}
+			else
+			{
+				toggleProbabilities <- array(0, dim=c(actors, choices, waves))
+			}
 			for(w in 1:waves)
 			{
 				currentDepEffectContributions <- conts[[1]][[w]][currentDepEffs]
+				if (networkTypes[eff] == "bipartite")
+				{
+					currentDepEffectContributions <- lapply(
+							currentDepEffectContributions,
+							function(x){lapply(x,function(xx){xx[1:choices]})})
+				}
 				# conts[[1]] is periods by effects by actors by actors
 				currentDepEffectContributions <-
 					sapply(lapply(currentDepEffectContributions, unlist),
@@ -253,6 +281,7 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 				{
 					cdec <- array(cdec, dim=c(1,dim(cdec)))
 				}
+##
 				rownames(cdec) <- effectNa[currentDepEffs]
 				if (getChangeStatistics)
 				{
@@ -263,7 +292,7 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 				if (networkTypes[eff] == "oneMode")
 				{
 					#	structuralsw <- structurals[,,w]
-					for (ff in 1:dim(cdec)[1]){cdec[ff,,][t(structurals[,,w])] <- NA}
+					for (ff in 1:(dim(cdec)[1])){cdec[ff,,][t(structurals[,,w])] <- NA}
 				}
 				distributions <- apply(cdec, 3,
 					calculateDistributions, theta[which(currentDepEffs)])
@@ -277,7 +306,23 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 				# giving the probability of toggling the tie variable to the alters;
 				# the first row is for the unchanged parameter vector theta,
 				# each of the following has put one element of theta to 0.
-
+				# for behavior it is a matrix of dim (effects + 1) * 3
+				if (networkTypes[eff] == "behavior")
+				{
+					toggleProbabilities[,,w] <-
+						t(vapply(distributions, function(x){x[1,]}, rep(0,3)))
+				}
+				else
+				{
+					toggleProbabilities[,,w] <-
+						t(vapply(distributions, function(x){x[1,]}, rep(0,choices)))
+				}
+# toggleProbabilities is an array referring to ego * choices * wave,
+# giving the probability of ego in a ministep in the wave
+# to make this choice.
+# For oneMode networks choices are alters;
+# for  bipartite choices are second mode nodes,and the last is "no change";
+# for behavior choices are to add -1, 0, +1.
 				entropy_vector <- unlist(lapply(distributions,
 						function(x){entropy(x[1,])}))
 				## If one wishes another measure than the
@@ -299,7 +344,11 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 				expectedI[[w]] <- rowMeans(RIs_matrix, na.rm=TRUE)
 				sigma[[w]] <- apply(cdec, c(1,3), sd, na.rm=TRUE)
 				rownames(sigma[[w]]) <- effectNa[currentDepEffs]
+				sigmas[,w] <- rms(sigma[[w]])
 			}
+			rownames(sigmas) <- effectNa[currentDepEffs]
+			meansigmas <- rms(sigmas)
+			names(meansigmas) <- effectNa[currentDepEffs]
 			RItmp <- NULL
 			RItmp$dependentVariable <- currentDepName
 			RItmp$expectedRI <- expectedRI
@@ -309,6 +358,8 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 			RItmp$absoluteSumActors <- absoluteSumActors
 			RItmp$RHActors <- RHActors
 			RItmp$sigma <- sigma
+			RItmp$sigmas <- sigmas
+			RItmp$meansigmas <- meansigmas
 			if(!is.null(effectNames))
 			{
 				RItmp$effectNames <- effectNames[currentDepEffs]
@@ -320,6 +371,7 @@ message('\nNote that for symmetric networks, effect sizes are for modelType 2 (f
 			if (getChangeStatistics){
 				RItmp$changeStatistics <- changeStats
 			}
+			RItmp$toggleProbabilities <- toggleProbabilities
 			class(RItmp) <- "sienaRI"
 			if(depNumber == 1){
 				RI <- RItmp
@@ -448,11 +500,6 @@ print.sienaRI <- function(x, printSigma = FALSE, ...){
 	line3 <- line2
 	line4 <- format(" R_H ('degree of certainty')", width = 61)
 	line5 <- line2
-	if (printSigma)
-	{
-		sigmas <- matrix(sapply(x$sigma,rowMeans,na.rm=TRUE), effs, waves)
-		# construction with matrix because of the possibility effs=1
-	}
 	for (w in 1:length(colNames))
 	{
 		line1 <- paste(line1, format(colNames[w], width=8),"  ", sep = "")
@@ -466,7 +513,7 @@ print.sienaRI <- function(x, printSigma = FALSE, ...){
 		if (printSigma)
 		{
 			line5 <- paste(line5,
-				format(round(sigmas[,w], 4), width=8, nsmall=4),"  ",sep="")
+				format(round(x$sigmas[,w], 4), width=8, nsmall=4),"  ",sep="")
 		}
 	}
 	line2 <- paste(line2, rep('\n',effs), sep="")
@@ -478,7 +525,7 @@ print.sienaRI <- function(x, printSigma = FALSE, ...){
 	cat(as.matrix(line4),'\n', sep='')
 	if (printSigma)
 	{
-		cat("\n sigma (within-ego standard deviation of change statistics):\n\n")
+		cat("\n sigma (average within-ego standard deviation of change statistics):\n\n")
 		line5 <- paste(line5, rep('\n',effs), sep="")
 		cat('\n',as.matrix(line5),'\n', sep='')
 	}
@@ -687,7 +734,7 @@ plot.sienaRI <- function(x, actors = NULL, col = NULL, addPieChart = FALSE,
 			layout(layoutMatrix,widths= c((nactors/6)+10,3.5+2.5*(rad^2)),
 				heights=c(rep(height,waves),legendHeight))
 		}else{
-			layoutMatrix <- matrix(c(1:(2*waves)), byrow= TRUE,
+			layoutMatrix <- matrix((1:(2*waves)), byrow= TRUE,
 				ncol=2, nrow=waves)
 			layout(layoutMatrix,widths = c((nactors/6)+10,7+2.5*(rad^2)),
 				heights=rep(height,waves))
@@ -695,11 +742,11 @@ plot.sienaRI <- function(x, actors = NULL, col = NULL, addPieChart = FALSE,
 	}else{
 		if(legend)
 		{
-			layoutMatrix <- matrix(c(1:(waves+1)), byrow= TRUE,
+			layoutMatrix <- matrix((1:(waves+1)), byrow= TRUE,
 				ncol=1, nrow=(waves+1))
 			layout(layoutMatrix)
 		}else{
-			layoutMatrix <- matrix(c(1:waves), byrow= TRUE, ncol=1, nrow=waves)
+			layoutMatrix <- matrix((1:waves), byrow= TRUE, ncol=1, nrow=waves)
 			layout(layoutMatrix, heights=2*rep(height,waves))
 			# no widths, because these are only relative numbers,
 			# so requiring constant widths is redundant

@@ -11,6 +11,36 @@
 ##  *
 ##  ***************************************************************************/
 
+
+##@shortBayesResult abbreviated sienaBayesFit results
+shortBayesResults <- function(x, nfirst=NULL){
+	if (!inherits(x, "sienaBayesFit"))
+	{
+		stop('x must be a sienaBayesFit object')
+	}
+	if (is.null(nfirst))
+	{
+		nfirst <- x$nwarm+1
+	}
+	df1 <- sienaFitThetaTable(x, fromBayes=TRUE, nfirst=nfirst)[[1]][,
+		c("text", "value", "se", "cFrom", "cTo", "postSd", "cSdFrom", "cSdTo" )]
+	df1$postSd[is.na(df1$cSdFrom)] <- NA
+	df1$postSd <- as.numeric(df1$postSd)
+	df1$cSdFrom <- as.numeric(df1$cSdFrom)
+	df1$cSdTo <- as.numeric(df1$cSdTo)
+	df2 <- as.data.frame(x$requestedEffects[,c("name","shortName", "interaction1", "interaction2",
+		"type", "randomEffects", "fix", "parm", "period", "effect1", "effect2", "effect3", "group")])
+	df2$period <- as.numeric(df2$period)
+	replace1 <- function(x){ifelse(x=="text", "effectName", x)}
+	replace2 <- function(x){ifelse(x=="value", "postMeanGlobal", x)}
+	replace3 <- function(x){ifelse(x=="se", "postSdGlobal", x)}
+	replace4 <- function(x){ifelse(x=="postSd", "postSdBetween", x)}
+	dfs <- cbind(df2, df1)
+	dfr <- dfs
+	names(dfr) <- replace1(replace2(replace3(replace4(names(dfs)))))
+	dfr
+}
+
 ##@siena.table siena07 Saves latex or html table of estimates
 ## for a sienaFit or sienaBayesFit object
 siena.table <- function(x, type='tex',
@@ -44,6 +74,7 @@ siena.table <- function(x, type='tex',
 	}
 
 	objectName <- deparse(substitute(x))
+	fileName <- file
 	fromBayes <- FALSE
 	xkind.string <- "sienaFit"
 	tstat <- tstatPrint
@@ -52,6 +83,7 @@ siena.table <- function(x, type='tex',
 		if (inherits(x, "sienaBayesFit"))
 		{
 			fromBayes <- TRUE
+			x$gmm <- FALSE # for compatibility
 			sig <- FALSE
 			tstat <- TRUE # for sienaBayesFit, the place for t-stats is used for between-groups sd.
 			if (is.null(nfirst))
@@ -68,6 +100,10 @@ siena.table <- function(x, type='tex',
 		{
 			stop('x must be a sienaFit or sienaBayesFit object')
 		}
+	}
+	if (!(type %in% c('tex','html')))
+	{
+		stop('type should be either "tex" or "html"')
 	}
 	if (!gmm(x))
 	{
@@ -148,6 +184,11 @@ siena.table <- function(x, type='tex',
 	}
 
 	effects$effectName <- fromObjectToText(effects$effectName, type=type)
+	extraType <- effects$type
+	extraType <- vapply(extraType, function(tp){switch(tp,
+			'creation'='creation', 'endow'='maintenance', '')},
+			FUN.VALUE='a', USE.NAMES =FALSE)
+	effects$effectName <- paste(effects$effectName, extraType)
 	max.eff.width <- max(nchar(effects$effectName))
 	effects$effectName <- format(effects$effectName,width=max.eff.width)
 
@@ -481,7 +522,7 @@ siena.table <- function(x, type='tex',
 			startdate <- paste("%Estimation date",x$startingDate)
 		}
 		startTable <- tableSection(c(paste("% Table based on", xkind.string, "object",
-					deparse(substitute(x)), ',', date()),
+					objectName, ',', date()),
 					startdate,
 				paste("\\begin{tabular}{l",
 					linesep,
@@ -608,8 +649,9 @@ siena.table <- function(x, type='tex',
 				{
 					if (type=='tex')
 					{
-						mainTable$tstat1[-mid][remove] <- "\\omit"
-						mainTable$tstat2[-mid][remove] <- "-"
+# This had to be dropped, gave a warning; or that is perhaps not serious?
+#						mainTable$tstat1[-mid][remove] <- "\\omit"
+#						mainTable$tstat2[-mid][remove] <- "-"
 					}
 				}
 			}
@@ -712,6 +754,6 @@ siena.table <- function(x, type='tex',
 	table <- rbind(table,endTable)
 
 	##Saves the table to a file
-
-	write.table(table,file=file,row.names=F,col.names=F,sep="", quote=FALSE)
+	write.table(table,file=fileName,row.names=F,col.names=F,sep="", quote=FALSE)
+	cat('Results for', objectName, 'written to', fileName,'.\n')
 }

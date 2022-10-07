@@ -131,6 +131,7 @@ void DependentVariable::initializeRateFunction()
 	{
 		EffectInfo * pEffectInfo = rRateEffects[i];
 		double parameter = pEffectInfo->parameter();
+		double internalEffectParameter = pEffectInfo->internalEffectParameter();
 		string effectName = pEffectInfo->effectName();
 		string interactionName = pEffectInfo->interactionName1();
 		string interactionName2 = pEffectInfo->interactionName2();
@@ -298,6 +299,72 @@ void DependentVariable::initializeRateFunction()
 				this->llogOutDegreeSumTerm[pVariable] = 0;
 				this->llogOutDegreeModelBSumTerm[pVariable] = 0;
 			}
+			else if (effectName == "inRateInv")
+			{
+				if (this->lpActorSet != pVariable->pReceivers())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+						new StructuralRateEffect(pVariable,
+							INVERSE_IN_DEGREE_RATE, parameter));
+				this->linverseInDegreeScores[pVariable] = 0;
+				this->linverseInDegreeSumTerm[pVariable] = 0;
+				this->linverseInDegreeModelBSumTerm[pVariable] = 0;
+			}
+			else if (effectName == "inRateLog")
+			{
+				if (this->lpActorSet != pVariable->pReceivers())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+						new StructuralRateEffect(pVariable, LOG_IN_DEGREE_RATE,
+							parameter));
+				this->llogInDegreeScores[pVariable] = 0;
+				this->llogInDegreeSumTerm[pVariable] = 0;
+				this->llogInDegreeModelBSumTerm[pVariable] = 0;
+			}			
+			else if (effectName == "recipRateInv")
+			{
+				if (!pVariable->oneModeNetwork())
+				{
+					throw std::invalid_argument(
+							"One-mode network variable expected");
+				}
+
+				if (this->lpActorSet != pVariable->pSenders())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+						new StructuralRateEffect(pVariable, INVERSE_RECIPROCAL_DEGREE_RATE,
+							parameter));
+	 			this->linversereciprocalDegreeScores[pVariable] = 0;		
+				this->linversereciprocalDegreeSumTerm[pVariable] = 0;
+			}	
+			else if (effectName == "recipRateLog")
+			{
+				if (!pVariable->oneModeNetwork())
+				{
+					throw std::invalid_argument(
+							"One-mode network variable expected");
+				}
+
+				if (this->lpActorSet != pVariable->pSenders())
+				{
+					throw std::invalid_argument("Mismatch of actor sets");
+				}
+
+				this->lstructuralRateEffects.push_back(
+						new StructuralRateEffect(pVariable, LOG_RECIPROCAL_DEGREE_RATE,
+							parameter));
+	 			this->llogreciprocalDegreeScores[pVariable] = 0;		
+				this->llogreciprocalDegreeSumTerm[pVariable] = 0;
+			}
 			else
 			{
 				throw domain_error("Unexpected rate effect " + effectName);
@@ -339,7 +406,8 @@ void DependentVariable::initializeRateFunction()
 						new DiffusionRateEffect(pVariable,
 							pBehaviorVariable,
 							effectName,
-							parameter));
+							parameter,
+							internalEffectParameter));
 				}
 				else
 				{
@@ -371,7 +439,8 @@ void DependentVariable::initializeRateFunction()
 							pConstantCovariate,
 							pChangingCovariate,
 							effectName,
-							parameter));
+							parameter,
+							internalEffectParameter));
 				}
 				else
 				{
@@ -1077,6 +1146,67 @@ void DependentVariable::accumulateRateScores(double tau,
 		iter->second -= this->llogOutDegreeSumTerm[iter->first] * tau;
 	}
 
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			this->linverseInDegreeScores.begin();
+		iter != this->linverseInDegreeScores.end();
+		iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		if (this == pSelectedVariable)
+		{
+			iter->second += invertor(pNetwork->inDegree(selectedActor));
+		}
+
+		iter->second -= this->linverseInDegreeSumTerm[iter->first] * tau;
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			this->llogInDegreeScores.begin();
+		iter != this->llogInDegreeScores.end();
+		iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		if (this == pSelectedVariable)
+		{
+			iter->second += logarithmer(pNetwork->inDegree(selectedActor));
+		}
+
+		iter->second -= this->llogInDegreeSumTerm[iter->first] * tau;
+}
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			this->linversereciprocalDegreeScores.begin();
+		iter != this->linversereciprocalDegreeScores.end();
+		iter++)
+	{
+	const OneModeNetwork * pNetwork =
+			(const OneModeNetwork *) iter->first->pNetwork();
+
+		if (this == pSelectedVariable)
+		{
+			iter->second += invertor(pNetwork->reciprocalDegree(selectedActor));
+		}
+
+		iter->second -= this->linversereciprocalDegreeSumTerm[iter->first] * tau;
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			this->llogreciprocalDegreeScores.begin();
+		iter != this->llogreciprocalDegreeScores.end();
+		iter++)
+	{
+		const OneModeNetwork * pNetwork =
+			(const OneModeNetwork *) iter->first->pNetwork();
+
+		if (this == pSelectedVariable)
+		{
+			iter->second += logarithmer(pNetwork->reciprocalDegree(selectedActor));
+		}
+
+		iter->second -= this->llogreciprocalDegreeSumTerm[iter->first] * tau;
+}
+
 
 	// Update scores for diffusion rate parameters
 
@@ -1090,6 +1220,7 @@ void DependentVariable::accumulateRateScores(double tau,
 		string effectName = pInfo->effectName();
 		string interactionName = pInfo->interactionName1();
 		string interactionName2 = pInfo->interactionName2();
+		int internalEffectParameter = pInfo->internalEffectParameter();
 		const BehaviorVariable * pBehaviorVariable =
 			dynamic_cast<const BehaviorVariable *>(this);
 
@@ -1123,7 +1254,7 @@ void DependentVariable::accumulateRateScores(double tau,
 					{
 						this->ldiffusionscores[pInfo] +=
 							calculateDiffusionRateEffect(pBehaviorVariable,
-								pNetwork, selectedActor, effectName);
+								pNetwork, selectedActor, effectName, internalEffectParameter);
 					}
 					else
 					{
@@ -1148,6 +1279,7 @@ void DependentVariable::accumulateRateScores(double tau,
 						this->ldiffusionscores[pInfo] +=
 							calculateDiffusionRateEffect(pBehaviorVariable,
 								pNetwork, selectedActor, effectName,
+								internalEffectParameter,
 								pConstantCovariate,
 								pChangingCovariate);
 					}
@@ -1306,6 +1438,38 @@ void DependentVariable::accumulateRateScores(double tau,
 				}
 				iter->second -= tau *
 					this->llogOutDegreeModelBSumTerm[iter->first];
+			}
+
+			for (std::map<const NetworkVariable *, double>::iterator iter =
+					this->linverseInDegreeScores.begin();
+					iter != this->linverseInDegreeScores.end();
+					iter++)
+			{
+				const Network * pNetwork = iter->first->pNetwork();
+
+				if (this == pSelectedVariable && this->successfulChange())
+				{
+					iter->second += invertor(pNetwork->inDegree(selectedActor))
+						+ invertor(pNetwork->inDegree(alter));
+				}
+				iter->second -= tau *
+					this->linverseInDegreeModelBSumTerm[iter->first];
+			}
+
+			for (std::map<const NetworkVariable *, double>::iterator iter =
+					this->llogInDegreeScores.begin();
+					iter != this->llogInDegreeScores.end();
+					iter++)
+			{
+				const Network * pNetwork = iter->first->pNetwork();
+
+				if (this == pSelectedVariable && this->successfulChange())
+				{
+					iter->second += logarithmer(pNetwork->inDegree(selectedActor))
+						+ logarithmer(pNetwork->inDegree(alter));
+				}
+				iter->second -= tau *
+					this->llogInDegreeModelBSumTerm[iter->first];
 			}
 	}
 }
@@ -1491,6 +1655,86 @@ void DependentVariable::calculateScoreSumTerms()
 
 	}
 
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->linverseInDegreeScores.begin();
+		 iter != this->linverseInDegreeScores.end();
+		 iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += invertor(pNetwork->inDegree(i)) * this->lrate[i];
+			if (this->symmetric() && this->networkModelTypeB())
+			{
+				timesRateSquared += invertor(pNetwork->inDegree(i)) *
+					this->lrate[i] * this->lrate[i];
+			}
+		}
+		this->linverseInDegreeSumTerm[iter->first] = timesRate;
+		this->linverseInDegreeModelBSumTerm[iter->first] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->llogInDegreeScores.begin();
+		 iter != this->llogInDegreeScores.end();
+		 iter++)
+	{
+		const Network * pNetwork = iter->first->pNetwork();
+
+		double timesRate = 0;
+		double timesRateSquared = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += logarithmer(pNetwork->inDegree(i)) * this->lrate[i];
+			if (this->symmetric() && this->networkModelTypeB())
+			{
+				timesRateSquared += logarithmer(pNetwork->inDegree(i)) *
+					this->lrate[i] * this->lrate[i];
+			}
+		}
+		this->llogInDegreeSumTerm[iter->first] = timesRate;
+		this->llogInDegreeModelBSumTerm[iter->first] = 2 *
+			(this->ltotalRate * timesRate - timesRateSquared);
+
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->linversereciprocalDegreeScores.begin();
+		 iter != this->linversereciprocalDegreeScores.end();
+		 iter++)
+	{
+		const OneModeNetwork * pNetwork =
+			(const OneModeNetwork *) iter->first->pNetwork();
+
+		double timesRate = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += invertor(pNetwork->reciprocalDegree(i)) * this->lrate[i];
+		}
+		this->linversereciprocalDegreeSumTerm[iter->first] = timesRate;
+	}
+
+	for (std::map<const NetworkVariable *, double>::iterator iter =
+			 this->llogreciprocalDegreeScores.begin();
+		 iter != this->llogreciprocalDegreeScores.end();
+		 iter++)
+	{
+		const OneModeNetwork * pNetwork =
+			(const OneModeNetwork *) iter->first->pNetwork();
+
+		double timesRate = 0;
+		for (int i = 0; i < this->n(); i++)
+		{
+			timesRate += logarithmer(pNetwork->reciprocalDegree(i)) * this->lrate[i];
+		}
+		this->llogreciprocalDegreeSumTerm[iter->first] = timesRate;
+	}
+
 	// Update scores for diffusion rate parameters.
 
 	const vector<EffectInfo *> & rRateEffects =
@@ -1503,6 +1747,7 @@ void DependentVariable::calculateScoreSumTerms()
 		string effectName = pInfo->effectName();
 		string interactionName = pInfo->interactionName1();
 		string interactionName2 = pInfo->interactionName2();
+		int internalEffectParameter = pInfo->internalEffectParameter();
 
 		const BehaviorVariable * pBehaviorVariable =
 			dynamic_cast<const BehaviorVariable *>(this);
@@ -1528,9 +1773,9 @@ void DependentVariable::calculateScoreSumTerms()
 			{
 				for (int i = 0; i < this->n(); i++)
 				{
-					timesRate += calculateDiffusionRateEffect(
-						pBehaviorVariable, pNetwork, i, effectName) *
-						this->lrate[i];
+					timesRate += calculateDiffusionRateEffect(pBehaviorVariable,
+									pNetwork, i, effectName, internalEffectParameter) *
+										this->lrate[i];
 				}
 			}
 			else
@@ -1547,7 +1792,7 @@ void DependentVariable::calculateScoreSumTerms()
 				for (int i = 0; i < this->n(); i++)
 				{
 					timesRate += calculateDiffusionRateEffect(
-						pBehaviorVariable, pNetwork, i, effectName,
+						pBehaviorVariable, pNetwork, i, effectName, internalEffectParameter,
 						pConstantCovariate,
 						pChangingCovariate) *
 						this->lrate[i];
@@ -1601,7 +1846,7 @@ double DependentVariable::settingRateScore(string setting) const
 		this->lsettingRateScores.find(setting);
 	if (iter == this->lsettingRateScores.end())
 	{
-		throw invalid_argument("Unknown setting.");
+		throw invalid_argument("Unknown setting in settingRateScore.");
 	}
 	return iter->second;
 }
@@ -1670,9 +1915,7 @@ double DependentVariable::outDegreeScore(
 			string("Unknown network: ") +
 			"The given outdegree rate effect is not part of the model.");
 	}
-
 	return iter->second;
-
 }
 
 
@@ -1688,7 +1931,6 @@ double DependentVariable::inDegreeScore(
 			string("Unknown network: ") +
 			"The given indegree rate effect is not part of the model.");
 	}
-
 	return iter->second;
 }
 
@@ -1706,7 +1948,6 @@ double DependentVariable::reciprocalDegreeScore(
 			"The given reciprocal degree rate effect is not " +
 			"part of the model.");
 	}
-
 	return iter->second;
 }
 
@@ -1724,7 +1965,6 @@ double DependentVariable::inverseOutDegreeScore(
 			"The given inverse outdegree rate effect is not " +
 			"part of the model.");
 	}
-
 	return iter->second;
 }
 
@@ -1745,16 +1985,88 @@ double DependentVariable::logOutDegreeScore(
 	return iter->second;
 }
 
+double DependentVariable::inverseInDegreeScore(
+	const NetworkVariable * pNetworkData) const
+{
+	map<const NetworkVariable *, double>::const_iterator iter =
+		this->linverseInDegreeScores.find(pNetworkData);
+
+	if (iter == this->linverseInDegreeScores.end())
+	{
+		throw invalid_argument(
+			string("Unknown network: ") +
+			"The given inverse indegree rate effect is not " +
+			"part of the model.");
+	}
+
+	return iter->second;
+}
+
+double DependentVariable::logInDegreeScore(
+	const NetworkVariable * pNetworkData) const
+{
+	map<const NetworkVariable *, double>::const_iterator iter =
+		this->llogInDegreeScores.find(pNetworkData);
+
+	if (iter == this->llogInDegreeScores.end())
+	{
+		throw invalid_argument(
+			string("Unknown network: ") +
+			"The given log indegree rate effect is not " +
+			"part of the model.");
+	}
+
+	return iter->second;
+}
+
+double DependentVariable::inversereciprocalDegreeScore(
+	const NetworkVariable * pNetworkData) const
+{
+	map<const NetworkVariable *, double>::const_iterator iter =
+		this->linversereciprocalDegreeScores.find(pNetworkData);
+
+	if (iter == this->linversereciprocalDegreeScores.end())
+	{
+		throw invalid_argument(
+			string("Unknown network: ") +
+			"The given inverse reciprocal degree rate effect is not " +
+			"part of the model.");
+	}
+	return iter->second;
+}
+
+double DependentVariable::logreciprocalDegreeScore(
+	const NetworkVariable * pNetworkData) const
+{
+	map<const NetworkVariable *, double>::const_iterator iter =
+		this->llogreciprocalDegreeScores.find(pNetworkData);
+
+	if (iter == this->llogreciprocalDegreeScores.end())
+	{
+		throw invalid_argument(
+			string("Unknown network: ") +
+			"The given log reciprocal degree rate effect is not " +
+			"part of the model.");
+	}
+	return iter->second;
+}
+
 /**
  * Calculates the value of the diffusion rate effect for the given actor.
+ * This is used for the scores.
+ * function calculateDiffusionRateEffect in StatisticCalculator is used for the estimation statistic.
+ * This duplicates the results of DiffusionRateEffect::value,
+ * probably can be made more efficient by unduplicating (TS).
  */
 double DependentVariable::calculateDiffusionRateEffect(
 	const BehaviorVariable * pBehaviorVariable,
 	const Network * pNetwork,
-	int i, string effectName)
+	int i, string effectName,
+	int internalEffectParameter)
 {
 	double response = 1;
 	double totalAlterValue = 0;
+	int numInfectedAlter = 0;
 	if (pNetwork->outDegree(i) > 0)
 	{
 		if (effectName == "avExposure")
@@ -1773,18 +2085,40 @@ double DependentVariable::calculateDiffusionRateEffect(
 			double alterValue = pBehaviorVariable->
 				value(iter.actor());
 
+			if (alterValue >= 0.5)
+			{
+				numInfectedAlter++;
+			}
+
 			if (effectName == "infectIn")
 			{
 				alterValue *= pNetwork->inDegree(i);
 			}
-			else if ((effectName == "infectOut") | (effectName == "infectDeg"))
+			else if ((effectName == "infectOut") || (effectName == "infectDeg"))
 			{
 				alterValue *= pNetwork->outDegree(i);
 			}
 
 			totalAlterValue += alterValue;
 		}
+
+		if (internalEffectParameter != 0)
+		{
+			if (numInfectedAlter < std::abs(internalEffectParameter))
+			{
+				totalAlterValue = 0;
+			}
+			else if (internalEffectParameter < 0)
+			{
+				if (totalAlterValue + internalEffectParameter > 0)
+				{
+					totalAlterValue = - internalEffectParameter;
+				}
+			}
+		}
+
 		totalAlterValue *= response;
+
 	}
 	return totalAlterValue;
 }
@@ -1796,11 +2130,14 @@ double DependentVariable::calculateDiffusionRateEffect(
 double DependentVariable::calculateDiffusionRateEffect(
 	const BehaviorVariable * pBehaviorVariable,
 	const Network * pNetwork,
-	int i, string effectName, const ConstantCovariate * pConstantCovariate,
+	int i, string effectName,
+	int internalEffectParameter,
+	const ConstantCovariate * pConstantCovariate,
 	const ChangingCovariate * pChangingCovariate)
 {
 	double response = 1;
 	double totalAlterValue = 0;
+	int numInfectedAlter = 0;
 	if (pNetwork->outDegree(i) > 0)
 	{
 		if (effectName == "susceptAvCovar")
@@ -1823,8 +2160,12 @@ double DependentVariable::calculateDiffusionRateEffect(
 			 iter.valid();
 			 iter.next())
 		{
-			double alterValue = pBehaviorVariable->
-				value(iter.actor());
+			double alterValue = pBehaviorVariable->value(iter.actor());
+
+			if (alterValue >= 0.5)
+			{
+				numInfectedAlter++;
+			}
 
 			if (effectName == "infectCovar")
 			{
@@ -1843,6 +2184,21 @@ double DependentVariable::calculateDiffusionRateEffect(
 				}
 			}
 			totalAlterValue += alterValue;
+		}
+
+		if (internalEffectParameter != 0)
+		{
+			if (numInfectedAlter < std::abs(internalEffectParameter))
+			{
+				totalAlterValue = 0;
+			}
+			else if (internalEffectParameter < 0)
+			{
+				if (totalAlterValue + internalEffectParameter > 0)
+				{
+					totalAlterValue = - internalEffectParameter;
+				}
+			}
 		}
 		totalAlterValue *= response;
 	}
@@ -2018,9 +2374,6 @@ void DependentVariable::updateEffectParameters()
 			iter2++;
 		}
 	}
-
-
-
 }
 // ----------------------------------------------------------------------------
 // Section: Properties

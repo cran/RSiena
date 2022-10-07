@@ -236,6 +236,7 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 	int intptr3Col;
 	int settingCol;
 
+// Get the column numbers:
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 		&parmCol, &int1Col, &int2Col, &initValCol,
 		&typeCol, &groupCol, &periodCol, &pointerCol,
@@ -1098,7 +1099,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 	for (int changingCovariate = 0;
 			changingCovariate < nChangingCovariate;
 			changingCovariate++)
-	{
+	{		
 		SEXP as;
 		PROTECT(as = install("nodeSet"));
 		SEXP actorSet = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
@@ -1157,7 +1158,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 		SEXP Range = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				range);
 		pChangingCovariate->range(REAL(Range)[0]);
-		UNPROTECT(8);
+		UNPROTECT(8);		
 	}
 }
 
@@ -1614,6 +1615,7 @@ void getChangeContributionStatistics(SEXP EFFECTSLIST,
 	int intptr3Col;
 	int settingCol;
 
+// Get the column numbers:
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 			&parmCol, &int1Col, &int2Col, &initValCol,
 			&typeCol, &groupCol, &periodCol, &pointerCol,
@@ -1628,7 +1630,8 @@ void getChangeContributionStatistics(SEXP EFFECTSLIST,
 		{
 			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, typeCol), i));
 			const char * netType = CHAR(STRING_ELT(VECTOR_ELT(EFFECTS, netTypeCol), i));
-			if(strcmp(netType, "oneMode") == 0 || strcmp(netType, "behavior") == 0)
+			if(strcmp(netType, "oneMode") == 0 || strcmp(netType, "bipartite") == 0 || 
+									strcmp(netType, "behavior") == 0)
 			{
 				// todo At the moment, change contributions cannot be calculated for endowment or creation effects
 				// modifications in the corresponding methods (calculateNetworkEndowmentStatistics, calculateNetworkCreationStatistics,
@@ -1678,6 +1681,7 @@ void getActorStatistics(SEXP EFFECTSLIST,
 	int intptr3Col;
 	int settingCol;
 
+// Get the column numbers:
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 			&parmCol, &int1Col, &int2Col, &initValCol,
 			&typeCol, &groupCol, &periodCol, &pointerCol,
@@ -1741,7 +1745,8 @@ void getStatistics(SEXP EFFECTSLIST,
 	int intptr2Col;
 	int intptr3Col;
 	int settingCol;
-
+	
+// Get the column numbers:
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 			&parmCol, &int1Col, &int2Col, &initValCol,
 			&typeCol, &groupCol, &periodCol, &pointerCol,
@@ -1924,6 +1929,31 @@ void getStatistics(SEXP EFFECTSLIST,
 							score =
 								pVariable->logOutDegreeScore(pNetworkVariable);
 						}
+						else if (strcmp(effectName, "inRateInv") == 0)
+						{
+							score =
+								pVariable->inverseInDegreeScore(pNetworkVariable);
+						}
+						else if (strcmp(effectName, "inRateLog") == 0)
+						{
+							score =
+								pVariable->logInDegreeScore(pNetworkVariable);
+						}
+						else if (strcmp(effectName, "outRateLog") == 0)
+						{
+							score =
+								pVariable->logOutDegreeScore(pNetworkVariable);
+						}
+						else if (strcmp(effectName, "recipRateInv") == 0)
+						{
+							score =
+								pVariable->inversereciprocalDegreeScore(pNetworkVariable);
+						}
+						else if (strcmp(effectName, "recipRateLog") == 0)
+						{
+							score =
+								pVariable->logreciprocalDegreeScore(pNetworkVariable);
+						}						
 						else
 						{
 
@@ -2135,6 +2165,7 @@ void getScores(SEXP EFFECTSLIST, int period, int group,
 	int intptr3Col;
 	int settingCol;
 
+// Get the column numbers:
 	getColNos(Names, &netTypeCol, &nameCol, &effectCol,
 			&parmCol, &int1Col, &int2Col, &initValCol,
 			&typeCol, &groupCol, &periodCol, &pointerCol,

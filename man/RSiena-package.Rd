@@ -10,7 +10,8 @@ Fits statistical models to longitudinal sets of networks, and to
 longitudinal sets of networks and behavioral variables.
 Not only one-mode networks but also two-mode networks
 and multivariate networks are allowed.
-The models are stochastic actor-oriented models.
+The models are stochastic actor-oriented models,
+described in Snijders (2017).
 
 Recent versions of the package are distributed through GitHub,
 see \url{https://github.com/snlab-nl/rsiena/ }.
@@ -34,7 +35,7 @@ see \url{https://github.com/snlab-nl/rsiena/ }.
   and which can be created by \code{\link{sienaAlgorithmCreate}}.
 
   Function \code{\link{siena07}} is used to fit a model.
- Function \code{\link{sienaGOF}} can be used for studying goodness of fit.
+  Function \code{\link{sienaGOF}} can be used for studying goodness of fit.
 
   A general introduction to the method is available in the tutorial paper
   Snijders, van de Bunt, and Steglich (2010).
@@ -43,8 +44,8 @@ see \url{https://github.com/snlab-nl/rsiena/ }.
   \tabular{ll}{
     Package: \tab RSiena\cr
     Type: \tab Package\cr
-    Version: \tab 1.3.0\cr
-    Date: \tab 2021-05-02\cr
+    Version: \tab 1.3.13\cr
+    Date: \tab 2022-10-07\cr
     Depends: \tab R (>= 3.5.0)\cr
     Imports: \tab Matrix, lattice, parallel, MASS, methods, xtable\cr
     Suggests: \tab network, tools, codetools, tcltk\cr
@@ -61,7 +62,7 @@ see \url{https://github.com/snlab-nl/rsiena/ }.
   Contributions by Josh Lospinoso, Charlotte Greenan, Viviana Amati,
   Christian Steglich, Johan Koskinen, Mark Ortmann, Natalie Indlekofer,
   Christoph Stadtfeld, Per Block, Marion Hoffman, Michael Schweinberger,
-  Robert Hellpap, and Alvaro Uzaheta.
+  Robert Hellpap, Alvaro Uzaheta, and Steffen Triebel.
 
   Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
 }

@@ -113,7 +113,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		{
 			stop("not valid siena data object")
 		}
-		## check the effects object
+		## check the effects object		
 		defaultEffects <- getEffects(data)
 		if (is.null(effects))
 		{
@@ -124,11 +124,11 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		{
 			## check that the effects match the data dependent variables
 			userlist <- apply(effects[effects$include,], 1, function(x)
-				paste(x[c("name", "effectName",
+				paste(x[c("name", "shortName",
 						"type", "groupName")],
 					collapse="|"))
 			deflist <- apply(defaultEffects, 1, function(x)
-				paste(x[c("name", "effectName",
+				paste(x[c("name", "shortName",
 						"type", "groupName")],
 					collapse="|"))
 			if (!all(userlist %in% deflist))
@@ -679,7 +679,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 	##store address of model
 	f$pModel <- pModel
 	ans <- reg.finalizer(f$pModel, clearModel, onexit = FALSE)
-	if (x$MaxDegree == 0 || is.null(x$MaxDegree))
+	if (all(x$MaxDegree == 0) || is.null(x$MaxDegree))
 	{
 		MAXDEGREE <- NULL
 	}
@@ -688,7 +688,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		MAXDEGREE <- x$MaxDegree
 		storage.mode(MAXDEGREE) <- "integer"
 	}
-	if (x$UniversalOffset == 0 || is.null(x$UniversalOffset))
+	if (all(x$UniversalOffset == 0) || is.null(x$UniversalOffset))
 	{
 		UNIVERSALOFFSET <- NULL
 	}
@@ -697,7 +697,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		UNIVERSALOFFSET <- x$UniversalOffset
 		storage.mode(UNIVERSALOFFSET) <- "double"
 	}
-	if ((length(x$modelType) == 0)||all(x$modelType == 0) || is.null(x$modelType))
+	if ((length(x$modelType) == 0)|| (all(x$modelType == 0)) || is.null(x$modelType))
 	{
 		MODELTYPE <-  NULL
 	}
@@ -706,7 +706,7 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		MODELTYPE <- x$modelType
 		storage.mode(MODELTYPE) <- "integer"
 	}
-	if ((length(x$behModelType) == 0)||(x$behModelType == 0) || is.null(x$behModelType))
+	if ((length(x$behModelType) == 0)|| (all(x$behModelType == 0)) || is.null(x$behModelType))
 	{
 		BEHMODELTYPE <-  NULL
 	}
@@ -795,7 +795,6 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 			z$thetaMat <- matrix(z$theta, nrow=nGroup, ncol=z$pp, byrow=TRUE)
 		}
 	}
-
 	# Here came an error
 	# Error: INTEGER() can only be applied to a 'integer', not a 'double'
 	# This was because storage.mode had not been set properly for some variable
@@ -2130,14 +2129,15 @@ fixUpEffectNames <- function(effects)
 				   tmpnames[-1] <- sub(paste(inters$name[1], ": ",
 											 sep=""), "", tmpnames[-1])
 				   tmpname <- paste(tmpnames, collapse = " x ")
-                   if (twoway && nchar(tmpname) < 38)
-                   {
-                       tmpname <- paste("int. ", tmpname)
-                   }
-                   if (!twoway)
-                   {
-                       tmpname <- paste("i3.", tmpname)
-                   }
+# following lines dropped, might be restored if desired
+#                   if (twoway && nchar(tmpname) < 38)
+#                   {
+#                       tmpname <- paste("int. ", tmpname)
+#                   }
+#                   if (!twoway)
+#                  {
+#                      tmpname <- paste("i3.", tmpname)
+#                  }
                    tmpname
                }, y=interactions, z=effects)
         effects[effects$shortName == "unspInt" & effects$include &
@@ -2353,7 +2353,7 @@ updateTheta <- function(effects, prevAns, varName=NULL)
 	{
 		stop("effects is not a data.frame")
 	}
-	if (!inherits(prevAns, "sienaFit"))
+	if ((!inherits(prevAns, "sienaFit")) && (!inherits(prevAns, "sienaBayesFit")))
 	{
 		stop("prevAns is not an RSiena fit object")
 	}

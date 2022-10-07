@@ -273,15 +273,15 @@ double StatisticCalculator::distance(ContinuousLongitudinalData * pData, int per
 double StatisticCalculator::totalDistance(int period) const
 {
 	double total = 0;
-	
-	for (map<ContinuousLongitudinalData *, double *>::const_iterator iter = 
+
+	for (map<ContinuousLongitudinalData *, double *>::const_iterator iter =
 			this->lcontinuousDistances.begin();
 		 iter != this->lcontinuousDistances.end();
 		 iter++)
 	{
 		total += iter->second[period];
 	}
-	
+
 	return total;
 }
 
@@ -310,7 +310,7 @@ int StatisticCalculator::settingDistance(LongitudinalData * pData,
 	return value;
 }
 
-void StatisticCalculator::calculateStatisticsInitNetwork(NetworkLongitudinalData * pNetworkData) 
+void StatisticCalculator::calculateStatisticsInitNetwork(NetworkLongitudinalData * pNetworkData)
 {
 	const Network * pPredictor = pNetworkData->pNetworkLessMissing(this->lperiod);
 	this->lpPredictorState->pNetwork(pNetworkData->name(), pPredictor);
@@ -542,7 +542,7 @@ void StatisticCalculator::calculateBehaviorGMMStatistics(
 				// no change gives no contribution
 				this->lstaticChangeContributions[pInfo].at(e)[1] = 0;
 				// calculate the contribution of downward change
-				if ((currentValues[e] > pBehaviorData->min())
+				if ((currentState[e] > pBehaviorData->min())  // was currentValues
 						&& (!pBehaviorData->upOnly(this->lperiod)))
 				{
 					this->lstaticChangeContributions[pInfo].at(e)[0] =
@@ -551,7 +551,7 @@ void StatisticCalculator::calculateBehaviorGMMStatistics(
 					this->lstaticChangeContributions[pInfo].at(e)[0] = R_NaN;
 				}
 				// calculate the contribution of upward change
-				if ((currentValues[e] < pBehaviorData->max())
+				if ((currentState[e] < pBehaviorData->max())  // was currentValues
 						&& (!pBehaviorData->downOnly(this->lperiod)))
 				{
 					this->lstaticChangeContributions[pInfo].at(e)[2] =
@@ -613,8 +613,10 @@ void StatisticCalculator::calculateNetworkEvaluationStatistics(
 			this->lstatistics[pInfo] = pEffect->evaluationStatistic();
 		}
 
+// I think the following is used only for sienaRI; note the "static", this is used for observations only.
 		if (this->lcountStaticChangeContributions)
-		{
+		{			
+//	Rprintf(" this->lcountStaticChangeContributions in calculateNetworkEvaluationStatistics \n");
 			int egos = pCurrentLessMissingsEtc->n();
 			int alters = pCurrentLessMissingsEtc->m();
 			vector<double *> egosMap(egos);
@@ -625,40 +627,47 @@ void StatisticCalculator::calculateNetworkEvaluationStatistics(
 				pEffect->initialize(this->lpData, this->lpPredictorState,
 						this->lperiod, &cache);
 				double * contributions = new double[egos];
-				this->lstaticChangeContributions[pInfo].at(e) = contributions;
-				pEffect->preprocessEgo(e);
-
-				// TODO determine permissible changes
-				// (see: NetworkVariable::calculatePermissibleChanges())
-				for (int a = 0; a < alters ; a++)
-				{
-					if(a == e)
+					this->lstaticChangeContributions[pInfo].at(e) = contributions;
+					pEffect->preprocessEgo(e);
+					// TODO determine permissible changes
+					// (see: NetworkVariable::calculatePermissibleChanges())
+					// TODO allow also bipartite; this requires knowledge of number of alters.
+//earlier:					for (int a = 0; a < alters ; a++)
+					for (int a = 0; a < egos ; a++)
 					{
-						this->lstaticChangeContributions[pInfo].at(e)[a] = 0;
-					}
-					else
-					{
-						// Tie withdrawal contributes the opposite of tie creating
-						if (pCurrentLessMissingsEtc->tieValue(e,a))
+						if ((a == e) && (pNetworkData->oneModeNetwork()))
 						{
-							this->lstaticChangeContributions[pInfo].at(e)[a] =
-								-pEffect->calculateContribution(a);
+							this->lstaticChangeContributions[pInfo].at(e)[a] = 0;
+						}
+						else if (a == alters)
+						{
+							this->lstaticChangeContributions[pInfo].at(e)[a] = 0;
+						}
+						else if (a > alters)
+						{
+							this->lstaticChangeContributions[pInfo].at(e)[a] = R_NaN;
 						}
 						else
 						{
-							this->lstaticChangeContributions[pInfo].at(e)[a] =
-								pEffect->calculateContribution(a);
+						// Tie withdrawal contributes the opposite of tie creating
+							if (pCurrentLessMissingsEtc->tieValue(e,a))
+							{
+								this->lstaticChangeContributions[pInfo].at(e)[a] =
+									-pEffect->calculateContribution(a);
+							}
+							else
+							{
+								this->lstaticChangeContributions[pInfo].at(e)[a] =
+									pEffect->calculateContribution(a);
+							}
 						}
 					}
-				}
 			}
 		}
 		delete pEffect;
 	}
-
 	// Restore the predictor network
 	this->lpPredictorState->pNetwork(name, pPredictorNetwork);
-
 }
 
 
@@ -869,7 +878,7 @@ void StatisticCalculator::calculateBehaviorStatistics(
 	{
 		difference[i] =
 			pBehaviorData->value(this->lperiod, i) - currentState[i];
-
+// is this correct? centering?
 		if (pBehaviorData->missing(this->lperiod, i) ||
 			pBehaviorData->missing(this->lperiod + 1, i))
 		{
@@ -926,7 +935,7 @@ void StatisticCalculator::calculateBehaviorStatistics(
 				// no change gives no contribution
 				this->lstaticChangeContributions[pInfo].at(e)[1] = 0;
 				// calculate the contribution of downward change
-				if ((currentValues[e] > pBehaviorData->min())
+				if ((currentState[e] > pBehaviorData->min())  // was currentValues
 						&& (!pBehaviorData->upOnly(this->lperiod)))
 				{
 					this->lstaticChangeContributions[pInfo].at(e)[0] =
@@ -937,7 +946,7 @@ void StatisticCalculator::calculateBehaviorStatistics(
 					this->lstaticChangeContributions[pInfo].at(e)[0] = R_NaN;
 				}
 				// calculate the contribution of upward change
-				if ((currentValues[e] < pBehaviorData->max())
+				if ((currentState[e] < pBehaviorData->max())  // was currentValues
 						&& (!pBehaviorData->downOnly(this->lperiod)))
 				{
 					this->lstaticChangeContributions[pInfo].at(e)[2] =
@@ -1026,7 +1035,7 @@ void StatisticCalculator::calculateBehaviorStatistics(
 
 
 /**
- * Calculates the statistics for effects of the given continuous behavior 
+ * Calculates the statistics for effects of the given continuous behavior
  * variable.
  */
 void StatisticCalculator::calculateContinuousStatistics(
@@ -1057,7 +1066,7 @@ void StatisticCalculator::calculateContinuousStatistics(
 
  	EffectFactory factory(this->lpData);
  	Cache cache;
-	
+
 	for (unsigned i = 0; i < rEffects.size(); i++)
 	{
 		EffectInfo * pInfo = rEffects[i];
@@ -1303,6 +1312,34 @@ void StatisticCalculator::calculateNetworkRateStatistics(
 						log(pStructural->outDegree(iter.ego()) + 1) *
 						iter.value();
 				}
+				else if (effectName == "inRateInv")
+				{
+					statistic +=
+						1.0 / (pStructural->inDegree(iter.ego()) + 1) *
+						iter.value();
+				}
+				else if (effectName == "inRateLog")
+				{
+					statistic +=
+						log(pStructural->inDegree(iter.ego()) + 1) *
+						iter.value();
+				}
+				else if (effectName == "recipRateInv")
+				{
+					OneModeNetwork * pOneModeNetwork =
+						(OneModeNetwork *) pStructural;
+					statistic +=
+						1.0 / (pOneModeNetwork->reciprocalDegree(iter.ego()) + 1) *
+						iter.value();
+				}
+				else if (effectName == "recipRateLog")
+				{
+					OneModeNetwork * pOneModeNetwork =
+						(OneModeNetwork *) pStructural;
+					statistic +=
+						log(pOneModeNetwork->reciprocalDegree(iter.ego()) + 1) *
+						iter.value();
+				}
 				else
 				{
 					throw domain_error("Unexpected rate effect " + effectName);
@@ -1323,7 +1360,7 @@ void StatisticCalculator::calculateNetworkRateStatistics(
 }
 /**
  * Calculates the statistics for the rate effects of the given
- * network variable.
+ * behavior variable.
  */
 void StatisticCalculator::calculateBehaviorRateStatistics(
 	BehaviorLongitudinalData * pBehaviorData)
@@ -1393,6 +1430,7 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 		string interactionName = pInfo->interactionName1();
 		string interactionName2 = pInfo->interactionName2();
 		string rateType = pInfo->rateType();
+		int internalEffectParameter = pInfo->internalEffectParameter();
 
 		if (rateType == "covariate")
 		{
@@ -1496,6 +1534,34 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 						log(pStructural->outDegree(i) + 1) *
 						difference[i];
 				}
+				else if (effectName == "inRateInv")
+				{
+					statistic +=
+						1.0 / (pStructural->inDegree(i) + 1) *
+						difference[i];
+				}
+				else if (effectName == "inRateLog")
+				{
+					statistic +=
+						log(pStructural->inDegree(i) + 1) *
+						difference[i];
+				}
+				else if (effectName == "recipRateInv")
+				{
+					OneModeNetwork * pOneModeNetwork =
+						(OneModeNetwork *) pStructural;
+					statistic +=
+						1.0 / (pOneModeNetwork->reciprocalDegree(i) + 1) *
+						difference[i];
+				}
+				else if (effectName == "recipRateLog")
+				{
+					OneModeNetwork * pOneModeNetwork =
+						(OneModeNetwork *) pStructural;
+					statistic +=
+						log(pOneModeNetwork->reciprocalDegree(i) + 1) *
+						difference[i];
+				}
 				else
 				{
 					throw domain_error("Unexpected rate effect " + effectName);
@@ -1524,8 +1590,9 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 					{
 						statistic +=
 							this->calculateDiffusionRateEffect(pBehaviorData,
-								pStructural, i, effectName) *
-							difference[i];
+								pStructural, i, effectName,
+								internalEffectParameter) *
+													difference[i];
 					}
 					else
 					{
@@ -1550,8 +1617,9 @@ void StatisticCalculator::calculateBehaviorRateStatistics(
 							this->calculateDiffusionRateEffect(pBehaviorData,
 								pStructural,
 								pConstantCovariate,
-								pChangingCovariate, i, effectName) *
-							difference[i];
+								pChangingCovariate, i, effectName,
+								internalEffectParameter) *
+													difference[i];
 					}
 					else
 					{
@@ -1592,7 +1660,7 @@ void StatisticCalculator::calculateContinuousRateStatistics(
 			currentValues[i] = 0;
 		}
 	}
-	// Construct a vector of squared differences between current and 
+	// Construct a vector of squared differences between current and
 	// start of period. Differences for missing values are set to 0.
 	const double * start = pContinuousData->values(this->lperiod);
 
@@ -1608,7 +1676,7 @@ void StatisticCalculator::calculateContinuousRateStatistics(
 			difference[i] = 0;
 		}
 	}
-	
+
 	// basic rate distance (used for estimating the SDE scale parameters)
 	if (!this->lcontinuousDistances[pContinuousData])
 	{
@@ -1633,11 +1701,14 @@ void StatisticCalculator::calculateContinuousRateStatistics(
 /**
  * Calculates the value of the diffusion rate effect for the given actor.
  */
+ // note: calculateDiffusionRateEffect is also a function in DependentVariable
+ // (almost the same...)
 double StatisticCalculator::calculateDiffusionRateEffect(
 	BehaviorLongitudinalData * pBehaviorData, const Network * pStructural,
-	int i, string effectName)
+	int i, string effectName, int internalEffectParameter)
 {
 	double totalAlterValue = 0;
+	int numInfectedAlter = 0;
 	double response = 1;
 	if (pStructural->outDegree(i) > 0)
 	{
@@ -1656,18 +1727,38 @@ double StatisticCalculator::calculateDiffusionRateEffect(
 			 iter.next())
 		{
 			double alterValue = pBehaviorData->
-				value(this->lperiod,iter.actor());
+				value(this->lperiod,iter.actor());  // this is the value at the start of the period
+
+			if (alterValue >= 0.5)
+			{
+				numInfectedAlter++;
+			}
 
 			if (effectName == "infectIn")
 			{
 				alterValue *= pStructural->inDegree(iter.actor());
 			}
-			else if ((effectName == "infectOut") | (effectName == "infectDeg"))
+			else if ((effectName == "infectOut") || (effectName == "infectDeg"))
 			{
 				alterValue *= pStructural->outDegree(iter.actor());
 			}
 
 			totalAlterValue += alterValue;
+		}
+
+		if (internalEffectParameter != 0)
+		{
+			if (numInfectedAlter < std::abs(internalEffectParameter))
+			{
+				totalAlterValue = 0;
+			}
+			else if (internalEffectParameter < 0)
+			{
+				if (totalAlterValue + internalEffectParameter > 0)
+				{
+					totalAlterValue = - internalEffectParameter;
+				}
+			}
 		}
 		totalAlterValue *= response;
 	}
@@ -1681,10 +1772,12 @@ double StatisticCalculator::calculateDiffusionRateEffect(
 	BehaviorLongitudinalData * pBehaviorData, const Network * pStructural,
 	const ConstantCovariate * pConstantCovariate,
 	const ChangingCovariate * pChangingCovariate,
-	int i, string effectName)
+	int i, string effectName, int internalEffectParameter)
 {
 	double totalAlterValue = 0;
 	double response = 1;
+	int numInfectedAlter = 0;
+
 	if (pStructural->outDegree(i) > 0)
 	{
 		if (effectName == "susceptAvCovar")
@@ -1712,6 +1805,11 @@ double StatisticCalculator::calculateDiffusionRateEffect(
 			double alterValue = pBehaviorData->
 				value(this->lperiod,iter.actor());
 
+			if (alterValue >= 0.5)
+			{
+				numInfectedAlter++;
+			}
+
 			if (effectName == "infectCovar")
 			{
 				if (pConstantCovariate)
@@ -1725,13 +1823,25 @@ double StatisticCalculator::calculateDiffusionRateEffect(
 				}
 				else
 				{
-					throw logic_error(
-						"No individual covariate.");
+					throw logic_error("No individual covariate.");
 				}
-
 			}
-
 			totalAlterValue += alterValue;
+		}
+
+		if (internalEffectParameter != 0)
+		{
+			if (numInfectedAlter < std::abs(internalEffectParameter))
+			{
+				totalAlterValue = 0;
+			}
+			else if (internalEffectParameter < 0)
+			{
+				if (totalAlterValue + internalEffectParameter > 0)
+				{
+					totalAlterValue = - internalEffectParameter;
+				}
+			}
 		}
 		totalAlterValue *= response;
 	}
@@ -1867,7 +1977,8 @@ void StatisticCalculator::calcDifferences(
 						map->find(make_pair(iter.ego(), iter.alter()))->second.push_back(
 								i);
 					}
-				} else
+				}
+				else
 				{
 					throw logic_error(
 							"No dyadic covariate named '"

@@ -17,7 +17,7 @@
  distance is used to calculate frequentist \eqn{p}-values.
  Plotting functions can be used to diagnose bad fit. There are basic
  functions for calculating auxiliary statistics available out of the
- box, and the user is also permitted to create custom functions.
+ box, and the user is invited to create additional ones.
  }
 
 \usage{
@@ -95,6 +95,12 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
  of the periods, with the simulated values for the ends of the periods.
  The differences are assessed by combining the components of the auxiliary
  statistic using the Mahalanobis distance.
+ 
+ For \code{sienaFitObject}s that were made for a multi-group data set,
+ if you are not sure about the \code{groupName}s to use, these can be retrieved
+ by the command \code{'names(dataObject)'} (where \code{dataObject} is 
+ the data used to produce the \code{sienaFitObject}).
+ Mostly they are \code{"Data1", "Data2"}, etc.
 
  The function does not work properly for data sets that include a
  \code{\link{sienaCompositionChange}} object. If you wish to test the
@@ -140,7 +146,7 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
 }
 The function is written so that the user can easily define other functions to
 capture some other relevant aspects of the network, behaviors, etc.
-This is further illustrated in the help page\cr
+This is further illustrated in the help page
 \code{\link{sienaGOF-auxiliary}}.
 
 We recommend the following heuristic approach to model checking:
@@ -166,8 +172,7 @@ We recommend the following heuristic approach to model checking:
  See Lospinoso and Snijders (2019) or the manual for more information.
 
  The following functions are pre-fabricated for ease of use, and can
- be passed in as the \cr
- \code{auxiliaryFunction} with no extra effort;
+ be passed in as the \code{auxiliaryFunction} with no extra effort;
  see \code{\link{sienaGOF-auxiliary}} and the examples below.
 \itemize{
  \item \code{\link{IndegreeDistribution}}
@@ -175,6 +180,7 @@ We recommend the following heuristic approach to model checking:
  \item \code{\link{BehaviorDistribution}}
  \item \code{\link{TriadCensus}}
  \item \code{\link{mixedTriadCensus}}
+ \item \code{\link{dyadicCov}}
 }
 
 }

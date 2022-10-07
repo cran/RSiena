@@ -12,6 +12,7 @@
 #ifndef ALLEFFECTS_H_
 #define ALLEFFECTS_H_
 
+#include "AllSimilarityEffect.h"
 #include "AlterCovariateActivityEffect.h"
 #include "AltersCovariateAvAltEffect.h"
 #include "AltersCovariateAverageEffect.h"
@@ -26,6 +27,7 @@
 #include "AverageAlterContinuousEffect.h"
 #include "AverageAlterDist2Effect.h"
 #include "AverageAlterInDist2Effect.h"
+#include "AverageDegreeEffect.h"
 #include "AverageGroupEffect.h"
 #include "AverageGroupEgoEffect.h"
 #include "AverageInAlterEffect.h"
@@ -85,6 +87,7 @@
 #include "MainCovariateContinuousEffect.h"
 #include "MaxAlterEffect.h"
 #include "MaxAlterContinuousEffect.h"
+#include "MixedOnlyTwoPathEffect.h"
 #include "NetworkInteractionEffect.h"
 #include "OutdegreeEffect.h"
 #include "OutdegreeContinuousEffect.h"
@@ -94,6 +97,8 @@
 #include "OutInDegreeAssortativityEffect.h"
 #include "OutOutDegreeAssortativityEffect.h"
 #include "PopularityAlterEffect.h"
+#include "PrimarySettingEffect.h"  
+#include "PrimaryCompressionEffect.h" 
 #include "QuadraticShapeEffect.h"
 #include "RecipdegreeActivityEffect.h"
 #include "RecipdegreePopularityEffect.h"
@@ -126,6 +131,7 @@
 #include "WWXClosureEffect.h"
 #include "WXXClosureEffect.h"
 #include "XWXClosureEffect.h"
+#include "XXWClosureEffect.h"
 #include "AgreementTransitivityGMMEffect.h"
 #include "RealTransitivityGMMEffect.h"
 #include "ReciprocityGMMEffect.h"
