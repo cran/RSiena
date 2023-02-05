@@ -1,4 +1,4 @@
-e65c47e2ec1ef65b4547005a78bd447c *DESCRIPTION
+6310e97ff31fd4e2d3747c665f917b93 *DESCRIPTION
 e62637ea8a114355b985fd86c9ffbd6e *LICENSE
 0a8641f762ca9782f5dfd4e4f1f572c8 *NAMESPACE
 2b9b6857f17db8def897f55247e467d5 *NEWS.md
@@ -758,7 +758,7 @@ cee13046d2c4f677c1ea1d8358c95cc5 *src/network/layers/DistanceTwoLayer.h
 0b98ba8c422a16605e918ec4b2927b3b *src/network/layers/NetworkLayer.h
 4a27e6ccdd2346508af1d17fd5b10989 *src/network/layers/PrimaryLayer.cpp
 b193670fcad4bcc2b9d13b02a9663034 *src/network/layers/PrimaryLayer.h
-72a0bc6c448594cfbc525d8470d6060b *src/siena07internals.cpp
+1cce7e619dedd140ac1472e1c7aa09a7 *src/siena07internals.cpp
 27f04c078c5a78c4d4f8e6a98d094caf *src/siena07internals.h
 1e3ca9d267c9e85f39edee666c4527ce *src/siena07models.cpp
 feded6a99a415332b8af2cf67d0f05b8 *src/siena07models.h
