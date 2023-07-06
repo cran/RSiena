@@ -10,7 +10,7 @@
  *****************************************************************************/
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
-#include <Rinternals.h>
+//#include <Rinternals.h>
 #include <algorithm>
 #include <vector>
 #include <cmath>

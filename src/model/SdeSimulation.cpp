@@ -12,7 +12,7 @@
 #include <cmath> 
 #include <R_ext/Error.h>
 #include <R_ext/Print.h>
-#include <Rinternals.h>
+//#include <Rinternals.h>
 //#include <Eigen/Dense>
 
 #include "EpochSimulation.h"
@@ -23,6 +23,9 @@
 #include "model/effects/ContinuousEffect.h"
 #include "model/variables/ContinuousVariable.h"
 #include "utils/Random.h"
+
+#include <Rinternals.h>
+
 
 namespace siena
 {

@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <cmath>
-#include <Rinternals.h>
+//#include <Rinternals.h>
 #include "MLSimulation.h"
 #include "utils/Random.h"
 #include "utils/Utils.h"
@@ -30,6 +30,7 @@
 #include "model/ml/NetworkChange.h"
 #include "model/ml/BehaviorChange.h"
 #include "model/tables/Cache.h"
+#include <Rinternals.h>
 
 using namespace std;
 

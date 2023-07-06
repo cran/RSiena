@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
-#include <Rinternals.h>
+//#include <Rinternals.h>
 #include "data/ActorSet.h"
 #include "utils/Random.h"
 #include "BehaviorVariable.h"
@@ -29,6 +29,8 @@
 #include "model/ml/Chain.h"
 #include "model/ml/MiniStep.h"
 #include "model/ml/BehaviorChange.h"
+#include <Rinternals.h>
+
 
 using namespace std;
 
