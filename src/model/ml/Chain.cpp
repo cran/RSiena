@@ -7,12 +7,13 @@
  *
  * Description: This file contains the implementation of the class Chain.
  *****************************************************************************/
+#include <Rinternals.h>
+#undef error
+#undef length
 
 #include <vector>
 #include <stdexcept>
 #include <string>
-
-#include <Rinternals.h>
 
 #include "Chain.h"
 #include "utils/Utils.h"
@@ -561,7 +562,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 				PrintValue(getMiniStepDF(*miniSteps[i]));
 			}
 
-			error("Cannot create minimal chain due to constraints");
+			Rf_error("Cannot create minimal chain due to constraints");
 		}
 	}
 }

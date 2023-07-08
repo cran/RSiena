@@ -15,8 +15,7 @@
  */
 #include <vector>
 #include <cstring>
-#include <Rinternals.h>
-#undef length
+// #include <Rinternals.h> // included by siena07internals.h
 #include "siena07internals.h"
 #include "data/Data.h"
 #include "data/LongitudinalData.h"
@@ -147,64 +146,64 @@ void getColNos(SEXP Names, int * netTypeCol, int * nameCol, int * effectCol,
 	}
 	if (*netTypeCol < 0)
 	{
-		error("cannot find nettype");
+		Rf_error("cannot find nettype");
 	}
 	if (*nameCol < 0)
 	{
-		error("cannot find network name");
+		Rf_error("cannot find network name");
 	}
 	if (*effectCol < 0)
 	{
-		error("cannot find effectName");
+		Rf_error("cannot find effectName");
 	}
 	if (*parmCol < 0)
 	{
-		error("cannot find internal parameter");
+		Rf_error("cannot find internal parameter");
 	}
 	if (*int1Col < 0)
 	{
-		error("cannot find interaction1");
+		Rf_error("cannot find interaction1");
         }
 
 	if (*int2Col < 0)
 	{
-		error("cannot find interaction2");
+		Rf_error("cannot find interaction2");
 	}
 	if (*initValCol < 0)
 	{
-		error("cannot find initial value");
+		Rf_error("cannot find initial value");
 	}
 	if (*groupCol < 0)
 	{
-		error("cannot find group");
+		Rf_error("cannot find group");
 	}
 	if (*periodCol < 0)
 	{
-		error("cannot find period");
+		Rf_error("cannot find period");
 	}
 	if (*pointerCol < 0)
 	{
-		error("cannot find effect pointer");
+		Rf_error("cannot find effect pointer");
 	}
 	if (*rateTypeCol < 0)
 	{
-		error("cannot find rate type");
+		Rf_error("cannot find rate type");
 	}
 	if (*intptr1Col < 0)
 	{
-		error("cannot find effect1");
+		Rf_error("cannot find effect1");
 	}
 	if (*intptr2Col < 0)
 	{
-		error("cannot find effect2");
+		Rf_error("cannot find effect2");
 	}
 	if (*intptr3Col < 0)
 	{
-		error("cannot find effect3");
+		Rf_error("cannot find effect3");
 	}
 	if (*settingCol < 0)
 	{
-		error("cannot find setting col; reconstruct effects object with this version of RSiena");
+		Rf_error("cannot find setting col; reconstruct effects object with this version of RSiena");
 	}
 	//Rprintf("%d parmcol\n", *parmCol);
 }
@@ -304,7 +303,7 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 				 	}
 				 	else
 				 	{
-				 		error("setting found for behavior variable %s",
+				 		Rf_error("setting found for behavior variable %s",
 				 			networkName);
 				 	}
 				}
@@ -319,7 +318,7 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 				}
 			else
 			{
-					error("setting found for behavior variable %s", 
+					Rf_error("setting found for behavior variable %s", 
 						networkName);
 				}
 			}
@@ -415,7 +414,7 @@ void setupOneModeObservations(const std::string& name, SEXP ONEMODES,
 	int observations = Rf_length(ONEMODES);
 	if (observations != pOneModeNetworkLongitudinalData->observationCount())
 	{
-		error(("wrong number of observations in: " + name + ": expected "
+		Rf_error(("wrong number of observations in: " + name + ": expected "
 				+ toString(pOneModeNetworkLongitudinalData->observationCount()) + " got "
 				+ toString(observations)).c_str());
 	}
@@ -496,8 +495,8 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 			if      (only == "up")   permType = Permission_Type::UP;
 			else if (only == "down") permType = Permission_Type::DOWN;
 			// asserts
-			if (id.length() == 0) error("settings id should not be empty");
-			if (type.length() == 0) error("settings type should not be empty");
+			if (id.length() == 0) Rf_error("settings id should not be empty");
+			if (type.length() == 0) Rf_error("settings type should not be empty");
 			// add it
 			Rprintf("%s %s %s %s\n", id.c_str(), type.c_str(), covar.c_str(), only.c_str());
 			pNetData->addSettingName(id, type, covar, permType);
@@ -505,12 +504,12 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 
 		// check first two setting types
 		if (pNetData->rSettingNames().size() == 1) {
-			error("if setting are present use universal and primary");
+			Rf_error("if setting are present use universal and primary");
 		} else if (pNetData->rSettingNames().size() >= 2) {
 			if (pNetData->rSettingNames().at(0).getSettingType() != "universal")
-				error("first setting should be type=universal");
+				Rf_error("first setting should be type=universal");
 			if (pNetData->rSettingNames().at(1).getSettingType() != "primary")
-				error("second setting should be type=primary");
+				Rf_error("second setting should be type=primary");
 		}
 
 		pNetData->symmetric(*(LOGICAL(symmetric)));
@@ -630,7 +629,7 @@ void setupBipartiteObservations(SEXP BIPARTITES,
     int observations = Rf_length(BIPARTITES);
     if (observations != pNetworkLongitudinalData->observationCount())
     {
-		error ("wrong number of observations in bipartite");
+		Rf_error ("wrong number of observations in bipartite");
     }
     SEXP uo;
     PROTECT(uo = install("uponly"));
@@ -702,13 +701,13 @@ void setupBehavior(SEXP BEHAVIOR, BehaviorLongitudinalData * pBehaviorData)
 
 	if (observations != pBehaviorData->observationCount())
 	{
-		error ("wrong number of observations in Behavior");
+		Rf_error ("wrong number of observations in Behavior");
 	}
 	int nActors = nrows(VECTOR_ELT(BEHAVIOR, 0));
 
 	if (nActors != pBehaviorData->n())
 	{
-		error ("wrong number of actors");
+		Rf_error ("wrong number of actors");
 	}
 	int * start = INTEGER(VECTOR_ELT(BEHAVIOR, 0));
 	int * missing = LOGICAL(VECTOR_ELT(BEHAVIOR, 1));
@@ -794,13 +793,13 @@ void setupContinuous(SEXP CONTINUOUS, ContinuousLongitudinalData *
 
     if (observations != pContinuousData->observationCount())
     {
-		error ("wrong number of observations in Continuous");
+		Rf_error ("wrong number of observations in Continuous");
     }
     int nActors = nrows(VECTOR_ELT(CONTINUOUS, 0));
 
     if (nActors != pContinuousData->n())
     {
-        error ("wrong number of actors");
+        Rf_error ("wrong number of actors");
     }
     double * start = REAL(VECTOR_ELT(CONTINUOUS, 0));
 	int * missing = LOGICAL(VECTOR_ELT(CONTINUOUS, 1));
@@ -961,7 +960,7 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 
 		if (nActors != pActorSet->n())
 		{
-			error ("wrong number of actors");
+			Rf_error ("wrong number of actors");
 		}
 		ConstantCovariate * pConstantCovariate =
 			pData->createConstantCovariate(CHAR(STRING_ELT(name, 0)),
@@ -1094,7 +1093,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 	int observations = ncols(VECTOR_ELT(VARCOVARGROUP,0));
 	if (observations != pData->observationCount() - 1)
 	{
-		error ("wrong number of observations in Changing Covariate");
+		Rf_error ("wrong number of observations in Changing Covariate");
 	}
 	int nChangingCovariate = Rf_length(VARCOVARGROUP);
 	for (int changingCovariate = 0;
@@ -1115,7 +1114,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 
 		if (nActors != pActorSet->n())
 		{
-			error ("wrong number of actors");
+			Rf_error ("wrong number of actors");
 		}
 		ChangingCovariate * pChangingCovariate =
 			pData->createChangingCovariate(CHAR(STRING_ELT(name, 0)),
@@ -1282,7 +1281,7 @@ void setupChangingDyadicObservations(SEXP VARDYAD,
 	int observations = Rf_length(VARDYAD);
 	//   if (observations != pworkLongitudinalData->observationCount())
 	// {
-	//	error ("wrong number of observations in OneMode");
+	//	Rf_error ("wrong number of observations in OneMode");
 	//  }
 	for (int period = 0; period < (observations - 1); period++)
 	{
@@ -1494,7 +1493,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 				}
 				else
 				{
-					error("setting found for behavior variable %s",
+					Rf_error("setting found for behavior variable %s",
 							networkName);
 				}
 			}
@@ -1509,7 +1508,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 			}
 		else
 		{
-				error("setting found for variable %s", networkName);
+				Rf_error("setting found for variable %s", networkName);
 			}
 		}
 		else // no rate or scale effect
@@ -1958,7 +1957,7 @@ void getStatistics(SEXP EFFECTSLIST,
 						else
 						{
 
-							error("Unexpected rate effect %s\n",
+							Rf_error("Unexpected rate effect %s\n",
 									effectName);
 						}
 					}
@@ -1989,7 +1988,7 @@ void getStatistics(SEXP EFFECTSLIST,
 						}
 						else
 						{
-							error("Unexpected rate effect %s\n",
+							Rf_error("Unexpected rate effect %s\n",
 									effectName);
 						}
 					}
@@ -2037,7 +2036,7 @@ void getStatistics(SEXP EFFECTSLIST,
 						}
 						else
 						{
-							error("No individual covariate named %s.",
+							Rf_error("No individual covariate named %s.",
 									interaction1);
 						}
 					}
@@ -2120,7 +2119,7 @@ void getStatistics(SEXP EFFECTSLIST,
 				}
 				else
 				{
-					error("invalid effect type %s\n", effectType);
+					Rf_error("invalid effect type %s\n", effectType);
 				}
 			}
 			(*rfra)[istore] = statistic;
@@ -2213,7 +2212,7 @@ void getScores(SEXP EFFECTSLIST, int period, int group,
 				}
 				else
 				{
-					error("Non constant rate effects are not yet %s",
+					Rf_error("Non constant rate effects are not yet %s",
 							"implemented for maximum likelihood.");
 				}
 			}

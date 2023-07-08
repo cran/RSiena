@@ -20,6 +20,8 @@
 #include <cstring>
 #include <R_ext/Random.h>
 #include <Rinternals.h>
+#undef error
+#undef length
 #include "siena07internals.h"
 #include "siena07utilities.h"
 #include "data/Data.h"
@@ -107,9 +109,9 @@ SEXP forwardModel(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 
 	/* count up the total number of parameters */
 	int dim = 0;
-	for (int i = 0; i < length(EFFECTSLIST); i++)
+	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
 	{
-		dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		dim += Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 	}
 
 	/* get the random seed from R into memory */
@@ -121,7 +123,7 @@ SEXP forwardModel(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	double * rfra;
 	PROTECT(fra = allocMatrix(REALSXP, dim, totObservations));
 	rfra = REAL(fra);
-	for (int i = 0; i < length(fra); i++)
+	for (int i = 0; i < Rf_length(fra); i++)
 	{
 		rfra[i] = 0;
 	}
@@ -131,7 +133,7 @@ SEXP forwardModel(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	double * rntim;
 	PROTECT(ntim = allocVector(REALSXP, totObservations));
 	rntim = REAL(ntim);
-	for (int i = 0; i < length(ntim); i++)
+	for (int i = 0; i < Rf_length(ntim); i++)
 		rntim[i] = 0.0;
 
 	/* sims will be the returned simulated dependent variables */
@@ -180,7 +182,7 @@ SEXP forwardModel(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	{
 		SEXP NETWORKTYPES;
 		NETWORKTYPES = createRObjectAttributes(EFFECTSLIST, actorStats);
-		int objEffects = length(NETWORKTYPES);
+		int objEffects = Rf_length(NETWORKTYPES);
 		for (int group = 0; group < nGroups; group++)
 		{
 			SET_VECTOR_ELT(actorStats, group, allocVector(VECSXP, (*pGroupData)[group]->observationCount()-1));
@@ -211,7 +213,7 @@ SEXP forwardModel(SEXP DERIV, SEXP DATAPTR, SEXP SEEDS,
 	double *rscores;
 	PROTECT(scores = allocMatrix(REALSXP, dim, totObservations));
 	rscores = REAL(scores);
-	for (int i = 0; i < length(scores); i++)
+	for (int i = 0; i < Rf_length(scores); i++)
 		rscores[i] = 0.0;
 
 	int periodFromStart = 0;
@@ -591,7 +593,7 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	pMLSimulation->createEndStateDifferences();
 	pModel->chainStore(*pChain, groupPeriod);
 
-	/* and current permutation length */
+	/* and current permutation Rf_length */
 	pModel->currentPermutationLength(period,
 		pMLSimulation->currentPermutationLength());
 
@@ -661,9 +663,9 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	{
 		/* count up the total number of parameters */
 		int dim = 0;
-		for (int i = 0; i < length(EFFECTSLIST); i++)
+		for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
 		{
-			dim += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+			dim += Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 		}
 
 
@@ -675,7 +677,7 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 			PROTECT(dff = allocVector(REALSXP, dim * dim));
 			nProtects++;
 			rdff = REAL(dff);
-			for (int i = 0; i < length(dff); i++)
+			for (int i = 0; i < Rf_length(dff); i++)
 			{
 				rdff[i] = 0.0;
 			}
@@ -694,7 +696,7 @@ SEXP mlPeriod(SEXP DERIV, SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 		PROTECT(fra = allocVector(REALSXP, dim));
 		nProtects++;
 		rfra = REAL(fra);
-		for (int i = 0; i < length(fra); i++)
+		for (int i = 0; i < Rf_length(fra); i++)
 		{
 			rfra[i] = 0;
 		}

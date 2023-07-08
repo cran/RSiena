@@ -114,7 +114,7 @@ void Rterminate()
 	}
 	catch(exception& e)
 	{
-		error(e.what());
+		Rf_error(e.what());
 	}
 }
 
@@ -881,7 +881,7 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 				netwName = pBehaviorChange->variableName().c_str();
 				SET_STRING_ELT(NETTYPE, 0, mkChar("behavior"));
 			}
-			for (int ii = 0; ii < length(EFFECTSLIST); ii++)
+			for (int ii = 0; ii < Rf_length(EFFECTSLIST); ii++)
 			{
 				const char * networkName = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, ii),nameCol), 0));
 				if (strcmp(netwName, networkName) == 0)
@@ -902,7 +902,7 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 						contributions = pBehaviorChange->changeContributions();
 					}
 					int choices = contributions->begin()->second.size();
-					int numberOfEffects =  length(VECTOR_ELT(EFFECTS,0));
+					int numberOfEffects =  Rf_length(VECTOR_ELT(EFFECTS,0));
 					int rateEffects = 0;
 					for(int e = 0; e < numberOfEffects; e++)
 					{
@@ -964,9 +964,9 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 {
 	int nEffects = 0;
-	for (int i = 0; i < length(EFFECTSLIST); i++)
+	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
 	{
-		nEffects += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		nEffects += Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 	}
 	// get the column names from the names attribute
 	SEXP cols;
@@ -1003,9 +1003,9 @@ SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 	vector<string> netNames;
 	vector<string> netTypes;
 
-	for (int i = 0; i < length(EFFECTSLIST); i++)
+	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
 	{
-		for(int e = 0; e < length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)); e++)
+		for(int e = 0; e < Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)); e++)
 		{
 			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), typeCol), e));
 			if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
@@ -1089,7 +1089,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	/* set period */
 	pChain->period(period);
 
-	for (int i = 0; i < length(CHAIN); i++)
+	for (int i = 0; i < Rf_length(CHAIN); i++)
 	{
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(CHAIN, i);
@@ -1100,7 +1100,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
     SEXP init;
     PROTECT(init = install("initialStateDifferences"));
     SEXP initialState = getAttrib(CHAIN, init);
-	for (int i = 0; i < length(initialState); i++)
+	for (int i = 0; i < Rf_length(initialState); i++)
 	{
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(initialState, i);

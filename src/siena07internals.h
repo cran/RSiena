@@ -13,6 +13,8 @@
 #define SIENA07INTERNALS_H_
 
 #include <Rinternals.h>
+#undef error
+#undef length
 #include <vector>
 
 namespace siena

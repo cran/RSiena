@@ -16,6 +16,8 @@
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
 #include <Rinternals.h>
+#undef error
+#undef length
 #include "SdeSimulation.h"
 #include "EpochSimulation.h"
 #include "utils/Random.h"
@@ -344,7 +346,7 @@ void EpochSimulation::runEpoch(int period) {
 				exit(1);
 #endif
 #ifndef STANDALONE
-				error("%s %s", "Unlikely to terminate this epoch:",
+				Rf_error("%s %s", "Unlikely to terminate this epoch:",
 						" more than 1000000 steps");
 #endif
 			}
@@ -356,7 +358,7 @@ void EpochSimulation::runEpoch(int period) {
 				exit(1);
 #endif
 #ifndef STANDALONE
-				error("%s %s", "Unlikely to terminate this epoch:",
+				Rf_error("%s %s", "Unlikely to terminate this epoch:",
 						" more than 1000000 steps");
 #endif
 			}
@@ -623,7 +625,7 @@ void EpochSimulation::updateContinuousVariablesAndScores() {
 	// up to now only for one continuous variable
 	// function is never called if lcontVar's.size() == 0
 	if (this->lcontinuousVariables.size() > 1) {
-		error("EpochSimulation: Not more than one continuous variable.");
+		Rf_error("EpochSimulation: Not more than one continuous variable.");
 	}
 
 	ContinuousVariable * pVariable = this->lcontinuousVariables[0];
