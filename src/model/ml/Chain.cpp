@@ -8,8 +8,6 @@
  * Description: This file contains the implementation of the class Chain.
  *****************************************************************************/
 #include <Rinternals.h>
-#undef error
-#undef length
 
 #include <vector>
 #include <stdexcept>
@@ -484,7 +482,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 					// see if valid here
 					DependentVariable * pVariable =
 						pMLSimulation->rVariables()[miniSteps[i]->variableId()];
-					//	PrintValue(getMiniStepDF(*miniSteps[i]));
+					//	Rf_PrintValue(getMiniStepDF(*miniSteps[i]));
 
 					if (!pVariable->validMiniStep(miniSteps[i]))
 					{
@@ -495,11 +493,11 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 						if (pLastMiniStep != this->lpFirst)
 						{
 							//		Rprintf("lastl\n");
-							//	PrintValue(getMiniStepDF(*pLastMiniStep));
+							//	Rf_PrintValue(getMiniStepDF(*pLastMiniStep));
 							pMiniStep =
 								this->randomMiniStep(pLastMiniStep->pNext(),
 									this->lpLast);
-							//	PrintValue(getMiniStepDF(*pMiniStep));
+							//	Rf_PrintValue(getMiniStepDF(*pMiniStep));
 							pMLSimulation->initialize(this->lperiod);
 							pMLSimulation->executeMiniSteps(this->lpFirst->
 								pNext(), pMiniStep);
@@ -559,7 +557,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 		{
 			for (unsigned i = 0; i < miniSteps.size(); i++)
 			{
-				PrintValue(getMiniStepDF(*miniSteps[i]));
+				Rf_PrintValue(getMiniStepDF(*miniSteps[i]));
 			}
 
 			Rf_error("Cannot create minimal chain due to constraints");
@@ -1124,7 +1122,7 @@ void  Chain::printConsecutiveCancelingPairs() const
 //		Rprintf("\nStart\n ");
 	for (unsigned i = 0; i < this->lccpMiniSteps.size(); i++)
 	{
-		PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
+		Rf_PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
 	}
 //		Rprintf("\nend\n ");
 }
@@ -1235,7 +1233,7 @@ MiniStep * Chain::pFirstMiniStepForLink(const MiniStep * pLinkMiniStep) const
 	}
 	if (pMiniStep != this->lpLast)
 	{
-		PrintValue(getMiniStepDF(*pMiniStep));
+		Rf_PrintValue(getMiniStepDF(*pMiniStep));
 	}
 	else
 		Rprintf("last\n");

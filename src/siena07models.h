@@ -13,8 +13,6 @@
 #define SIENA07MODELS_H_
 
 #include <Rinternals.h>
-#undef error
-#undef length
 
 extern "C"
 {

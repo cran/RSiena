@@ -13,8 +13,6 @@
 #define SIENA07UTILITIES_H_
 
 #include <Rinternals.h>
-#undef error
-#undef length
 
 #include "network/Network.h"
 #include "model/variables/DependentVariable.h"

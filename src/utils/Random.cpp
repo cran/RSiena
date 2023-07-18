@@ -9,6 +9,7 @@
  * generation utilities.
  *****************************************************************************/
 
+#define R_NO_REMAP
 #include "Random.h"
 #include <sys/time.h>
 #include <Rmath.h>
@@ -47,7 +48,7 @@ double nextExponentialQAD(double lambda)
 double nextExponential(double lambda)
 {
 #ifndef STANDALONE
-	return rexp(1/lambda);
+	return Rf_rexp(1/lambda);
 #endif
 }
 
@@ -58,7 +59,7 @@ double nextExponential(double lambda)
 double nextGamma(double shape, double scale)
 {
 #ifndef STANDALONE
-	return rgamma(shape, scale);
+	return Rf_rgamma(shape, scale);
 #endif
 }
 
@@ -70,7 +71,7 @@ double nextGamma(double shape, double scale)
 double nextNormal(double mean, double standardDeviation)
 {
 #ifndef STANDALONE
-	return rnorm(mean, standardDeviation);
+	return Rf_rnorm(mean, standardDeviation);
 #endif
 }
 
@@ -83,7 +84,7 @@ double normalDensity(double value, double mean, double standardDeviation,
 	 int log)
 {
 #ifndef STANDALONE
-	return dnorm(value, mean, standardDeviation, log);
+	return Rf_dnorm4(value, mean, standardDeviation, log);
 #endif
 }
 /**

@@ -216,8 +216,8 @@ void updateParameters(SEXP EFFECTSLIST, SEXP THETA, vector<Data *> *
 {
 	// get the column names from the names attribute
 	SEXP cols;
-	PROTECT(cols = install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = Rf_install("names"));
+	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -352,7 +352,7 @@ void setupOneModeNetwork(SEXP ONEMODE,
 	//Rprintf("%x\n", pNetworkData);
 	SEXP ONEMODEVALS = VECTOR_ELT(ONEMODE, 0);
 	int *start = INTEGER(ONEMODEVALS);
-	int listlen = ncols(ONEMODEVALS);
+	int listlen = Rf_ncols(ONEMODEVALS);
 	int pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -370,7 +370,7 @@ void setupOneModeNetwork(SEXP ONEMODE,
 
 	ONEMODEVALS = VECTOR_ELT(ONEMODE, 1);
 	start = INTEGER(ONEMODEVALS);
-	listlen = ncols(ONEMODEVALS);
+	listlen = Rf_ncols(ONEMODEVALS);
 	pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -388,7 +388,7 @@ void setupOneModeNetwork(SEXP ONEMODE,
 
 	ONEMODEVALS = VECTOR_ELT(ONEMODE, 2);
 	start = INTEGER(ONEMODEVALS);
-	listlen = ncols(ONEMODEVALS);
+	listlen = Rf_ncols(ONEMODEVALS);
 	pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -419,11 +419,11 @@ void setupOneModeObservations(const std::string& name, SEXP ONEMODES,
 				+ toString(observations)).c_str());
 	}
 	SEXP uo;
-	PROTECT(uo = install("uponly"));
-	SEXP uponly = getAttrib(ONEMODES, uo);
+	PROTECT(uo = Rf_install("uponly"));
+	SEXP uponly = Rf_getAttrib(ONEMODES, uo);
 	SEXP dow;
-	PROTECT(dow = install("downonly"));
-	SEXP downonly = getAttrib(ONEMODES, dow);
+	PROTECT(dow = Rf_install("downonly"));
+	SEXP downonly = Rf_getAttrib(ONEMODES, dow);
 
 	for (int period = 0; period < (observations - 1); period++)
 	{
@@ -451,32 +451,32 @@ void setupOneModeGroup(SEXP ONEMODEGROUP, Data * pData)
 	for (int oneMode = 0; oneMode < nOneMode; oneMode++)
 	{
 		SEXP ONEMODES = VECTOR_ELT(ONEMODEGROUP, oneMode);
-		SEXP as = PROTECT(install("nodeSet"));
-		SEXP actorSet = PROTECT(getAttrib(ONEMODES, as));
-		SEXP symm = PROTECT(install("symmetric"));
-		SEXP symmetric = PROTECT(getAttrib(ONEMODES, symm));
-		SEXP balm = PROTECT(install("balmean"));
-		SEXP balmean = PROTECT(getAttrib(ONEMODES, balm));
-		SEXP strm = PROTECT(install("structmean"));
-		SEXP structmean = PROTECT(getAttrib(ONEMODES, strm));
-		SEXP avin = PROTECT(install("averageInDegree"));
-		SEXP averageInDegree = PROTECT(getAttrib(ONEMODES, avin));
-		SEXP avout = PROTECT(install("averageOutDegree"));
-		SEXP averageOutDegree = PROTECT(getAttrib(ONEMODES, avout));
+		SEXP as = PROTECT(Rf_install("nodeSet"));
+		SEXP actorSet = PROTECT(Rf_getAttrib(ONEMODES, as));
+		SEXP symm = PROTECT(Rf_install("symmetric"));
+		SEXP symmetric = PROTECT(Rf_getAttrib(ONEMODES, symm));
+		SEXP balm = PROTECT(Rf_install("balmean"));
+		SEXP balmean = PROTECT(Rf_getAttrib(ONEMODES, balm));
+		SEXP strm = PROTECT(Rf_install("structmean"));
+		SEXP structmean = PROTECT(Rf_getAttrib(ONEMODES, strm));
+		SEXP avin = PROTECT(Rf_install("averageInDegree"));
+		SEXP averageInDegree = PROTECT(Rf_getAttrib(ONEMODES, avin));
+		SEXP avout = PROTECT(Rf_install("averageOutDegree"));
+		SEXP averageOutDegree = PROTECT(Rf_getAttrib(ONEMODES, avout));
 
-		SEXP nm = PROTECT(install("name"));
-		SEXP name = getAttrib(ONEMODES, nm);
+		SEXP nm = PROTECT(Rf_install("name"));
+		SEXP name = Rf_getAttrib(ONEMODES, nm);
 		const ActorSet* pActorSet = pData->pActorSet(CHAR(STRING_ELT(actorSet, 0)));
 		const char* cname = CHAR(STRING_ELT(name, 0));
 		OneModeNetworkLongitudinalData *  pNetData = pData->createOneModeNetworkData(cname, pActorSet);
 
 		// parse settings
-		SEXP settingsSymbol = PROTECT(install("settingsinfo"));
-		SEXP settingsList = PROTECT(getAttrib(ONEMODES, settingsSymbol));
+		SEXP settingsSymbol = PROTECT(Rf_install("settingsinfo"));
+		SEXP settingsList = PROTECT(Rf_getAttrib(ONEMODES, settingsSymbol));
 		for (int j = 0; j < Rf_length(settingsList); j++)
 		{
 			SEXP settingInfo = VECTOR_ELT(settingsList, j);
-			SEXP infoNames = getAttrib(settingInfo, R_NamesSymbol);
+			SEXP infoNames = Rf_getAttrib(settingInfo, R_NamesSymbol);
 			std::string id, type, covar, only;
 //			Rprintf("setting %d\n", j);
 			// parse key value list
@@ -565,7 +565,7 @@ void setupBipartiteNetwork(SEXP BIPARTITE,
 
 	SEXP BIPARTITEVALS = VECTOR_ELT(BIPARTITE, 0);
 	int *start = INTEGER(BIPARTITEVALS);
-	int listlen = ncols(BIPARTITEVALS);
+	int listlen = Rf_ncols(BIPARTITEVALS);
 	int pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -583,7 +583,7 @@ void setupBipartiteNetwork(SEXP BIPARTITE,
 
 	BIPARTITEVALS = VECTOR_ELT(BIPARTITE, 1);
 	start = INTEGER(BIPARTITEVALS);
-	listlen = ncols(BIPARTITEVALS);
+	listlen = Rf_ncols(BIPARTITEVALS);
 	pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -601,7 +601,7 @@ void setupBipartiteNetwork(SEXP BIPARTITE,
 
 	BIPARTITEVALS = VECTOR_ELT(BIPARTITE, 2);
 	start = INTEGER(BIPARTITEVALS);
-	listlen = ncols(BIPARTITEVALS);
+	listlen = Rf_ncols(BIPARTITEVALS);
 	pos = 0;
 
 	for (int row = 0; row < listlen; row++)
@@ -632,11 +632,11 @@ void setupBipartiteObservations(SEXP BIPARTITES,
 		Rf_error ("wrong number of observations in bipartite");
     }
     SEXP uo;
-    PROTECT(uo = install("uponly"));
-    SEXP uponly = getAttrib(BIPARTITES, uo);
+    PROTECT(uo = Rf_install("uponly"));
+    SEXP uponly = Rf_getAttrib(BIPARTITES, uo);
     SEXP dow;
-    PROTECT(dow = install("downonly"));
-    SEXP downonly = getAttrib(BIPARTITES, dow);
+    PROTECT(dow = Rf_install("downonly"));
+    SEXP downonly = Rf_getAttrib(BIPARTITES, dow);
     for (int period = 0; period < (observations - 1); period++)
     {
         pNetworkLongitudinalData->upOnly(period,
@@ -663,14 +663,14 @@ void setupBipartiteGroup(SEXP BIPARTITEGROUP, Data * pData)
 	for (int bipartite = 0; bipartite < nBipartite; bipartite++)
 	{
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(BIPARTITEGROUP, bipartite), as);
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(BIPARTITEGROUP, bipartite), as);
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(BIPARTITEGROUP, bipartite), nm);
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(BIPARTITEGROUP, bipartite), nm);
 		SEXP avout;
-		PROTECT(avout = install("averageOutDegree"));
-		SEXP averageOutDegree = getAttrib(VECTOR_ELT(BIPARTITEGROUP,
+		PROTECT(avout = Rf_install("averageOutDegree"));
+		SEXP averageOutDegree = Rf_getAttrib(VECTOR_ELT(BIPARTITEGROUP,
 					bipartite), avout);
 		const ActorSet * pSenders = pData->pActorSet(CHAR(STRING_ELT(
 						actorSet, 0)));
@@ -697,13 +697,13 @@ void setupBipartiteGroup(SEXP BIPARTITEGROUP, Data * pData)
  */
 void setupBehavior(SEXP BEHAVIOR, BehaviorLongitudinalData * pBehaviorData)
 {
-	int observations = ncols(VECTOR_ELT(BEHAVIOR, 0));
+	int observations = Rf_ncols(VECTOR_ELT(BEHAVIOR, 0));
 
 	if (observations != pBehaviorData->observationCount())
 	{
 		Rf_error ("wrong number of observations in Behavior");
 	}
-	int nActors = nrows(VECTOR_ELT(BEHAVIOR, 0));
+	int nActors = Rf_nrows(VECTOR_ELT(BEHAVIOR, 0));
 
 	if (nActors != pBehaviorData->n())
 	{
@@ -721,25 +721,25 @@ void setupBehavior(SEXP BEHAVIOR, BehaviorLongitudinalData * pBehaviorData)
 		}
 	}
 	SEXP uo;
-	PROTECT(uo = install("uponly"));
-	SEXP uponly = getAttrib(VECTOR_ELT(BEHAVIOR, 0), uo);
+	PROTECT(uo = Rf_install("uponly"));
+	SEXP uponly = Rf_getAttrib(VECTOR_ELT(BEHAVIOR, 0), uo);
 	SEXP dow;
-	PROTECT(dow = install("downonly"));
-	SEXP downonly = getAttrib(VECTOR_ELT(BEHAVIOR,0), dow);
+	PROTECT(dow = Rf_install("downonly"));
+	SEXP downonly = Rf_getAttrib(VECTOR_ELT(BEHAVIOR,0), dow);
 	for (int period = 0; period < (observations - 1); period++)
 	{
 		pBehaviorData->upOnly(period, LOGICAL(uponly)[period]);
 		pBehaviorData->downOnly(period, LOGICAL(downonly)[period]);
 	}
 	SEXP sim;
-	PROTECT(sim = install("simMean"));
-	SEXP simMean = getAttrib(VECTOR_ELT(BEHAVIOR,0), sim);
+	PROTECT(sim = Rf_install("simMean"));
+	SEXP simMean = Rf_getAttrib(VECTOR_ELT(BEHAVIOR,0), sim);
 	pBehaviorData->similarityMean(REAL(simMean)[0]);
 	SEXP sims;
-	PROTECT(sims = install("simMeans"));
-	SEXP simMeans = getAttrib(VECTOR_ELT(BEHAVIOR, 0), sims);
+	PROTECT(sims = Rf_install("simMeans"));
+	SEXP simMeans = Rf_getAttrib(VECTOR_ELT(BEHAVIOR, 0), sims);
 	SEXP simNames;
-	PROTECT(simNames = getAttrib(simMeans, R_NamesSymbol));
+	PROTECT(simNames = Rf_getAttrib(simMeans, R_NamesSymbol));
 	int numberNetworks = Rf_length(simMeans);
 	for (int net = 0; net < numberNetworks; net++)
 	{
@@ -763,13 +763,13 @@ void setupBehaviorGroup(SEXP BEHGROUP, Data *pData)
 	for (int behavior= 0; behavior < nBehavior; behavior++)
 	{
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(VECTOR_ELT(BEHGROUP, behavior), 0),
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(VECTOR_ELT(BEHGROUP, behavior), 0),
 				as);
 
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(VECTOR_ELT(BEHGROUP, behavior), 0),
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(VECTOR_ELT(BEHGROUP, behavior), 0),
 				nm);
 
 		const ActorSet * pActorSet = pData->pActorSet(CHAR(STRING_ELT(
@@ -789,13 +789,13 @@ void setupBehaviorGroup(SEXP BEHGROUP, Data *pData)
 void setupContinuous(SEXP CONTINUOUS, ContinuousLongitudinalData * 
 	pContinuousData)
 {
-    int observations = ncols(VECTOR_ELT(CONTINUOUS, 0));
+    int observations = Rf_ncols(VECTOR_ELT(CONTINUOUS, 0));
 
     if (observations != pContinuousData->observationCount())
     {
 		Rf_error ("wrong number of observations in Continuous");
     }
-    int nActors = nrows(VECTOR_ELT(CONTINUOUS, 0));
+    int nActors = Rf_nrows(VECTOR_ELT(CONTINUOUS, 0));
 
     if (nActors != pContinuousData->n())
     {
@@ -813,25 +813,25 @@ void setupContinuous(SEXP CONTINUOUS, ContinuousLongitudinalData *
         }
     }
     SEXP uo;
-    PROTECT(uo = install("uponly"));
-    SEXP uponly = getAttrib(VECTOR_ELT(CONTINUOUS, 0), uo);
+    PROTECT(uo = Rf_install("uponly"));
+    SEXP uponly = Rf_getAttrib(VECTOR_ELT(CONTINUOUS, 0), uo);
     SEXP dow;
-    PROTECT(dow = install("downonly"));
-    SEXP downonly = getAttrib(VECTOR_ELT(CONTINUOUS,0), dow);
+    PROTECT(dow = Rf_install("downonly"));
+    SEXP downonly = Rf_getAttrib(VECTOR_ELT(CONTINUOUS,0), dow);
     for (int period = 0; period < (observations - 1); period++)
     {
         pContinuousData->upOnly(period, LOGICAL(uponly)[period]);
         pContinuousData->downOnly(period, LOGICAL(downonly)[period]);
     }
     SEXP sim;
-    PROTECT(sim = install("simMean"));
-    SEXP simMean = getAttrib(VECTOR_ELT(CONTINUOUS,0), sim);
+    PROTECT(sim = Rf_install("simMean"));
+    SEXP simMean = Rf_getAttrib(VECTOR_ELT(CONTINUOUS,0), sim);
 	pContinuousData->similarityMean(REAL(simMean)[0]);
 	SEXP sims;
-	PROTECT(sims = install("simMeans"));
-	SEXP simMeans = getAttrib(VECTOR_ELT(CONTINUOUS, 0), sims);
+	PROTECT(sims = Rf_install("simMeans"));
+	SEXP simMeans = Rf_getAttrib(VECTOR_ELT(CONTINUOUS, 0), sims);
 	SEXP simNames;
-	PROTECT(simNames = getAttrib(simMeans, R_NamesSymbol));
+	PROTECT(simNames = Rf_getAttrib(simMeans, R_NamesSymbol));
 	int numberNetworks = Rf_length(simMeans);
 	for (int net = 0; net < numberNetworks; net++)
 	{
@@ -854,13 +854,13 @@ void setupContinuousGroup(SEXP CONTGROUP, Data *pData)
     for (int continuous = 0; continuous < nCont; continuous++)
     {
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-        SEXP actorSet = getAttrib(VECTOR_ELT(VECTOR_ELT(CONTGROUP, continuous), 0),
+		PROTECT(as = Rf_install("nodeSet"));
+        SEXP actorSet = Rf_getAttrib(VECTOR_ELT(VECTOR_ELT(CONTGROUP, continuous), 0),
 								  as);
 
         SEXP nm;
-        PROTECT(nm = install("name"));
-        SEXP name = getAttrib(VECTOR_ELT(VECTOR_ELT(CONTGROUP, continuous), 0),
+        PROTECT(nm = Rf_install("name"));
+        SEXP name = Rf_getAttrib(VECTOR_ELT(VECTOR_ELT(CONTGROUP, continuous), 0),
 							  nm);
 
         const ActorSet * myActorSet = pData->pActorSet(CHAR(STRING_ELT(
@@ -882,21 +882,21 @@ void setupConstantCovariate(SEXP COCOVAR,
 	// Rprintf("%x\n", pConstantCovariate);
 	double * start = REAL(COCOVAR);
 	SEXP mn;
-	PROTECT(mn = install("mean"));
-	SEXP ans = getAttrib(COCOVAR, mn);
+	PROTECT(mn = Rf_install("mean"));
+	SEXP ans = Rf_getAttrib(COCOVAR, mn);
 	double mean = REAL(ans)[0];
 	SEXP cn;
-	PROTECT(cn = install("centered"));
-	ans = getAttrib(COCOVAR, cn);
+	PROTECT(cn = Rf_install("centered"));
+	ans = Rf_getAttrib(COCOVAR, cn);
 	bool centered = LOGICAL(ans)[0];
 
 	// extract imputationValues if provided by user
 	SEXP im;
-	PROTECT(im = install("imputationValues"));
-	ans = getAttrib(COCOVAR, im);
+	PROTECT(im = Rf_install("imputationValues"));
+	ans = Rf_getAttrib(COCOVAR, im);
 	bool impute = FALSE;
 	double * imputationValues;
-	if(!isNull(ans))
+	if(!Rf_isNull(ans))
 	{
 		impute = TRUE;
 		imputationValues = REAL(ans);
@@ -947,12 +947,12 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 			constantCovariate++)
 	{
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
 				as);
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), nm);
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), nm);
 		const ActorSet * pActorSet = pData->pActorSet(CHAR(STRING_ELT(
 						actorSet, 0)));
 		int nActors = Rf_length(VECTOR_ELT(COCOVARGROUP, constantCovariate));
@@ -968,11 +968,11 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 		setupConstantCovariate(VECTOR_ELT(COCOVARGROUP,	constantCovariate),
 				pConstantCovariate);
 		SEXP mn;
-		PROTECT(mn = install("mean"));
-		SEXP obsmean = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), mn);
+		PROTECT(mn = Rf_install("mean"));
+		SEXP obsmean = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), mn);
 		SEXP cn;
-		PROTECT(cn = install("centered"));
-		SEXP ans = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), cn);
+		PROTECT(cn = Rf_install("centered"));
+		SEXP ans = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate), cn);
 		bool centered = LOGICAL(ans)[0];
 		if (centered)
 		{
@@ -983,16 +983,16 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 			pConstantCovariate->mean(REAL(obsmean)[0]);
 		}
 		SEXP sim;
-		PROTECT(sim = install("simMean"));
-		SEXP simMean = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
+		PROTECT(sim = Rf_install("simMean"));
+		SEXP simMean = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
 				sim);
 		pConstantCovariate->similarityMean(REAL(simMean)[0]);
 		SEXP sims;
-		PROTECT(sims = install("simMeans"));
-		SEXP simMeans = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
+		PROTECT(sims = Rf_install("simMeans"));
+		SEXP simMeans = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
 				sims);
 		SEXP simNames;
-		PROTECT(simNames = getAttrib(simMeans, R_NamesSymbol));
+		PROTECT(simNames = Rf_getAttrib(simMeans, R_NamesSymbol));
 		int numberNetworks = Rf_length(simMeans);
 		for (int net = 0; net < numberNetworks; net++)
 		{
@@ -1000,8 +1000,8 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 					CHAR(STRING_ELT(simNames, net)));
 		}
 		SEXP range;
-		PROTECT(range = install("range"));
-		SEXP Range = getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
+		PROTECT(range = Rf_install("range"));
+		SEXP Range = Rf_getAttrib(VECTOR_ELT(COCOVARGROUP, constantCovariate),
 				range);
 		pConstantCovariate->range(REAL(Range)[0]);
 		UNPROTECT(8);
@@ -1015,25 +1015,25 @@ void setupConstantCovariateGroup(SEXP COCOVARGROUP, Data *pData)
 void setupChangingCovariate(SEXP VARCOVAR,
 		ChangingCovariate * pChangingCovariate)
 {
-	int observations = ncols(VARCOVAR);
-	int nActors = nrows(VARCOVAR);
+	int observations = Rf_ncols(VARCOVAR);
+	int nActors = Rf_nrows(VARCOVAR);
 	double * start = REAL(VARCOVAR);
 	SEXP mn;
-	PROTECT(mn = install("mean"));
-	SEXP ans = getAttrib(VARCOVAR, mn);
+	PROTECT(mn = Rf_install("mean"));
+	SEXP ans = Rf_getAttrib(VARCOVAR, mn);
 	double mean = REAL(ans)[0];
 	SEXP cn;
-	PROTECT(cn = install("centered"));
-	ans = getAttrib(VARCOVAR, cn);
+	PROTECT(cn = Rf_install("centered"));
+	ans = Rf_getAttrib(VARCOVAR, cn);
 	bool centered = LOGICAL(ans)[0];
 
 	// extract imputationValues if provided by user
 	SEXP im;
-	PROTECT(im = install("imputationValues"));
-	ans = getAttrib(VARCOVAR, im);
+	PROTECT(im = Rf_install("imputationValues"));
+	ans = Rf_getAttrib(VARCOVAR, im);
 	bool impute = FALSE;
 	double * imputationValues = 0;
-	if(!isNull(ans))
+	if(!Rf_isNull(ans))
 	{
 		impute = TRUE;
 		imputationValues = REAL(ans);
@@ -1090,7 +1090,7 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 {
 	if (Rf_length(VARCOVARGROUP) == 0)
 		return;
-	int observations = ncols(VECTOR_ELT(VARCOVARGROUP,0));
+	int observations = Rf_ncols(VECTOR_ELT(VARCOVARGROUP,0));
 	if (observations != pData->observationCount() - 1)
 	{
 		Rf_error ("wrong number of observations in Changing Covariate");
@@ -1101,16 +1101,16 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 			changingCovariate++)
 	{		
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				as);
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				nm);
 		const ActorSet * pActorSet = pData->pActorSet(CHAR(STRING_ELT(
 						actorSet, 0)));
-		int nActors = nrows(VECTOR_ELT(VARCOVARGROUP,changingCovariate));
+		int nActors = Rf_nrows(VECTOR_ELT(VARCOVARGROUP,changingCovariate));
 
 		if (nActors != pActorSet->n())
 		{
@@ -1122,11 +1122,11 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 		setupChangingCovariate(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				pChangingCovariate);
 		SEXP mn;
-		PROTECT(mn = install("mean"));
-		SEXP obsmean = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), mn);
+		PROTECT(mn = Rf_install("mean"));
+		SEXP obsmean = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), mn);
 		SEXP cn;
-		PROTECT(cn = install("centered"));
-		SEXP ans = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), cn);
+		PROTECT(cn = Rf_install("centered"));
+		SEXP ans = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate), cn);
 		bool centered = LOGICAL(ans)[0];
 		if (centered)
 		{
@@ -1137,16 +1137,16 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 			pChangingCovariate->mean(REAL(obsmean)[0]);
 		}
 		SEXP sim;
-		PROTECT(sim = install("simMean"));
-		SEXP simMean = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
+		PROTECT(sim = Rf_install("simMean"));
+		SEXP simMean = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				sim);
 		pChangingCovariate->similarityMean(REAL(simMean)[0]);
 		SEXP sims;
-		PROTECT(sims = install("simMeans"));
-		SEXP simMeans = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
+		PROTECT(sims = Rf_install("simMeans"));
+		SEXP simMeans = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				sims);
 		SEXP simNames;
-		PROTECT(simNames = getAttrib(simMeans, R_NamesSymbol));
+		PROTECT(simNames = Rf_getAttrib(simMeans, R_NamesSymbol));
 		int numberNetworks = Rf_length(simMeans);
 		for (int net = 0; net < numberNetworks; net++)
 		{
@@ -1154,8 +1154,8 @@ void setupChangingCovariateGroup(SEXP VARCOVARGROUP, Data *pData)
 					CHAR(STRING_ELT(simNames, net)));
 		}
 		SEXP range;
-		PROTECT(range = install("range"));
-		SEXP Range = getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
+		PROTECT(range = Rf_install("range"));
+		SEXP Range = Rf_getAttrib(VECTOR_ELT(VARCOVARGROUP, changingCovariate),
 				range);
 		pChangingCovariate->range(REAL(Range)[0]);
 		UNPROTECT(8);		
@@ -1171,7 +1171,7 @@ void setupDyadicCovariate(SEXP DYADVAR,
 {
 	double *start = REAL(VECTOR_ELT(DYADVAR, 0));
 	double *missingstart = REAL(VECTOR_ELT(DYADVAR, 1));
-	int listlen = ncols(VECTOR_ELT(DYADVAR, 0));
+	int listlen = Rf_ncols(VECTOR_ELT(DYADVAR, 0));
 	//	Rprintf("listlen =  %d\n", listlen);
 	int pos = 0;
 	for (int row = 0; row < listlen; row++)
@@ -1184,7 +1184,7 @@ void setupDyadicCovariate(SEXP DYADVAR,
 		val = start[pos++];
 		pConstantDyadicCovariate->value(i-1, j-1, val);
 	}
-	listlen = ncols(VECTOR_ELT(DYADVAR, 1));
+	listlen = Rf_ncols(VECTOR_ELT(DYADVAR, 1));
 	pos = 0;
 	for (int row = 0; row < listlen; row++)
 	{
@@ -1210,12 +1210,12 @@ void setupDyadicCovariateGroup(SEXP DYADVARGROUP, Data *pData)
 			dyadicCovariate++)
 	{
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
 				as);
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
 				nm);
 		const ActorSet * myActorSet1 = pData->pActorSet(CHAR(STRING_ELT(
 						actorSet, 0)));
@@ -1227,8 +1227,8 @@ void setupDyadicCovariateGroup(SEXP DYADVARGROUP, Data *pData)
 		setupDyadicCovariate(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
 				pConstantDyadicCovariate);
 		SEXP mean;
-		PROTECT(mean = install("mean"));
-		SEXP Mean = getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
+		PROTECT(mean = Rf_install("mean"));
+		SEXP Mean = Rf_getAttrib(VECTOR_ELT(DYADVARGROUP, dyadicCovariate),
 				mean);
 		pConstantDyadicCovariate->mean(REAL(Mean)[0]);
 		UNPROTECT(3);
@@ -1243,7 +1243,7 @@ void unpackChangingDyadicPeriod(SEXP VARDYADVALS, ChangingDyadicCovariate *
 		pChangingDyadicCovariate, int period)
 {
 	double *start = REAL(VECTOR_ELT(VARDYADVALS, 0));
-	int listlen = ncols(VECTOR_ELT(VARDYADVALS, 0));
+	int listlen = Rf_ncols(VECTOR_ELT(VARDYADVALS, 0));
 	//	Rprintf("listlen =  %d\n", listlen);
 	int pos = 0;
 	for (int row = 0; row < listlen; row++)
@@ -1257,7 +1257,7 @@ void unpackChangingDyadicPeriod(SEXP VARDYADVALS, ChangingDyadicCovariate *
 		pChangingDyadicCovariate->value(i - 1, j - 1, period, val);
 	}
 	double *missingstart = REAL(VECTOR_ELT(VARDYADVALS, 1));
-	listlen = ncols(VECTOR_ELT(VARDYADVALS, 1));
+	listlen = Rf_ncols(VECTOR_ELT(VARDYADVALS, 1));
 	//	Rprintf("listlen =  %d\n", listlen);
 	pos = 0;
 	for (int row = 0; row < listlen; row++)
@@ -1302,11 +1302,11 @@ void setupChangingDyadicCovariateGroup(SEXP VARDYADGROUP, Data * pData)
 			changingDyadic++)
 	{
 		SEXP as;
-		PROTECT(as = install("nodeSet"));
-		SEXP actorSet = getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic), as);
+		PROTECT(as = Rf_install("nodeSet"));
+		SEXP actorSet = Rf_getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic), as);
 		SEXP nm;
-		PROTECT(nm = install("name"));
-		SEXP name = getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic), nm);
+		PROTECT(nm = Rf_install("name"));
+		SEXP name = Rf_getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic), nm);
 		const ActorSet * myActorSet1 = pData->pActorSet(CHAR(STRING_ELT(
 						actorSet, 0)));
 		const ActorSet * myActorSet2 = pData->pActorSet(CHAR(STRING_ELT(
@@ -1318,8 +1318,8 @@ void setupChangingDyadicCovariateGroup(SEXP VARDYADGROUP, Data * pData)
 					changingDyadic),
 				pChangingDyadicCovariate);
 		SEXP mean;
-		PROTECT(mean = install("mean"));
-		SEXP Mean = getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic),
+		PROTECT(mean = Rf_install("mean"));
+		SEXP Mean = Rf_getAttrib(VECTOR_ELT(VARDYADGROUP, changingDyadic),
 				mean);
 		pChangingDyadicCovariate->mean(REAL(Mean)[0]);
 		UNPROTECT(3);
@@ -1339,8 +1339,8 @@ void setupExogenousEventSet(SEXP EXOGEVENTSET, Data *pData)
 
 	/* first find the actor set */
 	SEXP as;
-	PROTECT(as = install("nodeSet"));
-	SEXP actorSet = getAttrib(EXOGEVENTSET, as);
+	PROTECT(as = Rf_install("nodeSet"));
+	SEXP actorSet = Rf_getAttrib(EXOGEVENTSET, as);
 
 	/* now process the events */
 	SEXP EVENTS = VECTOR_ELT(EXOGEVENTSET, 0);
@@ -1432,7 +1432,7 @@ SEXP createEffects(SEXP EFFECTS, Model *pModel, vector<Data *> * pGroupData,
 
 	/* set up a vector to return the pointers in */
 	SEXP effectPtrs;
-	PROTECT(effectPtrs = allocVector(VECSXP, nEffects));
+	PROTECT(effectPtrs = Rf_allocVector(VECSXP, nEffects));
 
 	for (int i = 0; i < nEffects; i++)
 	{
@@ -1546,7 +1546,7 @@ SEXP createInteractionEffects(SEXP EFFECTS, Model *pModel,
 
 	/* set up a vector to return the pointers in */
 	SEXP effectPtrs;
-	PROTECT(effectPtrs = allocVector(VECSXP, nEffects));
+	PROTECT(effectPtrs = Rf_allocVector(VECSXP, nEffects));
 
 	for (int i = 0; i < nEffects; i++)
 	{
@@ -1562,7 +1562,7 @@ SEXP createInteractionEffects(SEXP EFFECTS, Model *pModel,
 		EffectInfo * pEffect2 = (EffectInfo *) R_ExternalPtrAddr(
 				VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr2Col), i));
 		EffectInfo * pEffect3 = 0;
-		if (!isNull(VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i)))
+		if (!Rf_isNull(VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i)))
 		{
 			pEffect3 = (EffectInfo *) R_ExternalPtrAddr(
 					VECTOR_ELT(VECTOR_ELT(EFFECTS, intptr3Col), i));
@@ -1595,8 +1595,8 @@ void getChangeContributionStatistics(SEXP EFFECTSLIST,
 {
 
 	// get the column names from the names attribute
-	SEXP cols = PROTECT(install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	SEXP cols = PROTECT(Rf_install("names"));
+	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -1661,8 +1661,8 @@ void getActorStatistics(SEXP EFFECTSLIST,
 {
 
 	// get the column names from the names attribute
-	SEXP cols = PROTECT(install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	SEXP cols = PROTECT(Rf_install("names"));
+	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -1726,8 +1726,8 @@ void getStatistics(SEXP EFFECTSLIST,
 
 	// get the column names from the names attribute
 	SEXP cols;
-	PROTECT(cols = install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = Rf_install("names"));
+	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -2145,8 +2145,8 @@ void getScores(SEXP EFFECTSLIST, int period, int group,
 {
 
 	// get the column names from the names attribute
-	SEXP cols = PROTECT(install("names"));
-	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	SEXP cols = PROTECT(Rf_install("names"));
+	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
