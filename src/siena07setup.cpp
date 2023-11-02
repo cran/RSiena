@@ -22,7 +22,7 @@
 #include <R_ext/Random.h>
 #include <R_ext/Print.h>
 #include <R_ext/Error.h>
-// #include <Rinternals.h> // included by siena07setup.h
+#include <Rinternals.h>
 #include "siena07internals.h"
 #include "siena07utilities.h"
 #include "data/Data.h"
@@ -45,9 +45,9 @@ using namespace siena;
  * Convert an inter SEXP to c int. If the R value isNull, return the default value.
  */
 static int sexp_to_int(SEXP value, int def) {
-	if (!Rf_isNull(value))
+	if (!isNull(value))
 	{
-		return Rf_asInteger(value);
+		return asInteger(value);
 	}
 	return def;
 }
@@ -65,7 +65,7 @@ SEXP setupData(SEXP OBSERVATIONSLIST, SEXP ACTORSLIST)
 	/* make error messages go back to R nicely */
 	set_terminate(Rterminate);
 
-	int nGroups = Rf_length(OBSERVATIONSLIST);
+	int nGroups = length(OBSERVATIONSLIST);
 
 	vector<Data *> *pGroupData = new vector <Data *>;
 
@@ -74,18 +74,18 @@ SEXP setupData(SEXP OBSERVATIONSLIST, SEXP ACTORSLIST)
 		int observations = INTEGER(VECTOR_ELT(OBSERVATIONSLIST, group))[0];
 
 		pGroupData->push_back(new Data(observations));
-		int nNodeSets = Rf_length(VECTOR_ELT(ACTORSLIST, group));
+		int nNodeSets = length(VECTOR_ELT(ACTORSLIST, group));
 
 		for (int nodeSet = 0; nodeSet < nNodeSets; nodeSet++)
 		{
 			SEXP nsn;
-			PROTECT(nsn = Rf_install("nodeSetName"));
-			SEXP nodeSetName = Rf_getAttrib(VECTOR_ELT(VECTOR_ELT(ACTORSLIST,
+			PROTECT(nsn = install("nodeSetName"));
+			SEXP nodeSetName = getAttrib(VECTOR_ELT(VECTOR_ELT(ACTORSLIST,
 						group),
 					nodeSet), nsn);
 			(*pGroupData)[group]->
 				createActorSet(CHAR(STRING_ELT(nodeSetName, 0)),
-					Rf_length(VECTOR_ELT(VECTOR_ELT(ACTORSLIST,
+					length(VECTOR_ELT(VECTOR_ELT(ACTORSLIST,
 								group), nodeSet)));
 			UNPROTECT(1);
 		}
@@ -109,9 +109,9 @@ SEXP OneMode(SEXP RpData, SEXP ONEMODELIST)
 	int nGroups = pGroupData->size();
 	/* one mode networks are passed in as list of edgelists with attributes
 	   giving the size of the network */
-	if (nGroups != Rf_length(ONEMODELIST) )
+	if (nGroups != length(ONEMODELIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -133,9 +133,9 @@ SEXP Bipartite(SEXP RpData, SEXP BIPARTITELIST)
 	int nGroups = pGroupData->size();
 /* bipartite networks are passed in as list of edgelists with attributes
    giving the size of the network */
-	if (nGroups != Rf_length(BIPARTITELIST) )
+	if (nGroups != length(BIPARTITELIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -155,9 +155,9 @@ SEXP Behavior(SEXP RpData, SEXP BEHLIST)
 	int nGroups = pGroupData->size();
 /* behavior networks are passed in a list of lists of two matrices,
    one of values, one of missing values (boolean) */
-	if (nGroups != Rf_length(BEHLIST) )
+	if (nGroups != length(BEHLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -177,9 +177,9 @@ SEXP Continuous(SEXP RpData, SEXP CONTLIST)
 	int nGroups = pGroupData->size();
 /* continuous dependent variables are passed in a list of lists of two 
    matrices, one of values, one of missing values (boolean) */
-	if (nGroups != Rf_length(CONTLIST) )
+	if (nGroups != length(CONTLIST) )
 	{
-		Rf_error ("wrong number of groups");
+		error ("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -199,9 +199,9 @@ SEXP ConstantCovariates(SEXP RpData, SEXP COCOVARLIST)
 	int nGroups = pGroupData->size();
 /* constant covariates are passed in as vectors with embedded missing values */
 /* ignore missings for now */
-	if (nGroups != Rf_length(COCOVARLIST) )
+	if (nGroups != length(COCOVARLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -222,9 +222,9 @@ SEXP ChangingCovariates(SEXP RpData, SEXP VARCOVARLIST)
 	int nGroups = pGroupData->size();
 /* changing covariates are passed in as matrices with embedded missing values */
 /* ignore missings for now */
-	if (nGroups != Rf_length(VARCOVARLIST) )
+	if (nGroups != length(VARCOVARLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -245,9 +245,9 @@ SEXP DyadicCovariates(SEXP RpData, SEXP DYADVARLIST)
 	int nGroups = pGroupData->size();
 /* dyadic covariates are passed in as edgelists with embedded missing values */
 /* ignore missings for now */
-	if (nGroups != Rf_length(DYADVARLIST) )
+	if (nGroups != length(DYADVARLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -269,9 +269,9 @@ SEXP ChangingDyadicCovariates(SEXP RpData, SEXP VARDYADLIST)
 /* dyadic covariates are passed in as lists of edgelists
    with embedded missing values */
 /* ignore missings for now */
-	if (nGroups != Rf_length(VARDYADLIST) )
+	if (nGroups != length(VARDYADLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -296,9 +296,9 @@ SEXP ExogEvent(SEXP RpData, SEXP EXOGEVENTLIST)
 	   of the period. Final period exists in the latter but probably is not
 	   necessary. */
 
-	if (nGroups != Rf_length(EXOGEVENTLIST) )
+	if (nGroups != length(EXOGEVENTLIST) )
 	{
-		Rf_error("wrong number of groups");
+		error("wrong number of groups");
 	}
 	for (int group = 0; group < nGroups; group++)
 	{
@@ -324,21 +324,21 @@ SEXP Constraints(SEXP RpData, SEXP FROMHIGHERLIST, SEXP TOHIGHERLIST,
 		Data * pData = (*pGroupData)[group];
 
 		/* higher */
-		for (int i = 0; i < Rf_length(FROMHIGHERLIST); i++)
+		for (int i = 0; i < length(FROMHIGHERLIST); i++)
 		{
 			pData->
 				addNetworkConstraint(CHAR(STRING_ELT(FROMHIGHERLIST, i)),
 					CHAR(STRING_ELT(TOHIGHERLIST, i)), HIGHER);
 		}
 		/* disjoint */
-		for (int i = 0; i < Rf_length(FROMDISJOINTLIST); i++)
+		for (int i = 0; i < length(FROMDISJOINTLIST); i++)
 		{
 			pData->
 				addNetworkConstraint(CHAR(STRING_ELT(FROMDISJOINTLIST, i)),
 					CHAR(STRING_ELT(TODISJOINTLIST, i)), DISJOINT);
 		}
 		/* at least one */
-		for (int i = 0; i < Rf_length(FROMATLEASTONELIST); i++)
+		for (int i = 0; i < length(FROMATLEASTONELIST); i++)
 		{
 			pData->
 				addNetworkConstraint(CHAR(STRING_ELT(FROMATLEASTONELIST,
@@ -377,11 +377,11 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 	
 	/* find the number of columns of the data frame (all will be the same
 	   as they are split in R just before the call) */
-	//	int n = Rf_length(VECTOR_ELT(EFFECTSLIST, 0));
+	//	int n = length(VECTOR_ELT(EFFECTSLIST, 0));
 	// get the column names from the names attribute
 	SEXP cols;
-	PROTECT(cols = Rf_install("names"));
-	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -409,12 +409,12 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 
 	/* create a structure for the return values */
 	SEXP pointers;
-	PROTECT(pointers = Rf_allocVector(VECSXP, Rf_length(EFFECTSLIST)));
+	PROTECT(pointers = allocVector(VECSXP, length(EFFECTSLIST)));
 
 	/* loop over the different dependent variables 
 	 * in case there are continuous variables in the model, the 
-	 * Rf_length of the effectlist is nrVar + 1 (extra var "sde") */
-	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
+	 * length of the effectlist is nrVar + 1 (extra var "sde") */
+	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
 		const char * networkName =  CHAR(STRING_ELT(
 				VECTOR_ELT(VECTOR_ELT(
@@ -432,7 +432,7 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 
 	}
 	SEXP RpModel;
-	PROTECT (RpModel = Rf_allocVector(VECSXP, 1));
+	PROTECT (RpModel = allocVector(VECSXP, 1));
 	SET_VECTOR_ELT(RpModel, 0, R_MakeExternalPtr((void *) pModel,
 			R_NilValue,
 			R_NilValue));
@@ -440,7 +440,7 @@ SEXP effects(SEXP RpData, SEXP EFFECTSLIST)
 
 	/* ans will be the return value */
 	SEXP ans;
-	PROTECT(ans = Rf_allocVector(VECSXP, 2));
+	PROTECT(ans = allocVector(VECSXP, 2));
 
 	SET_VECTOR_ELT(ans, 1, pointers);
 	SET_VECTOR_ELT(ans, 0, RpModel);
@@ -460,8 +460,8 @@ SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST)
 	// get the column names from the names attribute
 
 	SEXP cols;
-	PROTECT(cols = Rf_install("names"));
-	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -488,12 +488,12 @@ SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST)
 
 	/* create a structure for the return values */
 	SEXP pointers;
-	PROTECT(pointers = Rf_allocVector(VECSXP, Rf_length(EFFECTSLIST)));
+	PROTECT(pointers = allocVector(VECSXP, length(EFFECTSLIST)));
 
 	/* loop over the different dependent variables */
-	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
+	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
-		if (Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)) > 0)
+		if (length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)) > 0)
 		{
 			const char * networkName =
 				CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i),
@@ -515,7 +515,7 @@ SEXP interactionEffects(SEXP RpModel, SEXP EFFECTSLIST)
 	}
 	/* ans will be the return value */
 	SEXP ans;
-	PROTECT(ans = Rf_allocVector(VECSXP, 1));
+	PROTECT(ans = allocVector(VECSXP, 1));
 
 	SET_VECTOR_ELT(ans, 0, pointers);
 
@@ -570,7 +570,7 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 	/* get hold of the model object */
 	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
 
-	if(!Rf_isNull(NORMSETRATES)){
+	if(!isNull(NORMSETRATES)){
 		pModel->normalizeSettingRates(*(LOGICAL(NORMSETRATES)));
 	}
 
@@ -578,7 +578,7 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 
 	pModel->numberOfPeriods(totObservations);
 
-	if (!Rf_isNull(CONDVAR))
+	if (!isNull(CONDVAR))
 	{
 		int *change = INTEGER(CONDTARGETS);
 		pModel->conditional(true);
@@ -600,13 +600,13 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 		}
 	}
 	/* get names vector for max degree */
-	if (!Rf_isNull(MAXDEGREE))
+	if (!isNull(MAXDEGREE))
 	{
-		SEXP Names = Rf_getAttrib(MAXDEGREE, R_NamesSymbol);
+		SEXP Names = getAttrib(MAXDEGREE, R_NamesSymbol);
 
 		for (int group = 0; group < nGroups; group++)
 		{
-			for (int i = 0; i < Rf_length(Names); i++)
+			for (int i = 0; i < length(Names); i++)
 			{
 				Data * pData = (*pGroupData)[group];
 				NetworkLongitudinalData * pNetworkData =
@@ -616,13 +616,13 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 		}
 	}
 	/* get names vector for UniversalOffset */
-	if (!Rf_isNull(UNIVERSALOFFSET))
+	if (!isNull(UNIVERSALOFFSET))
 	{
-		SEXP Names = Rf_getAttrib(UNIVERSALOFFSET, R_NamesSymbol);
+		SEXP Names = getAttrib(UNIVERSALOFFSET, R_NamesSymbol);
 
 		for (int group = 0; group < nGroups; group++)
 		{
-			for (int i = 0; i < Rf_length(Names); i++)
+			for (int i = 0; i < length(Names); i++)
 			{
 				Data * pData = (*pGroupData)[group];
 				NetworkLongitudinalData * pNetworkData =
@@ -632,18 +632,18 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 		}
 	}
 	/* set the parallel run flag on the model */
-	if (!Rf_isNull(PARALLELRUN))
+	if (!isNull(PARALLELRUN))
 	{
 		pModel->parallelRun(true);
 	}
 	/* get names vector for modeltype */
-	if (!Rf_isNull(MODELTYPE))
+	if (!isNull(MODELTYPE))
 	{
-		SEXP Names = Rf_getAttrib(MODELTYPE, R_NamesSymbol);
+		SEXP Names = getAttrib(MODELTYPE, R_NamesSymbol);
 
 		for (int group = 0; group < nGroups; group++)
 		{
-			for (int i = 0; i < Rf_length(Names); i++)
+			for (int i = 0; i < length(Names); i++)
 			{
 				Data * pData = (*pGroupData)[group];
 				NetworkLongitudinalData * pNetworkData =
@@ -653,13 +653,13 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 		}
 	}
 	/* get names vector for modeltype */
-	if (!Rf_isNull(BEHMODELTYPE))
+	if (!isNull(BEHMODELTYPE))
 	{
-		SEXP Names = Rf_getAttrib(BEHMODELTYPE, R_NamesSymbol);
+		SEXP Names = getAttrib(BEHMODELTYPE, R_NamesSymbol);
 
 		for (int group = 0; group < nGroups; group++)
 		{
-			for (int i = 0; i < Rf_length(Names); i++)
+			for (int i = 0; i < length(Names); i++)
 			{
 				Data * pData = (*pGroupData)[group];
 				BehaviorLongitudinalData * pBehaviorData =
@@ -668,17 +668,17 @@ SEXP setupModelOptions(SEXP DATAPTR, SEXP MODELPTR, SEXP MAXDEGREE,
 			}
 		}
 	}
-//	if (!Rf_isNull(MODELTYPE))
+//	if (!isNull(MODELTYPE))
 //	{
-//		pModel->modelType(Rf_asInteger(MODELTYPE));
+//		pModel->modelType(asInteger(MODELTYPE));
 //	}
 	// print out Data for profiling
-	if (Rf_asInteger(PROFILEDATA))
+	if (asInteger(PROFILEDATA))
 	{
 		printOutData((*pGroupData)[0]);
 	}
 
-	pModel->simpleRates(Rf_asInteger(SIMPLERATES));
+	pModel->simpleRates(asInteger(SIMPLERATES));
 
 	return R_NilValue;
 
@@ -689,22 +689,22 @@ SEXP getTargetActorStatistics(SEXP dataptr, SEXP modelptr, SEXP effectslist, SEX
 	vector<Data *> * pGroupData = (vector<Data *> *) R_ExternalPtrAddr(dataptr);
 	Model * pModel = (Model *) R_ExternalPtrAddr(modelptr);
 
-	if (!Rf_isNull(parallelrun))
+	if (!isNull(parallelrun))
 	{
 		pModel->parallelRun(true);
 	}
 	size_t nGroups = pGroupData->size();
 
-	SEXP altStats = PROTECT(Rf_allocVector(VECSXP, nGroups));
+	SEXP altStats = PROTECT(allocVector(VECSXP, nGroups));
 	SEXP NETWORKTYPES = PROTECT(createRObjectAttributes(effectslist, altStats));
-	int objEffects = Rf_length(NETWORKTYPES);
+	int objEffects = length(NETWORKTYPES);
 
 	for (size_t group = 0; group < nGroups; group++)
 	{
-		SET_VECTOR_ELT(altStats, group, Rf_allocVector(VECSXP, (*pGroupData)[group]->observationCount()));
+		SET_VECTOR_ELT(altStats, group, allocVector(VECSXP, (*pGroupData)[group]->observationCount()));
 		for (int p = 0; p < (*pGroupData)[group]->observationCount(); p++)
 	{
-			SET_VECTOR_ELT(VECTOR_ELT(altStats,group), p, Rf_allocVector(VECSXP, objEffects));
+			SET_VECTOR_ELT(VECTOR_ELT(altStats,group), p, allocVector(VECSXP, objEffects));
 	}
 	}
 
@@ -721,7 +721,7 @@ SEXP getTargetActorStatistics(SEXP dataptr, SEXP modelptr, SEXP effectslist, SEX
 			for (unsigned e = 0; e < actorStatistics.size(); e++)
 		 {
 				SEXP actorStatsValues;
-				PROTECT(actorStatsValues = Rf_allocVector(REALSXP,actors));
+				PROTECT(actorStatsValues = allocVector(REALSXP,actors));
 				double * astats = REAL(actorStatsValues);
 				for (int i = 0; i < actors; i++)
 			{
@@ -741,22 +741,22 @@ SEXP getTargetsChangeContributions(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST
 	vector<Data *> * pGroupData = (vector<Data *> *) R_ExternalPtrAddr(DATAPTR);
 	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
 
-	if (!Rf_isNull(PARALLELRUN))
+	if (!isNull(PARALLELRUN))
 	{
 		pModel->parallelRun(true);
 	}
 	size_t nGroups = pGroupData->size();
 
-	SEXP altStats = PROTECT(Rf_allocVector(VECSXP, nGroups));
+	SEXP altStats = PROTECT(allocVector(VECSXP, nGroups));
 	SEXP NETWORKTYPES = PROTECT(createRObjectAttributes(EFFECTSLIST, altStats));
-	int objEffects = Rf_length(NETWORKTYPES);
+	int objEffects = length(NETWORKTYPES);
 
 	for (size_t group = 0; group < nGroups; group++)
 	{
-		SET_VECTOR_ELT(altStats, group, Rf_allocVector(VECSXP, (*pGroupData)[group]->observationCount()));
+		SET_VECTOR_ELT(altStats, group, allocVector(VECSXP, (*pGroupData)[group]->observationCount()));
 			for (int p = 0; p < (*pGroupData)[group]->observationCount(); p++)
 		{
-			SET_VECTOR_ELT(VECTOR_ELT(altStats,group), p, Rf_allocVector(VECSXP,objEffects));
+			SET_VECTOR_ELT(VECTOR_ELT(altStats,group), p, allocVector(VECSXP,objEffects));
 		}
 	}
 
@@ -775,7 +775,7 @@ SEXP getTargetsChangeContributions(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST
 			for(unsigned e = 0; e < changeContributions.size(); e++)
 			{
 				SET_VECTOR_ELT(VECTOR_ELT(VECTOR_ELT(altStats,group), period+1),
-								e, Rf_allocVector(VECSXP,actors));
+								e, allocVector(VECSXP,actors));
 				int choices;
 				if (strcmp(CHAR(STRING_ELT(NETWORKTYPES,e)), "behavior") == 0)
 				{
@@ -788,9 +788,9 @@ SEXP getTargetsChangeContributions(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST
 				}
 				for(int actor = 0; actor < actors; actor++)
 				{
-					SEXP actorsVal = PROTECT(Rf_allocVector(REALSXP, choices));
+					SEXP actorsVal = PROTECT(allocVector(REALSXP, choices));
 					double * d = REAL(actorsVal);
-					for(int i = 0; i< Rf_length(actorsVal); i++)
+					for(int i = 0; i< length(actorsVal); i++)
 					{
 						d[i]=changeContributions.at(e).at(actor)[i];
 					}
@@ -808,7 +808,7 @@ SEXP getTargetsChangeContributions(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST
 		for(unsigned e = 0; e < changeContributions.size(); e++)
 		{
 			SET_VECTOR_ELT(VECTOR_ELT(VECTOR_ELT(altStats, group), 0),
-				e, Rf_allocVector(VECSXP, actors));
+				e, allocVector(VECSXP, actors));
 			int choices;
 			if (strcmp(CHAR(STRING_ELT(NETWORKTYPES,e)), "behavior") == 0)
 			{
@@ -820,9 +820,9 @@ SEXP getTargetsChangeContributions(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST
 			}
 			for(int actor = 0; actor < actors; actor++)
 			{
-				SEXP actorsVal = PROTECT(Rf_allocVector(REALSXP, choices));
+				SEXP actorsVal = PROTECT(allocVector(REALSXP, choices));
 				double * d = REAL(actorsVal);
-				for(int i = 0; i< Rf_length(actorsVal); i++)
+				for(int i = 0; i< length(actorsVal); i++)
 				{
 					d[i]=changeContributions.at(e).at(actor)[i];
 				}
@@ -848,7 +848,7 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	int returnStaticChangeContributions = sexp_to_int(RETURNSTATICCHANGECONTRIBUTIONS, 0);
 	if(returnActorStatistics + returnStaticChangeContributions >= 2)
 	{
-		Rf_error("returnActorStatistics and returnStaticChangeContributions are mutually exclusive");
+		error("returnActorStatistics and returnStaticChangeContributions are mutually exclusive");
 	}
 	if (returnActorStatistics) {
 		return getTargetActorStatistics(DATAPTR, MODELPTR, EFFECTSLIST, PARALLELRUN);
@@ -863,12 +863,12 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	/* get hold of the model object */
 	Model * pModel = (Model *) R_ExternalPtrAddr(MODELPTR);
 
-	if (!Rf_isNull(PARALLELRUN))
+	if (!isNull(PARALLELRUN))
 	{
 		//TODO is this correct?
 		pModel->parallelRun(true);
 		// Or shouldn't it be:
-		// 	if(Rf_asInteger(PARALLELRUN)==1)
+		// 	if(asInteger(PARALLELRUN)==1)
 		//  {
 		//		pModel->parallelRun(true);
 		//  }
@@ -880,16 +880,16 @@ SEXP getTargets(SEXP DATAPTR, SEXP MODELPTR, SEXP EFFECTSLIST,
 	// sum of lengths of first columns:
 	// for dimension of return vector
 	int nEffects = 0;
-	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
+	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
-		nEffects += Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		nEffects += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 	}
 
 	/* fra will contain the simulated statistics and must be initialised
 	   to 0. Use rfra to reduce function evaluations. */
-	SEXP fra = PROTECT(Rf_allocMatrix(REALSXP, nEffects, totObservations));
+	SEXP fra = PROTECT(allocMatrix(REALSXP, nEffects, totObservations));
 	double * rfra = REAL(fra);
-	for (int i = 0; i < Rf_length(fra); i++)
+	for (int i = 0; i < length(fra); i++)
 	{
 		rfra[i] = 0;
 	}
@@ -977,18 +977,18 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 	double * prmin = REAL(PRMIN);
 	double * prmib = REAL(PRMIB);
 
-	SEXP minimalChains = PROTECT(Rf_allocVector(VECSXP, totObservations));
-	SEXP currentChains = PROTECT(Rf_allocVector(VECSXP, totObservations));
-	SEXP accepts = PROTECT(Rf_allocVector(VECSXP, totObservations));
-	SEXP rejects = PROTECT(Rf_allocVector(VECSXP, totObservations));
-	SEXP aborts = PROTECT(Rf_allocVector(VECSXP, totObservations));
+	SEXP minimalChains = PROTECT(allocVector(VECSXP, totObservations));
+	SEXP currentChains = PROTECT(allocVector(VECSXP, totObservations));
+	SEXP accepts = PROTECT(allocVector(VECSXP, totObservations));
+	SEXP rejects = PROTECT(allocVector(VECSXP, totObservations));
+	SEXP aborts = PROTECT(allocVector(VECSXP, totObservations));
 	GetRNGstate();
 
 	/* localML */
 	int localML = 0;
-	if (!Rf_isNull(LOCALML))
+	if (!isNull(LOCALML))
 	{
-		localML = Rf_asInteger(LOCALML);
+		localML = asInteger(LOCALML);
 	}
 	pModel->localML(localML);
 
@@ -1057,19 +1057,19 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 				pMLSimulation->rVariables();
 			int numberVariables = rVariables.size();
 
-			SEXP accepts1 = PROTECT(Rf_allocMatrix(INTSXP, numberVariables, 9));
-			SEXP rejects1 = PROTECT(Rf_allocMatrix(INTSXP, numberVariables, 9));
-			SEXP aborts1 = PROTECT(Rf_allocVector(INTSXP, 9));
+			SEXP accepts1 = PROTECT(allocMatrix(INTSXP, numberVariables, NBRTYPES));
+			SEXP rejects1 = PROTECT(allocMatrix(INTSXP, numberVariables, NBRTYPES));
+			SEXP aborts1 = PROTECT(allocVector(INTSXP, NBRTYPES));
 			int * iaccepts = INTEGER(accepts1);
 			int * irejects = INTEGER(rejects1);
 			int * iaborts = INTEGER(aborts1);
-			for (int i = 0; i < 9; i++)
+			for (int i = 0; i < NBRTYPES; i++)
 			{
-				iaborts[i] = pMLSimulation->aborted(i);
+				iaborts[i] = pMLSimulation->aborts(i);
 				for (int j = 0; j < numberVariables; j++)
 				{
-					iaccepts[i + 9 * j] = rVariables[j]->acceptances(i);
-					irejects[i + 9 * j] = rVariables[j]->rejections(i);
+					iaccepts[i + NBRTYPES * j] = rVariables[j]->acceptances(i);
+					irejects[i + NBRTYPES * j] = rVariables[j]->rejections(i);
 				}
 			}
 			SET_VECTOR_ELT(accepts, periodFromStart, accepts1);
@@ -1084,7 +1084,7 @@ SEXP mlMakeChains(SEXP DATAPTR, SEXP MODELPTR,
 		delete pMLSimulation;
 	}
 
-	SEXP ans = PROTECT(Rf_allocVector(VECSXP, 5));
+	SEXP ans = PROTECT(allocVector(VECSXP, 5));
 	SET_VECTOR_ELT(ans, 0, minimalChains);
 	SET_VECTOR_ELT(ans, 1, currentChains);
 	SET_VECTOR_ELT(ans, 2, accepts);

@@ -6,8 +6,8 @@
   Print methods for Siena effects objects
 }
 \description{
-  Prints the major columns of the effects object. Or all, with any non
-  atomic columns listed separately.
+  Prints the major columns of the effects object.   
+  Or all, with any non-atomic columns listed separately.
 }
 \usage{
 \method{print}{sienaEffects}(x, fileName = NULL, includeOnly=TRUE,
@@ -50,7 +50,7 @@ includeOnly=TRUE, expandDummies = FALSE, ...)
  \code{filename}.
 }
 \references{
-  See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
+  See \url{https://www.stats.ox.ac.uk/~snijders/siena/}
 }
 \author{Ruth Ripley, modifications by Tom Snijders and Viviana Amati.
 }

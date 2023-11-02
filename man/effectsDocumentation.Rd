@@ -4,7 +4,7 @@
 Function to create a table of documentation of effect names, short names etc.
 }
 \description{
-  Produces a table of the shortnames and other information for effects,
+  Produces a table of the shortnames and other information for effects,  
   either in html or latex.
 }
 \usage{
@@ -60,7 +60,7 @@ effectsDocumentation(effects = NULL, type = "html", display = (type=="html"),
 }
 \seealso{\code{\link{getEffects}}, \code{\link{includeEffects}},
     \code{\link{summary.sienaEffects}}, \code{\link{includeInteraction}}.}
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{See \url{https://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley, Tom A.B. Snijders}
 \examples{
 \dontrun{effectsDocumentation()}

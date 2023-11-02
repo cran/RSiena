@@ -6,10 +6,10 @@ A function to update the initial values of theta, and a function
 to update an effects object.
 }
 \description{
-  \code{updateTheta} copies the final values of any matching selected effects
-  from a \code{\link{sienaFit}} object to a Siena effects object.\cr
-  \code{updateSpecification} includes in a Siena effects object
-  a set of effects that are included in another effects object.
+  \code{updateTheta} copies the final values of any matching selected effects   
+  from a \code{\link{sienaFit}} object to a Siena effects object.\cr   
+  \code{updateSpecification} includes in a Siena effects object   
+  a set of effects that are included in another effects object.  
 }
 \usage{
 updateTheta(effects, prevAns, varName=NULL)
@@ -60,7 +60,7 @@ updateSpecification(effects.to, effects.from, name.to=NULL, name.from=NULL)
   In most cases, using \code{\link{siena07}} with \code{prevAns} will be more
   efficient.
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{See \url{https://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley, Tom A.B. Snijders}
 
 \seealso{\code{\link{siena07}}, \code{\link{getEffects}}

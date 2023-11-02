@@ -376,7 +376,7 @@ double Model::basicRateParameter(LongitudinalData * pDependentVariableData,
 void Model::basicScaleParameter(int period, double value)
 {
 	if (period >= this->lnumberOfPeriods)
-		Rf_error("Array basicScaleParameter out of bounds\n");
+		error("Array basicScaleParameter out of bounds\n");
 		
 	if (!this->lbasicScaleParameters)
 	{
@@ -400,7 +400,7 @@ void Model::basicScaleParameter(int period, double value)
 double Model::basicScaleParameter(int period) const
 {
 	if (period >= this->lnumberOfPeriods)
-		Rf_error("Array basicScaleParameter out of bounds\n");
+		error("Array basicScaleParameter out of bounds\n");
 
 	return this->lbasicScaleParameters[period];
 }

@@ -83,7 +83,7 @@ void PrimaryLayer::initialize(const Network& rNetwork) {
 			lpCounts = new OneModeNetwork(rNetwork.n());
 			lpLayer = new OneModeNetwork(rNetwork.n());
 		} else {
-			Rf_error("not implemented");
+			error("not implemented");
 		}
 	}
 
@@ -141,7 +141,7 @@ void PrimaryLayer::initializeOneMode(const Network& rNetwork) {
  * network.
  */
 void PrimaryLayer::initializeTwoMode(const Network& rNetwork) {
-	Rf_error("primary layer not implemented for two-mode");
+	error("primary layer not implemented for two-mode");
 }
 
 void PrimaryLayer::modify2PathCountOneMode(const Network& rNetwork, int ego, int alter, int val) {
@@ -191,7 +191,7 @@ void PrimaryLayer::modify2PathCountOneMode(const Network& rNetwork, int ego, int
  * @param[in[ val The magnitude of modification
  */
 void PrimaryLayer::modify2PathCountTwoMode(const Network& rNetwork, int ego, int alter, int val) {
-	Rf_error("not implemented");
+	error("not implemented");
 }
 
 void PrimaryLayer::onNetworkDisposeEvent(const Network& /*rNetwork*/) {

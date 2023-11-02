@@ -1,7 +1,7 @@
 ## /*****************************************************************************
 ##	* SIENA: Simulation Investigation for Empirical Network Analysis
 ##	*
-##	* Web: http://www.stats.ox.ac.uk/~snijders/siena
+##	* Web: https://www.stats.ox.ac.uk/~snijders/siena
 ##	*
 ##	* File: sienaGOF.r
 ##	*
@@ -17,28 +17,56 @@ sienaGOF <- function(
 		sienaFitObject,	auxiliaryFunction,
 		period=NULL, verbose=FALSE, join=TRUE, twoTailed=FALSE,
 		cluster=NULL, robust=FALSE,
-		groupName="Data1", varName, tested=NULL, ...)
+		groupName="Data1", varName, tested=NULL,
+		giveNAWarning=TRUE, ...)
 	{
 	## require(MASS)
 	## require(Matrix)
 	##	Check input
-	if (sienaFitObject$maxlike)
+	# fitList indicates whether the sienaFitObject is a list of
+	# sienaFit objects, or a single such object.
+	fitList <- FALSE
+	if (inherits(sienaFitObject, "sienaFit"))
+	{
+		sFO <- sienaFitObject
+	}
+	else
+	{
+		if (all(vapply(sienaFitObject, function(x){inherits(x, "sienaFit")}, FUN.VALUE=TRUE)))		
+		{
+			sFO <- sienaFitObject[[1]]
+# If fitList, it is assumed that all elements of this list
+# have the same specification, and the first one is used
+# to deduce this information.
+			fitList <- TRUE
+			if (!inherits(sFO, "sienaFit"))
+			{
+				stop("The first parameter of sienaGOF must be a sienaFit object or a list of such objects")
+			}	
+			if (length(period) > 1)
+			{
+				stop("For operating on a list of sienaFit objects, only a single period can be used.")
+			}
+		}
+	}
+	
+	if (sFO$maxlike)
 	{
 		stop(
 	"sienaGOF can only operate on results from Method of Moments estimation.")
 	}
-	if (! sienaFitObject$returnDeps)
+	if (! sFO$returnDeps)
 	{
 		stop("You must instruct siena07 to return the simulated networks")
 	}
-	if (!is.null(sienaFitObject$sf2.byIteration))
+	if (!is.null(sFO$sf2.byIteration))
 	{
-		if (!sienaFitObject$sf2.byIteration)
+		if (!sFO$sf2.byIteration)
     	{
         	stop("sienaGOF needs sf2 by iterations (use lessMem=FALSE)")
     	}
 	}
-	iterations <- length(sienaFitObject$sims)
+	iterations <- length(sFO$sims)
 	if (iterations < 1)
 	{
 		stop("You need at least one iteration.")
@@ -51,10 +79,20 @@ sienaGOF <- function(
 	{
 		stop("You need to supply the parameter <<auxiliaryFunction>>.")
 	}
-	groups <- length(sienaFitObject$f$groupNames)
-	if (is.null(tested))
+# There might be more than one varName:
+	if (is.null(sFO$f[[groupName]]$depvars[[varName[1]]]))
 	{
-		tested <- sienaFitObject$test
+		stop("There is a mismatch between the sienaFitObject and the groupName or varName.")
+	}
+	
+	groups <- length(sFO$f$groupNames)
+	if (fitList)
+	{
+		tested <- FALSE
+	}
+	else if (is.null(tested))
+	{
+		tested <- sFO$test
 	}
 	else
 	{
@@ -62,13 +100,13 @@ sienaGOF <- function(
 		{
 			stop('tested should be a logical vector')
 		}
-		if ((length(tested) != length(sienaFitObject$test)) | (all(tested == FALSE)))
+		if ((length(tested) != length(sFO$test)) | (all(tested == FALSE)))
 		{
-			tested <- rep(FALSE, length(sienaFitObject$test))
+			tested <- rep(FALSE, length(sFO$test))
 		}
 		else
 		{
-			tested <- (tested & sienaFitObject$test)
+			tested <- (tested & sFO$test)
 		}
 	}
 	if (verbose)
@@ -81,20 +119,44 @@ sienaGOF <- function(
 		{
 			message("Detected ", iterations, " iterations and ", groups, " groups.")
 		}
+		if (fitList)
+		{
+			message("The data for analysis is a list of ", length(sienaFitObject),
+						" sienaFit objects.")
+		}
 	}
 
-	if (is.null(period) )
+	if (fitList)
 	{
-		period <- 1:(attr(sienaFitObject$f[[1]]$depvars[[1]], "netdims")[3] - 1)
+		if (is.null(period) )
+		{
+			period <- 1
+		}
+		per <- period # can only be a single number
+		auxFunction <- function(i, sienaFitObject, j, groupName, varName, ...){
+			auxiliaryFunction(i, sienaFitObject[[j]]$f,
+						sienaFitObject[[j]]$sims, per, groupName, varName, ...)}
+		period <- seq_along(sienaFitObject) 
+		# from now on, period will denote the rank number of the sienaFit object.
+	}	
+	else
+	{
+		if (is.null(period) )
+		{
+			period <- 1:(attr(sienaFitObject$f[[1]]$depvars[[1]], "netdims")[3] - 1)
+		}
+		auxFunction <- function(i, sienaFitObject, j, groupName, varName, ...){
+			auxiliaryFunction(i, sienaFitObject$f,
+						sienaFitObject$sims, j, groupName, varName, ...)}
 	}
 
-	 obsStatsByPeriod <- lapply(period, function (j) {
+	obsStatsByPeriod <- lapply(period, function (j) {
 						matrix(
-						auxiliaryFunction(NULL,
-								sienaFitObject$f,
-				sienaFitObject$sims, j, groupName, varName, ...)
-						, nrow=1)
+						auxFunction(NULL,
+								sienaFitObject, j, groupName, varName, ...)
+								, nrow=1)
 				})
+
 	if (join)
 	{
 		obsStats <- Reduce("+", obsStatsByPeriod)
@@ -105,12 +167,13 @@ sienaGOF <- function(
 		obsStats <- obsStatsByPeriod
 		names(obsStats) <- paste("Period", period)
 	}
-	plotKey <- names(auxiliaryFunction(NULL, sienaFitObject$f,
-				sienaFitObject$sims, 1, groupName, varName, ...))
+	plotKey <- names(auxiliaryFunction(NULL, sFO$f,
+				sFO$sims, 1, groupName, varName, ...))
 	class(obsStats) <- "observedAuxiliaryStatistics"
 	attr(obsStats,"auxiliaryStatisticName") <-
 			deparse(substitute(auxiliaryFunction))
 	attr(obsStats,"joint") <- join
+	
 
 	##	Calculate the simulated auxiliary statistics
 	if (verbose)
@@ -129,9 +192,10 @@ sienaGOF <- function(
 		ttcSimulation <- system.time(simStatsByPeriod <-
 			lapply(period, function (j) {
 				simStatsByPeriod <- parSapply(cluster, 1:iterations,
-					function (i){auxiliaryFunction(i, sienaFitObject$f,
-						sienaFitObject$sims, j, groupName, varName, ...)})
+					function (i){auxFunction(i, sienaFitObject,
+										j, groupName, varName, ...)})
 				simStatsByPeriod <- matrix(simStatsByPeriod, ncol=iterations)
+				dimnames(simStatsByPeriod)[[1]] <-	plotKey
 				dimnames(simStatsByPeriod)[[2]] <-	1:iterations
 				t(simStatsByPeriod)
 				}))
@@ -153,9 +217,8 @@ sienaGOF <- function(
 										" calculations\r")
 								flush.console()
 								}
-								auxiliaryFunction(i,
-										sienaFitObject$f,
-										sienaFitObject$sims, j, groupName, varName, ...)
+								auxFunction(i, sienaFitObject,
+										j, groupName, varName, ...)
 						})
 					if (verbose)
 					{
@@ -164,16 +227,29 @@ sienaGOF <- function(
 					flush.console()
 					simStatsByPeriod <-
 							matrix(simStatsByPeriod, ncol=iterations)
+					dimnames(simStatsByPeriod)[[1]] <-	plotKey
 					dimnames(simStatsByPeriod)[[2]] <-	1:iterations
 					t(simStatsByPeriod)
 					})
 	  )
 	}
 
+	## Give a warning in case of missings.
+	nmissings <- vapply(simStatsByPeriod,
+		function(sp){apply(sp, 2, function(x){sum(is.na(x))})},
+					FUN.VALUE=rep(0,dim(simStatsByPeriod[[1]])[2]))
+	rownames(nmissings) <- plotKey
+	if ((sum(nmissings) > 0) & giveNAWarning)
+	{
+		cat("Number of missing values in the simulated functions:\n")
+		print(t(nmissings))
+		warning("Some simulated values are missing.")
+	}
+
 	## Aggregate by period if necessary to produce simStats
 	if (join)
 	{
-		simStats <- Reduce("+", simStatsByPeriod)
+			simStats <- Reduce("+", simStatsByPeriod)
 		simStats <- list(Joint=simStats)
 	}
 	else
@@ -188,6 +264,7 @@ sienaGOF <- function(
 	attr(simStats,"time") <- ttcSimulation
 
 	applyTest <-  function (observed, simulated)
+# Test using Mahalanobis distances
 	{
 		if (!inherits(simulated,"matrix"))
 		{
@@ -213,17 +290,18 @@ sienaGOF <- function(
 		}
 		else
 		{
-			a <- cov(simulated)
+			a <- cov(simulated, use="pairwise.complete.obs")
+			a[is.na(a)] <- 0
 		}
 		ainv <- ginv(a)
 		arank <- rankMatrix(a)
-		expectation <- colMeans(simulated);
+		expectation <- colMeans(simulated)
 		centeredSimulations <- scale(simulated, scale=FALSE)
 		if (variates==1)
 		{
 			centeredSimulations <- t(centeredSimulations)
 		}
-		mhd <- function(x)
+		mhd <- function(x) # Mahalanobis distance
 		{
 			x %*% ainv %*% x
 		}
@@ -285,8 +363,10 @@ sienaGOF <- function(
 	}
 	else
 	{
-		covInvByPeriod <- lapply(period, function(i) ginv(
-							cov(simStatsByPeriod[[i]]) ))
+		covInvByPeriod <- lapply(period, function(i){
+				b <- cov(simStatsByPeriod[[i]], use="pairwise.complete.obs")
+				b[is.na(b)] <- 0
+				ginv(b)})
 	}
 
 	obsMhd <- sapply(period, function (i) {
@@ -327,7 +407,7 @@ sienaGOF <- function(
 					t(sienaFitObject$targets2[effectsToInclude, , drop=FALSE])
 			G <- sienaFitObject$sf2[, , effectsToInclude, drop=FALSE] -
 					rep(obsSuffStats, each=nSims)
-			sigma <- cov(apply(G, c(1, 3), sum))
+			sigma <- cov(apply(G, c(1, 3), sum), use="pairwise.complete.obs")
 			SF <- sienaFitObject$ssc[ , , effectsToInclude, drop=FALSE]
 			dimnames(SF)[[3]] <- effectsObject$effectName[effectsToInclude]
 			dimnames(G) <- dimnames(SF)
@@ -440,6 +520,7 @@ sienaGOF <- function(
 	attr(res, "simTime") <- attr(simStats,"time")
 	attr(res, "twoTailed") <- twoTailed
 	attr(res, "joined") <- join
+	attr(res, "nmissings") <- nmissings
 	res
 }
 
@@ -509,6 +590,11 @@ print.sienaGOF <- function (x, ...) {
 summary.sienaGOF <- function(object, ...) {
 	x <- object
 	print(x)
+	if (sum(attr(x, "nmissings"))> 0){
+		cat("\nThere were missing values in the simulated statistics.\n")
+		cat("Their number (by period):\n")
+		print(t(attr(x, "nmissings")))
+	}
 	if (attr(x, "scoreTest")) {
 		oneStepSpecs <- attr(x, "oneStepSpecs")
 		oneStepMhd <- attr(x, "oneStepMahalanobisDistances")
@@ -770,8 +856,7 @@ plot.sienaGOF <- function (x, center=FALSE, scale=FALSE, violin=TRUE,
 		yperc.upper <- sapply(1:ncol(sims), function(i)
 					sort(sims[,i])[ind.upper]  )
 		if (violin) {
-			panel.violin(x, y, box.ratio=box.ratio, col = "transparent",
-					bw="nrd", ...)
+			panel.violin(x, y, box.ratio=box.ratio, col = "transparent", ...)
 		}
 		panel.bwplot(x, y, box.ratio=.1, fill = "gray", ...)
 		panel.xyplot(xAxis, yperc.lower, lty=3, col = "gray", lwd=3, type="l",
@@ -840,9 +925,10 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 		key <- key[screen]
 	}
 
-	sims.themin <- apply(sims, 2, min)
-	sims.themax <- apply(sims, 2, max)
-	sims.mean <- apply(sims, 2, mean)
+	sims.themin <- apply(sims, 2, min, na.rm=TRUE)
+	sims.themax <- apply(sims, 2, max, na.rm=TRUE)
+	sims.mean <- apply(sims, 2, mean, na.rm=TRUE)
+	sims.sd <- apply(sims, 2, sd, na.rm=TRUE)
 	sims.min <- pmin(sims.themin, obs)
 	sims.max <- pmax(sims.themax, obs)
 
@@ -867,6 +953,7 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 		sims.mean <- sims.mean/sims.range
 		sims.min <- sims.min/sims.range
 		sims.max <- sims.max/sims.range
+		sims.sd <- sims.sd/sims.range
 	}
 
 	screen <- sapply(1:ncol(obs),function(i){
@@ -891,18 +978,19 @@ descriptives.sienaGOF <- function (x, center=FALSE, scale=FALSE,
 				sort(sims[,i])[ind.upper]  )
 	ypg <- sapply(1:ncol(sims), function(i)	mean(sims[,i] > obs[1,i]))
 	ypp <- sapply(1:ncol(sims), function(i)	mean(sims[,i] >= obs[1,i]))
-    violins <- matrix(NA, 9, ncol(sims))
+    violins <- matrix(NA, 10, ncol(sims))
 	violins[1,] <- sims.themax
 	violins[2,] <- yperc.upper
 	violins[3,] <- sims.mean
 	violins[4,] <- yperc.mid
 	violins[5,] <- yperc.lower
 	violins[6,] <- sims.themin
-	violins[7,] <- obs
-    violins[8, ] <- ypg
-    violins[9, ] <- ypp
+	violins[7,] <- sims.sd
+	violins[8,] <- obs
+    violins[9, ] <- ypg
+    violins[10, ] <- ypp
     rownames(violins) <- c("max", "perc.upper", "mean", "median",
-        "perc.lower", "min", "obs", "p>", "p>=")
+        "perc.lower", "min", "sd", "obs", "p>", "p>=")
 	colnames(violins) <- key
 	violins
 }
@@ -1392,25 +1480,27 @@ TriadCensus <- function (i, obsData, sims, period, groupName, varName, levls = 1
           "300"  = 0)
 
   # iterate through all non-empty dyads (from lower to higher ID)
-  for(i in 1:N){
-    for(j in neighborsHigher[[i]]){
-      # set of nodes that are linked to i and j
-      third <- setdiff( union(neighbors[[i]], neighbors[[j]]),
-                    c(i, j) )
-      # store triads with just one tie
-      triadType <- ifelse(matReciprocal[i,j] == 2, 3, 2)
-      tc[triadType] <- tc[triadType] + N - length(third) - 2
-      for (k in third){
+  if (length(neighborsHigher) > 0){ # else mat is the zero matrix
+	for(ii in 1:N){
+		for(j in neighborsHigher[[ii]]){
+      # set of nodes that are linked to ii and j
+		third <- setdiff( union(neighbors[[ii]], neighbors[[j]]),
+                    c(ii, j) )
+		# store triads with just one tie
+		triadType <- ifelse(matReciprocal[ii,j] == 2, 3, 2)
+		tc[triadType] <- tc[triadType] + N - length(third) - 2
+		for (k in third){
         # only store triads once
-        if(j < k || ( i < k && k < j && !(k %in% neighbors[[i]]) ) ){
-          t1 <- matDirected[i,j]
-          t2 <- matDirected[j,k]
-          t3 <- matDirected[i,k]
-          triadType <- lookup[t1, t2, t3]
-          tc[triadType] <- tc[triadType] + 1
-        }
-      }
-    }
+			if(j < k || ( ii < k && k < j && !(k %in% neighbors[[ii]]) ) ){
+				t1 <- matDirected[ii,j]
+				t2 <- matDirected[j,k]
+				t3 <- matDirected[ii,k]
+				triadType <- lookup[t1, t2, t3]
+				tc[triadType] <- tc[triadType] + 1
+				}
+			}
+		}
+	}
   }
   # assign residual to empty triad count
   tc[1] <- 1/6 * N*(N-1)*(N-2) - sum(tc[2:16])

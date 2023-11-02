@@ -4,19 +4,21 @@
 \alias{descriptives.sienaGOF}
 \title{Functions to assess goodness of fit for SAOMs}
 \description{
- The function \code{sienaGOF} assesses goodness of fit
- for a model specification as represented by an estimated
- \code{sienaFit} object created by \code{\link{siena07}}.
- This is done by simulations of auxiliary
- statistics, that differ from the statistics used for estimating
- the parameters. The auxiliary statistics must be given explicitly.
- The fit is good if the average values
- of the auxiliary statistics over many simulation runs are close
- to the values observed in the data.
- A Monte Carlo test based on the Mahalanobis
- distance is used to calculate frequentist \eqn{p}-values.
- Plotting functions can be used to diagnose bad fit. There are basic
- functions for calculating auxiliary statistics available out of the
+ The function \code{sienaGOF} assesses goodness of fit  
+ for a model specification as represented by an estimated  
+ \code{sienaFit} object created by \code{\link{siena07}}.  
+ This is done by simulations of auxiliary  
+ statistics, that differ from the statistics used for estimating  
+ the parameters. The auxiliary statistics must be given explicitly. 
+ 
+ The fit is good if the average values  
+ of the auxiliary statistics over many simulation runs are close  
+ to the values observed in the data.  
+ A Monte Carlo test based on the Mahalanobis  
+ distance is used to calculate frequentist \eqn{p}-values.  
+
+ Plotting functions can be used to diagnose bad fit. There are basic  
+ functions for calculating auxiliary statistics available out of the  
  box, and the user is invited to create additional ones.
  }
 
@@ -24,15 +26,21 @@
 sienaGOF(sienaFitObject, auxiliaryFunction,
         period=NULL, verbose=FALSE, join=TRUE, twoTailed=FALSE,
         cluster=NULL, robust=FALSE, groupName="Data1",
-        varName, tested=NULL, \dots)
+        varName, tested=NULL, giveNAWarning=TRUE, \dots)
 \method{plot}{sienaGOF}(x, center=FALSE, scale=FALSE, violin=TRUE, key=NULL,
         perc=.05, period=1, position=4, fontsize=12, \dots)
 descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
         period=1, showAll=FALSE)
 }
 \arguments{
-  \item{sienaFitObject}{Results of class \code{\link{sienaFit}}, produced by a
-    call to \code{\link{siena07}} with \code{returnDeps = TRUE}.}
+  \item{sienaFitObject}{An object of class \code{\link{sienaFit}}, produced by a
+    call to \code{\link{siena07}} with \code{returnDeps = TRUE} and
+    \code{maxlike=FALSE} (the latter is the default, the former is not);
+    or a list of such objects; if a list, then the first period 
+    of each \code{\link{sienaFit}} object will be used.\cr
+    If this is a list of \code{\link{sienaFit}} objects,
+    where \code{sienaFitObject} is mentioned below, it refers to the first
+    element of this list.}
   \item{auxiliaryFunction}{Function to be used to calculate
     the auxiliary statistics;
     this can be a user-defined function, e.g. depending on the \code{sna}
@@ -50,34 +58,39 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
     and \dots are further arguments (like \code{levls} in the examples below
     and in \code{\link{sienaGOF-auxiliary}}).}
   \item{period}{Vector of period(s) to be used (may run from 1 to
-    number of waves - 1). Has an effect only if \code{join=FALSE}.}
+    number of waves - 1). Has an effect only if \code{join=FALSE}.\cr
+    May be only a single number if \code{sienaFitObject} is a list of
+    \code{\link{sienaFit}} objects.}
   \item{verbose}{Whether to print intermediate results. This may give some
        peace of mind to the user because calculations can take some time.}
   \item{join}{Boolean: should sienaGOF do tests on all of the periods
        individually (\code{FALSE}), or sum across periods (\code{TRUE})?}
-  \item{twoTailed}{Whether to use two tails for calculating \eqn{p}-values on the
-        Monte Carlo test. Recommended for advanced users only,
+  \item{twoTailed}{Whether to use two tails for calculating \eqn{p}-values on
+        the Monte Carlo test. Recommended for advanced users only,
         as it is probably only applicable in rare cases.}
   \item{cluster}{Optionally, a \code{parallel} or \code{snow} cluster to execute
         the auxiliary function calculations on.}
   \item{robust}{ Whether to use robust estimation of the covariance matrix.}
   \item{groupName}{ Name of group; relevant for multi-group data sets.}
   \item{varName}{ Name of dependent variable.}
-  \item{tested}{ A logical vector of length \code{sienaFitObject$pp} (number of parameters),
-          indicating a subset of tested parameters;
-          or \code{NULL}, indicating all tested parameters; or \code{FALSE},
-          indicating nothing is to be tested.}
+  \item{tested}{ A logical vector of length \code{sienaFitObject$pp}
+          (number of parameters), indicating a subset of tested parameters;
+          or \code{NULL}, indicating all tested parameters (see below);
+          or \code{FALSE}, indicating nothing is to be tested.}
+  \item{giveNAWarning}{If \code{TRUE}, a warning is given if any simulated
+        values are missing.}
   \item{x}{ Result from a call to sienaGOF. }
   \item{center}{ Whether to center the statistics by median during plotting.}
   \item{scale}{ Whether to scale the statistics by range during plotting.
-                scale=TRUE makes little sense without also center=TRUE.}
+                scale=\code{TRUE} makes little sense without also
+                center=\code{TRUE}.}
   \item{violin}{ Use violin plots (vs. box plots only)? }
   \item{key}{ Keys in the plot for the levels of the auxiliary statistic
         (as given by parameter \code{levls} in the examples). }
   \item{perc}{ 1 minus confidence level for the confidence bands (two sided). }
   \item{position}{ Position where the observed value is plotted: 1=under,
-        2=to the left, 3=above, 4=to the right of the red dot. Can be a single number
-        from 1 to 4, or a vector with positions for each statistic
+        2=to the left, 3=above, 4=to the right of the red dot. Can be a single
+        number from 1 to 4, or a vector with positions for each statistic
         (possibly recycled).}
   \item{fontsize}{ Font size for the observed values plotted.}
   \item{\dots}{Other arguments; for \code{sienaGOF()}, e.g., \code{levls} as a
@@ -86,7 +99,8 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
        for \code{plot.sienaGOF()}, e.g., the usual plotting parameters
        \code{main}, \code{xlab}, \code{ylab}, \code{cex}, \code{cex.main},
        \code{cex.lab}, and \code{cex.axis}.}
-  \item{showAll}{If FALSE, drops statistics with variance 0, like in the plot.}
+  \item{showAll}{If \code{FALSE}, drops statistics with variance 0,
+       like in the plot.}
 }
 \details{
  This function is used to assess the goodness of fit of an estimated stochastic
@@ -95,10 +109,10 @@ descriptives.sienaGOF(x, center=FALSE, scale=FALSE, perc=.05, key=NULL,
  of the periods, with the simulated values for the ends of the periods.
  The differences are assessed by combining the components of the auxiliary
  statistic using the Mahalanobis distance.
- 
+
  For \code{sienaFitObject}s that were made for a multi-group data set,
  if you are not sure about the \code{groupName}s to use, these can be retrieved
- by the command \code{'names(dataObject)'} (where \code{dataObject} is 
+ by the command \code{"names(dataObject)"} (where \code{dataObject} is
  the data used to produce the \code{sienaFitObject}).
  Mostly they are \code{"Data1", "Data2"}, etc.
 
@@ -218,23 +232,23 @@ We recommend the following heuristic approach to model checking:
     \code{descriptives.sienaGOF} returns a matrix giving numerical
     information about what is plotted in the \code{plot} method:
     maximum, upper percentile, mean, median, lower percentile, minimum,
+    and standard deviation
     of the simulated distributions of the auxiliary statistics, the
     observed values, and the proportions of simulated values greater
     and greater-or-equal than the observed values.
     If \code{center=TRUE} the median is subtracted
     from mean, median, and percentiles; if \code{scale=TRUE}
-    these numbers are divided by (maximum - minimum). \cr
+    these numbers and the standard deviation
+    are divided by (maximum - minimum). \cr
     If \code{showAll=FALSE}, statistics with variance 0 will be dropped.
 }
 
 \references{
-\itemize{
-\item See \url{http://www.stats.ox.ac.uk/~snijders/siena/}
-  for general information on RSiena.
-\item Lospinoso, J.A. and Snijders, T.A.B. (2019).
-  Goodness of fit for stochastic actor-orientedmodels.
-  \emph{Methodological Innovations}, 12:2059799119884282.
-}
+ Lospinoso, J.A. and Snijders, T.A.B. (2019,
+  Goodness of fit for stochastic actor-oriented models.
+  \emph{Methodological Innovations}, \bold{12}:2059799119884282.
+  
+  Also see \url{https://www.stats.ox.ac.uk/~snijders/siena/}
 }
 \author{Josh Lospinoso, modifications by Ruth Ripley and Tom Snijders}
 \seealso{\code{\link{siena07}}, \code{\link{sienaGOF-auxiliary}},
@@ -293,16 +307,20 @@ plot(gofo)
 ## A demonstration of using multiple processes
 \dontrun{
 library(parallel)
-(n.clus <- detectCores() - 1) # subtract 1 to keep time for other processes
+(n.clus <- detectCores() - 1) 
+n.clus <- min(n.clus, 4)  # keep time for other processes
 myalgorithm.c <- sienaAlgorithmCreate(nsub=4, n3=1000, seed=1265)
 (ans.c <- siena07(myalgorithm.c, data=mydata, effects=myeff, batch=TRUE,
     returnDeps=TRUE, useCluster=TRUE, nbrNodes=n.clus))
 gofi.1 <- sienaGOF(ans.c, TriadCensus, verbose=TRUE, varName="mynet1")
 cl <- makeCluster(n.clus)
 gofi.cl <- sienaGOF(ans.c, TriadCensus, varName="mynet1", cluster=cl)
+cl2 <- makeCluster(2)
+gofi.cl2 <- sienaGOF(ans.c, TriadCensus, varName="mynet1", cluster=cl2)
 # compare simulation times
 attr(gofi.1,"simTime")
 attr(gofi.cl,"simTime")
+attr(gofi.cl2,"simTime")
 }
 
 }

@@ -11,8 +11,6 @@
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
 #include <Rinternals.h>
-#undef error
-#undef length
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -45,7 +43,7 @@
 #include <vector>
 #include <cmath>
 
-// #include <Rinternals.h> // already included
+#include <Rinternals.h>
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
 
@@ -136,7 +134,32 @@ NetworkVariable::NetworkVariable(NetworkLongitudinalData * pData,
 	this->lalter = 0;
 
 	this->lnetworkModelType = NetworkModelType(pData->modelType());
+	this->lnetworkModelTypeDoubleStep = false;
+	this->lnetworkDoubleStepProb = 0;
 
+	if (this->loneMode)
+	{
+		if (this->lnetworkModelType == DOUBLESTEP25)
+		{
+			this->lnetworkModelTypeDoubleStep = true;
+			this->lnetworkDoubleStepProb = 0.25;
+		}
+		if (this->lnetworkModelType == DOUBLESTEP50)
+		{
+			this->lnetworkModelTypeDoubleStep = true;
+			this->lnetworkDoubleStepProb = 0.50;
+		}
+		if (this->lnetworkModelType == DOUBLESTEP75)
+		{
+			this->lnetworkModelTypeDoubleStep = true;
+			this->lnetworkDoubleStepProb = 0.75;
+		}
+		if (this->lnetworkModelType == DOUBLESTEP100)
+		{
+			this->lnetworkModelTypeDoubleStep = true;
+			this->lnetworkDoubleStepProb = 1.00;
+		}
+	}
 }
 
 
@@ -293,6 +316,23 @@ bool NetworkVariable::networkModelTypeB() const
 		this->lnetworkModelType == BAGREE || this->lnetworkModelType == BJOINT;
 }
 
+/**
+ * Returns whether the model type is one of the double step models.
+ */
+
+bool NetworkVariable::networkModelTypeDoubleStep() const
+{
+	return this->lnetworkModelTypeDoubleStep;
+}
+
+
+/**
+ * Returns the probability for the DOUBLESTEP model.
+ */
+double NetworkVariable::networkDoubleStepProb() const
+{
+	return this->lnetworkDoubleStepProb;
+}
 
 
 // ----------------------------------------------------------------------------
@@ -574,6 +614,7 @@ void NetworkVariable::makeChange(int actor)
 			return;
 		}
 		alter = this->lalter;
+// this->lalter is determined in calculateModelTypeBProbabilities()
 	}
 	else
 	{
@@ -597,6 +638,11 @@ void NetworkVariable::makeChange(int actor)
 		}
 
 		alter = nextIntWithProbabilities(m,	this->lprobabilities);
+
+		if (this->lnetworkModelTypeDoubleStep)
+		{
+			this->lalter = alter;
+		}
 
 //		if (this->stepType() > 1) {
 //			if (this->lpNetworkCache->outTieExists(alter)) {
@@ -628,7 +674,7 @@ void NetworkVariable::makeChange(int actor)
 		if (this->pSimulation()->pModel()->needDerivatives())
 		{
 			this->accumulateDerivatives(); // ABC
-		}		
+		}
 	}
 //	 NB  the probabilities in the reported chain are probably wrong for !accept
 	if (this->pSimulation()->pModel()->needChain())
@@ -774,7 +820,7 @@ void NetworkVariable::calculatePermissibleChanges()
 	{
 		this->lpermitted[i] = false;
 	}
-	
+
 	Setting* curSetting = 0;
 	ITieIterator* iter = 0;
 	if (this->stepType() != -1)
@@ -791,7 +837,7 @@ void NetworkVariable::calculatePermissibleChanges()
 		int i = ii;
 		if (this->stepType() > -1) {
 			if (!iter->valid()) {
-				Rf_error( "size of iterator != size setting");
+				error( "size of iterator != size setting");
 			}
 			i = iter->actor();
 			iter->next();
@@ -889,7 +935,7 @@ void NetworkVariable::calculateTieFlipContributions()
 		if (this->stepType() != -1)
 		{
 			if (!permIter->valid()) {
-				Rf_error("permitted iter length != settings permitted size");
+				error("permitted iter length != settings permitted size");
 			}
 			alter = permIter->actor();
 			permIter->next();
@@ -1039,7 +1085,7 @@ void NetworkVariable::calculateTieFlipContributions()
 
 
 /**
- * If Settings model, chooses the setting; 
+ * If Settings model, chooses the setting;
  * calculates the probability of each actor
  * for being chosen as alter for the next tie flip.
  */
@@ -1071,7 +1117,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 //		}
 //		else
 //		{
-//			Rf_error("setting not found");
+//			error("setting not found");
 //		}
 //		bool needEgo = true;
 //		if (row.size() == 0)
@@ -1104,7 +1150,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 //	}
 	if (stepType() > -1)
 	{
-		initializeSetting(); 
+		initializeSetting();
 		this->lpNetworkCache->stepTypeSet(stepType());
 	}
 	this->preprocessEgo(this->lego);
@@ -1187,7 +1233,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 	}
 
 	double total = 0;
-	double maxValue = 0; // the maximum never can be less than 0 
+	double maxValue = 0; // the maximum never can be less than 0
 					// because there always is the no-change option
 	int m = this->m(); // not this->m()+1 for two-mode network;
 					// this is handled separately below
@@ -1206,7 +1252,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 			egoOutDegree = this->lpNetwork->outDegree(this->lego);
 			if (egoOutDegree > m)
 			{
-					Rf_error("outdegree > primary setting size");
+					error("outdegree > primary setting size");
 			}
 //			else if (egoOutDegree < m)
 //			{
@@ -1225,7 +1271,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 		{
 			if (!permIter->valid())
 			{
-				Rf_error( "permIter size differs from setting size");
+				error( "permIter size differs from setting size");
 			}
 			alter = permIter->actor();
 			permIter->next();
@@ -1299,7 +1345,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 		maxValue = max(maxValue, this->lprobabilities[alter]);
 	}
 
-	if (permIter != 0) 
+	if (permIter != 0)
 	{
 		permIter->reset();
 	}
@@ -1307,16 +1353,16 @@ void NetworkVariable::calculateTieFlipProbabilities()
 	for (int alteri = 0; alteri < m; alteri++) {
 		alter = alteri;
 
-		if (this->stepType() != -1) 
+		if (this->stepType() != -1)
 		{
-			if (!permIter->valid()) 
+			if (!permIter->valid())
 			{
-				Rf_error( "permitted iter length != settings permitted size");
+				error( "permitted iter length != settings permitted size");
 			}
 			alter = permIter->actor();
 			permIter->next();
 		}
-	
+
 		if (this->lpermitted[alter])
 		{
 			this->lprobabilities[alter] -= 	maxValue;
@@ -1366,23 +1412,23 @@ void NetworkVariable::calculateTieFlipProbabilities()
 					if (alter < permIter->actor())
 					{
 						lprobabilities[alter] = 0;
-					} 
-					else 
+					}
+					else
 					{
 						lprobabilities[alter] /= total;
 						permIter->next();
 					}
 				}
-				else 
+				else
 				{
 					lprobabilities[alter] = 0;
 				}
 			} // else non-settings model
-			else if (lpermitted[alter]) 
+			else if (lpermitted[alter])
 			{
 				this->lprobabilities[alter] /= total;
-			} 
-			else 
+			}
+			else
 			{
 				this->lprobabilities[alter] = 0;
 			}
@@ -1394,7 +1440,7 @@ void NetworkVariable::calculateTieFlipProbabilities()
 		Rprintf("this actor = %d\n", (this->lego + 1) );
 		Rprintf("this period = %d\n", (this->period() + 1) );
 		// counting starts at 0
-		Rf_error("total probability non-positive");
+		error("total probability non-positive");
 	}
 
 	// delete iter
@@ -1428,7 +1474,7 @@ void NetworkVariable::accumulateScores(int alter) const
 		if (alter >= m) {
 			Rprintf("this->n = %d this->m = %d m = %d alter = %d \n", this->n(),
 					this->m(), m, alter);
-		Rf_error("alter too large");
+		error("alter too large");
 	}
 	for (int h = 0; h < m; h++)
 	{
@@ -1437,7 +1483,7 @@ void NetworkVariable::accumulateScores(int alter) const
 	}
 	if (sumPermitted <= 0)
 	{
-		Rf_error("nothing was permitted");
+		error("nothing was permitted");
 	}
 	else if (sumPermitted >= 2)
 		// if sumPermitted == 1, no contribution to scores
@@ -1452,7 +1498,7 @@ void NetworkVariable::accumulateScores(int alter) const
 			{
 				Rprintf("R_IsNaN error: i = %d ego = %d alter = %d m = %d\n",
 					i, this->lego, alter, m);
-				Rf_error("nan score 41");
+				error("nan score 41");
 			}
 			if (curSetting) {
 				permIter->reset();
@@ -1466,7 +1512,7 @@ void NetworkVariable::accumulateScores(int alter) const
 				{
 					if (!permIter->valid())
 					{
-						Rf_error("iterator not valid");
+						error("iterator not valid");
 					}
 					j = permIter->actor();
 					permIter->next();
@@ -1498,14 +1544,14 @@ void NetworkVariable::accumulateScores(int alter) const
 							this->levaluationEffectContribution[j][i]);
 					Rprintf("R_IsNaN error: this->lprobabilities[j] = %f\n",
 							this->lprobabilities[j]);
-					Rf_error("nan score 1");
+					error("nan score 1");
 				}
 			}
 			if (R_IsNaN(this->pSimulation()->score(pEffect->pEffectInfo())))
 			{
 				Rprintf("R_IsNaN error: i = %d ego = %d alter = %d m = %d\n",
 					i, this->lego, alter, m);
-					Rf_error("nan score 0");
+					error("nan score 0");
 			}
 			this->pSimulation()->score(pEffect->pEffectInfo(),
 				this->pSimulation()->score(pEffect->pEffectInfo()) + score);
@@ -1536,7 +1582,7 @@ void NetworkVariable::accumulateScores(int alter) const
 				{
 					if (!permIter->valid())
 					{
-						Rf_error("iterator not valid");
+						error("iterator not valid");
 					}
 					j = permIter->actor();
 					permIter->next();
@@ -1576,7 +1622,7 @@ void NetworkVariable::accumulateScores(int alter) const
 				{
 					if (!permIter->valid())
 					{
-						Rf_error("iterator not valid");
+						error("iterator not valid");
 					}
 					j = permIter->actor();
 					permIter->next();
@@ -1990,6 +2036,10 @@ void NetworkVariable::accumulateSymmetricModelScores(int alter, bool accept)
 	case NORMAL:
 	case AFORCE:
 	case AAGREE:
+	case DOUBLESTEP25:
+	case DOUBLESTEP50:
+	case DOUBLESTEP75:
+	case DOUBLESTEP100:
 	case NOTUSED:
 		break;
 	}
@@ -2266,6 +2316,10 @@ bool NetworkVariable::calculateModelTypeBProbabilities()
 	case AFORCE:
 	case AAGREE:
 	case NOTUSED:
+	case DOUBLESTEP25:
+	case DOUBLESTEP50:
+	case DOUBLESTEP75:
+	case DOUBLESTEP100:
 		break;
 	}
 
@@ -2683,7 +2737,7 @@ bool NetworkVariable::constrained() const
 
 /**
  * Returns the value of the alter in the current step. Only used for model type
- * B with symmetric networks.
+ * B with symmetric networks; and for model type DOUBLESTEP
  */
 int NetworkVariable::alter() const
 {

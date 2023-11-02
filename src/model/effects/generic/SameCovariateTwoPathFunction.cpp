@@ -31,9 +31,10 @@ namespace siena
  */
 
 SameCovariateTwoPathFunction::SameCovariateTwoPathFunction(
-	string networkName, string covariateName, bool excludeMissing) :
+	string networkName, string covariateName, bool same, bool excludeMissing) :
 	CovariateNetworkAlterFunction(networkName, covariateName)
 {
+	this->lsame = same;
 	this->lexcludeMissing = excludeMissing;
 }
 
@@ -58,7 +59,7 @@ void SameCovariateTwoPathFunction::initialize(const Data * pData,
  * that the function has been initialized before and pre-processed with
  * respect to a certain ego.
  */
-double SameCovariateTwoPathFunction::value(int alter)
+double SameCovariateTwoPathFunction::value(int alter) const
 {
 	int statistic = 0;
 	if  (!(this->lexcludeMissing && this->missing(alter)))
@@ -73,16 +74,32 @@ double SameCovariateTwoPathFunction::value(int alter)
 				// Get the receiver of the outgoing tie.
 				int h = iter.actor();
 				// 2-paths:
-				if (!(this->lexcludeMissing && this->missing(h)))
+				if (this->lsame)
+				{
+					if (!(this->lexcludeMissing && this->missing(h)))
 					{
-					if ((fabs(this->CovariateNetworkAlterFunction::value(h)
-				- this->CovariateNetworkAlterFunction::value(this->ego()))
+						if ((fabs(this->CovariateNetworkAlterFunction::covvalue(h) -
+							 this->CovariateNetworkAlterFunction::covvalue(this->ego()))
 									< EPSILON) &&
-					(pNetwork->tieValue(h, alter) >= 1))
-						{
-							statistic++ ;
+							(pNetwork->tieValue(h, alter) >= 1))
+							{
+								statistic++ ;
+							}
 						}
-					}
+				}
+				else
+				{
+					if (!(this->lexcludeMissing && this->missing(h)))
+					{
+						if ((fabs(this->CovariateNetworkAlterFunction::covvalue(h) -
+							 this->CovariateNetworkAlterFunction::covvalue(this->ego()))
+									>= EPSILON) &&
+							(pNetwork->tieValue(h, alter) >= 1))
+							{
+								statistic++ ;
+							}
+						}
+				}
 			}
 	}
 	return statistic;

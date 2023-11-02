@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snijders/siena
+# * Web: https://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: sienaDataCreate.r
 # *
@@ -235,7 +235,22 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 	dots <- as.list(substitute(list(...)))[-1] ##first entry is the word 'list'
 	if (length(dots) == 0)
 	{
-		stop('need some networks')
+		stop('need some objects')
+	}
+	if (length(dots) == 1)
+	{
+		ldots <- list(...)
+		dotsIsList <- (is.list(ldots[[1]]))
+# If dotsIsList, it needs to be a list of variables
+		if (dotsIsList) 
+		{
+			dots <- as.list(substitute(...))[-1]
+			narg <- length(ldots)
+		}
+	}
+	else
+	{
+		dotsIsList <- FALSE
 	}
 	nm <- names(dots)
 	if (is.null(nm))
@@ -255,7 +270,14 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 	{
 		nm[fixup] <- dep
 	}
-	dots <- list(...)
+	if (!dotsIsList)
+	{
+		dots <- list(...)
+	}
+	else
+	{
+		dots <- (...)
+	}
 	names(dots) <- nm
 	if (any(duplicated(nm)))
 	{
@@ -972,13 +994,15 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 				attr(depvars[[i]], "noMissing") <- noMissing
 		   }
 		}
+			
+		if (someOnly)
+		{
+		message("For dependent variable ", names(depvars)[i], ", in some periods,")
+		message("there are only increases, or only decreases.")
+		message("This will be respected in the simulations. ")
+		message("If this is not desired, use allowOnly=FALSE when creating the dependent variable.")
+		}
 		attr(depvars[[i]], 'name') <- names(depvars)[i]
-	}
-	if (someOnly)
-	{
-message('For some variables, in some periods, there are only increases, or only decreases.')
-message('This will be respected in the simulations. ')
-message('If this is not desired, use allowOnly=FALSE when creating the dependent variables.')
 	}
 	## create the object
 	z <- NULL
@@ -1079,8 +1103,12 @@ checkConstraints <- function(z)
 					{
 						var2 <- depvar2[,, obs]
 					}
-					var1[var1 %in% c(10, 11)] <- var1[var1 %in% c(10, 11)] - 10
-					var2[var2 %in% c(10, 11)] <- var2[var2 %in% c(10, 11)] - 10
+#					var1[var1 %in% c(10, 11)] <- var1[var1 %in% c(10, 11)] - 10
+#					var2[var2 %in% c(10, 11)] <- var2[var2 %in% c(10, 11)] - 10
+					var1[var1==10] <- 0
+					var1[var1==11] <- 1
+					var2[var2==10] <- 0
+					var2[var2==11] <- 1
 					## higher
 					if (any(var1 - var2 < 0, na.rm=TRUE))
 					{

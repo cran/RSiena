@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snijders/siena
+# * Web: https://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: effects.r
 # *
@@ -294,6 +294,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 							otherName, name=varname,
 							groupName=groupName, group=group,
 							netType=netType))
+# The name "nonSymmetricBipartiteObjective"
 			}
 			if ((!(types[j] %in% c('behavior', 'continuous'))) && (varname != otherName))
 			{
@@ -777,7 +778,6 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 			## no starting value for quadratic effect
 		}
 
-
 		rateEffects[1:observations, 'include'] <- TRUE
 		rateEffects[1:noPeriods, 'initialValue'] <- starts$startRate
 		rateEffects$basicRate[1:observations] <- TRUE
@@ -841,14 +841,12 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
                     attr(xx$depvars[[k]], "nodeSet") == nodeSet)
                 {
                     depvarname <- names(xx$depvars)[k]
-
                     tmpObjEffects <-
                             createEffects("continuousOneModeObjective",
                                           varnames[j], depvarname, name=varnames[j],
                                           groupName=groupName, group=group,
                                           netType=netType)
-                    }
-                    if ((nOneModes) > 1) # add the network name, TODO: same for nBipartites
+                    if ((nOneModes) > 1) # add the network name, 
                     {
                         tmpObjEffects$functionName <-
                             paste(tmpObjEffects$functionName,
@@ -857,8 +855,30 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
                             paste(tmpObjEffects$effectName,
                                   " (", depvarname, ")", sep = "")
                     }
+					objEffects <- rbind(objEffects, tmpObjEffects)	
+				}			
+				
+                if (types[k] == "bipartite" &&
+                    attr(xx$depvars[[k]], "nodeSet")[1] == nodeSet)
+                {
+                    depvarname <- names(xx$depvars)[k]
 
-                objEffects <- rbind(objEffects, tmpObjEffects)
+                    tmpObjEffects <-
+                            createEffects("continuousBipartiteObjective",
+                                          varnames[j], depvarname, name=varnames[j],
+                                          groupName=groupName, group=group,
+                                          netType=netType)
+                    if ((nBipartites) > 1) # add the network name, 
+                    {
+                        tmpObjEffects$functionName <-
+                            paste(tmpObjEffects$functionName,
+                                  " (", depvarname, ")", sep="")
+                        tmpObjEffects$effectName <-
+                            paste(tmpObjEffects$effectName,
+                                  " (", depvarname, ")", sep = "")
+                    }
+					objEffects <- rbind(objEffects, tmpObjEffects)
+				}
             }
             for (k in seq(along = xx$cCovars))
             {
@@ -1242,8 +1262,8 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 				covObjEffects[covObjEffects$shortName %in%
 				c("egoX", "egoSqX", "egoLThresholdX", "egoRThresholdX",
 					"degAbsDiffX", "degPosDiffX", "degNegDiffX",
-					"altInDist2", "totInDist2",
-					"simEgoInDist2", "sameXInPop", "diffXInPop",
+					"altInDist2", "totInDist2", "simEgoInDist2", 
+					"sameEgoInDist2", "sameXInPop", "diffXInPop",
 					"sameXCycle4", "inPopX", "inActX", "avGroupEgoX"), ]
 			covRateEffects <- createEffects("covarBipartiteRate", covarname,
 				name=varname,
@@ -1765,9 +1785,7 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 		}
 	}
 	effects <- do.call(rbind, effects)
-	attr(effects, "starts") <- NULL
 	effects <- cbind(effects, effectNumber=1:nrow(effects))
-	attr(effects, "settings") <- settingsList
 	cl <- class(effects)
 	if (groupx)
 		class(effects) <- c('sienaGroupEffects','sienaEffects', cl)
@@ -1785,6 +1803,10 @@ getEffects<- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePeri
 	myrownames <- sub("Effects", "", myrownames)
 	myrownames <- sub("rate.rate", "rate", myrownames)
 	rownames(effects) <- myrownames
+	attr(effects, "version") <- packageDescription(pkgname, fields = "Version")
+	attr(effects, "starts") <- NULL
+	attr(effects, "onePeriodSde") <- onePeriodSde
+	attr(effects, "settings") <- settingsList
 	effects
 }
 

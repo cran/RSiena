@@ -482,7 +482,7 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 					// see if valid here
 					DependentVariable * pVariable =
 						pMLSimulation->rVariables()[miniSteps[i]->variableId()];
-					//	Rf_PrintValue(getMiniStepDF(*miniSteps[i]));
+					//	PrintValue(getMiniStepDF(*miniSteps[i]));
 
 					if (!pVariable->validMiniStep(miniSteps[i]))
 					{
@@ -493,11 +493,11 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 						if (pLastMiniStep != this->lpFirst)
 						{
 							//		Rprintf("lastl\n");
-							//	Rf_PrintValue(getMiniStepDF(*pLastMiniStep));
+							//	PrintValue(getMiniStepDF(*pLastMiniStep));
 							pMiniStep =
 								this->randomMiniStep(pLastMiniStep->pNext(),
 									this->lpLast);
-							//	Rf_PrintValue(getMiniStepDF(*pMiniStep));
+							//	PrintValue(getMiniStepDF(*pMiniStep));
 							pMLSimulation->initialize(this->lperiod);
 							pMLSimulation->executeMiniSteps(this->lpFirst->
 								pNext(), pMiniStep);
@@ -557,10 +557,10 @@ void Chain::connect(int period, MLSimulation * pMLSimulation)
 		{
 			for (unsigned i = 0; i < miniSteps.size(); i++)
 			{
-				Rf_PrintValue(getMiniStepDF(*miniSteps[i]));
+				PrintValue(getMiniStepDF(*miniSteps[i]));
 			}
 
-			Rf_error("Cannot create minimal chain due to constraints");
+			error("Cannot create minimal chain due to constraints");
 		}
 	}
 }
@@ -1122,7 +1122,7 @@ void  Chain::printConsecutiveCancelingPairs() const
 //		Rprintf("\nStart\n ");
 	for (unsigned i = 0; i < this->lccpMiniSteps.size(); i++)
 	{
-		Rf_PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
+		PrintValue(getMiniStepDF(*this->lccpMiniSteps[i]));
 	}
 //		Rprintf("\nend\n ");
 }
@@ -1233,7 +1233,7 @@ MiniStep * Chain::pFirstMiniStepForLink(const MiniStep * pLinkMiniStep) const
 	}
 	if (pMiniStep != this->lpLast)
 	{
-		Rf_PrintValue(getMiniStepDF(*pMiniStep));
+		PrintValue(getMiniStepDF(*pMiniStep));
 	}
 	else
 		Rprintf("last\n");

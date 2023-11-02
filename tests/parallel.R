@@ -32,11 +32,13 @@ print('test5')
 ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
 ans
+(myeff <- includeEffects(myeff, recip, inPop))
 (myeff <- includeEffects(myeff, outAct, fix=TRUE, test=TRUE))
+(myeff <- includeInteraction(myeff, recip, inPop, fix=TRUE, test=TRUE))
 ans<- siena07(mymodel, data=mydata, effects=myeff,  batch=TRUE,
               parallelTesting=TRUE, silent=TRUE)
 ans
-score.Test(ans, 4)
+score.Test(ans)
 ##test6
 mynet1 <- sienaDependent(array(c(tmp3,tmp4),dim=c(32,32,2)))
 mydata <- sienaDataCreate(mynet1)
@@ -134,7 +136,9 @@ net <- sienaDependent(array(c(tmp3, tmp4), dim=c(32, 32, 2)))
 dataset <- sienaDataCreate(net)
 myeff <- getEffects(dataset)
 myeff <- includeEffects(myeff, inPop)
-algo <- sienaAlgorithmCreate(nsub=1, n3=20, maxlike=TRUE, seed=15, mult=1)
+algo <- sienaAlgorithmCreate(nsub=1, n3=20, maxlike=TRUE, seed=15, mult=1, prML=1)
+(ans <- siena07(algo, data=dataset, effects=myeff, batch=TRUE, silent=TRUE))
+algo <- sienaAlgorithmCreate(nsub=1, n3=20, maxlike=TRUE, seed=15, mult=1, prML=2)
 (ans <- siena07(algo, data=dataset, effects=myeff, batch=TRUE, silent=TRUE))
 ##test 15
 print('test15')
@@ -159,7 +163,7 @@ behavior <- sienaDependent(matrix(c(y1,y2), 50,2), type = "continuous")
 (mydata <- sienaDataCreate(friend, behavior))
 (myeff <- getEffects(mydata, onePeriodSde = TRUE))
 algorithmMoM <- sienaAlgorithmCreate(nsub=1, n3=20, seed=321)
-#(ans <- siena07(algorithmMoM, data = mydata, effects = myeff, batch=TRUE))
+(ans <- siena07(algorithmMoM, data = mydata, effects = myeff, batch=TRUE))
 ##test17
 print('test17')
 mynet <- sienaNet(array(c(s501, s502), dim=c(50, 50, 2)))

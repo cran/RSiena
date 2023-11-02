@@ -3,13 +3,13 @@
 \title{
 Function to create user-specified interactions for a Siena model.
 }
-\description{This function allows the user to include or exclude
+\description{This function allows the user to include or exclude   
   an interaction effect in a Siena effects object.
 }
 \usage{
 includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
     type = "eval", interaction1 = rep("", 3), interaction2 = rep("", 3),
-    parameter=NULL, fix=FALSE, test=FALSE, random=FALSE,
+    fix=FALSE, test=FALSE, random=FALSE,
     initialValue=0,
     character = FALSE, verbose = TRUE)
 }
@@ -37,9 +37,6 @@ includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
     effect e.g. covariate name or behavior variable name.
     Trailing blanks may be omitted.
   }
-  \item{parameter}{
-    Value of internal effect parameter of this interaction effect.
-    If NULL, no change is made.}
   \item{fix}{
     Boolean. Are the effects to be fixed at the value stored in
     \code{myeff$initialValue} or not.}
@@ -67,7 +64,29 @@ includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
   From the point of view of model building it is usually advisable, when
   including an interaction effect in a model, also to include the
   corresponding main effects. This is however not enforced
-  by \code{includeInteraction()}.
+  by \code{includeInteraction()}.\cr
+  
+  As from version 1.3.24, effects object have a "version" attribute.
+  Effects objects including interaction effects are not necessarily compatible
+  between versions of \code{RSiena}. Therefore it is recommended to create
+  such effects objects again when changing to a new version of \code{RSiena}.
+  If an effects object including any interaction effects is used from an
+  old version of \code{RSiena}, this will lead to a warning when running
+  \code{\link{siena07}}. \cr
+
+  An interaction effect does not have its own internal effect parameter.
+  The internal effect parameters of the interacting main effects are used,
+  whether or not these are included in the model. This implies that if an
+  interaction effect is included but not the corresponding main effects,
+  or not all of them, then nevertheless the internal effect parameters as
+  specified in the effects object are used for the interaction.
+  These can be set using function \code{setEffect} with the desired value
+  of \code{parameter} and (in this case) \code{include=FALSE}. \cr
+  The values of the internal effect parameters can be checked for a
+  \code{\link{sienaFit}} object \code{ans} produced by \code{\link{siena07}}
+  by looking at \code{ans$effects}, which is the requested effects object
+  to which the main effects of the user-defined interactions were added,
+  if they were not yet included.
 
   Interaction effects are constructed from effects with shortName
   \code{unspInt} (for networks) and \code{behUnspInt} (for behavior)
@@ -101,7 +120,7 @@ includeInteraction(myeff, ..., include = TRUE, name = myeff$name[1],
   and "behUnspInt" for behavior effects. \cr
   If \code{verbose=TRUE}, details of the fields altered will be printed.
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{See \url{https://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley, Tom Snijders}
 \seealso{
   \code{\link{getEffects}}, \code{\link{setEffect}},
@@ -116,11 +135,6 @@ myeff <- includeEffects(myeff, transTrip)
 myeff <- includeInteraction(myeff, recip, inPop)
 myeff <- includeEffects(myeff, egoX, altX, simX, interaction1="alc")
 myeff <- includeInteraction(myeff, recip, simX, interaction1=c("", "alc"))
-myeff
-# How to set the effect parameter of an interaction:
-myeff <- getEffects(mydata)
-myeff <- setEffect(myeff, gwespFF, parameter=69)
-myeff <- includeInteraction(myeff, recip, gwespFF, parameter=69)
 myeff
 }
 \keyword{ classes }

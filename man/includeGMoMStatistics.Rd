@@ -4,7 +4,7 @@
   Function to include GMoM statistics in a Siena model
 }
 \description{
-  This function can be used for including one or more GMoM statistics
+  This function can be used for including one or more GMoM statistics   
   by modifying a Siena effects object.
 }
 \usage{
@@ -48,7 +48,7 @@
   column for one or more rows updated.
   Details of the rows altered will be printed.
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{See \url{https://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Viviana Amati.
 }
 \seealso{

@@ -16,8 +16,6 @@
 #include <R_ext/Print.h>
 #include <R_ext/Arith.h>
 #include <Rinternals.h>
-#undef error
-#undef length
 #include "SdeSimulation.h"
 #include "EpochSimulation.h"
 #include "utils/Random.h"
@@ -346,7 +344,7 @@ void EpochSimulation::runEpoch(int period) {
 				exit(1);
 #endif
 #ifndef STANDALONE
-				Rf_error("%s %s", "Unlikely to terminate this epoch:",
+				error("%s %s", "Unlikely to terminate this epoch:",
 						" more than 1000000 steps");
 #endif
 			}
@@ -358,7 +356,7 @@ void EpochSimulation::runEpoch(int period) {
 				exit(1);
 #endif
 #ifndef STANDALONE
-				Rf_error("%s %s", "Unlikely to terminate this epoch:",
+				error("%s %s", "Unlikely to terminate this epoch:",
 						" more than 1000000 steps");
 #endif
 			}
@@ -379,9 +377,7 @@ void EpochSimulation::runEpoch(int period) {
 void EpochSimulation::runStep() {
 	this->calculateRates();
 	this->drawTimeIncrement();
-
 	double nextTime = this->ltime + this->ltau;
-
 	DependentVariable * pSelectedVariable = 0;
 	int selectedActor = 0;
 
@@ -397,7 +393,6 @@ void EpochSimulation::runStep() {
 			}
 		} else {
 			this->ltime = nextTime;
-
 			// SDE step 
 			if (this->lcontinuousVariables.size() > 0) {
 				this->lpSdeSimulation->setBergstromCoefficients(this->ltau);
@@ -409,7 +404,21 @@ void EpochSimulation::runStep() {
 
 			this->lpCache->initialize(selectedActor);
 
-			pSelectedVariable->makeChange(selectedActor);
+			pSelectedVariable->makeChange(selectedActor);			
+						
+			if (pSelectedVariable->networkModelTypeDoubleStep())  // perhaps make a double step
+			{ 
+				double value = nextDouble();
+				if (value < pSelectedVariable->networkDoubleStepProb())
+				{
+					int chosenAlter = pSelectedVariable->alter();
+					if (chosenAlter != selectedActor) // type DOUBLESTEP implies one-mode
+					{
+						this->lpCache->initialize(chosenAlter);
+						pSelectedVariable->makeChange(chosenAlter); // here the double step is taken
+					}
+				}
+			}
 
 			if (pSelectedVariable->successfulChange()) {
 				if (this->pModel()->needChain()) {
@@ -625,7 +634,7 @@ void EpochSimulation::updateContinuousVariablesAndScores() {
 	// up to now only for one continuous variable
 	// function is never called if lcontVar's.size() == 0
 	if (this->lcontinuousVariables.size() > 1) {
-		Rf_error("EpochSimulation: Not more than one continuous variable.");
+		error("EpochSimulation: Not more than one continuous variable.");
 	}
 
 	ContinuousVariable * pVariable = this->lcontinuousVariables[0];

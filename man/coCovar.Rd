@@ -2,7 +2,7 @@
 \alias{coCovar}
 \title{Function to create a constant covariate object}
 \description{
-  This function creates a constant covariate object from a vector.
+  This function creates a constant covariate object from a vector.  
   }
 \usage{
 coCovar(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
@@ -37,7 +37,7 @@ coCovar(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
   Returns the covariate as an object of class "coCovar", in which
   form it can be used as an argument to \code{\link{sienaDataCreate}}.
 }
-\references{See \url{http://www.stats.ox.ac.uk/~snijders/siena/}}
+\references{See \url{https://www.stats.ox.ac.uk/~snijders/siena/}}
 \author{Ruth Ripley}
 \seealso{\code{\link{sienaDataCreate}}, \code{\link{varCovar}},
 \code{\link{coDyadCovar}}, \code{\link{varDyadCovar}},

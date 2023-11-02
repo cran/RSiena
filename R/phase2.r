@@ -1,7 +1,7 @@
 ##/*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://www.stats.ox.ac.uk/~snijders/siena
+## * Web: https://www.stats.ox.ac.uk/~snijders/siena
 ## *
 ## * File: phase2.r
 ## *
@@ -21,7 +21,16 @@ storeinFRANstore <- function(...)
 ##@phase2.1 siena07 Start phase 2
 phase2.1<- function(z, x, ...)
 {
-	## require(tcltk)
+		if (ifelse(is.null(x$phase2imp),FALSE,x$phase2imp))
+		{
+			z$addChainToStore <- TRUE
+			z$nbrNodes <- 1
+			z$storedChains <- TRUE
+			z$nGroup <- 1
+			z$thetaList <- list()
+			z$nCount <- 1
+		}
+	
     #initialise phase2
     if (x$maxlike)
     {
@@ -41,17 +50,17 @@ phase2.1<- function(z, x, ...)
 #	z$sd <- sqrt(diag(msf))
 # Instead of the preceding line,
 # the following is used for equality with earlier versions.
-    z$sd <- sqrt(apply(z$sf, 2, function(x) sum(x^2) / nrow(z$sf) - mean(x)^2))
+	z$sd <- sqrt(pmax(apply(z$sf, 2, function(x) sum(x^2) / nrow(z$sf) - mean(x)^2),0))
 	if (!z$gmm) 
 	{
    	z$sd[z$fixed] <- 0
 	  z$standardization <-
-						1/sqrt(diag(as.matrix(z$dinvv %*% msf %*% t(z$dinvv))))
+						1/sqrt(pmax(diag(as.matrix(z$dinvv %*% msf %*% t(z$dinvv))),0))
 	}
 	else
 	{
 	  z$sd[which(z$fixed & !z$gmmEffects)] <- 0
-	  z$standardization <- 1/sqrt(diag(as.matrix(z$dinvv %*% msf %*% t(z$dinvv))))
+	  z$standardization <- 1/sqrt(pmax(diag(as.matrix(z$dinvv %*% msf %*% t(z$dinvv))),0))
 	}
     Report(paste("standardization = ", round(z$standardization,4)), cf)
 	if (sum(z$fixed) < z$pp)
@@ -93,6 +102,7 @@ proc2subphase <- function(z, x, subphase, ...)
 		z$n2min <- z$n2minimum[subphase]
 		z$n2max <- z$n2maximum[subphase]
 	}
+	Report(paste("Number of iterations minimum ", z$n2min, ", maximum", z$n2max, ".\n", sep=""), cf)
 	z$repeatsubphase <- 0
 	repeat
 	{
@@ -270,7 +280,13 @@ doIterations<- function(z, x, subphase,...)
 
 		if (z$int == 1) ## then no parallel runs at this level
 		{
-			zz <- x$FRAN(zsmall, xsmall)
+			if (ifelse(is.null(x$phase2imp),FALSE,x$phase2imp))
+			{
+				zz <- x$FRAN(zsmall, xsmall,  returnLoglik=TRUE, returnChains=TRUE)
+				z$myloglik2 <- c(z$myloglik2, sum(zz$loglik))
+			} else {
+				zz <- x$FRAN(zsmall, xsmall)
+			}
 			fra <- colSums(zz$fra) - z$targets
 			
 			
@@ -505,6 +521,13 @@ doIterations<- function(z, x, subphase,...)
 			z <- doMoreUpdates(z, x, x$moreUpdates * subphase)
 			zsmall$theta <- z$theta
 		}
+	
+		if (ifelse(is.null(x$phase2imp),FALSE,x$phase2imp))
+		{
+			z$thetaList[[z$nCount]] <- z$theta
+			z$nCount <- z$nCount + 1
+		}
+		
 		##check for user interrupt
 		CheckBreaks()
 		if (UserInterruptFlag() || UserRestartFlag() || EarlyEndPhase2Flag())
@@ -523,6 +546,16 @@ doIterations<- function(z, x, subphase,...)
 			}
 		}
 	}
+	if (ifelse(is.null(x$phase2imp),FALSE,x$phase2imp))
+	{
+		cat(z$nit)
+		z$nAll <- c(z$nAll, z$nit)
+		if (subphase==x$nsub)
+		{
+			z <- stdError(z,x,subphase=4, ...)
+		}
+	}
+	
 	if (z$returnThetas)
 	{
 		z$thetas <- rbind(z$thetas, thetas)

@@ -13,8 +13,6 @@
 #include <R_ext/Error.h>
 #include <R_ext/Print.h>
 #include <Rinternals.h>
-#undef error
-#undef length
 //#include <Eigen/Dense>
 
 #include "EpochSimulation.h"
@@ -44,7 +42,7 @@ SdeSimulation::SdeSimulation(EpochSimulation * pSimulation)
 	
 	if (nContinuous > 1)
 	{
-		Rf_error("More than one continuous dependent variable: not implemented");
+		error("More than one continuous dependent variable: not implemented");
 	}
 	// for (unsigned i = 0; i < pSimulation->rcontinuousVariables.size(); i++) {
 

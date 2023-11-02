@@ -32,10 +32,11 @@ namespace siena
 
 SameCovariateMixedTwoPathFunction::SameCovariateMixedTwoPathFunction(
 	string firstNetworkName, string secondNetworkName,
-	string covariateName, bool excludeMissing) :
+	string covariateName, bool same, bool excludeMissing) :
 	CovariateMixedNetworkAlterFunction(firstNetworkName,
 		secondNetworkName, covariateName)
 {
+	this->lsame = same;
 	this->lexcludeMissing = excludeMissing;
 }
 
@@ -60,7 +61,7 @@ void SameCovariateMixedTwoPathFunction::initialize(const Data * pData,
  * that the function has been initialized before and pre-processed with
  * respect to a certain ego.
  */
-double SameCovariateMixedTwoPathFunction::value(int alter)
+double SameCovariateMixedTwoPathFunction::value(int alter) const
 {
 	int statistic = 0;
 	if (!(this->lexcludeMissing && this->missing(alter)))
@@ -74,14 +75,30 @@ double SameCovariateMixedTwoPathFunction::value(int alter)
 			// Get the receiver of the outgoing tie.
 			int h = iter.actor();
 			// 2-paths:
-			if (!(this->lexcludeMissing && this->missing(h)))
+			if (this->lsame)
 			{
-				if ((fabs(this->CovariateMixedNetworkAlterFunction::value(h) -
-								this->CovariateMixedNetworkAlterFunction::value(this->ego()))
+				if (!(this->lexcludeMissing && this->missing(h)))
+				{
+					if ((fabs(this->CovariateMixedNetworkAlterFunction::covvalue(h) -
+								this->CovariateMixedNetworkAlterFunction::covvalue(this->ego()))
 							< EPSILON) &&
 						(pFirstNetwork->tieValue(h, alter) >= 1))
+					{
+						statistic++ ;
+					}
+				}
+			}
+			else
+			{
+				if (!(this->lexcludeMissing && this->missing(h)))
 				{
-					statistic++ ;
+					if ((fabs(this->CovariateMixedNetworkAlterFunction::covvalue(h) -
+								this->CovariateMixedNetworkAlterFunction::covvalue(this->ego()))
+							>= EPSILON) &&
+						(pFirstNetwork->tieValue(h, alter) >= 1))
+					{
+						statistic++ ;
+					}
 				}
 			}
 		}

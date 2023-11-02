@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snidjers/siena
+# * Web: https://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: RSienaRDocumentation.r
 # *
@@ -11,8 +11,8 @@
 ##
 ##@getInternals Documentation
 getInternals <- function()
-{
-    fnlist <- read.csv("RSienafnlist.csv", as.is=TRUE)
+{   
+    fnlist <- utils::read.csv("RSienafnlist.csv", as.is=TRUE)
     mylist <- ls(parent.frame())
     ##  print(mylist)
     ## require(codetools)

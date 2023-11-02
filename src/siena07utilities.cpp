@@ -54,6 +54,7 @@
 #include "model/variables/DependentVariable.h"
 #include "model/variables/BehaviorVariable.h"
 #include "model/variables/NetworkVariable.h"
+#include "model/variables/ContinuousVariable.h"
 #include "model/ml/Chain.h"
 #include "model/ml/MLSimulation.h"
 #include "model/ml/MiniStep.h"
@@ -114,7 +115,7 @@ void Rterminate()
 	}
 	catch(exception& e)
 	{
-		Rf_error(e.what());
+		error(e.what());
 	}
 }
 
@@ -329,7 +330,7 @@ void printOutData(Data *pData)
 SEXP getBehaviorValues(const BehaviorVariable & behavior)
 {
     int n = behavior.n();
-	SEXP ans = PROTECT(Rf_allocVector(INTSXP, n));
+	SEXP ans = PROTECT(allocVector(INTSXP, n));
     int *ians = INTEGER(ans);
 	const int *pValues = behavior.values();
     for (int i = 0; i < n; i++)
@@ -340,6 +341,24 @@ SEXP getBehaviorValues(const BehaviorVariable & behavior)
     return ans  ;
 }
 
+/** Create an R vector from a continuous behavior variable for a single period
+ *
+ */
+SEXP getContinuousValues(const ContinuousVariable & behavior)
+{
+    SEXP ans;
+    int n = behavior.n();
+    PROTECT(ans = allocVector(REALSXP, n));
+    double *rans = REAL(ans);
+    const double *pValues = behavior.values();
+    for (int i = 0; i < n; i++)
+    {
+        rans[i] = pValues[i];
+    }
+    UNPROTECT(1);
+    return ans;
+}
+
 /**
  * Create an R matrix from a network variable for a single period
  */
@@ -347,7 +366,7 @@ SEXP getAdjacency(const Network& net)
 {
     int n=net.n();
     int m=net.m();
-	SEXP ans = PROTECT(Rf_allocMatrix(INTSXP, n, m));
+	SEXP ans = PROTECT(allocMatrix(INTSXP, n, m));
     int *ians = INTEGER(ans);
     /* initialise the memory: possibly only necessary in case of error! */
     for (int i = 0; i<n*m;i++)
@@ -367,7 +386,7 @@ SEXP getAdjacency(const Network& net)
 SEXP getEdgeList(const Network& net)
 {
 	int nties = net.tieCount();
-	SEXP ans = PROTECT(Rf_allocMatrix(INTSXP, nties, 3));
+	SEXP ans = PROTECT(allocMatrix(INTSXP, nties, 3));
     int *ians = INTEGER(ans);
     /* initialise the memory: possibly only neccesary in case of error! */
 	for (int i = 0; i < nties * 3; i++) {
@@ -414,59 +433,59 @@ SEXP getMiniStepDF(const MiniStep& miniStep)
 	SEXP MINISTEP, classname, dimnames, colnames;
 	if (miniStep.networkMiniStep() || miniStep.behaviorMiniStep())
 	{
-		PROTECT(colnames = Rf_allocVector(STRSXP, 10));
-		SET_STRING_ELT(colnames, 0, Rf_mkChar("Aspect"));
-		SET_STRING_ELT(colnames, 1, Rf_mkChar("Var"));
-		SET_STRING_ELT(colnames, 2, Rf_mkChar("VarName"));
-		SET_STRING_ELT(colnames, 3, Rf_mkChar("Ego"));
-		SET_STRING_ELT(colnames, 4, Rf_mkChar("Alter"));
-		SET_STRING_ELT(colnames, 5, Rf_mkChar("Diff"));
-		SET_STRING_ELT(colnames, 6, Rf_mkChar("ReciRate"));
-		SET_STRING_ELT(colnames, 7, Rf_mkChar("LogOptionSetProb"));
-		SET_STRING_ELT(colnames, 8, Rf_mkChar("LogChoiceProb"));
-		SET_STRING_ELT(colnames, 9, Rf_mkChar("Diagonal"));
+		PROTECT(colnames = allocVector(STRSXP, 10));
+		SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
+		SET_STRING_ELT(colnames, 1, mkChar("Var"));
+		SET_STRING_ELT(colnames, 2, mkChar("VarName"));
+		SET_STRING_ELT(colnames, 3, mkChar("Ego"));
+		SET_STRING_ELT(colnames, 4, mkChar("Alter"));
+		SET_STRING_ELT(colnames, 5, mkChar("Diff"));
+		SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
+		SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
+		SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+		SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
 
-		PROTECT(MINISTEP = Rf_allocVector(VECSXP, 10));
+		PROTECT(MINISTEP = allocVector(VECSXP, 10));
 
 		if (miniStep.networkMiniStep())
 		{
 			const NetworkChange& networkChange =
 				dynamic_cast<const NetworkChange &>(miniStep);
-			SET_VECTOR_ELT(MINISTEP, 0, Rf_mkString("Network"));
-			SET_VECTOR_ELT(MINISTEP, 4, Rf_ScalarInteger(networkChange.alter()));
-			SET_VECTOR_ELT(MINISTEP, 5, Rf_ScalarInteger(0));
+			SET_VECTOR_ELT(MINISTEP, 0, mkString("Network"));
+			SET_VECTOR_ELT(MINISTEP, 4, ScalarInteger(networkChange.alter()));
+			SET_VECTOR_ELT(MINISTEP, 5, ScalarInteger(0));
 		}
 		else
 		{
 			const BehaviorChange& behaviorChange =
 				dynamic_cast<const BehaviorChange &>(miniStep);
-			SET_VECTOR_ELT(MINISTEP, 0, Rf_mkString("Behavior"));
-			SET_VECTOR_ELT(MINISTEP, 4, Rf_ScalarInteger(0));
+			SET_VECTOR_ELT(MINISTEP, 0, mkString("Behavior"));
+			SET_VECTOR_ELT(MINISTEP, 4, ScalarInteger(0));
 			SET_VECTOR_ELT(MINISTEP, 5,
-				Rf_ScalarInteger(behaviorChange.difference()));
+				ScalarInteger(behaviorChange.difference()));
 		}
-		SET_VECTOR_ELT(MINISTEP, 1, Rf_ScalarInteger(miniStep.variableId()));
-		SET_VECTOR_ELT(MINISTEP, 2, Rf_mkString(miniStep.variableName().c_str()));
-		SET_VECTOR_ELT(MINISTEP, 3, Rf_ScalarInteger(miniStep.ego()));
-		SET_VECTOR_ELT(MINISTEP, 6, Rf_ScalarReal(miniStep.reciprocalRate()));
+		SET_VECTOR_ELT(MINISTEP, 1, ScalarInteger(miniStep.variableId()));
+		SET_VECTOR_ELT(MINISTEP, 2, mkString(miniStep.variableName().c_str()));
+		SET_VECTOR_ELT(MINISTEP, 3, ScalarInteger(miniStep.ego()));
+		SET_VECTOR_ELT(MINISTEP, 6, ScalarReal(miniStep.reciprocalRate()));
 		SET_VECTOR_ELT(MINISTEP, 7,
-			Rf_ScalarReal(miniStep.logOptionSetProbability()));
+			ScalarReal(miniStep.logOptionSetProbability()));
 		SET_VECTOR_ELT(MINISTEP, 8,
-			Rf_ScalarReal(miniStep.logChoiceProbability()));
+			ScalarReal(miniStep.logChoiceProbability()));
 		SET_VECTOR_ELT(MINISTEP, 9,
-			Rf_ScalarLogical(miniStep.diagonal()));
+			ScalarLogical(miniStep.diagonal()));
 
-		Rf_namesgets(MINISTEP, colnames);
+		namesgets(MINISTEP, colnames);
 
-		PROTECT(dimnames = Rf_allocVector(INTSXP, 2));
+		PROTECT(dimnames = allocVector(INTSXP, 2));
 		int * idimnames = INTEGER(dimnames);
 		idimnames[0] = NA_INTEGER;
 		idimnames[1] = -1;
-		Rf_setAttrib(MINISTEP, R_RowNamesSymbol, dimnames);
+		setAttrib(MINISTEP, R_RowNamesSymbol, dimnames);
 
-		PROTECT(classname = Rf_allocVector(STRSXP, 1));
-		SET_STRING_ELT(classname, 0, Rf_mkChar("data.frame"));
-		Rf_classgets(MINISTEP, classname);
+		PROTECT(classname = allocVector(STRSXP, 1));
+		SET_STRING_ELT(classname, 0, mkChar("data.frame"));
+		classgets(MINISTEP, classname);
 
 		UNPROTECT(4);
 		return MINISTEP;
@@ -481,38 +500,38 @@ SEXP getChainDF(const Chain& chain, bool sort)
 {
 	SEXP ans, col0, col1, col2, col3, col4, col5, col6, col7, col8, col9,
 		colnames, dimnames, classname;
-	PROTECT(colnames = Rf_allocVector(STRSXP, 10));
-	SET_STRING_ELT(colnames, 0, Rf_mkChar("Aspect"));
-	SET_STRING_ELT(colnames, 1, Rf_mkChar("Var"));
-	SET_STRING_ELT(colnames, 2, Rf_mkChar("VarName"));
-	SET_STRING_ELT(colnames, 3, Rf_mkChar("Ego"));
-	SET_STRING_ELT(colnames, 4, Rf_mkChar("Alter"));
-	SET_STRING_ELT(colnames, 5, Rf_mkChar("Diff"));
-	SET_STRING_ELT(colnames, 6, Rf_mkChar("ReciRate"));
-	SET_STRING_ELT(colnames, 7, Rf_mkChar("LogOptionSetProb"));
-	SET_STRING_ELT(colnames, 8, Rf_mkChar("LogChoiceProb"));
-	SET_STRING_ELT(colnames, 9, Rf_mkChar("Diagonal"));
+	PROTECT(colnames = allocVector(STRSXP, 10));
+	SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
+	SET_STRING_ELT(colnames, 1, mkChar("Var"));
+	SET_STRING_ELT(colnames, 2, mkChar("VarName"));
+	SET_STRING_ELT(colnames, 3, mkChar("Ego"));
+	SET_STRING_ELT(colnames, 4, mkChar("Alter"));
+	SET_STRING_ELT(colnames, 5, mkChar("Diff"));
+	SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
+	SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
+	SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+	SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
 
-	PROTECT(ans = Rf_allocVector(VECSXP, 10));
+	PROTECT(ans = allocVector(VECSXP, 10));
 	int numberRows = chain.ministepCount() - 1;
-	PROTECT(col0 = Rf_allocVector(STRSXP, numberRows));
+	PROTECT(col0 = allocVector(STRSXP, numberRows));
 
-	PROTECT(col1 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col1 = allocVector(INTSXP, numberRows));
 	int * icol1 = INTEGER(col1);
-	PROTECT(col2 = Rf_allocVector(STRSXP, numberRows));
-	PROTECT(col3 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col2 = allocVector(STRSXP, numberRows));
+	PROTECT(col3 = allocVector(INTSXP, numberRows));
 	int * icol3 = INTEGER(col3);
-	PROTECT(col4 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col4 = allocVector(INTSXP, numberRows));
 	int * icol4 = INTEGER(col4);
-	PROTECT(col5 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col5 = allocVector(INTSXP, numberRows));
 	int * icol5 = INTEGER(col5);
-	PROTECT(col6 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col6 = allocVector(REALSXP, numberRows));
 	double * rcol6 = REAL(col6);
-	PROTECT(col7 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col7 = allocVector(REALSXP, numberRows));
 	double * rcol7 = REAL(col7);
-	PROTECT(col8 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col8 = allocVector(REALSXP, numberRows));
 	double * rcol8 = REAL(col8);
-	PROTECT(col9 = Rf_allocVector(LGLSXP, numberRows));
+	PROTECT(col9 = allocVector(LGLSXP, numberRows));
 	int * icol9 = LOGICAL(col9);
 
 	MiniStep *pMiniStep = chain.pFirst()->pNext();
@@ -546,26 +565,26 @@ SEXP getChainDF(const Chain& chain, bool sort)
 	SET_VECTOR_ELT(ans, 8, col8);
 	SET_VECTOR_ELT(ans, 9, col9);
 
-	Rf_namesgets(ans, colnames);
+	namesgets(ans, colnames);
 
-	PROTECT(dimnames = Rf_allocVector(INTSXP, 2));
+	PROTECT(dimnames = allocVector(INTSXP, 2));
 	int * idimnames = INTEGER(dimnames);
 	idimnames[0] = NA_INTEGER;
 	idimnames[1] = -numberRows;
-	Rf_setAttrib(ans, R_RowNamesSymbol, dimnames);
+	setAttrib(ans, R_RowNamesSymbol, dimnames);
 
-	PROTECT(classname = Rf_allocVector(STRSXP, 1));
-	SET_STRING_ELT(classname, 0, Rf_mkChar("data.frame"));
-	Rf_classgets(ans, classname);
+	PROTECT(classname = allocVector(STRSXP, 1));
+	SET_STRING_ELT(classname, 0, mkChar("data.frame"));
+	classgets(ans, classname);
 
 	// try to sort it by variable, ego and alter
 	SEXP R_fcall1, ordering, R_fcall2, ansnew;
-	PROTECT(R_fcall1 = Rf_lang4(Rf_install("order"), col1, col3, col4));
-	PROTECT(ordering = Rf_eval(R_fcall1, R_GlobalEnv));
+	PROTECT(R_fcall1 = lang4(install("order"), col1, col3, col4));
+	PROTECT(ordering = eval(R_fcall1, R_GlobalEnv));
 	// now sort the data frame using [.data.frame and ordering
-	PROTECT(R_fcall2 = Rf_lang4(Rf_install("[.data.frame"),
+	PROTECT(R_fcall2 = lang4(install("[.data.frame"),
 			ans, ordering, R_MissingArg));
-	PROTECT(ansnew = Rf_eval(R_fcall2, R_GlobalEnv));
+	PROTECT(ansnew = eval(R_fcall2, R_GlobalEnv));
 
 	UNPROTECT(18);
 	if (sort)
@@ -584,38 +603,38 @@ SEXP getDFFromVector(const vector< MiniStep *>& rMiniSteps, bool sort)
 {
 	SEXP ans, col0, col1, col2, col3, col4, col5, col6, col7, col8, col9,
 		colnames, dimnames, classname;
-	PROTECT(colnames = Rf_allocVector(STRSXP, 10));
-	SET_STRING_ELT(colnames, 0, Rf_mkChar("Aspect"));
-	SET_STRING_ELT(colnames, 1, Rf_mkChar("Var"));
-	SET_STRING_ELT(colnames, 2, Rf_mkChar("VarName"));
-	SET_STRING_ELT(colnames, 3, Rf_mkChar("Ego"));
-	SET_STRING_ELT(colnames, 4, Rf_mkChar("Alter"));
-	SET_STRING_ELT(colnames, 5, Rf_mkChar("Diff"));
-	SET_STRING_ELT(colnames, 6, Rf_mkChar("ReciRate"));
-	SET_STRING_ELT(colnames, 7, Rf_mkChar("LogOptionSetProb"));
-	SET_STRING_ELT(colnames, 8, Rf_mkChar("LogChoiceProb"));
-	SET_STRING_ELT(colnames, 9, Rf_mkChar("Diagonal"));
+	PROTECT(colnames = allocVector(STRSXP, 10));
+	SET_STRING_ELT(colnames, 0, mkChar("Aspect"));
+	SET_STRING_ELT(colnames, 1, mkChar("Var"));
+	SET_STRING_ELT(colnames, 2, mkChar("VarName"));
+	SET_STRING_ELT(colnames, 3, mkChar("Ego"));
+	SET_STRING_ELT(colnames, 4, mkChar("Alter"));
+	SET_STRING_ELT(colnames, 5, mkChar("Diff"));
+	SET_STRING_ELT(colnames, 6, mkChar("ReciRate"));
+	SET_STRING_ELT(colnames, 7, mkChar("LogOptionSetProb"));
+	SET_STRING_ELT(colnames, 8, mkChar("LogChoiceProb"));
+	SET_STRING_ELT(colnames, 9, mkChar("Diagonal"));
 
-	PROTECT(ans = Rf_allocVector(VECSXP, 10));
+	PROTECT(ans = allocVector(VECSXP, 10));
 	int numberRows = rMiniSteps.size();
-	PROTECT(col0 = Rf_allocVector(STRSXP, numberRows));
+	PROTECT(col0 = allocVector(STRSXP, numberRows));
 
-	PROTECT(col1 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col1 = allocVector(INTSXP, numberRows));
 	int * icol1 = INTEGER(col1);
-	PROTECT(col2 = Rf_allocVector(STRSXP, numberRows));
-	PROTECT(col3 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col2 = allocVector(STRSXP, numberRows));
+	PROTECT(col3 = allocVector(INTSXP, numberRows));
 	int * icol3 = INTEGER(col3);
-	PROTECT(col4 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col4 = allocVector(INTSXP, numberRows));
 	int * icol4 = INTEGER(col4);
-	PROTECT(col5 = Rf_allocVector(INTSXP, numberRows));
+	PROTECT(col5 = allocVector(INTSXP, numberRows));
 	int * icol5 = INTEGER(col5);
-	PROTECT(col6 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col6 = allocVector(REALSXP, numberRows));
 	double * rcol6 = REAL(col6);
-	PROTECT(col7 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col7 = allocVector(REALSXP, numberRows));
 	double * rcol7 = REAL(col7);
-	PROTECT(col8 = Rf_allocVector(REALSXP, numberRows));
+	PROTECT(col8 = allocVector(REALSXP, numberRows));
 	double * rcol8 = REAL(col8);
-	PROTECT(col9 = Rf_allocVector(LGLSXP, numberRows));
+	PROTECT(col9 = allocVector(LGLSXP, numberRows));
 	int * icol9 = INTEGER(col9);
 
 	for (int i = 0; i < numberRows; i++)
@@ -647,26 +666,26 @@ SEXP getDFFromVector(const vector< MiniStep *>& rMiniSteps, bool sort)
 	SET_VECTOR_ELT(ans, 8, col8);
 	SET_VECTOR_ELT(ans, 9, col9);
 
-	Rf_namesgets(ans, colnames);
+	namesgets(ans, colnames);
 
-	PROTECT(dimnames = Rf_allocVector(INTSXP, 2));
+	PROTECT(dimnames = allocVector(INTSXP, 2));
 	int * idimnames = INTEGER(dimnames);
 	idimnames[0] = NA_INTEGER;
 	idimnames[1] = -numberRows;
-	Rf_setAttrib(ans, R_RowNamesSymbol, dimnames);
+	setAttrib(ans, R_RowNamesSymbol, dimnames);
 
-	PROTECT(classname = Rf_allocVector(STRSXP, 1));
-	SET_STRING_ELT(classname, 0, Rf_mkChar("data.frame"));
-	Rf_classgets(ans, classname);
+	PROTECT(classname = allocVector(STRSXP, 1));
+	SET_STRING_ELT(classname, 0, mkChar("data.frame"));
+	classgets(ans, classname);
 
 	// sort it by variable, ego and alter
 	SEXP R_fcall1, ordering, R_fcall2, ansnew;
-	PROTECT(R_fcall1 = Rf_lang4(Rf_install("order"), col1, col3, col4));
-	PROTECT(ordering = Rf_eval(R_fcall1, R_GlobalEnv));
+	PROTECT(R_fcall1 = lang4(install("order"), col1, col3, col4));
+	PROTECT(ordering = eval(R_fcall1, R_GlobalEnv));
 	// now sort the data frame using [.data.frame and ordering
-	PROTECT(R_fcall2 = Rf_lang4(Rf_install("[.data.frame"),
+	PROTECT(R_fcall2 = lang4(install("[.data.frame"),
 			ans, ordering, R_MissingArg));
-	PROTECT(ansnew = Rf_eval(R_fcall2, R_GlobalEnv));
+	PROTECT(ansnew = eval(R_fcall2, R_GlobalEnv));
 
 	UNPROTECT(18);
 
@@ -692,21 +711,21 @@ SEXP getChainDFPlus(const Chain& chain, bool sort)
 	PROTECT(initial = getDFFromVector(rMiniSteps, false));
 
 	SEXP is;
-	PROTECT(is = Rf_install("initialStateDifferences"));
-	Rf_setAttrib(main, is, initial);
+	PROTECT(is = install("initialStateDifferences"));
+	setAttrib(main, is, initial);
 
 	SEXP end;
 	PROTECT(end = getDFFromVector(chain.rEndStateDifferences(), false));
 
 	SEXP es;
-	PROTECT(es = Rf_install("endStateDifferences"));
-	Rf_setAttrib(main, es, end);
+	PROTECT(es = install("endStateDifferences"));
+	setAttrib(main, es, end);
 
 	SEXP classname;
-	PROTECT(classname = Rf_allocVector(STRSXP, 2));
-	SET_STRING_ELT(classname, 0, Rf_mkChar("chains.data.frame"));
-	SET_STRING_ELT(classname, 1, Rf_mkChar("data.frame"));
-	Rf_classgets(main, classname);
+	PROTECT(classname = allocVector(STRSXP, 2));
+	SET_STRING_ELT(classname, 0, mkChar("chains.data.frame"));
+	SET_STRING_ELT(classname, 1, mkChar("data.frame"));
+	classgets(main, classname);
 
 	UNPROTECT(6);
 	return main;
@@ -720,34 +739,34 @@ SEXP getChainDFPlus(const Chain& chain, bool sort)
 SEXP getMiniStepList(const MiniStep& miniStep, int period)
 {
 	SEXP MINISTEP;
-	PROTECT(MINISTEP = Rf_allocVector(VECSXP, 13));
+	PROTECT(MINISTEP = allocVector(VECSXP, 13));
 	// unused elements (9, 10) used to contain the change contributions.
-	SET_VECTOR_ELT(MINISTEP, 3, Rf_ScalarInteger(miniStep.ego()));
+	SET_VECTOR_ELT(MINISTEP, 3, ScalarInteger(miniStep.ego()));
 	if (miniStep.networkMiniStep())
 	{
 		const NetworkChange& networkChange =
 			dynamic_cast<const NetworkChange &>(miniStep);
-		SET_VECTOR_ELT(MINISTEP, 0, Rf_mkString("Network"));
-		SET_VECTOR_ELT(MINISTEP, 4, Rf_ScalarInteger(networkChange.alter()));
-		SET_VECTOR_ELT(MINISTEP, 5, Rf_ScalarInteger(0));
+		SET_VECTOR_ELT(MINISTEP, 0, mkString("Network"));
+		SET_VECTOR_ELT(MINISTEP, 4, ScalarInteger(networkChange.alter()));
+		SET_VECTOR_ELT(MINISTEP, 5, ScalarInteger(0));
 	}
 	else
 	{
-		SET_VECTOR_ELT(MINISTEP, 0, Rf_mkString("Behavior"));
+		SET_VECTOR_ELT(MINISTEP, 0, mkString("Behavior"));
 		const BehaviorChange& behaviorChange =
 			dynamic_cast<const BehaviorChange &>(miniStep);
-		SET_VECTOR_ELT(MINISTEP, 4, Rf_ScalarInteger(0));
+		SET_VECTOR_ELT(MINISTEP, 4, ScalarInteger(0));
 		SET_VECTOR_ELT(MINISTEP,
 			5,
-			Rf_ScalarInteger(behaviorChange.difference()));
+			ScalarInteger(behaviorChange.difference()));
 	}
-	SET_VECTOR_ELT(MINISTEP, 1, Rf_ScalarInteger(miniStep.variableId()));
-	SET_VECTOR_ELT(MINISTEP, 11, Rf_ScalarLogical(miniStep.missing(period)));
-	SET_VECTOR_ELT(MINISTEP, 12, Rf_ScalarLogical(miniStep.diagonal()));
-	SET_VECTOR_ELT(MINISTEP, 2, Rf_mkString(miniStep.variableName().c_str()));
-	SET_VECTOR_ELT(MINISTEP, 7,	Rf_ScalarReal(miniStep.logOptionSetProbability()));
-	SET_VECTOR_ELT(MINISTEP, 8, Rf_ScalarReal(miniStep.logChoiceProbability()));
-	SET_VECTOR_ELT(MINISTEP, 6, Rf_ScalarReal(miniStep.reciprocalRate()));
+	SET_VECTOR_ELT(MINISTEP, 1, ScalarInteger(miniStep.variableId()));
+	SET_VECTOR_ELT(MINISTEP, 11, ScalarLogical(miniStep.missing(period)));
+	SET_VECTOR_ELT(MINISTEP, 12, ScalarLogical(miniStep.diagonal()));
+	SET_VECTOR_ELT(MINISTEP, 2, mkString(miniStep.variableName().c_str()));
+	SET_VECTOR_ELT(MINISTEP, 7,	ScalarReal(miniStep.logOptionSetProbability()));
+	SET_VECTOR_ELT(MINISTEP, 8, ScalarReal(miniStep.logChoiceProbability()));
+	SET_VECTOR_ELT(MINISTEP, 6, ScalarReal(miniStep.reciprocalRate()));
 
 	UNPROTECT(1);
 	return MINISTEP;
@@ -760,7 +779,7 @@ SEXP getChainList(const Chain& chain)
 {
 	SEXP ans;
 
-	PROTECT(ans = Rf_allocVector(VECSXP, chain.ministepCount() - 1));
+	PROTECT(ans = allocVector(VECSXP, chain.ministepCount() - 1));
 
 	MiniStep *pMiniStep = chain.pFirst()->pNext();
 	for (int i = 0; i < chain.ministepCount() - 1; i++)
@@ -771,25 +790,25 @@ SEXP getChainList(const Chain& chain)
 
 	// Add mu, sigma as attributes
 	SEXP mu, sigma2, finalReciprocalRate;
-	PROTECT(mu = Rf_allocVector(REALSXP, 1));
+	PROTECT(mu = allocVector(REALSXP, 1));
 	REAL(mu)[0] = chain.mu();
 	SEXP muu;
-	PROTECT(muu = Rf_install("mu"));
-	Rf_setAttrib(ans, muu, mu);
-	PROTECT(sigma2 = Rf_allocVector(REALSXP, 1));
+	PROTECT(muu = install("mu"));
+	setAttrib(ans, muu, mu);
+	PROTECT(sigma2 = allocVector(REALSXP, 1));
 	REAL(sigma2)[0] = chain.sigma2();
 	SEXP sigma;
-	PROTECT(sigma = Rf_install("sigma2"));
-	Rf_setAttrib(ans, sigma, sigma2);
-	PROTECT(finalReciprocalRate = Rf_allocVector(REALSXP, 1));
+	PROTECT(sigma = install("sigma2"));
+	setAttrib(ans, sigma, sigma2);
+	PROTECT(finalReciprocalRate = allocVector(REALSXP, 1));
 	REAL(finalReciprocalRate)[0] = chain.finalReciprocalRate();
 	SEXP frr;
-	PROTECT(frr = Rf_install("finalReciprocalRate"));
-	Rf_setAttrib(ans, frr, finalReciprocalRate);
+	PROTECT(frr = install("finalReciprocalRate"));
+	setAttrib(ans, frr, finalReciprocalRate);
 	// get the initial state ministeps
 	SEXP initial;
 	int numberInitial = chain.rInitialStateDifferences().size();
-	PROTECT(initial = Rf_allocVector(VECSXP, numberInitial));
+	PROTECT(initial = allocVector(VECSXP, numberInitial));
 
 	for (int i = 0; i < numberInitial; i++)
 	{
@@ -799,13 +818,13 @@ SEXP getChainList(const Chain& chain)
 	}
 	SEXP init;
 
-	PROTECT(init = Rf_install("initialStateDifferences"));
-	Rf_setAttrib(ans, init, initial);
+	PROTECT(init = install("initialStateDifferences"));
+	setAttrib(ans, init, initial);
 
 	// get the end state ministeps
 	SEXP end;
 	int numberEnd = chain.rEndStateDifferences().size();
-	PROTECT(end = Rf_allocVector(VECSXP, numberEnd));
+	PROTECT(end = allocVector(VECSXP, numberEnd));
 
 	for (int i = 0; i < numberEnd; i++)
 	{
@@ -815,8 +834,8 @@ SEXP getChainList(const Chain& chain)
 	}
 	SEXP en;
 
-	PROTECT(en = Rf_install("endStateDifferences"));
-	Rf_setAttrib(ans, en, end);
+	PROTECT(en = install("endStateDifferences"));
+	setAttrib(ans, en, end);
 	UNPROTECT(11);
 	return ans;
 }
@@ -828,8 +847,8 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 {
 	// get the column names from the names attribute
 	SEXP cols;
-	PROTECT(cols = Rf_install("names"));
-	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -857,7 +876,7 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 	MiniStep * pMiniStep = chain.pFirst()->pNext();
 
 	SEXP CHANGECONTRIBUTIONS;
-	PROTECT(CHANGECONTRIBUTIONS = Rf_allocVector(VECSXP, chain.ministepCount() - 1));
+	PROTECT(CHANGECONTRIBUTIONS = allocVector(VECSXP, chain.ministepCount() - 1));
 	for (int m = 0; m < chain.ministepCount() - 1; m++)
 	{
 		NetworkChange * pNetworkChange = dynamic_cast<NetworkChange *>(pMiniStep);
@@ -865,32 +884,32 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 		SEXP MINISTEPCONTRIBUTIONS = 0;
 		SEXP EFFECTS;
 		SEXP NETTYPE;
-		PROTECT(NETTYPE = Rf_allocVector(STRSXP, 1));
+		PROTECT(NETTYPE = allocVector(STRSXP, 1));
 		SEXP netType;
-		PROTECT(netType = Rf_install("networkType"));
+		PROTECT(netType = install("networkType"));
 		if (pNetworkChange || pBehaviorChange)
 		{
 			const char * netwName;
 			if(pNetworkChange)
 			{
 				netwName = pNetworkChange->variableName().c_str();
-				SET_STRING_ELT(NETTYPE, 0, Rf_mkChar("oneMode"));
+				SET_STRING_ELT(NETTYPE, 0, mkChar("oneMode"));
 			}
 			else
 			{
 				netwName = pBehaviorChange->variableName().c_str();
-				SET_STRING_ELT(NETTYPE, 0, Rf_mkChar("behavior"));
+				SET_STRING_ELT(NETTYPE, 0, mkChar("behavior"));
 			}
-			for (int ii = 0; ii < Rf_length(EFFECTSLIST); ii++)
+			for (int ii = 0; ii < length(EFFECTSLIST); ii++)
 			{
 				const char * networkName = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, ii),nameCol), 0));
 				if (strcmp(netwName, networkName) == 0)
 				{
 					SEXP NETNAME;
-					PROTECT(NETNAME = Rf_allocVector(STRSXP, 1));
+					PROTECT(NETNAME = allocVector(STRSXP, 1));
 					SEXP netName;
-					PROTECT(netName = Rf_install("networkName"));
-					SET_STRING_ELT(NETNAME, 0, Rf_mkChar(networkName));
+					PROTECT(netName = install("networkName"));
+					SET_STRING_ELT(NETNAME, 0, mkChar(networkName));
 					EFFECTS = VECTOR_ELT(EFFECTSLIST, ii);
 					map<const EffectInfo *, vector<double> >* contributions;
 					if(pNetworkChange)
@@ -902,7 +921,7 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 						contributions = pBehaviorChange->changeContributions();
 					}
 					int choices = contributions->begin()->second.size();
-					int numberOfEffects =  Rf_length(VECTOR_ELT(EFFECTS,0));
+					int numberOfEffects =  length(VECTOR_ELT(EFFECTS,0));
 					int rateEffects = 0;
 					for(int e = 0; e < numberOfEffects; e++)
 					{
@@ -913,17 +932,17 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 						}
 					}
 					int length = numberOfEffects-rateEffects;
-					PROTECT(MINISTEPCONTRIBUTIONS = Rf_allocMatrix(REALSXP,length, choices));
+					PROTECT(MINISTEPCONTRIBUTIONS = allocMatrix(REALSXP,length, choices));
 					double * rcontr;
 					rcontr = REAL(MINISTEPCONTRIBUTIONS);
 					SEXP EFFECTNAMES;
-					PROTECT(EFFECTNAMES = Rf_allocVector(STRSXP,length));
+					PROTECT(EFFECTNAMES = allocVector(STRSXP,length));
 					SEXP effectNames;
-					PROTECT(effectNames = Rf_install("effectNames"));
+					PROTECT(effectNames = install("effectNames"));
 					SEXP EFFECTTYPES;
-					PROTECT(EFFECTTYPES = Rf_allocVector(STRSXP,length));
+					PROTECT(EFFECTTYPES = allocVector(STRSXP,length));
 					SEXP effectTypes;
-					PROTECT(effectTypes = Rf_install("effectTypes"));
+					PROTECT(effectTypes = install("effectTypes"));
 					int rates = 0;
 					for (int i = 0; i < numberOfEffects; i++)
 					{
@@ -931,8 +950,8 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 						if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
 						{
 							EffectInfo * pEffectInfo = (EffectInfo *)R_ExternalPtrAddr(VECTOR_ELT(VECTOR_ELT(EFFECTS, pointerCol), i));
-							SET_STRING_ELT(EFFECTNAMES, i-rates, Rf_mkChar(pEffectInfo->effectName().c_str()));
-							SET_STRING_ELT(EFFECTTYPES, i-rates, Rf_mkChar(effectType));
+							SET_STRING_ELT(EFFECTNAMES, i-rates, mkChar(pEffectInfo->effectName().c_str()));
+							SET_STRING_ELT(EFFECTTYPES, i-rates, mkChar(effectType));
 							vector<double> values = (*contributions)[pEffectInfo];
 							for(int a = 0; a < choices; a++)
 							{
@@ -944,14 +963,14 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 							rates = rates+1;
 						}
 					}
-					Rf_setAttrib(MINISTEPCONTRIBUTIONS, effectNames, EFFECTNAMES);
-					Rf_setAttrib(MINISTEPCONTRIBUTIONS, effectTypes, EFFECTTYPES);
-					Rf_setAttrib(MINISTEPCONTRIBUTIONS, netName, NETNAME);
+					setAttrib(MINISTEPCONTRIBUTIONS, effectNames, EFFECTNAMES);
+					setAttrib(MINISTEPCONTRIBUTIONS, effectTypes, EFFECTTYPES);
+					setAttrib(MINISTEPCONTRIBUTIONS, netName, NETNAME);
 					UNPROTECT(7);
 				}
 			}
 		}
-		Rf_setAttrib(MINISTEPCONTRIBUTIONS, netType, NETTYPE);
+		setAttrib(MINISTEPCONTRIBUTIONS, netType, NETTYPE);
 		SET_VECTOR_ELT(CHANGECONTRIBUTIONS, m, MINISTEPCONTRIBUTIONS);
 		pMiniStep = pMiniStep->pNext();
 		UNPROTECT(2);
@@ -964,14 +983,14 @@ SEXP getChangeContributionsList(const Chain& chain, SEXP EFFECTSLIST)
 SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 {
 	int nEffects = 0;
-	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
+	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
-		nEffects += Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
+		nEffects += length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0));
 	}
 	// get the column names from the names attribute
 	SEXP cols;
-	PROTECT(cols = Rf_install("names"));
-	SEXP Names = Rf_getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
+	PROTECT(cols = install("names"));
+	SEXP Names = getAttrib(VECTOR_ELT(EFFECTSLIST, 0), cols);
 
 	int netTypeCol; /* net type */
 	int nameCol; /* network name */
@@ -1003,9 +1022,9 @@ SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 	vector<string> netNames;
 	vector<string> netTypes;
 
-	for (int i = 0; i < Rf_length(EFFECTSLIST); i++)
+	for (int i = 0; i < length(EFFECTSLIST); i++)
 	{
-		for(int e = 0; e < Rf_length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)); e++)
+		for(int e = 0; e < length(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), 0)); e++)
 		{
 			const char * effectType = CHAR(STRING_ELT(VECTOR_ELT(VECTOR_ELT(EFFECTSLIST, i), typeCol), e));
 			if (strcmp(effectType, "eval") == 0 || strcmp(effectType, "endow") == 0 || strcmp(effectType, "creation") == 0)
@@ -1024,28 +1043,28 @@ SEXP createRObjectAttributes(SEXP EFFECTSLIST, SEXP& stats)
 	}
 	int objEffects = nEffects-rateEffects;
 
-	SEXP EFFECTNAMES = PROTECT(Rf_allocVector(STRSXP,objEffects));
-	SEXP effectNames = PROTECT(Rf_install("effectNames"));
-	SEXP EFFECTTYPES = PROTECT(Rf_allocVector(STRSXP,objEffects));
-	SEXP effectTypes = PROTECT(Rf_install("effectTypes"));
-	SEXP NETWORKNAMES = PROTECT(Rf_allocVector(STRSXP,objEffects));
-	SEXP networkNames = PROTECT(Rf_install("networkNames"));
-	SEXP NETWORKTYPES = PROTECT(Rf_allocVector(STRSXP,objEffects));
-	SEXP networkTypes = PROTECT(Rf_install("networkTypes"));
+	SEXP EFFECTNAMES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP effectNames = PROTECT(install("effectNames"));
+	SEXP EFFECTTYPES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP effectTypes = PROTECT(install("effectTypes"));
+	SEXP NETWORKNAMES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP networkNames = PROTECT(install("networkNames"));
+	SEXP NETWORKTYPES = PROTECT(allocVector(STRSXP,objEffects));
+	SEXP networkTypes = PROTECT(install("networkTypes"));
 
 	for(int eff = 0; eff < objEffects; eff++)
 	{
-		SET_STRING_ELT(EFFECTNAMES, eff, Rf_mkChar(effNames.at(eff).c_str()));
-		SET_STRING_ELT(EFFECTTYPES, eff, Rf_mkChar(effTypes.at(eff).c_str()));
-		SET_STRING_ELT(NETWORKNAMES, eff, Rf_mkChar(netNames.at(eff).c_str()));
-		SET_STRING_ELT(NETWORKTYPES, eff, Rf_mkChar(netTypes.at(eff).c_str()));
+		SET_STRING_ELT(EFFECTNAMES, eff, mkChar(effNames.at(eff).c_str()));
+		SET_STRING_ELT(EFFECTTYPES, eff, mkChar(effTypes.at(eff).c_str()));
+		SET_STRING_ELT(NETWORKNAMES, eff, mkChar(netNames.at(eff).c_str()));
+		SET_STRING_ELT(NETWORKTYPES, eff, mkChar(netTypes.at(eff).c_str()));
 	}
 	if(stats)
 	{
-		Rf_setAttrib(stats, effectNames, EFFECTNAMES);
-		Rf_setAttrib(stats, effectTypes, EFFECTTYPES);
-		Rf_setAttrib(stats, networkNames, NETWORKNAMES);
-		Rf_setAttrib(stats, networkTypes, NETWORKTYPES);
+		setAttrib(stats, effectNames, EFFECTNAMES);
+		setAttrib(stats, effectTypes, EFFECTTYPES);
+		setAttrib(stats, networkNames, NETWORKNAMES);
+		setAttrib(stats, networkTypes, NETWORKTYPES);
 	}
 	UNPROTECT(9);
 	return NETWORKTYPES;
@@ -1062,9 +1081,9 @@ MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP)
 		NetworkChange * pNetworkChange = new NetworkChange
 			(pData->pNetworkData(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP,
 							2), 0))),
-				Rf_asInteger(VECTOR_ELT(MINISTEP, 3)),
-				Rf_asInteger(VECTOR_ELT(MINISTEP, 4)),
-				Rf_asInteger(VECTOR_ELT(MINISTEP, 12)));
+				asInteger(VECTOR_ELT(MINISTEP, 3)),
+				asInteger(VECTOR_ELT(MINISTEP, 4)),
+				asInteger(VECTOR_ELT(MINISTEP, 12)));
 		return pNetworkChange;
 	}
 	else
@@ -1072,8 +1091,8 @@ MiniStep * makeMiniStepFromList(Data * pData, SEXP MINISTEP)
 		BehaviorChange * pBehaviorChange = new BehaviorChange
 			(pData->pBehaviorData(CHAR(STRING_ELT(VECTOR_ELT(MINISTEP,
 							2), 0))),
-				Rf_asInteger(VECTOR_ELT(MINISTEP, 3)),
-				Rf_asInteger(VECTOR_ELT(MINISTEP, 5)));
+				asInteger(VECTOR_ELT(MINISTEP, 3)),
+				asInteger(VECTOR_ELT(MINISTEP, 5)));
 		return pBehaviorChange;
 	}
 }
@@ -1089,7 +1108,7 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	/* set period */
 	pChain->period(period);
 
-	for (int i = 0; i < Rf_length(CHAIN); i++)
+	for (int i = 0; i < length(CHAIN); i++)
 	{
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(CHAIN, i);
@@ -1098,9 +1117,9 @@ Chain * makeChainFromList(Data * pData, SEXP CHAIN, int period)
 	}
 
     SEXP init;
-    PROTECT(init = Rf_install("initialStateDifferences"));
-    SEXP initialState = Rf_getAttrib(CHAIN, init);
-	for (int i = 0; i < Rf_length(initialState); i++)
+    PROTECT(init = install("initialStateDifferences"));
+    SEXP initialState = getAttrib(CHAIN, init);
+	for (int i = 0; i < length(initialState); i++)
 	{
 		SEXP MINISTEP;
 		MINISTEP = VECTOR_ELT(initialState, i);

@@ -1,7 +1,7 @@
 #/******************************************************************************
 # * SIENA: Simulation Investigation for Empirical Network Analysis
 # *
-# * Web: http://www.stats.ox.ac.uk/~snijders/siena
+# * Web: https://www.stats.ox.ac.uk/~snijders/siena
 # *
 # * File: sienautils.r
 # *
@@ -122,26 +122,35 @@ sienaNodeSet <- function(n, nodeSetName="Actors", names=NULL)
 }
 
 ##@coCovar Create
-coCovar <- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
+coCovar <- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, 
+													imputationValues=NULL)
 {
     ##val should be vector, numeric or factor
-	if ((sum(!is.na(val))==0) & warn)
+	if (all(is.na(val)))
 	{
-		warning('Note: all values are missing.')
+		stop("all values are missing")
 	}
     if (!is.vector(val))
 	{
         stop("val must be a vector")
 	}
-    if (!(is.numeric(val) || is.factor(val)))
+    if (!(is.numeric(val) || is.factor(val) || (all(is.na(val)))))
 	{
         stop("val must be numeric or a factor")
 	}
-	if (!is.factor(val))
+	if (warn)
 	{
-		if ((var(val, na.rm=TRUE)==0) & warn)
+		if (sum(!is.na(val)) == 1)
 		{
-			warning('Note: all values are identical to ', mean(val, na.rm=TRUE),'.')
+			warning("Note: only one value is non-missing.")
+		}
+		else if (!is.factor(val)) 
+		{
+			if (var(val, na.rm=TRUE)==0)
+			{
+				warning('Note: all non-missing values are identical to ', 
+							mean(val, na.rm=TRUE),'.')
+			}
 		}
 	}
     if (!is.character(nodeSet))
@@ -170,10 +179,15 @@ coCovar <- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationV
     attr(out, "imputationValues") <- imputationValues
     out
 }
+
 ##@varCovar Create
 varCovar<- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationValues=NULL)
 {
     ##matrix, numeric or factor, nrow = nactors and cols = observations-1
+	if (all(is.na(val)))
+	{
+		stop("all values are missing")
+	}
     if (!is.matrix(val))
 	{
         stop("val must be a matrix")
@@ -182,13 +196,20 @@ varCovar<- function(val, centered=TRUE, nodeSet="Actors", warn=TRUE, imputationV
 	{
         stop("val must be numeric or a factor")
 	}
-	if ((sum(!is.na(val))==0) & warn)
+	if (warn)
 	{
-		warning('Note: all values are missing.')
-	}
-	if ((var(as.vector(val), na.rm=TRUE)==0) & warn)
-	{
-		warning('Note: all values are equal to ', mean(as.vector(val), na.rm=TRUE))
+		if (sum(!is.na(val)) == 1)
+		{
+			warning("Note: only one value is non-missing.")
+		}
+		else if (!is.factor(val)) 
+		{
+			if (var(as.vector(val), na.rm=TRUE)==0)
+			{
+				warning('Note: all non-missing values are identical to ', 
+							mean(val, na.rm=TRUE),'.')
+			}
+		}
 	}
     if (!is.character(nodeSet))
 	{

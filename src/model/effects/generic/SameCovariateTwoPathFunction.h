@@ -21,16 +21,17 @@ class SameCovariateTwoPathFunction: public CovariateNetworkAlterFunction
 {
 public:
 	SameCovariateTwoPathFunction(std::string networkName,
-		std::string covariateName, bool excludeMissing);
+		std::string covariateName, bool same, bool excludeMissing);
 		
 	virtual void initialize(const Data * pData,
 		State * pState,
 		int period,
 		Cache * pCache);
 
-	virtual double value(int alter);
+	virtual double value(int alter) const;
 
 private:
+	bool lsame;
 	bool lexcludeMissing;
 };
 

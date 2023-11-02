@@ -1,7 +1,7 @@
 ##*****************************************************************************
 ## * SIENA: Simulation Investigation for Empirical Network Analysis
 ## *
-## * Web: http://www.stats.ox.ac.uk/~snijders/siena
+## * Web: https://www.stats.ox.ac.uk/~snijders/siena
 ## *
 ## * File: sienaTimeTest.r
 ## *
@@ -147,7 +147,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 				match(fitEffects$effectNumber[i],
 					topleftEffectNumbers)
 		}
-	}
+	}	
 	##  nEffects, nSims, nameslist, nDummies convert commonly used ingredients
 	##  from sienaFit into an easily accessed form based on the screens
 	##  set up above
@@ -260,7 +260,7 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 	}
 
 	## In case some effects are excluded from testing, this is done now:
-	if (!is.null(excludedEffects))
+	if ((!is.null(excludedEffects)) & (length(excludedEffects) > 0))
 	{
 		useRows <- rep(TRUE, dim(toTest)[1])
 		for (i in seq_along(excludedEffects))
@@ -493,33 +493,34 @@ sienaTimeTest <- function (sienaFit, effects=NULL, excludedEffects=NULL,
 				))
 	# The preceding does not yield the test for the first group/period,
 	# because it was used as the reference category.
-	# This is a test for the sum of the dummies for the other groups.
-	# Therefore matrix A is created as the design matrix for this test.
+	# This is a test for the joint contribution 
+	# of the dummies for the other groups.
+	# Therefore matrix A is created as the design matrix for this test.	
 	remainingEffects <- unique(toTest$baseEffect[toTest$toTest])
 	nRemainingEffects <- length(remainingEffects)
 	if (nRemainingEffects >= 1)
 	{
-	A <- matrix(0, nRemainingEffects, nRowsToTest)
-	for (i in seq_along(remainingEffects))
-	{
-		A[i, which(toTest$baseEffect==remainingEffects[i])[2:nWaves]] <- 1
-	}
-	groupTest[1] <- transformed.scoreTest(D, sigma, fra, A,
-		nullHyp, maxlike=sienaFit$maxlike)
-	dim(groupTest) <- c(nGroups, 1)
-	groupTestP <- matrix(NA, nGroups, 3)
-	groupTestP[,1] <- round(groupTest[,1], 2)
-	groupTestP[,2] <- tapply(toTest$toTest, toTest$whichGroup, sum)
-	groupTestP[1,2] <- nRemainingEffects
-	groupTestP[,3] <- round(1 - pchisq(groupTestP[,1], groupTestP[,2]), 3)
-	rownames(groupTestP) <- paste(groupsKind, 1:nGroups)
-	colnames(groupTestP) <- c("chi-sq.", "df", "p-value")
+		A <- matrix(0, nRemainingEffects, nRowsToTest)
+		for (i in seq_along(remainingEffects))
+		{
+			A[i, which((toTest$baseEffect==remainingEffects[i]) & (!nullHyp))] <- 1
+		}		
+		groupTest[1] <- transformed.scoreTest(D, sigma, fra, A,
+			nullHyp, maxlike=sienaFit$maxlike)
+		dim(groupTest) <- c(nGroups, 1)
+		groupTestP <- matrix(NA, nGroups, 3)
+		groupTestP[,1] <- round(groupTest[,1], 2)
+		groupTestP[,2] <- tapply(toTest$toTest, toTest$whichGroup, sum)
+		groupTestP[1,2] <- nRemainingEffects
+		groupTestP[,3] <- round(1 - pchisq(groupTest[,1], groupTestP[,2]), 3)
+		rownames(groupTestP) <- paste(groupsKind, 1:nGroups)
+		colnames(groupTestP) <- c("chi-sq.", "df", "p-value")
 	}
 	else
 	{
 		groupTest[1] <- NA
 		groupTestP <- NA
-		cat('Nothing remains...\n')
+		cat('No first dummy tested ...\n')
 	}
 	returnObj <- list(
 		sienaFitName=deparse(substitute(sienaFit)),
@@ -748,7 +749,7 @@ plot.sienaTimeTest <- function(x, pairwise=FALSE, effects,
 		}
 		panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
 		{
-			usr <- par("usr"); on.exit(par(usr))
+#			usr <- par("usr"); # on.exit(par("usr" = usr))
 			par(usr = c(0, 1, 0, 1))
 			r <- abs(cor(x, y))
 			txt <- format(c(r, 0.123456789), digits=digits)[1]
@@ -793,7 +794,7 @@ plot.sienaTimeTest <- function(x, pairwise=FALSE, effects,
 			xyplot(valsplus ~ period1 | effectName, data=toTest,
 				type = "p", as.table=TRUE, bty="n",
 				xlab="Wave", ylab="Parameter Value", auto.key=TRUE,
-				scales=list(relation='free', x=list(at=c(0:(nWaves+1)),
+				scales=list(relation='free', x=list(at=0:(nWaves+1),
 						labels=c(" ", waveNumbers, " "))), subscripts=TRUE,
 				par.strip.text=list(lines=2.2), #layout=layout,
 				xlim=c(0, nWaves + 1), prepanel=function(x, y, ...)
@@ -1180,7 +1181,6 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 								interaction1= c(effect$interaction1,
 									dname),
 								interaction2=effect$interaction2,
-								parameter=effect$parameter,
 								name=depvar, verbose=FALSE)
 					} else {
 						newEffects <-
@@ -1191,7 +1191,6 @@ sienaTimeFix <- function(effects, data=NULL, getDocumentation=FALSE)
 								interaction1= c(effect$interaction1,
 									dname),
 								interaction2=effect$interaction2,
-								parameter=effect$parameter,
 								name=depvar, verbose=FALSE)
 					}
 					## find the row altered
