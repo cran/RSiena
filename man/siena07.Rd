@@ -3,16 +3,16 @@
 \concept{estimation}
 \title{Function to estimate parameters in a Siena model}
 \description{
- Estimates parameters in a Siena model using Method of Moments,   
- based on direct simulation, conditional or otherwise;    
- or using Generalized Method of Moments;   
- or using Maximum Likelihood by MCMC simulation.  
- Estimation is done using a Robbins-Monro algorithm.  
- Note that the data and particular model to be used  
- must be passed in using named arguments as the \code{...},  
- and the specification for the algorithm must be passed on  
- as \code{x},  
- which is a \code{\link{sienaAlgorithm}} object as produced by  
+ Estimates parameters in a Siena model using Method of Moments,
+ based on direct simulation, conditional or otherwise;
+ or using Generalized Method of Moments;
+ or using Maximum Likelihood by MCMC simulation.
+ Estimation is done using a Robbins-Monro algorithm.
+ Note that the data and particular model to be used
+ must be passed in using named arguments as the \code{...},
+ and the specification for the algorithm must be passed on
+ as \code{x},
+ which is a \code{\link{sienaAlgorithm}} object as produced by
  \code{\link{sienaAlgorithmCreate}} (see examples).
 }
 \usage{
@@ -20,6 +20,7 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
         useCluster=FALSE, nbrNodes=2,
         thetaValues = NULL,
         returnThetas = FALSE,
+        targets = NULL,
         initC=TRUE,
         clusterString=rep("localhost", nbrNodes), tt=NULL,
         parallelTesting=FALSE, clusterIter=!x$maxlike,
@@ -44,6 +45,9 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
     dependent variable). Can only be used if \code{x$simOnly=TRUE}.}
   \item{returnThetas}{Boolean: whether to return theta values
    and generated estimation statistics of Phase 2 runs.}
+  \item{targets}{Numeric vector of length equal to the number of estimated
+    parameters, meant to supersede the targets calculated from the data set;
+    see "Details". Not for regular use.}
   \item{initC}{Boolean: set to \code{TRUE} if the simulation will use C
    routines (currently always needed). Only for use if using
    multiple processors, to ensure all copies are initialised
@@ -51,7 +55,7 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   \item{clusterString}{Definitions of clusters. Default set up to use
    the local machine only.}
   \item{tt}{A \code{tcltk} toplevel window. Used if called from the
-   model options screen.}
+   model options screen, if \code{tcltk} is available.}
   \item{parallelTesting}{Boolean. If \code{TRUE}, sets up random numbers to
    parallel those in Siena 3.}
   \item{clusterIter}{Boolean. If \code{TRUE}, multiple processes execute
@@ -104,6 +108,14 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
  and also once to initialise the model fitting and once to complete it.
  Unless in batch mode, a tcl/tk screen is displayed to allow interruption
  and to show progress.
+
+ If \code{targets} is specified (which should be done only in special cases),
+ and provided that estimation is by the Method of Moments, the data
+ is not a multi-group data set and has exactly 2 waves,
+ and if the length of the vector \code{targets} is equal to the number
+ of estimated parameters (not counting the rate parameters estimated
+ by conditional estimation), then the vector \code{targets} supersedes the
+ targets calculated from the data set.
 
  It is necessary to check that convergence has been achieved.
  The rule of thumb is that the all t-ratios for convergence should be
@@ -195,7 +207,7 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
   \item{tmax}{maximum absolute t-statistic for convergence for
     non-fixed parameters.}
   \item{tconv.max}{overall maximum convergence ratio.}
-  \item{ac3}{If \code{x$maxlike=TRUE}: 
+  \item{ac3}{If \code{x$maxlike=TRUE}:
                     autocorrelations of statistics in Phase 3.}
   \item{targets}{Observed statistics; for ML, zero vector.}
   \item{targets2}{Observed statistics by wave,
@@ -228,51 +240,51 @@ siena07(x, batch=FALSE, verbose=FALSE, silent=FALSE,
    \item{Phase3nits}{Number of iterations actually performed in phase 3.}
    \item{thetaUsed}{If \code{thetaValues} is not \code{NULL}, the matrix
    of parameter values actually used in the simulations of Phase 3.}
-  Writes text output to the file named "projname.txt", where projname 
+  Writes text output to the file named "projname.txt", where projname
   is defined in the \code{\link{sienaAlgorithm}} object \code{x}.
 }
 \references{
     Amati, V., Schoenenberger, F., and Snijders, T.A.B. (2015),
-    Estimation of stochastic actor-oriented models for the evolution of 
+    Estimation of stochastic actor-oriented models for the evolution of
     networks by generalized method of moments.
     \emph{Journal de la Societe Francaise de Statistique} \bold{156}, 140--165.
-    
+
     Amati, V., Schoenenberger, F., and Snijders, T.A.B. (2019),
     Contemporaneous statistics for estimation in stochastic actor-oriented
     co-evolution models. \emph{Psychometrika} \bold{84}, 1068--1096.
-    
+
     Greenan, C. (2015),
     \emph{Evolving Social Network Analysis: developments in statistical
     methodology for dynamic stochastic actor-oriented models}.
     DPhil dissertation, University of Oxford.
-    
+
     Niezink, N.M.D., and Snijders, T.A.B. (2017),
     Co-evolution of Social Networks and Continuous Actor Attributes.
     \emph{The Annals of Applied Statistics} \bold{11}, 1948--1973.
-    
+
     Schweinberger, M., and Snijders, T.A.B. (2007),
     Markov models for digraph panel data:
     Monte Carlo based derivative estimation.
     \emph{Computational Statistics and Data Analysis} \bold{51}, 4465--4483.
-    
+
      Snijders, T.A.B. (2001),
     The statistical evaluation of social network dynamics.
     \emph{Sociological Methodology} \bold{31}, 361--395.
-    
+
     Snijders, T.A.B. (2017), Stochastic Actor-Oriented Models for Network
    Dynamics. \emph{Annual Review of Statistics and Its Application}
     \bold{4}, 343--363.
-    
+
     Snijders, T.A.B., Koskinen, J., and Schweinberger, M. (2010).
     Maximum likelihood estimation for social network dynamics.
     \emph{Annals of Applied Statistics} \bold{4}, 567--588.
-    
-    Snijders, T.A.B., Steglich, C.E.G., and Schweinberger, Michael (2007), 
+
+    Snijders, T.A.B., Steglich, C.E.G., and Schweinberger, Michael (2007),
     Modeling the co-evolution of networks and behavior.
     Pp. 41--71 in \emph{Longitudinal models in the behavioral
     and related sciences},
     edited by van Montfort, K., Oud, H., and Satorra, A.; Lawrence Erlbaum.
-    
+
     Steglich, C.E.G., Snijders, T.A.B., and Pearson, M.A. (2010),
     Dynamic networks and behavior:     Separating selection from influence.
     \emph{Sociological Methodology} \bold{40}, 329--393.

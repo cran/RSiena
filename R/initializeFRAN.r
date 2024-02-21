@@ -163,11 +163,11 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		{
 			differentVersions <- (effectsVersion != attr(defaultEffects, "version"))
 		}
-		if ((differentVersions) & 
+		if ((differentVersions) &
 			(any((effects$shortName %in% c("unspInt","behUnspInt"))&effects$include)))
 		{
 			warning("Your effects object contains interaction effects and was made
-			  using a different RSiena version. 
+			  using a different RSiena version.
 			  Make sure the interaction effects are the same.")
 		}
 		if (x$useStdInits)
@@ -196,9 +196,9 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		# and change NULL to default values for x$modelType and x$behModelType
 		# For symmetric networks, default is changed below from 1 to 2.
 		checkNames(x$MaxDegree, c('oneMode','bipartite'))
-		checkNames(x$UniversalOffset, c('oneMode','bipartite'))
 		x$modelType <- checkNames(x$modelType, c('oneMode','bipartite'))
 		x$behModelType <- checkNames(x$behModelType, 'behavior')
+		checkNames(x$UniversalOffset, c('oneMode','bipartite'))
 		# The following error will occur if ML estimation is requested
 		# and there are any impossible changes from structural values
 		# to different observed values.
@@ -624,6 +624,10 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 
 		if (any(attr(f,"types") == "continuous"))
 		{
+			if (z$cconditional)
+			{
+				stop("For models with continuous behavior variables, conditional estimation is impossible")
+			}
 			splitFactor <- factor(effects$name, levels=c(attr(f, "netnames"), "sde"))
 		}
 		else
@@ -798,9 +802,10 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 		if (!x$maxlike)
 		{
 			z$targets <- rowSums(ans)
+			attr(z$targets, "fromData") <- TRUE
 			z$targets2 <- ans
-# For the moment, the following is an undocumented and hidden option.
-# This replaces the targets calculated from the data
+# If targets is given in the call of siena07,
+# this replaces the targets calculated from the data
 # by user-defined targets.
 			if ((!is.null(x$targets[1])) & (nGroup == 1) & (groupPeriods[1] == 2))
 			{
@@ -808,16 +813,24 @@ initializeFRAN <- function(z, x, data, effects, prevAns=NULL, initC,
 				{
 					z$targets <- x$targets
 					z$targets2 <- matrix(x$targets, length(x$targets), 1)
-					message('Note: targets taken from algorithm object.')
+					attr(z$targets, "fromData") <- FALSE
+					message('Note: targets used as given in call of siena07.')
 					cat('\n')
 					print(z$targets)
 					cat('\n')
+				}
+				else
+				{
+					message("length of given targets = ", x$targets, ",")
+					message("but there are ", length(z$targets), " parameters to be estimated.")
+					warning("targets as given in the call of siena07 have incorrect length")
 				}
 			}
 		}
 		else
 		{
-			z$targets <- rep(0, z$pp)
+			z$targets <- rep(0, z$pp)			
+			attr(z$targets, "fromData") <- TRUE
 			z$targets2 <- ans
 			z$targets2[] <- 0
 			z$maxlikeTargets <- rowSums(ans)
@@ -1100,7 +1113,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
 			## carry forward missing values if any
 			if (i == 1)
 			{
-				netmat <- netmat[!is.na(netmat[,3]), ]
+				netmat <- netmat[!is.na(netmat[,3]), , drop = FALSE]
 				networks[[i]] <- spMatrix(nActors, nActors, netmat[, 1],
 					netmat[, 2], netmat[,3])
 			}
@@ -1129,7 +1142,7 @@ unpackOneMode <- function(depvar, observations, compositionChange)
 			mat3 <- mat1[struct, , drop = FALSE]
 			mat3[, 3] <- 1
 			## now remove the zeros from reset data
-			mat1 <- mat1[!mat1[, 3] == 0, ]
+			mat1 <- mat1[!mat1[, 3] == 0, , drop=FALSE]
 			## do comp change
 			if (compChange)
 			{
@@ -1302,12 +1315,12 @@ unpackOneMode <- function(depvar, observations, compositionChange)
 				}
 			}
 			edgeLists[[i]] <- list(mat1 = t(mat1), mat2 = t(mat2),
-				mat3 = t(mat3))
+				mat3 = t(mat3))				
 		}
 	}
 	else
 	{
-		for (i in 1:observations) ## carry missings forward  if exist
+		for (i in 1:observations) ## carry missings forward if exist
 		{
 			networks[[i]] <- depvar[, , i]
 			if (i == 1)

@@ -380,6 +380,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	{
 		pEffect = new TruncatedOutdegreeEffect(pEffectInfo, false, false);
 	}
+	else if (effectName == "outMore3")
+	{
+		pEffect = new TruncatedOutdegreeEffect(pEffectInfo, false, false);
+	}
 	else if (effectName == "outIso")
 	{
 		pEffect = new TruncatedOutdegreeEffect(pEffectInfo, true, true);
@@ -531,6 +535,10 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "altRThresholdX")
 	{
 		pEffect = new CovariateAlterEffect(pEffectInfo, false, true, false);
+	}
+	else if (effectName == "outXMore")
+	{
+		pEffect = new TruncatedOutXEffect(pEffectInfo);
 	}
 	else if (effectName == "egoX")
 	{
@@ -2587,7 +2595,6 @@ Effect * EffectFactory::createEffect(const EffectInfo * pEffectInfo) const
 	else if (effectName == "intercept")
 	{
 		pEffect = new InterceptEffect(pEffectInfo);
-
 	}
 	else if (effectName == "feedback")
 	{
