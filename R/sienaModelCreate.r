@@ -24,7 +24,7 @@ sienaModelCreate <- function(fn,
 	minimumPermutationLength=2, initialPermutationLength=20,
 	modelType=NULL, behModelType=NULL, mult=5, simOnly=FALSE, localML=FALSE,
 	truncation=5, doubleAveraging=0, standardizeVar=(diagonalize<1),
-	lessMem=FALSE)
+	lessMem=FALSE, silent=FALSE)
 {
 	model <- NULL
 	checking <- any(grepl("_R_CHECK", names(Sys.getenv())))
@@ -35,25 +35,31 @@ sienaModelCreate <- function(fn,
 	if (is.null(projname) | checking)
 	{
 		model$projname <- tempfile("Siena")
+		if (!silent)
+		{
 		if (checking)
 		{
 	cat('If you use this algorithm object, siena07 will create/use an output file',
 				paste('Siena','.txt',sep=''),'.\n')
 		}
-		else
+			else
 		{
 	cat('If you use this algorithm object, siena07 will create/use an output file',
 				paste(model$projname,'.txt',sep=''),'.\n')
 			cat('This is a temporary file for this R session.\n')
 		}
 	}
+	}
 	else
 	{
 		if (is.character(projname))
 		{
 			model$projname <- projname
+			if (!silent)
+			{
 			cat('If you use this algorithm object, siena07 will create/use an output file',
 				paste(model$projname,'.txt',sep=''),'.\n')
+		}
 		}
 		else
 		{
@@ -122,9 +128,9 @@ sienaModelCreate <- function(fn,
 
 	if (!is.null(modelType))
 	{
-		if (any(!(modelType %in% 1:10)))
+		if (any(!(modelType %in% 1:11)))
 		{
-			stop('modelType can only have integer values from 1 to 10\n')
+			stop('modelType can only have integer values from 1 to 11\n')
 		}
 		if ((maxlike) & (any(modelType %in% 7:10)))
 		{
@@ -175,7 +181,7 @@ sienaModelCreate <- function(fn,
 			model$prdrms <- 0.05   # delete random missing
 			# prob(move) = 0
 		}
-#		else  # prML == 2 
+#		else  # prML == 2
 #		{
 #			model$pridg <-  0.05   # insert diagonal
 #			model$prcdg <-  0.05   # cancel diagonal
@@ -226,6 +232,7 @@ sienaModelCreate <- function(fn,
 	# The two options model$noAggregation and model$standardizeWithTruncation
 	# are used only in phase2.r.
 	class(model) <- "sienaAlgorithm"
+	attr(model, "version") <- packageDescription(pkgname, fields = "Version")
 	model
 }
 
@@ -236,7 +243,7 @@ sienaAlgorithmCreate <- sienaModelCreate
 
 ##@ModelTypeStrings DataCreate
 ModelTypeStrings <- function(i){
-	ifelse(((i >= 1) && (i <= 8) && (!is.null(i))),
+	ifelse(((i >= 1) && (i <= 11) && (!is.null(i))),
 		switch(i,
 			"Standard actor-oriented model",
 			"Forcing model",
@@ -247,7 +254,8 @@ ModelTypeStrings <- function(i){
 			"Double Step Model 0.25",
 			"Double Step Model 0.50",
 			"Double Step Model 0.75",
-			"Double Step Model 1.00"), "")
+			"Double Step Model 1.00",
+			"Contemporaneous evaluation statistics model"), "")
 }
 
 ##@BehaviorModelTypeStrings DataCreate

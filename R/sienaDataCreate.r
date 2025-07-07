@@ -14,6 +14,14 @@ addAttributes <- function(x, name, ...) UseMethod("addAttributes")
 # Note: this is used when creating the data object;
 # the attributes are not part of the variables.
 
+##@lowIntegers utility function DataCreate
+lowIntegers <- function(vals, centr){
+	is.wholenumber <- function(x, tol = 1e-6){abs(x - round(x)) < tol}
+	all(is.wholenumber(vals), na.rm=TRUE) && (min(vals, na.rm=TRUE) >= 0) &&
+					(max(vals, na.rm=TRUE) <= 20)  && (!centr)
+}
+
+
 ##@addAttributes.coCovar DataCreate
 addAttributes.coCovar <- function(x, name, ...)
 {
@@ -50,6 +58,7 @@ addAttributes.coCovar <- function(x, name, ...)
 	attr(x, "name") <- name
 	attr(x, "vartotal") <- vartotal
 	attr(x, "nonMissingCount") <- nonMissingCount
+	attr(x, "lowIntegers") <- lowIntegers(x, attr(x, "centered"))
 	if ((!is.null(attr(x, "imputationValues"))) && (attr(x, "centered")))
 	{
 		attr(x, "imputationValues") <- attr(x, "imputationValues") - varmean
@@ -92,6 +101,7 @@ addAttributes.varCovar <- function(x, name, ...)
 	attr(x, 'name') <- name
 	attr(x, "vartotal") <- vartotal
 	attr(x, "nonMissingCount") <- nonMissingCount
+	attr(x, "lowIntegers") <- lowIntegers(x, attr(x, "centered"))
     if ((!is.null(attr(x, "imputationValues"))) && (attr(x, "centered")))
 	{
 		attr(x, "imputationValues") <- attr(x, "imputationValues") - varmean
@@ -717,6 +727,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 			##	attr(depvars[[i]], 'simTotal') <- rr$simTotal
 			##	attr(depvars[[i]], 'simCnt') <- rr$simCnt
 			attr(depvars[[i]], 'simMean') <- rr$simMean
+            attr(depvars[[i]], 'variance') <- rr$variance
 			attr(depvars[[i]], 'structural') <- FALSE
 			attr(depvars[[i]], 'balmean') <- NA
 			attr(depvars[[i]], 'structmean') <- NA
@@ -817,6 +828,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 				attr(depvars[[i]], 'balmean') <- calcBalmean(depvars[[i]])
 				attr(depvars[[i]], 'structmean') <- calcStructmean(depvars[[i]])
 				attr(depvars[[i]], 'simMean') <- NA
+                attr(depvars[[i]], 'variance') <- NA
 				attr(depvars[[i]], 'symmetric') <- TRUE
 				attr(depvars[[i]], 'missing') <- FALSE
 				attr(depvars[[i]], 'structural') <- FALSE
@@ -924,6 +936,7 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 				attr(depvars[[i]], 'balmean') <- NA
 				attr(depvars[[i]], 'structmean') <- NA
 				attr(depvars[[i]], 'simMean') <- NA
+                attr(depvars[[i]], 'variance') <- NA
 				attr(depvars[[i]], 'symmetric') <- FALSE
 				attr(depvars[[i]], 'missing') <- FALSE
 				attr(depvars[[i]], 'structural') <- FALSE
@@ -1027,7 +1040,8 @@ sienaDataCreate<- function(..., nodeSets=NULL, getDocumentation=FALSE)
 	z$compositionChange <- compositionChange
 	z <- checkConstraints(z)
 	z <- covarDist2(z)
-	class(z) <- 'siena'
+	attr(z, "version") <- packageDescription(pkgname, fields = "Version")
+	class(z) <- "siena"
 	z
 }
 ##@checkConstraints DataCreate
@@ -1226,8 +1240,16 @@ rangeAndSimilarity <- function(vals, rvals=NULL)
 		simTotal <- sum(raw)
 		simCnt <- sum(cnts)
 		simMean <- ifelse(simCnt==0, 0, simTotal/simCnt)
-	}
-	list(simTotal=simTotal, simMean=simMean, range=rvals, simCnt=simCnt)
+    }
+    
+    # and variance
+    sum <- sum(c(vals), na.rm = TRUE)
+    sumSq <- sum(c(vals)^2, na.rm = TRUE)
+    nonmis <- sum(!is.na(c(vals)))
+    variance <- ifelse(nonmis==0, 0, (sumSq/nonmis) - (sum/nonmis)^2)
+
+	list(simTotal=simTotal, simMean=simMean, range=rvals, simCnt=simCnt,
+        sum=sum, sumSq=sumSq, variance=variance, varCnt=nonmis)
 }
 ##@groupRangeAndSimilarityAndMean DataCreate
 ## calculates attributes at group level and re-centers actor covariates
@@ -1240,6 +1262,7 @@ groupRangeAndSimilarityAndMean <- function(group)
 	behRange <- matrix(NA, ncol=length(netnames), nrow=2)
 	colnames(behRange) <- netnames
 	bSim <- namedVector(NA, netnames)
+    bVar <- namedVector(NA, netnames)
 	bPoszvar <- namedVector(NA, netnames)
 	bMoreThan2 <- namedVector(NA, netnames)
 	bAnyMissing <- namedVector(FALSE, netnames)
@@ -1247,6 +1270,9 @@ groupRangeAndSimilarityAndMean <- function(group)
 	{
 		simTotal <- 0
 		simCnt <- 0
+        sumTotal <- 0
+        sumSqTotal <- 0
+        varCnt <- 0
 		anyMissing <- FALSE
 		bPoszvar[net] <- TRUE
 		thisrange <- matrix(NA, ncol=length(group), nrow=2)
@@ -1281,12 +1307,18 @@ groupRangeAndSimilarityAndMean <- function(group)
 			simTotal <- simTotal + tmp$simTotal
 			simCnt <- simCnt + tmp$simCnt
 			values <- c(values, unique(depvar))
+            
+            sumTotal <- sumTotal + tmp$sum
+            sumSqTotal <- sumSqTotal + tmp$sumSq
+            varCnt <- varCnt + tmp$varCnt
 		}
 		simMean <- ifelse(simCnt==0, 0, simTotal/simCnt)
 		bSim[net] <- simMean
 		bMoreThan2[net] <- length(unique(values)) > 2
 		if (anyMissing)
 			bAnyMissing[net] <- TRUE
+        variance <- ifelse(varCnt==0, 0, sumSqTotal/varCnt - (sumTotal/varCnt)^2)
+        bVar[net] <- variance
 	}
 	## constant ones will not exist unless there is only one data object
 	cCovarRange <- namedVector(NA, atts$cCovars)
@@ -2044,7 +2076,9 @@ sienaGroupCreate <- function(objlist, singleOK=FALSE, getDocumentation=FALSE)
 	{
 		names(group) <- paste('Data', 1:length(group), sep="")
 	}
+# This is where the names Data1 etc. are created.
 	class(group)<- c("sienaGroup", "siena")
+	attr(group, "version") <- packageDescription(pkgname, fields = "Version")
 	balmeans <- calcBalmeanGroup (group)
 	names(balmeans) <- netnames
 	attr(group, "balmean") <- balmeans

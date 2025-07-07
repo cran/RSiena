@@ -2,14 +2,13 @@ Encoding: UTF-8
 Package: RSiena
 Type: Package
 Title: Siena - Simulation Investigation for Empirical Network Analysis
-Version: 1.4.7
-Date: 2024-02-20
-Authors@R: c(person("Tom A.B.", "Snijders", role = c("cre", "aut"), email = "tom.snijders@nuffield.ox.ac.uk", 
-                comment = c(ORCID = "0000-0003-3157-4157")),
+Version: 1.5.0
+Date: 2025-07-06
+Authors@R: c(person("Tom A.B.", "Snijders", role = c("aut", "ctb"), comment = c(ORCID = "0000-0003-3157-4157")),
               person("Ruth M.", "Ripley", role = "aut"),
               person("Krists", "Boitmanis", role = c( "aut","ctb")),
-              person("Christian", "Steglich", role = c("aut","ctb"), comment = c(ORCID = "0000-0002-9097-0873")),
-              person("Johan", "Koskinen", role = c("ctb"), comment = c(ORCID = "0000-0002-6860-325X")),
+              person("Christian", "Steglich", email = "c.e.g.steglich@rug.nl", role = c("cre", "aut"), comment = c(ORCID = "0000-0002-9097-0873")),
+			  person("Johan", "Koskinen", role = c("ctb"), comment = c(ORCID = "0000-0002-6860-325X")),
               person("Nynke M.D.", "Niezink", role = c("aut","ctb"), comment = c(ORCID = "0000-0003-4199-4841")),
               person("Viviana", "Amati", role = c("aut","ctb"), comment = c(ORCID = "0000-0003-1190-1237")),
               person("Christoph", "Stadtfeld", role = "ctb", comment = c(ORCID = "0000-0002-2704-2134")),
@@ -26,7 +25,7 @@ Authors@R: c(person("Tom A.B.", "Snijders", role = c("cre", "aut"), email = "tom
               person("Robert", "Hellpap", role = "ctb"),
               person("Alvaro", "Uzaheta", role = "ctb", comment=c(ORCID = "0000-0003-4367-3670")),
               person("Steffen", "Triebel", role = "ctb"))
-Maintainer: Tom A.B. Snijders <tom.snijders@nuffield.ox.ac.uk>
+Maintainer: Christian Steglich <c.e.g.steglich@rug.nl>
 Depends: R (>= 3.5.0)
 Imports: Matrix, lattice, parallel, MASS, methods, xtable
 Suggests: network, tools, codetools, tcltk
@@ -46,27 +45,34 @@ NeedsCompilation: yes
 BuildResaveData: no
 URL: https://www.stats.ox.ac.uk/~snijders/siena/
 BugReports: https://github.com/stocnet/rsiena/issues
-Packaged: 2024-02-20 10:31:56 UTC; TomSnijders
-Author: Tom A.B. Snijders [cre, aut] (<https://orcid.org/0000-0003-3157-4157>),
+Packaged: 2025-07-06 12:13:40 UTC; cegst
+Author: Tom A.B. Snijders [aut, ctb] (ORCID:
+    <https://orcid.org/0000-0003-3157-4157>),
   Ruth M. Ripley [aut],
   Krists Boitmanis [aut, ctb],
-  Christian Steglich [aut, ctb] (<https://orcid.org/0000-0002-9097-0873>),
-  Johan Koskinen [ctb] (<https://orcid.org/0000-0002-6860-325X>),
-  Nynke M.D. Niezink [aut, ctb] (<https://orcid.org/0000-0003-4199-4841>),
-  Viviana Amati [aut, ctb] (<https://orcid.org/0000-0003-1190-1237>),
-  Christoph Stadtfeld [ctb] (<https://orcid.org/0000-0002-2704-2134>),
-  James Hollway [ctb] (IHEID, <https://orcid.org/0000-0002-8361-9647>),
-  Per Block [ctb] (<https://orcid.org/0000-0002-7583-2392>),
-  Robert Krause [ctb] (<https://orcid.org/0000-0003-4288-4732>),
+  Christian Steglich [cre, aut] (ORCID:
+    <https://orcid.org/0000-0002-9097-0873>),
+  Johan Koskinen [ctb] (ORCID: <https://orcid.org/0000-0002-6860-325X>),
+  Nynke M.D. Niezink [aut, ctb] (ORCID:
+    <https://orcid.org/0000-0003-4199-4841>),
+  Viviana Amati [aut, ctb] (ORCID:
+    <https://orcid.org/0000-0003-1190-1237>),
+  Christoph Stadtfeld [ctb] (ORCID:
+    <https://orcid.org/0000-0002-2704-2134>),
+  James Hollway [ctb] (IHEID, ORCID:
+    <https://orcid.org/0000-0002-8361-9647>),
+  Per Block [ctb] (ORCID: <https://orcid.org/0000-0002-7583-2392>),
+  Robert Krause [ctb] (ORCID: <https://orcid.org/0000-0003-4288-4732>),
   Charlotte Greenan [ctb],
   Josh Lospinoso [ctb],
-  Michael Schweinberger [ctb] (<https://orcid.org/0000-0003-3649-5386>),
-  Mark Huisman [ctb] (<https://orcid.org/0000-0002-9009-7859>),
+  Michael Schweinberger [ctb] (ORCID:
+    <https://orcid.org/0000-0003-3649-5386>),
+  Mark Huisman [ctb] (ORCID: <https://orcid.org/0000-0002-9009-7859>),
   Felix Schoenenberger [aut, ctb],
   Mark Ortmann [ctb],
-  Marion Hoffman [ctb] (<https://orcid.org/0000-0002-0741-7760>),
+  Marion Hoffman [ctb] (ORCID: <https://orcid.org/0000-0002-0741-7760>),
   Robert Hellpap [ctb],
-  Alvaro Uzaheta [ctb] (<https://orcid.org/0000-0003-4367-3670>),
+  Alvaro Uzaheta [ctb] (ORCID: <https://orcid.org/0000-0003-4367-3670>),
   Steffen Triebel [ctb]
 Repository: CRAN
-Date/Publication: 2024-02-21 12:10:02 UTC
+Date/Publication: 2025-07-07 18:40:02 UTC

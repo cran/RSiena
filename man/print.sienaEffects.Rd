@@ -11,9 +11,10 @@
 }
 \usage{
 \method{print}{sienaEffects}(x, fileName = NULL, includeOnly=TRUE,
-expandDummies = FALSE, includeRandoms = FALSE, dropRates=FALSE, ...)
+   expandDummies = FALSE, includeRandoms = FALSE, dropRates=FALSE, 
+   includeShortNames=FALSE, ...)
 \method{summary}{sienaEffects}(object, fileName = NULL,
-includeOnly=TRUE, expandDummies = FALSE, ...)
+   includeOnly=TRUE, expandDummies = FALSE, ...)
 \method{print}{summary.sienaEffects}(x, fileName = NULL, ...)
 }
 \arguments{
@@ -22,13 +23,15 @@ includeOnly=TRUE, expandDummies = FALSE, ...)
     \code{summary.sienaEffects} as appropriate.
   }
   \item{fileName}{Character string denoting file name if file output desired.}
-  \item{includeOnly}{Boolean. If TRUE, only effects with the include
-    flag TRUE will be printed.}
+  \item{includeOnly}{Boolean. If \code{TRUE}, only effects with the include
+    flag \code{TRUE} will be printed.}
   \item{expandDummies}{Interpret the \code{timeDummy} column and show
     any effects which would be added by \code{sienaTimeFix}.}
-  \item{includeRandoms}{Boolean. If TRUE, also the
+  \item{includeRandoms}{Boolean. If \code{TRUE}, also the
     \code{randomEffects} column will be printed.}
-  \item{dropRates}{Boolean. If TRUE, do not print the rows for basic rate
+  \item{includeShortNames}{Boolean. If \code{TRUE}, also the
+    \code{shortName} column will be printed.}
+  \item{dropRates}{Boolean. If \code{TRUE}, do not print the rows for basic rate
     effects.}
   \item{\dots}{For extra arguments (none used at present).}
 }
@@ -68,6 +71,7 @@ mydyadcovar <- coDyadCovar(matrix(as.numeric(rnorm(2500) > 2), nrow=50))
 mydata <- sienaDataCreate(mynet1, mybeh, mycovar, mydyadcovar)
 myeff <- getEffects(mydata)
 myeff
+print(myeff, includeShortNames=TRUE)
 summary(myeff)
 }
 \keyword{print}
