@@ -10,8 +10,8 @@
 # *****************************************************************************/
 ##@simstats0c siena07 Simulation Module
 simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
-                       returnDeps=FALSE, returnChains=FALSE, byWave=FALSE,
-					   returnDataFrame=FALSE, returnLoglik=FALSE)
+                       returnDeps=FALSE, returnChains=FALSE, returnChangeContributions = FALSE,
+                       byWave=FALSE, returnDataFrame=FALSE, returnLoglik=FALSE)
 {
     ## retrieve stored information
     f <- FRANstore()
@@ -86,7 +86,8 @@ simstats0c <- function(z, x, data=NULL, effects=NULL, fromFiniteDiff=FALSE,
 				 randomseed2, returnDeps, z$FinDiff.method,
 				 !is.null(z$cl) && useStreams, z$addChainToStore,
 				  z$returnChains, returnLoglik, 
-				  z$returnActorStatistics, z$returnChangeContributions)
+				  z$returnActorStatistics, z$returnChangeContributions,
+                  z$returnDataFrame)
     if (!fromFiniteDiff)
     {
         if (z$FinDiff.method)

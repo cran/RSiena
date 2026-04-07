@@ -102,7 +102,7 @@ phase3.2 <- function(z, x, ...)
 	z <- CalculateDerivative3(z, x)
 	if (!x$simOnly)
 	{
-		z <- PotentialNR(z, x, FALSE)
+		z <- PotentialNR(z, x, FALSE) # this calculates z$dinv
 	}
     if (any(z$newfixed))
     {
@@ -189,6 +189,7 @@ phase3.2 <- function(z, x, ...)
 			B0 <- t(gamma) %*% W
 			B <- solve(diag(sqrt(rowSums(B0*B0)))) %*% B0 # Row-normalized matrix B
 			D0 <- B%*%gamma # Matrix D = B * gammaT 
+# I (TS) think the following is superfluous, because z$dinvv is never used in Phase 3.
 			if (inherits(try(D0inv <- solve(D0), silent=TRUE),
  						"try-error"))
 			{
@@ -802,6 +803,8 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 			}
 			z$sims[[z$nit]] <- zz$sims
 			z$chain[[z$nit]] <- zz$chain
+			z$changeContributions[[z$nit]] <- zz$changeContributions
+
 			fra <- fra + z$targets
 			if (z$thetaFromFile)
 			{
@@ -824,6 +827,9 @@ doPhase1or3Iterations <- function(phase, z, x, zsmall, xsmall, nits, nits6=0,
 					z$sf2s <- z$sf2s + zz[[i]]$fra
 				}
 				z$sims[[z$nit + (i - 1)]] <- zz[[i]]$sims
+				## To allow returning chains and changeContributions in parallel?
+				# z$chain[[z$nit + (i - 1)]] <- zz[[i]]$chain
+				# z$changeContributions[[z$nit + (i - 1)]] <- zz[[i]]$changeContributions
 				if (z$thetaFromFile)
 				{
 					z$thetaUsed[z$nit + (i - 1), ] <- zsmall$theta

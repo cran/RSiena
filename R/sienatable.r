@@ -41,10 +41,34 @@ shortBayesResults <- function(x, nfirst=NULL){
 	dfr
 }
 
-##@siena.table siena07 Saves latex or html table of estimates
+write_result <- function(x, ...) UseMethod("write_result", x)
+
+##@write_result.sienaFit method for siena.Fit
+write_result.sienaFit <- function(x, type='tex',
+	fileName=NULL,
+	vertLine=TRUE, tstatPrint=FALSE,
+	sig=FALSE, d=3, ...)
+{	
+	if (is.null(fileName))
+	{
+		fileName <- deparse(substitute(x))
+# Check if it looks like a pipe chain 
+		if (any((grepl("%>%|\\|>", fileName))))
+		{
+			stop("Cannot auto-generate filename from piped data. Please provide filename explicitly.") 
+		}
+	}
+	fileName <- paste(fileName, '.', type, sep="")
+	siena_table(x, type=type, fileName=fileName,
+		vertLine=vertLine, tstatPrint=tstatPrint, sig=sig, d=d, ...)
+}
+
+
+##@siena_table siena07 Saves latex or html table of estimates
 ## for a sienaFit or sienaBayesFit object
-siena.table <- function(x, type='tex',
-	file=paste(deparse(substitute(x)),'.',type,sep=""),
+# Also see fromObjectToText in siena07.r,which does this more drastically
+siena_table <- function(x, type='tex',
+	fileName=NULL,
 	vertLine=TRUE, tstatPrint=FALSE,
 	sig=FALSE, d=3, nfirst=NULL)
 {
@@ -63,18 +87,31 @@ siena.table <- function(x, type='tex',
 			b <- gsub('<=', '$\\leq$', fixed=TRUE, b)
 			b <- gsub('sqrt', '$\\sqrt{}$', fixed=TRUE, b)
 			b <- gsub('&', '.', fixed=TRUE, b)
+			b <- gsub('#', '.', fixed=TRUE, b)
+		}
+		else
+		{
+			b <- gsub(' ', '_', fixed=TRUE, b)
+			b <- gsub('.', '_', fixed=TRUE, b)
+			b <- gsub('#', '_', fixed=TRUE, b)
 		}
 # Note: R changes \\ to \ but still displays \\ in printing the string.
 		b <- gsub('^(1/1)', '', fixed=TRUE, b)
 		b <- gsub('^(1/2)', '(sqrt)', fixed=TRUE, b)
 		b <- gsub('^', '', fixed=TRUE, b)
 		b <- gsub('_', '-', fixed=TRUE, b)
-		b <- gsub('#', '.', fixed=TRUE, b)
 		b
 	}
 
 	objectName <- deparse(substitute(x))
-	fileName <- file
+	if (is.null(fileName))
+	{	
+		if (grepl("%>%|\\|>", objectName)) 
+		{
+			stop("Cannot auto-generate filename from piped data. Please provide filename explicitly.") 
+		}
+		fileName <- paste(objectName,'.',type,sep="")
+	}
 	fromBayes <- FALSE
 	xkind.string <- "sienaFit"
 	tstat <- tstatPrint

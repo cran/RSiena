@@ -1,3 +1,276 @@
+2026-04-07
+
+# RSiena 1.6.4
+
+## Changes in RSiena:
+### Bug correction
+  * For `test_gof`,  
+    a bug in the handling of auxiliary functions was fixed.
+
+
+2026-03-23
+
+# RSiena 1.6.3
+
+## Changes in RSiena:
+### New function
+  * Auxiliary function `egoAlterCovarComb` for `test_gof`. 
+### Effects
+  * New effects `outdegMixedPop` and `indegMixedPop`.
+  * `endowment`=TRUE for `XWX1`, `XWX2`, and `cl.XWX1`.
+### Functionality
+  * Option `splitDepvars` for `set_algorithm_saom`.
+  * The quasi-Newton Raphson update step at the end of Phase 1 used
+    matrix `dinvv`, which is the partially diagonalized version of `dinv`.
+    This now uses `dinvv`, unless `splitDepvars`=-1.
+  * Column names `inter1` and `inter2` of the result of `effectsDocumentation` 
+    changed to `covar1` and `covar2`.
+  * Better error message for `set_interaction` in case `shortNames`
+    is not a list.
+  * In `sienaTest` objects, if the test is one-dimensional, the standard error
+    of the linear combination is given as an additional component `sterror`
+    and included in `print.sienaTest`. 
+  * Mean structural dissimilarity values for balance calculations
+    dropped from `write_report` (almost never used, therefore confusing).
+  * Several checks for objects being of class 'siena' extended to 
+    alternatively being of class 'sienadata'.
+  * `newparallel.R' extended by a test using `test_gof`. 
+  * `importFrom` used for package `network`.
+  * " " and "." changed to "_" in `fromObjectToText` (names for `coef` 
+    and `vcov`) and `fromObjectToText` (in `siena_table`). 
+### C++ coding
+  * `Rf_PrintValue` in `Chain.cpp` dropped 
+    (was leftover from earlier debugging). 
+  * `Rf_findVar` replaced by `R_getVar` in `siena07models.cpp`
+    in view of requirements of `R 4.5.3`; requires at least `R 4.5.0`.
+  * Depends on R changed to `(>= 4.5.0)`. 
+### Bug correction
+  * For `transformScript`, processing of `Multipar.RSiena` added. 
+  * For `test_gof`,  
+    all arguments are transferred to the call of `sienaGOF`.
+  * For `interpret_selection`,  
+    all arguments are transferred to the call of `selectionTable`. 
+  * For `interpret_influence`,  
+    all arguments are transferred to the call of `influenceTable`. 
+### Documentation 
+  * Manual updated to new function names and use of `autograph` for
+    plotting influence and selection tables. 
+  * In help file for `set_interaction`, treatment of `shortNames`
+    corrected.
+  * In help file for `set_effect`, treatment of `covar1` and `covar2`
+    corrected.
+
+
+2026-02-26
+
+# RSiena 1.6.2
+
+## Changes in RSiena:
+### New function
+  * Function `transformScript`.
+### Function names for exported functions in R
+  * New method `write_report` for `sienadata` objects, 
+    replacing `print01Report` (which still is retained).
+### Functionality
+  * Attribute `EgoAlter` added to `sienaGOF` results,
+    which is `TRUE` currently only for `egoAlterCombi` 
+    (the purpose is to use it for plotting). 
+### Coding
+  * `returnDeps` mentioned explicitly as an argument for `siena`
+    (and not just as an element of ...). 
+  * Some occurrences of deparse(substitute(.)) accompanied by
+    a check and subsequent potential stop in case of 
+    objects resulting from piping.
+  * `sienaAlgorithmCreate` modified for different operation 
+    in case it is called from `transformScript`.
+  * 'parallel.R' in the `tests` directory is replaced by 'newparallel.R' 
+    which uses the new names and no `parallelTesting`. 
+
+2026-01-20
+
+# RSiena 1.6.1
+
+## Changes in RSiena:
+### New effects
+  * Effects `sameXOutAct`, `diffXOutAct`, `crossXOutAct` also implemented
+    for two-mode networks.
+  * Parameter values 0 and -1 added for `outAct` and `inPop`. 
+### Coding
+  * <math.h> replaced by <cmath> in C++ code.
+
+2026-01-04
+
+# RSiena 1.6.0
+
+## Changes in RSiena:
+### Function names for exported functions in R
+  * Overhaul of naming system, which required many new function and methods.
+### Bug correction
+  * `checkImpossibleChanges` restricted to networks.
+  * `checkZeroChanges` adapted to also cover behavioral variables.
+### Functionality
+  * Warning if `egoAlterCombi` is used with more than 99 ego-alter values.
+### Documentation
+  * Chapter 3 was inserted in the manual to explain the new function names.
+    Appendix A, "List of Functions in Order of Execution", was dropped
+    and the author of this appendix, Paulina Preciado Lopez, was
+    accordingly dropped from the list of authors of the manual.
+    Greetings, Paulina!}
+  * Example of `dyadicCov` for ego-alter combinations dropped,
+    as this is already covered by `egoAlterCombi`.
+
+2025-11-03
+
+# RSiena 1.5.7
+
+## Changes in RSiena:
+## Effects
+  * Completely refactored diffusion rate effects as a child of newly
+    constructed abstract class behaviorRateEffect that is used in 
+    StatisticCalculator and DependentVariable for calculation of rates, scores
+    and statistics. New diffusion rate effects can now be added relatively 
+    easily with a new cpp file. Closes #97 .
+  * NetworkDependentBehaviorEffects can now also use twopath tables. 
+    Also added a two-path-count helper function.  
+  * New distance 2 exposure diffusion rate effects `totInExposureDist2`, 
+   `totAInExposureDist2`, `anyInExposureDist2`, behavior effects `totPopAlt`,
+   `totGroup`, `indegAvGroup`, `indegtotGroup`, `totGwdspFFAlt`, `totGwdspFBAlt_nc`
+   and new behavior effects without centering `quad_nc`, 
+   `avInAltDist2_nc`, `totInAltDist2_nc`, `avTinaltDist2_nc`, `totAInAltDist2_nc`, 
+   `totGwdspFFAlt_nc`, `totGwdspFBAlt_nc`.
+ * New effects `avSameXAlt`, `totSameXAlt`, `avSameXInAlt`, `totSameXInalt`,
+   `avXRecAlt`, totXRecAlt`, `avSameXRecAlt`, `totSameXRecAlt`,
+   `avAltSameX`, `totAltSameX`, `avRecAltSameX`, `totRecAltSameX`.
+  * New effects `avInAltAltX`, `totInAltAltX`, `avRecAltAltX`, `totRecAltAltX`, 
+    `avAltSameX`, `totAltSameX`, `avInAltSameX`, `totInAltSameX`, 
+    `avRecAltSameX`, `totRecAltSameX`.
+### Coding
+  * Slightly refactored contribution, target and actortarget getter to use
+  a unified API for setting up C++ objects.
+  * Corrected how static contributions are extracted to actually calculate
+    correct contributions for the first potential ministep in each period, 
+    using the values at the start of the period to calculate allowed changes and
+    effect change statistics. This means that there is no calculation of the 
+    first ministep after the last observation wave anymore. This also means that 
+    sienaRI does not calculate a RI measure at the last observation moment. 
+    Added clarification in and cleaned up the documentation and scripts 
+    for `siena07`, `sienaRI`, and `sienaRIDynamics`.
+  * Eliminated additional test file for chains and integrated into `parallel.R`
+    as far as it seemed necessary.
+  * Cleaned up some legacy code related to rate effects.
+  * Reprogrammed effects `avXAlt`, `totXAlt`, `avXInAlt`, `totXInalt` 
+    for greater efficiency (class `AltersCovariateAverageEffect`).
+    Removed class `InAltersCovariateAverageEffect`.
+  * Dropped `EpochSimulation::updateParameters`, 
+    `DependentVariable::updateBasicRate`, 
+    `DependentVariable::updateEffectParameters`. These were not used at all.
+  * Dropped algorithm as an argument for function `unpackData` and 
+    `getChangeContributions`, and as a consequence also from  
+    `getTheActorStatistics` and argument `x` from `actorTargets`.
+### Documentation
+  * A new subsection was added to `Siena_algorithms` to explain the new 
+    construction of diffusion rate effects.
+
+2025-10-28
+
+# RSiena 1.5.6
+
+## Changes in RSiena:
+### Coding
+  * The virtual function `preprocessEgo` now is defined properly for 
+    the function classes `NetworkAlterFunction`, 
+   `CovariateNetworkAlterFunction`, `DoubleCovariateFunction`, 
+   `SameCovariateInTiesFunction`. 
+   This was done to correct a bug that appeared for effect `sameXInPop`
+   for a two-mode network; perhaps there was a similar bug for `diffXInPop`,
+   `sameXOutAct`, `diffXOutAct`, and `sameXVInPop`. 
+### Functionality:
+  * Auxiliary function `egoAlterCombi` for GoF now omits values 
+    where the behavioral variable is `NA`.
+  * Various small additions to output of `siena07` for `verbose=TRUE` 
+    (`phase1.r` and `phase2.r`). 
+
+# RSiena 1.5.5
+
+## Changes in RSiena:
+### Coding
+  * The virtual function `preprocessEgo` now is defined properly for 
+    the function classes `NetworkAlterFunction`, 
+   `CovariateNetworkAlterFunction`, `DoubleCovariateFunction`, 
+   `SameCovariateInTiesFunction`. 
+   This was done to correct a bug that appeared for effect `sameXInPop`
+   for a two-mode network; perhaps there was a similar bug for `diffXInPop`,
+   `sameXOutAct`, `diffXOutAct`, and `sameXVInPop`. 
+### Functionality:
+  * Auxiliary function `egoAlterCombi` for GoF now omits values 
+    where the behavioral variable is `NA`.
+  * Various small additions to output of `siena07` for `verbose=TRUE` 
+    (`phase1.r` and `phase2.r`). 
+
+2025-10-17
+
+# RSiena 1.5.3
+
+### Effects
+  * New effects `quad_cc`, `avAlt_cc`, `totAlt_cc`.
+
+2025-09-06
+
+# RSiena 1.5.2
+
+## Changes in RSiena:
+### Functionality:
+  * `selectionTable` got an attribute `quad` indicating whether the plot
+    is a quadratic function.
+  * Users can now extract now extract the changeContributions when running
+    `siena07` by setting an argument `returnChangeContributions=TRUE`. 
+    If used together with `nsub=0` and `prevAns` or modified initial 
+    values in the effects object, especially useful for post-estimation,
+    e.g. in `sienaRIDynamics`.
+  * `sienaRIDynamics` uses siena07 directly now and is reinstated.
+### Effects
+  * New effects `outActMore_ego`, `outActSqrtMore_ego`, `outMore_ego`,
+    `outPopMore`, `outPopSqrtMore`, `outPopThreshold`.
+### Coding
+  * Use `(any(!gmm))` in  `initializeFRAN` to allow the use of a `prevAns` 
+    object with a different estimation method for a multigroup estimation.
+
+2025-07-12
+
+# RSiena 1.5.1
+
+## Changes in RSiena:
+### Functionality:
+  * `sienaRI` reinstated.
+  * Option `prML=2` for maximum likelihood estimation 
+    using the `move` proposal step reinstated (`sienaAlgorithmCreate`).
+### Effects
+  * New effects `divOut_ego`, `divIn_ego`. 
+### Coding
+  * Imported functions from packages `Matrix`, `lattice`, `parallel`, `MASS`, 
+    and `xtable` mentioned specifically in the `Namespace`
+    instead of importing these entire packages.
+
+
+# RSiena 1.5.0
+
+2025-07-05
+
+## New CRAN version
+
+## Changes in RSiena:
+### Maintainer
+  * Christian Steglich now is maintainer.
+
+# RSiena 1.4.25
+
+2025-07-05
+
+## Changes in RSiena:
+### Coding
+  * Undid other changes in version 1.4.23 to
+    `getTargetsChangeContributions` in `siena07setup.cpp`.
+
 # RSiena 1.4.24
 
 2025-07-04
@@ -261,8 +534,9 @@
 
 # RSiena 1.4.7
 
-2024-02-20
+2024-02-21
 
+## New CRAN version
 
 ## Changes in RSiena:
 

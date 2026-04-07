@@ -8,8 +8,16 @@
 # * Description: This module contains the code for the meta analysis of a
 # * collection of Siena fits.
 # *****************************************************************************/
+
+##@estimate_meta_saom new name for siena08
+meta_siena <- function(..., outputName = "sienaMeta", bound = 10, alpha = 0.05, maxit=20)
+{
+	siena08(..., projname = outputName, bound = bound, alpha = alpha, maxit=maxit)
+}
+
+
 ##@siena08 siena08
-siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
+siena08 <- function(..., projname="sienaMeta", bound=10, alpha=0.05, maxit=20)
 {
 	fitList <- (!inherits(list(...)[[1]], 'sienaFit'))
 	if (fitList)
@@ -36,6 +44,11 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 	if (fitList)
 	{
 		listName <- deparse(substitute(fitList))
+# Check if it looks like a pipe chain 
+		if (any(grepl("%>%|\\|>", listName)))
+		{
+			stop("Cannot auto-generate filename from piped data. Please apply this function to an object with a name.") 
+		}
 		dep <- paste(listName, seq(along=fitList), sep='')
 	}
 	else
@@ -222,6 +235,7 @@ siena08 <- function(..., projname="sienaMeta", bound=5, alpha=0.05, maxit=20)
 	meta$startingDate <- date()
     meta
 }
+
 
 
 ## methods

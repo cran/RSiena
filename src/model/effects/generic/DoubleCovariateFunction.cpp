@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include <stdexcept>
-#include <math.h> /* round */
+#include <cmath> /* round, sqrt */
 #include "DoubleCovariateFunction.h"
 #include "data/Data.h"
 #include "data/ConstantCovariate.h"
@@ -93,6 +93,17 @@ void DoubleCovariateFunction::initialize(const Data * pData,
 			this->lSecondCovariateName +
 			"' expected for second variable.");
 	}
+}
+
+
+/**
+ * Does the necessary preprocessing work for calculating the alter
+ * function for a specific ego. This method must be invoked before
+ * calling DoubleCovariateFunction::value(...).
+ */
+void DoubleCovariateFunction::preprocessEgo(int ego)
+{
+	AlterFunction::preprocessEgo(ego);
 }
 
 

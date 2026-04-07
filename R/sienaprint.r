@@ -13,8 +13,8 @@
 ## * even if these main effects were not requested.
 ## *
 ## ****************************************************************************/
-##@print.siena Methods
-print.siena <- function(x, ...)
+##@print.sienadata Methods
+print.sienadata <- function(x, ...)
 {
     ##@onlys internal print.siena; prints matrix attributes of x$depvar
 	onlys <- function(x, attrib){
@@ -52,7 +52,7 @@ print.siena <- function(x, ...)
 		}
 	}
 # begin main method siena.print proper
-	if (!inherits(x, "siena"))
+	if ((!inherits(x, "sienadata")) & (!inherits(x, "siena")))
 	{
         stop("not a legitimate Siena data object")
 	}
@@ -254,6 +254,11 @@ print.sienaDependent <- function(x, ...)
 print.sienaFit <- function(x, tstat=TRUE, ...)
 {
 	objectName <- deparse(substitute(x))
+# Check if it looks like a pipe chain 
+	if (grepl("%>%|\\|>", objectName)) 
+	{
+		stop("Cannot auto-generate filename from piped data. Please apply this print to an object with a name.") 
+	}
 	if (!inherits(x, "sienaFit"))
 	{
         stop("not a legitimate Siena model fit")
@@ -1308,3 +1313,9 @@ print.chains.data.frame <- function(x, ...)
 		print(endState)
 	}
 }
+
+## extra for backward compatibility with siena objects
+## created before version 1.6:
+
+##@print.siena Methods
+print.siena <- print.sienadata

@@ -832,7 +832,7 @@ getEffects <- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePer
 		{
 			objEffects[grepl("linear shape", objEffects$effectName) &
 				objEffects$type == 'eval',
-			c('include', 'initialValue','untrimmedValue')]  <-
+				c('include', 'initialValue','untrimmedValue')]  <-
 				list(TRUE, starts$tendency, starts$untrimmed)
 		}
 		else
@@ -842,7 +842,8 @@ getEffects <- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePer
 		if (attr(depvar, "range") >= 2)
 		{
 			objEffects[grepl("quadratic shape", objEffects$effectName) &
-				objEffects$type == 'eval','include'] <- TRUE
+				objEffects$type == 'eval' &
+				objEffects$shortName != 'quad_cc' & objEffects$shortName != 'quad_nc','include'] <- TRUE
 			## no starting value for quadratic effect
 		}
 
@@ -1335,7 +1336,7 @@ getEffects <- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePer
 		if (constant)
 		{
 			covObjEffects <-
-				covObjEffects[!(covObjEffects$shortName %in% c("avGroupEgoX")),]
+				covObjEffects[!(covObjEffects$shortName %in% c("avGroupEgoX", "totGroupEgoX")),]
 		}
 
 # these lines tentatively dropped version 1.2-5
@@ -1394,7 +1395,8 @@ getEffects <- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePer
 					"degAbsDiffX", "degPosDiffX", "degNegDiffX",
 					"altInDist2", "totInDist2", "simEgoInDist2", 
 					"sameEgoInDist2", "sameXInPop", "diffXInPop",
-					"sameXCycle4", "inPopX", "inActX", "avGroupEgoX"), ]
+					"sameXOutAct", "diffXOutAct", "crossXOutAct",
+					"sameXCycle4", "inPopX", "inActX", "avGroupEgoX", "totGroupEgoX"), ]
 			covRateEffects <- createEffects("covarBipartiteRate", covarname,
 				name=varname,
 				groupName=groupName, group=group,
@@ -1598,7 +1600,7 @@ getEffects <- function(x, nintn = 10, behNintn=4, getDocumentation=FALSE, onePer
 		tt <- getInternals()
 		return(tt)
 	}
-	if (!inherits(x, 'sienaGroup') && !inherits(x, 'siena'))
+	if (!inherits(x, 'sienaGroup') && !inherits(x, 'sienadata') && !inherits(x, 'siena'))
 	{
 		stop('Not a valid siena data object or group')
 	}
@@ -2319,3 +2321,28 @@ getBipartiteStartingVals <- function(depvar)
 	list(startRate=startRate, degree=alphaf1, alpha=alpha, prec=prec, tmp=tmp,
 		untrimmed = untrimmed)
 }
+
+
+make_specification <- function(x, ...) UseMethod("make_specification", x)
+
+##@ make_specification DataCreate method for siena data sets
+make_specification.sienadata <- function(x, nintn = 10, behNintn=4, 
+										onePeriodSde=FALSE, ...)
+{
+	getEffects(x, nintn = nintn, behNintn=behNintn, 
+					getDocumentation=FALSE, onePeriodSde=onePeriodSde)
+}
+
+##@ make_specification DataCreate method for siena data sets
+make_specification.sienaGroup <- function(x, nintn = 10, behNintn=4, 	
+											onePeriodSde=FALSE, ...)
+{
+	getEffects(x, nintn = nintn, behNintn=behNintn, 
+					getDocumentation=FALSE, onePeriodSde=onePeriodSde)
+}
+					
+## extra for backward compatibility with siena objects
+## created before version 1.6:
+
+##@make_specification.siena Methods
+make_specification.siena <- make_specification.sienadata

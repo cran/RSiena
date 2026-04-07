@@ -9,7 +9,7 @@
  * OutdegreePopularityEffect class.
  *****************************************************************************/
 
-#include <cmath>
+#include <cmath> /* round, sqrt */
 #include "data/NetworkLongitudinalData.h"
 #include "OutdegreePopularityEffect.h"
 #include "utils/SqrtTable.h"
@@ -18,23 +18,39 @@
 #include "data/NetworkLongitudinalData.h"
 #include "model/EffectInfo.h"
 #include "data/Data.h"
+#include "utils/Utils.h"
+
 
 namespace siena
 {
 
 /**
  * Constructor.
+ * The use of ltrunc is only for clarity in programming.
  */
 OutdegreePopularityEffect::OutdegreePopularityEffect(
-		const EffectInfo * pEffectInfo, bool root, bool centered) :
-	NetworkEffect(pEffectInfo)
+		const EffectInfo * pEffectInfo, bool root, bool centered, 
+					bool threshold, bool trunc) : NetworkEffect(pEffectInfo)
 {
 	this->lroot = root;
 	this->lsqrtTable = SqrtTable::instance();
 	this->lcentered = centered;
 	this->lcentering = 0.0;
+	this->lthreshold = threshold;
+	this->ltrunc = trunc;
+	this->lp = pEffectInfo->internalEffectParameter();
+	if (this->ltrunc)
+	{
+		if (this->lroot)
+		{
+			this->lp = this->lsqrtTable->sqrt(int(round(this->lp)));
+		}
+	}
+	this->luseStart = (int(round(this->lp)) == 0);
+	this->luseBoth = (int(round(this->lp)) <= 0);
 	this->lvariableName = pEffectInfo->variableName();
 // centering and root cannot occur simultaneously
+// truncation and (useStart or useBoth) cannot occur simultaneously
 }
 
 /**
@@ -65,13 +81,33 @@ void OutdegreePopularityEffect::initialize(const Data * pData,
 double OutdegreePopularityEffect::calculateContribution(int alter) const
 {
 	int degree = this->pNetwork()->outDegree(alter);
-	double change = degree - this->lcentering;
+	double change = degree;
 
 	if (this->lroot)
 	{
 		change = this->lsqrtTable->sqrt(degree);
 	}
-
+		
+	if (this->ltrunc)
+	{
+		if (change <= this->lp + EPSILON)
+		{
+			change = 0;
+		}
+		else
+		{
+			change = change - this->lp;
+		}
+		if ((this->lthreshold) && (change > 0.0001))
+		{
+			change = 1;
+		}
+	}
+	else	
+	{
+		change = change - this->lcentering;
+	}
+	
 	return change;
 }
 
@@ -83,20 +119,25 @@ double OutdegreePopularityEffect::calculateContribution(int alter) const
  */
 double OutdegreePopularityEffect::tieStatistic(int alter)
 {
-	double statistic;
-	const Network * pNetwork = this->pNetwork();
-	int degree = pNetwork->outDegree(alter);
-
-	if (this->lroot)
+	double statistic = 0;
+	if (this->luseBoth)
 	{
-		statistic = this->lsqrtTable->sqrt(degree);
+		statistic = this->pNetwork()->outDegree(alter);
+		const Network* pStart = this->pData()->pNetwork(this->period());
+		int prevOutDegree = pStart->outDegree(alter);
+		if (this->luseStart)
+		{
+			statistic = prevOutDegree;			
+		}
+		else
+		{
+			statistic = statistic + prevOutDegree;			
+		}
 	}
 	else
 	{
-		// There was a bug here until version 1.1-219
-		statistic = degree - this->lcentering;
+		statistic = calculateContribution(alter);
 	}
-
 	return statistic;
 }
 
