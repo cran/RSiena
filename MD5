@@ -1,7 +1,7 @@
-aa8f653d21b731dba6d03bef6cba0f68 *DESCRIPTION
+679aa69ac58e2ce12e84ee1c8267527f *DESCRIPTION
 e62637ea8a114355b985fd86c9ffbd6e *LICENSE
 cd4387f2974512ac29e6e50fe5a0ed12 *NAMESPACE
-d16bf6ae2ac35be53c6a430d163d54a4 *NEWS.md
+f8270187f34d9bd9f886368a0cea8273 *NEWS.md
 dd4e63cb37589f288e2a49235438f1e1 *R/RSienaRDocumentation.r
 22fc33b531e8f3ec272e6aff68691bb0 *R/Sienatest.r
 34ac2233c395330ec4ce140c2e4e022f *R/TransformScript.R
@@ -759,7 +759,7 @@ b193670fcad4bcc2b9d13b02a9663034 *src/network/layers/PrimaryLayer.h
 ecaa3e908c507ac44c2f81b97222d210 *src/siena07models.h
 b298380fea8cda22784d826bb5329110 *src/siena07setup.cpp
 9275fccdf741d25a220481c8173d6118 *src/siena07setup.h
-3ccfb80c1d1b9d171cee670c25632f99 *src/siena07utilities.cpp
+6053d4020e88b3511eb91fdc0892c7e1 *src/siena07utilities.cpp
 8fc8f4be08564b2ade761a2e5eb38f39 *src/siena07utilities.h
 f162f43da4b68154579489f1cf3b6767 *src/sources.list
 31a2d77c872acec34fca81d7d95ea014 *src/utils/LogTable.cpp
